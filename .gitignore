@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+.Python
+
+# Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# Runtine & output data
+data/
+data/tmp/
+data/intermediate/
+data/parsed_data.json
+data/passport_pages.json
+data/execution_report.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Configs with secrets — только примеры в репо
+configs/parser_config.json
+configs/parser_config.yaml
+configs/parser_config.yml
+configs/confluence_config.json
+configs/confluence_config.yaml
+configs/confluence_config.yml
+
+# Logs
+*.log

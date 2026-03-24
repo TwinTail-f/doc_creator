@@ -1,0 +1,17 @@
+{
+  "url": "https://confluence.company.com",
+  "token": "YOUR_ATLASSIAN_API_TOKEN",
+  "username": "firstname.lastname@company.com",
+
+  "space": "PLATFORM",
+  "cloud": false,
+  "verify_ssl": false,
+
+  "parent_id": "123456789",
+  "page_title": "Сборки компонентов Платформы 2.0",
+
+  "passports_root_parent_id": "987654321",
+
+  "confluence_request_timeout": 30,
+  "target_platform_version": "Platform 2.0"
+}
