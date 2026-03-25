@@ -24,6 +24,15 @@ class FinalizeStep(BaseParseStep):
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:
+        """
+        Финализирует результаты пайплайна.
+
+        Вычисляет флаги ``is_header_only``, удаляет профили с ``exists=False``,
+        сортирует компоненты по имени и собирает ``ParsedResult``.
+
+        Args:
+            ctx: Контекст пайплайна с накопленными компонентами.
+        """
         self._compute_header_only_flags(ctx.components)
         ctx.components.sort(key=lambda c: c.name.lower())
 
@@ -37,6 +46,15 @@ class FinalizeStep(BaseParseStep):
 
     @staticmethod
     def _compute_header_only_flags(components: List[Component]) -> None:
+        """
+        Устанавливает флаг ``is_header_only`` для каждого ``Release``.
+
+        Компонент считается header-only, если у всех его профилей пусты
+        настройки Conan и хотя бы у одного варианта пусты опции.
+
+        Args:
+            components: Список компонентов для обработки.
+        """
         for comp in components:
             for release in comp.releases:
                 profile_builds = release.profile_builds
@@ -53,6 +71,15 @@ class FinalizeStep(BaseParseStep):
 
     @staticmethod
     def _filter_empty_profiles(components: List[Component]) -> int:
+        """
+        Удаляет записи ``ProfileBuild`` с ``exists=False`` из всех релизов.
+
+        Args:
+            components: Список компонентов для обработки.
+
+        Returns:
+            Количество удалённых записей профилей.
+        """
         removed = 0
         for comp in components:
             for release in comp.releases:
@@ -66,8 +93,20 @@ class FinalizeStep(BaseParseStep):
     @staticmethod
     def _build_result(ctx: PipelineContext) -> ParsedResult:
         """
-        3.4 Убрана двойная сериализация model_dump() + model_validate().
-        ParsedResult принимает объекты Component напрямую.
+        Собирает финальный ``ParsedResult`` из контекста пайплайна.
+
+        Создаёт объект результата с временной меткой, версией платформы
+        и списком компонентов. При ошибке валидации Pydantic бросает
+        ``ParsingError``.
+
+        Args:
+            ctx: Контекст пайплайна с финализированными компонентами.
+
+        Returns:
+            Валидированный ``ParsedResult``.
+
+        Raises:
+            ParsingError: Если Pydantic-валидация не прошла.
         """
         try:
             result = ParsedResult(

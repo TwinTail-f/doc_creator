@@ -1,12 +1,17 @@
 """
 Клиент для взаимодействия с REST API TFS.
 
-Живёт в ``parser/`` — используется только парсером
-(``ManifestParser``, ``OptionsResolver``, ``DockerResolver``).
+Живёт в ``infrastructure/`` — используется fetcher-классами парсера
+(``ManifestParser``, ``DockerFetcher``, ``OptionsFetcher``).
 """
+from __future__ import annotations
+
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from autodoc.config.schemas import ParserConfigSchema
 
 import requests
 
@@ -71,6 +76,28 @@ class TFSClient:
             timeout=timeout,
         )
         self.session.params = {'api-version': self._API_VERSION}
+
+    @classmethod
+    def from_config(cls, config: ParserConfigSchema) -> TFSClient:
+        """
+        Создаёт ``TFSClient`` из конфигурации парсера.
+
+        Удобный фабричный метод — избавляет от повторения одинакового
+        блока инициализации в каждом fetcher-классе.
+
+        Args:
+            config: Валидированная конфигурация парсера.
+
+        Returns:
+            Настроенный экземпляр ``TFSClient``.
+        """
+        return cls(
+            username=config.tfs_username,
+            token=config.tfs_token,
+            max_retries=config.max_retries,
+            backoff_factor=config.retry_backoff_factor,
+            timeout=config.tfs_request_timeout,
+        )
 
     def download_properties(
         self,

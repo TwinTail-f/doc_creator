@@ -27,13 +27,7 @@ class ManifestParser:
             config: Конфигурация парсера. ``TFSClient`` создаётся внутри из config.
         """
         self._config = config
-        self._tfs = TFSClient(
-            username=config.tfs_username,
-            token=config.tfs_token,
-            max_retries=config.max_retries,
-            backoff_factor=config.retry_backoff_factor,
-            timeout=config.tfs_request_timeout,
-        )
+        self._tfs = TFSClient.from_config(config)
 
     def fetch(self, tmp_dir: Path, excluded: List[str]) -> List[Component]:
         """
@@ -76,6 +70,19 @@ class ManifestParser:
     # ------------------------------------------------------------------
 
     def _parse_files(self, files: List[Path], excluded: List[str]) -> List[Component]:
+        """
+        Парсит список ``.properties``-файлов манифестов в модели ``Component``.
+
+        Пропускает файлы, в которых отсутствует поле ``name``, а также
+        компоненты, чьё имя входит в список ``excluded``.
+
+        Args:
+            files: Список путей к ``.properties``-файлам.
+            excluded: Имена компонентов, которые следует пропустить.
+
+        Returns:
+            Список типизированных моделей ``Component``.
+        """
         target_platform = self._config.platform_version
         components: List[Component] = []
         parsed_count = 0
@@ -116,6 +123,21 @@ class ManifestParser:
         return components
 
     def _build_releases(self, props: dict, target_platform: str) -> List[Release]:
+        """
+        Строит список ``Release`` из словаря свойств манифеста.
+
+        Фильтрует версии платформы, не относящиеся к ``target_platform``.
+        Для каждой подходящей пары (компонент, платформа) создаёт ``Release``
+        с набором ``ProfileBuild``.
+
+        Args:
+            props: Словарь свойств, прочитанный из ``.properties``-файла.
+            target_platform: Целевая версия платформы (например ``2.0``).
+
+        Returns:
+            Список объектов ``Release``. Может быть пустым, если ни одна версия
+            не соответствует целевой платформе.
+        """
         comp_versions = [
             v.strip()
             for v in props.get('versions.component', '').split(',')
@@ -161,6 +183,20 @@ class ManifestParser:
 
     @staticmethod
     def _get_profiles_string(props: dict, c_ver: str, p_ver: str) -> str:
+        """
+        Извлекает строку со списком профилей сборки для заданной комбинации версий.
+
+        Сначала ищет ключ ``integration-profiles-develop-{c_ver}-{p_ver}``,
+        затем — ``profiles-{c_ver}-{p_ver}``.
+
+        Args:
+            props: Словарь свойств манифеста.
+            c_ver: Версия компонента.
+            p_ver: Версия платформы (включая канал, например ``2.0-stable``).
+
+        Returns:
+            Строка с именами профилей через запятую или пустая строка.
+        """
         key_develop = 'integration-profiles-develop-%s-%s' % (c_ver, p_ver)
         key_profiles = 'profiles-%s-%s' % (c_ver, p_ver)
         return props.get(key_develop, props.get(key_profiles, ''))

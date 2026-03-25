@@ -28,13 +28,7 @@ class DockerFetcher:
         Args:
             config: Конфигурация парсера. ``TFSClient`` создаётся внутри из config.
         """
-        self._tfs = TFSClient(
-            username=config.tfs_username,
-            token=config.tfs_token,
-            max_retries=config.max_retries,
-            backoff_factor=config.retry_backoff_factor,
-            timeout=config.tfs_request_timeout,
-        )
+        self._tfs = TFSClient.from_config(config)
 
     def fetch(self, urls: List[str], target_platform: str) -> DockerLinksMap:
         """
@@ -90,6 +84,13 @@ class DockerFetcher:
     # ------------------------------------------------------------------
 
     def _extract_from_yaml(self, content: dict, docker_links: DockerLinksMap) -> None:
+        """
+        Обходит раздел ``archs:`` YAML-профиля и заполняет маппинг ``docker_links``.
+
+        Args:
+            content: Разобранный YAML-словарь одного профиля сборки.
+            docker_links: Маппинг, который пополняется найденными Docker-образами.
+        """
         archs = content.get('archs', {})
         for key, val in archs.items():
             if key == 'common' or not isinstance(val, dict):
@@ -110,6 +111,15 @@ class DockerFetcher:
 
     @staticmethod
     def _extract_docker_image(arch_val: dict) -> str:
+        """
+        Извлекает URL Docker-образа из словаря значений одной архитектуры.
+
+        Args:
+            arch_val: Словарь значений одной архитектуры из YAML профиля.
+
+        Returns:
+            URL образа или пустая строка, если образ не найден.
+        """
         docker_val = arch_val.get('docker')
         if isinstance(docker_val, str):
             return docker_val
@@ -119,6 +129,17 @@ class DockerFetcher:
 
     @staticmethod
     def _add_aliases(name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
+        """
+        Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов.
+
+        Вставляет полное имя, имя файла, основу имени (stem) и форму
+        ``parent/stem`` для удобного поиска по различным вариантам написания.
+
+        Args:
+            name: Полное имя профиля (может содержать путь).
+            docker_img: URL Docker-образа, связанного с этим профилем.
+            docker_links: Маппинг, который пополняется псевдонимами.
+        """
         if not name:
             return
         path_obj = Path(name)

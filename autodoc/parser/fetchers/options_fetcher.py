@@ -29,13 +29,7 @@ class OptionsFetcher:
         Args:
             config: Конфигурация парсера. ``TFSClient`` создаётся внутри из config.
         """
-        self._tfs = TFSClient(
-            username=config.tfs_username,
-            token=config.tfs_token,
-            max_retries=config.max_retries,
-            backoff_factor=config.retry_backoff_factor,
-            timeout=config.tfs_request_timeout,
-        )
+        self._tfs = TFSClient.from_config(config)
         self._base_url = config.tfs_dep_components_url.rstrip('/')
 
     def fetch(self, components: List[Component]) -> OptionsMap:
@@ -82,6 +76,16 @@ class OptionsFetcher:
     # ------------------------------------------------------------------
 
     def _fetch_options_for_repo(self, repo_name: str, branch: str) -> Dict:
+        """
+        Загружает все файлы ``options.json`` из указанной ветки репозитория.
+
+        Args:
+            repo_name: Имя репозитория компонента в TFS.
+            branch: Ветка, из которой скачиваются опции (например ``release_1.0.0``).
+
+        Returns:
+            Словарь с ключами ``global`` и ``channels``, содержащий найденные опции.
+        """
         repo_data: Dict = {'global': {}, 'channels': {}}
         items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, repo_name)
 
@@ -117,6 +121,19 @@ class OptionsFetcher:
         ci_prefix: str,
         repo_data: Dict,
     ) -> None:
+        """
+        Скачивает один файл ``options.json`` и сохраняет результат в ``repo_data``.
+
+        При сетевых или JSON-ошибках пишет предупреждение в лог и возвращает
+        управление без исключения.
+
+        Args:
+            items_url: API URL для запроса элементов репозитория.
+            opt_path: Путь к файлу ``options.json`` внутри репозитория.
+            branch: Название ветки.
+            ci_prefix: Выбранный CI-префикс (например ``/ci-2.0/``).
+            repo_data: Словарь-накопитель, в который записываются найденные опции.
+        """
         try:
             response = self._tfs.get_file_content(items_url, opt_path, branch)
             if response.status_code != 200:
@@ -143,6 +160,18 @@ class OptionsFetcher:
 
     @staticmethod
     def _select_ci_prefix(options_paths: List[str]) -> str:
+        """
+        Выбирает CI-префикс с наивысшим приоритетом из списка доступных путей.
+
+        Проверяет наличие префиксов в порядке приоритета: ``/ci-2.0/`` перед
+        ``/ci-1.6/``. Возвращает пустую строку, если ни один не найден.
+
+        Args:
+            options_paths: Список путей к файлам в репозитории.
+
+        Returns:
+            Строка CI-префикса или пустая строка, если подходящий не найден.
+        """
         for prefix in _CI_PRIORITY:
             if any(prefix in p for p in options_paths):
                 return prefix
@@ -150,6 +179,19 @@ class OptionsFetcher:
 
     @staticmethod
     def _pick_options(repo_data: Dict, channel: str) -> Dict[str, str]:
+        """
+        Выбирает подходящий словарь опций для указанного канала.
+
+        Сначала ищет опции для конкретного канала, затем — глобальные.
+        Если ничего не найдено, возвращает заглушку ``{'1': ''}``.
+
+        Args:
+            repo_data: Словарь с ключами ``global`` и ``channels``.
+            channel: Имя канала (например ``stable``).
+
+        Returns:
+            Словарь опций ``{id: строка_опций}``.
+        """
         channels = repo_data.get('channels', {})
         if channel and channel in channels:
             return channels[channel]

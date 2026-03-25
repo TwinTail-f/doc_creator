@@ -118,6 +118,15 @@ class ReleasePageStrategy(
             return PublishReport(success=False, pages_published=0, errors=errors, details=details)
 
     def _load_passport_pages(self) -> Dict[str, Any]:
+        """
+        Загружает маппинг страниц паспортов из ``passport_pages.json``.
+
+        Если файл отсутствует или содержит невалидный JSON, возвращает
+        пустой словарь и пишет отладочное сообщение в лог.
+
+        Returns:
+            Словарь ``{comp_name: {version: {...}}}`` или пустой словарь.
+        """
         if self._passport_pages_file.exists():
             try:
                 return json.loads(self._passport_pages_file.read_text(encoding='utf-8'))
@@ -130,6 +139,16 @@ class ReleasePageStrategy(
         view_model: Dict[str, Any],
         passport_pages: Dict[str, Any],
     ) -> None:
+        """
+        Добавляет ссылки на страницы паспортов в модель представления релиза.
+
+        Для каждого компонента в ``view_model`` добавляет ключ
+        ``passport_versions``, содержащий только версии текущего релиза.
+
+        Args:
+            view_model: Словарь модели представления, формируемый трансформером.
+            passport_pages: Маппинг страниц паспортов из ``passport_pages.json``.
+        """
         if not passport_pages or 'components' not in view_model:
             return
         for comp in view_model.get('components', []):

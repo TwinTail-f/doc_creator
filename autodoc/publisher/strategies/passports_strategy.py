@@ -104,6 +104,19 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
     # ------------------------------------------------------------------
 
     def _publish_passport(self, comp_name: str, release_version: str) -> Tuple[str, int, str]:
+        """
+        Публикует страницу паспорта одного релиза компонента в Confluence.
+
+        Обеспечивает существование иерархии страниц, получает legacy-содержимое
+        существующей страницы, рендерит шаблон и публикует результат.
+
+        Args:
+            comp_name: Имя компонента.
+            release_version: Версия релиза.
+
+        Returns:
+            Кортеж ``(page_id, version, status)`` опубликованной страницы.
+        """
         version_page_id = self._hierarchy.ensure_hierarchy_exists(
             space=self._space,
             root_parent_id=self._root_page_id,
@@ -154,10 +167,29 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
 
     @staticmethod
     def _page_title(comp_name: str, release_version: str) -> str:
+        """
+        Формирует заголовок страницы Confluence для паспорта компонента.
+
+        Args:
+            comp_name: Имя компонента.
+            release_version: Версия релиза.
+
+        Returns:
+            Строка заголовка страницы.
+        """
         return 'Документация %s %s' % (comp_name, release_version)
 
     @staticmethod
     def _build_pages_map(details: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Строит маппинг опубликованных страниц паспортов по компоненту и версии.
+
+        Args:
+            details: Список записей с данными об опубликованных страницах.
+
+        Returns:
+            Словарь вида ``{comp_name: {version: {page_id, page_title, version}}}``.
+        """
         pages_map: Dict[str, Any] = {}
         for d in details:
             pages_map.setdefault(d['component_name'], {})[str(d['release_version'])] = {
@@ -168,6 +200,15 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         return pages_map
 
     def _save_passport_pages(self, pages_map: Dict[str, Any]) -> None:
+        """
+        Сохраняет маппинг страниц паспортов в файл ``passport_pages.json``.
+
+        При ошибках ввода-вывода записывает предупреждение в лог и не
+        прерывает выполнение.
+
+        Args:
+            pages_map: Маппинг ``{comp_name: {version: {...}}}``, готовый для сериализации.
+        """
         try:
             self._passport_pages_file.parent.mkdir(parents=True, exist_ok=True)
             self._passport_pages_file.write_text(

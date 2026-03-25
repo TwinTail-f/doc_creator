@@ -11,7 +11,7 @@ from autodoc.models.component import Component
 from autodoc.parser.conan.conan_runner import BaseConanRunner, Conan2Runner, ConanRawResult
 from autodoc.parser.conan.result_parser import ConanEnrichData, ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
-from autodoc.parser.conan.types import (
+from autodoc.models.conan_result import (
     ConanEnrichmentResult,
     ProfileConanData,
     ReleaseConanData,
@@ -92,6 +92,19 @@ class ConanManager:
     # ------------------------------------------------------------------
 
     def _run_tasks_parallel(self, tasks: List[ConanTask]) -> List[Optional[ConanRawResult]]:
+        """
+        Выполняет задачи Conan параллельно через ``ThreadPoolExecutor``.
+
+        Кеширует успешные результаты по ключу команды. Логирует прогресс
+        каждые 50 задач и по завершении.
+
+        Args:
+            tasks: Список задач для выполнения.
+
+        Returns:
+            Список сырых результатов ``ConanRawResult`` в том же порядке,
+            что и входные задачи. Элемент равен ``None`` для ненайденных задач.
+        """
         results: List[Optional[ConanRawResult]] = [None] * len(tasks)
         tasks_to_run: List[Tuple[int, ConanTask]] = []
 
@@ -207,6 +220,15 @@ class _PbAgg:
         self.errors: List[Dict] = []
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:
+        """
+        Применяет данные одной завершённой задачи к агрегатору.
+
+        Обновляет настройки Conan, фиксирует данные релиза при первом
+        успешном результате и добавляет вариант сборки в ``unique_variants``.
+
+        Args:
+            enrich: Структурированные данные из разобранного ответа Conan.
+        """
         self.any_success = True
         self.conan_settings = enrich.conan_settings
 
@@ -231,5 +253,16 @@ class _PbAgg:
 
 
 def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: List[Dict]) -> None:
+    """
+    Добавляет запись об ошибке в структурированный лог ошибок.
+
+    Гарантирует наличие всех промежуточных ключей в словаре с помощью
+    ``setdefault``.
+
+    Args:
+        errors: Вложенный словарь ошибок ``{comp: {version: {channel: {profile: [errs]}}}}``.
+        task: Задача, при выполнении которой возникли ошибки.
+        task_errors: Список записей об ошибках для данной задачи.
+    """
     n, v, ch, pr = task.comp_name, task.version, task.channel, task.profile_name
     errors.setdefault(n, {}).setdefault(v, {}).setdefault(ch, {})[pr] = task_errors
