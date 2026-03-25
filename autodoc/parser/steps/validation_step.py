@@ -46,11 +46,11 @@ class ArtifactoryValidationStep(BaseParseStep):
         variants_to_check = self._collect_variants(ctx.components)
 
         if not variants_to_check:
-            logger.info('ArtifactoryValidationStep: нет ссылок для проверки.')
+            logger.info('нет ссылок для проверки.')
             return
 
         logger.info(
-            'ArtifactoryValidationStep: проверяем %d ссылок…',
+            'проверяем %d ссылок…',
             len(variants_to_check),
         )
 
@@ -64,12 +64,11 @@ class ArtifactoryValidationStep(BaseParseStep):
                 timeout=_HEAD_TIMEOUT,
             )
             session.verify = False  # внутренние серверы могут иметь самоподписанные сертификаты
-
-        dead_variants = self._check_urls_parallel(variants_to_check, session)
+            dead_variants = self._check_urls_parallel(variants_to_check, session)
         self._remove_dead_variants(dead_variants)
 
         logger.info(
-            'ArtifactoryValidationStep: удалено %d недоступных вариантов (HTTP 404).',
+            'удалено %d недоступных вариантов (HTTP 404).',
             len(dead_variants),
         )
 

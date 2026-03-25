@@ -51,7 +51,7 @@ class ConanTaskBuilder:
         Формирует полный список задач для параллельного выполнения.
 
         Args:
-            components: Список компонентов с заполненными ``_conan_options_internal``.
+            components: Список компонентов с заполненными ``_build_option_sets_internal``.
             target_platform: Целевая платформа (например ``'2.0'``).
             artifactory_base_url: Базовый URL Artifactory для построения ссылок.
 
@@ -63,7 +63,7 @@ class ConanTaskBuilder:
 
         for comp in components:
             for release in comp.releases:
-                options_dict = release._conan_options_internal or {'1': ''}
+                options_dict = release._build_option_sets_internal or {'1': ''}
 
                 reference = _CONAN_REF_TEMPLATE.format(
                     name=comp.name,

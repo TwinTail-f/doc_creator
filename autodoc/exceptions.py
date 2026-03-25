@@ -1,6 +1,7 @@
 """
 Иерархия пользовательских исключений проекта autodoc.
 """
+from typing import Optional
 
 
 class DocGeneratorError(Exception):
@@ -34,7 +35,7 @@ class ComponentParsingError(ParsingError):
         self,
         component_name: str,
         message: str,
-        original_error: Exception = None,
+        original_error: Optional[Exception] = None,
     ) -> None:
         """
         Args:

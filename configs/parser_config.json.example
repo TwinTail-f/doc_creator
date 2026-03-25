@@ -1,4 +1,6 @@
 {
+  "_comment": "Скопируй этот файл в parser_config.json и заполни значения",
+
   "platform_version": "2.0",
   "platform_branch_name": "develop",
 

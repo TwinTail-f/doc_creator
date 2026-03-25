@@ -3,7 +3,7 @@
 """
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -58,7 +58,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
 
     def execute(self) -> PublishReport:
         """Публикует паспорта для всех компонентов и релизов."""
-        logger.info('PassportsStrategy: начало публикации паспортов')
+        logger.info('начало публикации паспортов')
         errors: List[str] = []
         details: List[Dict[str, Any]] = []
         pages_published = 0
@@ -85,13 +85,13 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
                 except Exception as e:
                     msg = 'Ошибка паспорта %s v%s: %s' % (comp.name, release.version, e)
                     errors.append(msg)
-                    logger.error('PassportsStrategy: %s', msg)
+                    logger.error('%s', msg)
 
         passport_pages_map = self._build_pages_map(details)
         self._save_passport_pages(passport_pages_map)
 
         logger.info(
-            'PassportsStrategy: опубликовано %d паспортов, ошибок: %d',
+            'опубликовано %d паспортов, ошибок: %d',
             pages_published, len(errors),
         )
         return PublishReport(
@@ -103,7 +103,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
 
     # ------------------------------------------------------------------
 
-    def _publish_passport(self, comp_name: str, release_version: str) -> tuple:
+    def _publish_passport(self, comp_name: str, release_version: str) -> Tuple[str, int, str]:
         version_page_id = self._hierarchy.ensure_hierarchy_exists(
             space=self._space,
             root_parent_id=self._root_page_id,
@@ -120,7 +120,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
             )
         except Exception as e:
             logger.warning(
-                'PassportsStrategy: не удалось получить legacy для %r: %s', page_title, e
+                'не удалось получить legacy для %r: %s', page_title, e
             )
 
         # 3.2 ValueError если компонент/версия не найдены
@@ -176,5 +176,5 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
             )
         except OSError as e:
             logger.warning(
-                'PassportsStrategy: не удалось сохранить passport_pages: %s', e
+                'не удалось сохранить passport_pages: %s', e
             )

@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from autodoc.models.component import Component
-from autodoc.parser.manifest.manifest_parser import ManifestParser
-from autodoc.parser.manifest.properties_reader import read_properties
+from autodoc.parser.fetchers.manifest_fetcher import ManifestParser
+from autodoc.parser.fetchers.properties_reader import read_properties
 
 # 4.2 Используем новое имя поля
 MINIMAL_CONFIG_DATA = {

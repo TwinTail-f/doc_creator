@@ -46,7 +46,7 @@ class FullCombinedTransformer(BaseDataTransformer):
         Returns:
             Словарь с секциями ``components`` и ``profiles``.
         """
-        logger.info('FullCombinedTransformer: трансформация в комбинированный вид')
+        logger.info('трансформация в комбинированный вид')
 
         components_data = self._component_transformer.transform(data)
         profiles_data = self._profile_transformer.transform(data)

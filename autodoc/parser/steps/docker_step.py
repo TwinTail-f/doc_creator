@@ -2,7 +2,7 @@
 Шаг пайплайна: сбор Docker-ссылок и их применение к профилям сборки.
 """
 from autodoc.parser.enrichment.data_enricher import DataEnricher
-from autodoc.parser.resolvers.docker_resolver import DockerResolver
+from autodoc.parser.fetchers.docker_fetcher import DockerFetcher
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 
@@ -22,8 +22,8 @@ class DockerResolveStep(BaseParseStep):
     is_critical = False
 
     def execute(self, ctx: PipelineContext) -> None:
-        resolver = DockerResolver(ctx.config)
-        docker_links = resolver.fetch(
+        fetcher = DockerFetcher(ctx.config)
+        docker_links = fetcher.fetch(
             urls=ctx.config.profiles_urls or [],
             target_platform=ctx.config.platform_version,
         )

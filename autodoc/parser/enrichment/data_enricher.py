@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 
 from autodoc.models.component import Component, ConanVariant
 from autodoc.parser.conan.types import ConanEnrichmentResult  # 3.12 прямой импорт без отсрочки
-from autodoc.parser.resolvers.options_resolver import OptionsMap
+from autodoc.parser.fetchers.options_fetcher import OptionsMap
 
 
 class DataEnricher:

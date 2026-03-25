@@ -21,6 +21,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from autodoc.config.manager import ConfigManager
+from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -28,6 +29,7 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from autodoc.publisher.publisher import DocumentPublisher
+from autodoc.publisher.strategies.base import PublishReport
 
 console = Console()
 
@@ -155,25 +157,20 @@ def parse(
         data_dir.mkdir(parents=True, exist_ok=True)
 
         # Кастомный пайплайн если нужно пропустить шаги
-        steps = None
         if skip_conan or skip_validation:
-            from autodoc.parser.parser import _default_pipeline
-            steps = [
-                s for s in _default_pipeline()
-                if not (skip_conan and isinstance(s, ConanEnrichStep))
-                and not (skip_validation and isinstance(s, ArtifactoryValidationStep))
-            ]
-            skipped = []
+            exclude = []
             if skip_conan:
-                skipped.append('ConanEnrichStep')
+                exclude.append(ConanEnrichStep)
             if skip_validation:
-                skipped.append('ArtifactoryValidationStep')
+                exclude.append(ArtifactoryValidationStep)
+            parser = ComponentParser.with_steps_excluded(parser_config, data_dir, exclude)
+            skipped = [cls.__name__ for cls in exclude]
             console.print(
                 f'⚠️  Пропущены шаги: {", ".join(skipped)}',
                 style='yellow',
             )
-
-        parser = ComponentParser(parser_config, data_dir, steps=steps)
+        else:
+            parser = ComponentParser(parser_config, data_dir)
 
         console.print('🔄 Запуск пайплайна…', style='cyan')
         result = parser.parse(save_intermediate=save_intermediate)
@@ -223,11 +220,16 @@ def _load_parsed_data(base_dir: Path) -> ParsedResult:
     return ParsedResult.model_validate_json(data_file.read_text(encoding='utf-8'))
 
 
-def _make_publisher(cli_ctx: _CliCtx, config_file: Optional[str] = None) -> DocumentPublisher:
-    """Создаёт DocumentPublisher из конфига Confluence."""
+def _make_publisher(
+    cli_ctx: _CliCtx,
+    config_file: Optional[str] = None,
+) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
+    """Создаёт DocumentPublisher и возвращает его вместе с конфигом."""
     conf_config = cli_ctx.config_manager.load_confluence_config(config_file)
-    templates_dir = cli_ctx.base_dir / 'templates'
-    return DocumentPublisher(conf_config, templates_dir)
+    templates_dir = (
+        cli_ctx.base_dir / 'autodoc' / 'publisher' / 'rendering' / 'templates'
+    )
+    return DocumentPublisher(conf_config, templates_dir), conf_config
 
 
 @publish.command('release')
@@ -263,8 +265,7 @@ def publish_release(
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
         console.print(f'✅ Данных: {len(parsed_data.components)} компонентов', style='green')
 
-        publisher = _make_publisher(cli_ctx)
-        conf_config = cli_ctx.config_manager.load_confluence_config()
+        publisher, conf_config = _make_publisher(cli_ctx)
         final_title = page_title or conf_config.page_title or 'Release Documentation'
 
         console.print('🔄 Публикация в Confluence…', style='cyan')
@@ -302,7 +303,7 @@ def publish_passports(ctx: click.Context, root_page: Optional[str]) -> None:
             style='blue',
         ))
 
-        conf_config = cli_ctx.config_manager.load_confluence_config()
+        publisher, conf_config = _make_publisher(cli_ctx)
         target_root = root_page or conf_config.passports_root_parent_id
         if not target_root:
             console.print(
@@ -313,7 +314,6 @@ def publish_passports(ctx: click.Context, root_page: Optional[str]) -> None:
             sys.exit(1)
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
-        publisher = _make_publisher(cli_ctx)
 
         console.print('🔄 Публикация паспортов… (может занять время)', style='cyan')
         result = publisher.publish(
@@ -366,7 +366,7 @@ def publish_all(
             style='blue',
         ))
 
-        conf_config = cli_ctx.config_manager.load_confluence_config()
+        publisher, conf_config = _make_publisher(cli_ctx)
         target_root = root_page or conf_config.passports_root_parent_id
         if not target_root:
             console.print(
@@ -376,7 +376,6 @@ def publish_all(
             sys.exit(1)
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
-        publisher = _make_publisher(cli_ctx)
         final_title = page_title or conf_config.page_title or 'Release Documentation'
 
         console.print('🔄 Публикация…', style='cyan')
@@ -388,10 +387,8 @@ def publish_all(
             release_parent_id=conf_config.parent_id,
         )
 
-        passports_count = result.get('passports', {}).get('pages_published', 0)
-        release_count = result.get('release', {}).get('pages_published', 0)
         console.print(
-            f'  Паспортов: {passports_count}, итоговая страница: {release_count}',
+            f'  Страниц опубликовано: {result.pages_published}',
             style='dim',
         )
         _print_publish_result(result)
@@ -448,15 +445,28 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
 
     if is_valid:
         console.print(f'✅ Файл валиден: {config_file}', style='green bold')
+        schema_loaded = False
         try:
-            if config_file.startswith('parser'):
-                cli_ctx.config_manager.load_parser_config(config_file)
-            elif config_file.startswith('confluence'):
+            cli_ctx.config_manager.load_parser_config(config_file)
+            console.print('✅ Pydantic валидация пройдена (схема: parser)', style='green')
+            schema_loaded = True
+        except ConfigError:
+            pass
+
+        if not schema_loaded:
+            try:
                 cli_ctx.config_manager.load_confluence_config(config_file)
-            console.print('✅ Pydantic валидация пройдена', style='green')
-        except ConfigError as e:
-            console.print(f'❌ Pydantic ошибка: {e}', style='red bold')
-            sys.exit(1)
+                console.print('✅ Pydantic валидация пройдена (схема: confluence)', style='green')
+                schema_loaded = True
+            except ConfigError:
+                pass
+
+        if not schema_loaded:
+            console.print(
+                '⚠️  JSON/YAML синтаксически корректен, но не соответствует '
+                'ни одной известной схеме.',
+                style='yellow',
+            )
     else:
         console.print(f'❌ Файл невалиден: {error}', style='red bold')
         sys.exit(1)
@@ -487,19 +497,19 @@ def info() -> None:
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
 
-def _print_publish_result(result: dict) -> None:
+def _print_publish_result(result: PublishReport) -> None:
     """Выводит результат публикации в консоль."""
-    if result.get('success'):
+    if result.success:
         console.print(Panel.fit(
             f'[bold green]✅ Публикация завершена успешно![/bold green]\n'
-            f'Страниц создано/обновлено: {result.get("pages_published", 0)}',
+            f'Страниц создано/обновлено: {result.pages_published}',
             style='green',
         ))
     else:
         console.print('⚠️  Публикация завершена с ошибками:', style='yellow bold')
-        for err in result.get('errors', []):
+        for err in result.errors:
             console.print(f'  • {err}', style='yellow')
-        if result.get('pages_published', 0) == 0:
+        if result.pages_published == 0:
             sys.exit(1)
 
 

@@ -1,4 +1,6 @@
 {
+  "_comment": "Скопируй этот файл в confluence_config.json и заполни значения",
+
   "url": "https://confluence.company.com",
   "token": "YOUR_ATLASSIAN_API_TOKEN",
   "username": "firstname.lastname@company.com",

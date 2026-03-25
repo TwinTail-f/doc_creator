@@ -60,7 +60,7 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатами.
         """
-        logger.info('DocumentPublisher: публикация стратегии "%s"', strategy_type)
+        logger.info('публикация стратегии "%s"', strategy_type)
 
         # 3.9 data_dir передаётся стратегиям
         strategy = BasePublishStrategy.create(
@@ -90,7 +90,7 @@ class DocumentPublisher:
         Returns:
             Агрегированный ``PublishReport``.
         """
-        logger.info('DocumentPublisher: publish_all — паспорта + релиз')
+        logger.info('publish_all — паспорта + релиз')
 
         passports_report = self.publish(
             strategy_type='passports',

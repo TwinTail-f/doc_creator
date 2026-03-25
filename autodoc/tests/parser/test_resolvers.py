@@ -8,8 +8,8 @@ import yaml
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component, ProfileBuild, Release, SvaceReport
-from autodoc.parser.resolvers.docker_resolver import DockerLinksMap, DockerResolver
-from autodoc.parser.resolvers.options_resolver import OptionsMap, OptionsResolver
+from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher as DockerResolver
+from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher as OptionsResolver
 
 # 4.2 Новое имя поля
 MINIMAL_CONFIG_DATA = {

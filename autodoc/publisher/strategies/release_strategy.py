@@ -77,7 +77,7 @@ class ReleasePageStrategy(
 
     def execute(self) -> PublishReport:
         """Публикует страницу релиза."""
-        logger.info('ReleasePageStrategy: публикация страницы %r', self._page_title)
+        logger.info('публикация страницы %r', self._page_title)
         errors: List[str] = []
         details: List[Dict[str, Any]] = []
 
@@ -114,7 +114,7 @@ class ReleasePageStrategy(
         except Exception as e:
             error_msg = str(e)
             errors.append(error_msg)
-            logger.error('ReleasePageStrategy: ошибка — %s', error_msg)
+            logger.error('ошибка — %s', error_msg)
             return PublishReport(success=False, pages_published=0, errors=errors, details=details)
 
     def _load_passport_pages(self) -> Dict[str, Any]:
@@ -122,7 +122,7 @@ class ReleasePageStrategy(
             try:
                 return json.loads(self._passport_pages_file.read_text(encoding='utf-8'))
             except Exception as e:
-                logger.debug('ReleasePageStrategy: не удалось загрузить passport_pages: %s', e)
+                logger.debug('не удалось загрузить passport_pages: %s', e)
         return {}
 
     @staticmethod

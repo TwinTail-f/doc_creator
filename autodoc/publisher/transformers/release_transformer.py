@@ -10,12 +10,12 @@ from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 _DEFAULT_PASSPORT_PATTERN = '/wiki/spaces/DOC/pages/{component_name}+{release_version}'
 
 
-class FullReleaseTransformer(BaseDataTransformer):
+class BaseReleaseTransformer(BaseDataTransformer):
     """
-    Трансформер для полного вида документации релиза.
+    Базовый класс трансформеров документации релиза.
 
-    Включает все компоненты со всеми профилями, вариантами и зависимостями.
-    Опционально добавляет ссылки на паспорта компонентов.
+    Содержит общий конструктор и вспомогательный метод формирования
+    ссылки на паспорт компонента. Конкретные виды реализуют ``transform()``.
     """
 
     def __init__(
@@ -33,12 +33,31 @@ class FullReleaseTransformer(BaseDataTransformer):
         self._pattern = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
     def _passport_link(self, comp_name: str, version: str) -> Optional[str]:
+        """
+        Формирует ссылку на паспорт компонента.
+
+        Args:
+            comp_name: Имя компонента.
+            version: Версия релиза.
+
+        Returns:
+            URL паспорта или ``None``, если ссылки отключены.
+        """
         if not self._include_passport_links:
             return None
         return self._pattern.format(
             component_name=comp_name.replace(' ', '+'),
             release_version=version.replace(' ', '+'),
         )
+
+
+class FullReleaseTransformer(BaseReleaseTransformer):
+    """
+    Трансформер для полного вида документации релиза.
+
+    Включает все компоненты со всеми профилями, вариантами и зависимостями.
+    Опционально добавляет ссылки на паспорта компонентов.
+    """
 
     def transform(self, data: ParsedResult) -> Dict[str, Any]:
         """
@@ -50,7 +69,7 @@ class FullReleaseTransformer(BaseDataTransformer):
         Returns:
             Словарь view-model для шаблона полного релиза.
         """
-        logger.debug('FullReleaseTransformer: трансформация в полный вид')
+        logger.debug('трансформация в полный вид')
         return {
             'platform_version': data.platform_version,
             'generated_at': data.generated_at,
@@ -95,33 +114,12 @@ class FullReleaseTransformer(BaseDataTransformer):
         }
 
 
-class MinimalReleaseTransformer(BaseDataTransformer):
+class MinimalReleaseTransformer(BaseReleaseTransformer):
     """
     Трансформер для минимального вида документации релиза.
 
     Возвращает данные без вариантов для облегчённого отображения.
     """
-
-    def __init__(
-        self,
-        include_passport_links: bool = True,
-        passport_page_pattern: Optional[str] = None,
-    ) -> None:
-        """
-        Args:
-            include_passport_links: Добавлять ли ссылки на паспорта.
-            passport_page_pattern: Шаблон URL паспорта.
-        """
-        self._include_passport_links = include_passport_links
-        self._pattern = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
-
-    def _passport_link(self, comp_name: str, version: str) -> Optional[str]:
-        if not self._include_passport_links:
-            return None
-        return self._pattern.format(
-            component_name=comp_name.replace(' ', '+'),
-            release_version=version.replace(' ', '+'),
-        )
 
     def transform(self, data: ParsedResult) -> Dict[str, Any]:
         """
@@ -133,7 +131,7 @@ class MinimalReleaseTransformer(BaseDataTransformer):
         Returns:
             Словарь view-model для минимального шаблона.
         """
-        logger.debug('MinimalReleaseTransformer: трансформация в минимальный вид')
+        logger.debug('трансформация в минимальный вид')
         return {
             'platform_version': data.platform_version,
             'generated_at': data.generated_at,

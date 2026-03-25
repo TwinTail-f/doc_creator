@@ -48,11 +48,11 @@ class DocumentBuilder:
             jinja2.TemplateNotFound: Если шаблон не найден.
             jinja2.TemplateError: Если рендеринг завершился с ошибкой.
         """
-        logger.debug(f'DocumentBuilder: рендеринг шаблона "{template_name}"')
+        logger.debug(f'рендеринг шаблона "{template_name}"')
         try:
             template = self._env.get_template(template_name)
             html = template.render(data=view_model)
-            logger.info(f'DocumentBuilder: шаблон "{template_name}" отрендерен')
+            logger.info(f'шаблон "{template_name}" отрендерен')
             return html
         except Exception as e:
             logger.error(

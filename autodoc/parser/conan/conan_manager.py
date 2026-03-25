@@ -54,7 +54,7 @@ class ConanManager:
         """Очищает локальный кэш Conan и внутренний кэш менеджера."""
         self._runner.clean_cache()
         self._cache.clear()
-        logger.debug('ConanManager: внутренний кеш сброшен.')
+        logger.debug('внутренний кеш сброшен.')
 
     def enrich_components(
         self,
@@ -78,7 +78,7 @@ class ConanManager:
         tasks = self._task_builder.build(components, target_platform, artifactory_base_url)
 
         if not tasks:
-            logger.info('ConanManager: нет задач для выполнения.')
+            logger.info('нет задач для выполнения.')
             return ConanEnrichmentResult()
 
         logger.info(
@@ -116,7 +116,7 @@ class ConanManager:
             for future in as_completed(future_to_idx):
                 completed += 1
                 if completed % 50 == 0 or completed == total:
-                    logger.info('ConanManager: прогресс %d/%d задач…', completed, total)
+                    logger.info('прогресс %d/%d задач…', completed, total)
 
                 idx = future_to_idx[future]
                 raw = future.result()

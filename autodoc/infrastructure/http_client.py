@@ -81,6 +81,11 @@ class RetryableSession(requests.Session):
         kwargs.setdefault('timeout', self.timeout)
         return super().put(url, **kwargs)
 
+    def head(self, url: str, **kwargs) -> requests.Response:
+        """HEAD-запрос с таймаутом по умолчанию."""
+        kwargs.setdefault('timeout', self.timeout)
+        return super().head(url, **kwargs)
+
 
 def create_retryable_session(
     username: Optional[str] = None,
@@ -110,10 +115,10 @@ def create_retryable_session(
 
     if username and token:
         session.auth = (username, token)
-        logger.debug('RetryableSession: настроена Basic-аутентификация для %r', username)
+        logger.debug('настроена Basic-аутентификация для %r', username)
     elif username or token:
         logger.warning(
-            'RetryableSession: передан только username или только token. '
+            'передан только username или только token. '
             'Для Basic auth нужны оба значения.'
         )
 

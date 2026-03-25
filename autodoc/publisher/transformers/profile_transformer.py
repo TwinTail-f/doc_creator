@@ -49,7 +49,7 @@ class ProfileCentricTransformer(BaseDataTransformer):
         Returns:
             Словарь с профилями как верхним уровнем иерархии.
         """
-        logger.debug('ProfileCentricTransformer: трансформация в профиль-центричный вид')
+        logger.debug('трансформация в профиль-центричный вид')
 
         # Собираем агрегированные настройки и docker URL по профилям
         profile_meta: Dict[str, Dict[str, Any]] = {}

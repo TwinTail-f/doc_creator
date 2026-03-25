@@ -170,11 +170,11 @@ configs/
 
 ## Шаблоны
 
-Jinja2-шаблоны для страниц Confluence хранятся в `templates/`.
+Jinja2-шаблоны для страниц Confluence хранятся в `autodoc/publisher/rendering/autodoc/publisher/rendering/templates/`.
 Используется Confluence Storage Format (AUI-макросы, вкладки).
 
 ```
-templates/
+autodoc/publisher/rendering/templates/
 ├── release_doc_full.jinja2       — полная документация релиза
 ├── release_doc_minimal.jinja2    — минимальная документация
 ├── profile_centric.jinja2        — профиль-центричный вид

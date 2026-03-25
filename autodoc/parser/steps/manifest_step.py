@@ -1,5 +1,5 @@
 """Шаг пайплайна: загрузка и парсинг манифестов компонентов."""
-from autodoc.parser.manifest.manifest_parser import ManifestParser
+from autodoc.parser.fetchers.manifest_fetcher import ManifestParser
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 

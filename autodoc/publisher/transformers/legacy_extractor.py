@@ -63,7 +63,7 @@ class LegacyContentExtractor:
                         return html[body_start + len(open_tag):next_close].strip()
 
         except Exception as e:
-            logger.warning(f'LegacyContentExtractor: ошибка извлечения вкладки: {e}')
+            logger.warning(f'ошибка извлечения вкладки: {e}')
         return ''
 
     @staticmethod

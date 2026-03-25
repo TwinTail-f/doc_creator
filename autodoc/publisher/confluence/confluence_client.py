@@ -5,36 +5,11 @@ from typing import Any, Dict, Optional
 
 import requests
 from atlassian import Confluence
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
 from autodoc.infrastructure.http_client import create_retryable_session  # 1.3
 from autodoc.infrastructure.logger import logger
-
-
-def _retry_on_network_error(func):
-    """
-    Декоратор автоматического retry при сетевых ошибках.
-
-    3 попытки, exponential backoff 1–8 с, на ``Timeout`` и ``ConnectionError``.
-    """
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=8),
-        retry=retry_if_exception_type(
-            (requests.exceptions.Timeout, requests.exceptions.ConnectionError)
-        ),
-        reraise=True,
-    )
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
 
 
 class ConfluenceClient:
@@ -79,7 +54,6 @@ class ConfluenceClient:
         except Exception as e:
             raise PublishError('Ошибка инициализации ConfluenceClient: %s' % e) from e
 
-    @_retry_on_network_error
     def publish_page(
         self,
         space: str,
@@ -102,7 +76,7 @@ class ConfluenceClient:
         Raises:
             PublishError: Если публикация не удалась.
         """
-        logger.info('ConfluenceClient: публикация %r (Space: %s)', title, space)
+        logger.info('публикация %r (Space: %s)', title, space)
 
         try:
             if self._confluence.page_exists(space=space, title=title):
@@ -124,7 +98,7 @@ class ConfluenceClient:
                     minor_edit=False,
                 )
                 logger.info(
-                    'ConfluenceClient: %r обновлена (ID: %s, версия: %d)',
+                    '%r обновлена (ID: %s, версия: %d)',
                     title, result.get('id'), next_version,
                 )
                 return {
@@ -142,7 +116,7 @@ class ConfluenceClient:
                 type='page',
                 representation='storage',
             )
-            logger.info('ConfluenceClient: %r создана (ID: %s)', title, result.get('id'))
+            logger.info('%r создана (ID: %s)', title, result.get('id'))
             return {
                 'id': result.get('id'),
                 'version': 1,
@@ -150,12 +124,11 @@ class ConfluenceClient:
                 'message': 'Page created with version 1',
             }
 
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+        except PublishError:
             raise
         except Exception as e:
             raise PublishError('Ошибка публикации страницы %r: %s' % (title, e)) from e
 
-    @_retry_on_network_error
     def get_page_body(self, space: str, title: str) -> str:
         """
         Возвращает тело страницы в Confluence Storage Format.
@@ -173,10 +146,8 @@ class ConfluenceClient:
                     space=space, title=title, expand='body.storage'
                 )
                 return page.get('body', {}).get('storage', {}).get('value', '')
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-            raise
         except Exception as e:
-            logger.warning('ConfluenceClient: не удалось получить тело %r: %s', title, e)
+            logger.warning('не удалось получить тело %r: %s', title, e)
         return ''
 
     def get_or_create_page(
@@ -219,7 +190,7 @@ class ConfluenceClient:
                 representation='storage',
             )
             page_id = str(result.get('id', ''))
-            logger.info('ConfluenceClient: создана страница %r (ID: %s)', title, page_id)
+            logger.info('создана страница %r (ID: %s)', title, page_id)
             return page_id
 
         except PublishError:

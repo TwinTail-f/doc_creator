@@ -19,7 +19,7 @@ from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 
 
-def _default_pipeline() -> List[BaseParseStep]:
+def default_pipeline() -> List[BaseParseStep]:
     """Возвращает стандартный набор шагов пайплайна в порядке выполнения."""
     return [
         ManifestStep(),
@@ -49,15 +49,36 @@ class ComponentParser:
         Args:
             config: Валидированная конфигурация парсера.
             data_dir: Корневая директория для временных и промежуточных файлов.
-            steps: Список шагов пайплайна. ``None`` → ``_default_pipeline()``.
+            steps: Список шагов пайплайна. ``None`` → ``default_pipeline()``.
         """
         self._config = config
         self._data_dir = data_dir
         self._tmp_dir = data_dir / 'tmp'
         self._intermediate_dir = data_dir / 'intermediate'
         self._steps: List[BaseParseStep] = (
-            steps if steps is not None else _default_pipeline()
+            steps if steps is not None else default_pipeline()
         )
+
+    @classmethod
+    def with_steps_excluded(
+        cls,
+        config: ParserConfigSchema,
+        data_dir: Path,
+        exclude: List[type],
+    ) -> 'ComponentParser':
+        """
+        Фабричный метод: создаёт парсер без указанных классов шагов.
+
+        Args:
+            config: Валидированная конфигурация парсера.
+            data_dir: Корневая директория для временных и промежуточных файлов.
+            exclude: Список классов шагов, которые нужно исключить из пайплайна.
+
+        Returns:
+            Экземпляр ``ComponentParser`` с отфильтрованным пайплайном.
+        """
+        steps = [s for s in default_pipeline() if not isinstance(s, tuple(exclude))]
+        return cls(config, data_dir, steps=steps)
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:
         """
@@ -110,7 +131,7 @@ class ComponentParser:
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
-            logger.debug('ComponentParser: временная директория очищена.')
+            logger.debug('временная директория очищена.')
 
         if ctx.result is None:
             raise ParsingError('ComponentParser: FinalizeStep не заполнил ctx.result.')
@@ -138,6 +159,6 @@ class ComponentParser:
                 json.dumps(snapshot, indent=2, ensure_ascii=False, default=str),
                 encoding='utf-8',
             )
-            logger.debug('ComponentParser: сохранён снимок → %s', filepath.name)
+            logger.debug('сохранён снимок → %s', filepath.name)
         except OSError as e:
-            logger.warning('ComponentParser: не удалось сохранить снимок %s: %s', filepath, e)
+            logger.warning('не удалось сохранить снимок %s: %s', filepath, e)

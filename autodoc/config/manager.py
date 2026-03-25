@@ -65,7 +65,7 @@ class ConfigManager:
         raw = self._load_config(filename)
         try:
             validated = ParserConfigSchema(**raw)
-            logger.info(f'ConfigManager: {filename} успешно загружен и провалидирован')
+            logger.info(f'{filename} успешно загружен и провалидирован')
             return validated
         except Exception as e:
             raise ConfigError(f'Ошибка валидации {filename}: {e}') from e
@@ -87,7 +87,7 @@ class ConfigManager:
         raw = self._load_config(filename)
         try:
             validated = ConfluenceConfigSchema(**raw)
-            logger.info(f'ConfigManager: {filename} успешно загружен и провалидирован')
+            logger.info(f'{filename} успешно загружен и провалидирован')
             return validated
         except Exception as e:
             raise ConfigError(f'Ошибка валидации {filename}: {e}') from e
@@ -134,7 +134,7 @@ class ConfigManager:
                 elif entry.suffix in ('.yaml', '.yml'):
                     configs['yaml'].append(entry.name)
         except OSError as e:
-            logger.warning(f'ConfigManager: ошибка при чтении директории конфигов: {e}')
+            logger.warning(f'ошибка при чтении директории конфигов: {e}')
         return configs
 
     # ------------------------------------------------------------------

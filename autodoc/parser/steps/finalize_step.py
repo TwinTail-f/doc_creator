@@ -29,7 +29,7 @@ class FinalizeStep(BaseParseStep):
 
         removed = self._filter_empty_profiles(ctx.components)
         if removed:
-            logger.info('FinalizeStep: удалено %d профилей с exists=False.', removed)
+            logger.info('удалено %d профилей с exists=False.', removed)
 
         ctx.result = self._build_result(ctx)
 

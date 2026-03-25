@@ -16,13 +16,6 @@ class SvaceReport(BaseModel):
     """Ссылка на отчёт статического анализатора Svace для профиля сборки."""
 
     profile: str = Field(..., description='Имя профиля сборки')
-    report_url: str = Field(
-        default='',
-        description=(
-            'URL отчёта Svace. '
-            'TODO: заполняется в будущей реализации интеграции со Svace.'
-        ),
-    )  # 3.16 поле зарезервировано, всегда пустое до реализации интеграции
 
 
 class OptionDefinition(BaseModel):
@@ -99,7 +92,7 @@ class Release(BaseModel):
     dependencies: List[str] = Field(default_factory=list, description='Список зависимостей')
 
     svace_report: SvaceReport = Field(
-        default_factory=lambda: SvaceReport(profile='', report_url=''),
+        default_factory=lambda: SvaceReport(profile=''),
         description='Отчёт Svace для данного релиза',
     )
     is_header_only: bool = Field(  # 1.5 было: is_header_only_component
@@ -112,7 +105,7 @@ class Release(BaseModel):
         description='Список сборок по профилям',
     )
 
-    # 1.4 было: _conan_options_internal
+    # Внутреннее хранилище наборов опций для шага Conan — не сериализуется
     _build_option_sets_internal: Dict[str, str] = PrivateAttr(default_factory=dict)
 
 
