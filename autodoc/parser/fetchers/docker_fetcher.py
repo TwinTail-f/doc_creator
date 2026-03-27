@@ -10,7 +10,7 @@ import yaml
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.tfs_client import TFSClient
+from autodoc.parser.tfs_client import TFSClient
 from autodoc.parser.steps.base import BaseDataFetcher
 
 # Тип: имя_профиля → docker_image_url

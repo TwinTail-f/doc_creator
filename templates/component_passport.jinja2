@@ -47,17 +47,6 @@
                         <div style="clear: both;"></div>
                     </div>
 
-                    <!-- Svace Report (Специфично для паспорта) -->
-                    <div style="padding: 10px 18px; background: var(--ds-background-warning, #fffbf0); border: 1px solid var(--ds-border-warning, #fde68a); border-radius: 8px; margin-bottom: 24px;">
-                        <span style="font-size: 12px; font-weight: 700; color: var(--ds-text-warning, #92400e);">Svace Report</span>
-                        <span style="color: var(--ds-text-subtlest, #d1d5db); margin: 0 8px;">&bull;</span>
-                        <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280);">Профиль:</span>
-                        <code style="font-size: 12px; font-family: monospace; color: var(--ds-text, #374151); background: var(--ds-background-neutral, #f3f4f6); padding: 2px 6px; border-radius: 4px; margin-left: 4px; border: none;">{{ release.svace_report.profile }}</code>
-                        {% if release.svace_report.report_url %}
-                        <a href="{{ release.svace_report.report_url }}" style="float: right; font-size: 12px; font-weight: 500; color: var(--ds-link, #2563eb); text-decoration: none; margin-top: 2px;">Открыть отчёт &#8599;</a>
-                        {% endif %}
-                        <div style="clear: both;"></div>
-                    </div>
 
                     {% if release.is_header_only %}
                         <ac:structured-macro ac:name="info">

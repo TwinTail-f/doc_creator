@@ -6,7 +6,7 @@ from pathlib import Path
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import NetworkError, ParsingError
 from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.tfs_client import TFSClient
+from autodoc.parser.tfs_client import TFSClient
 from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.fetchers.properties_reader import read_properties
 from autodoc.parser.steps.base import BaseDataFetcher

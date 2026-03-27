@@ -6,7 +6,7 @@ import json
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.tfs_client import TFSClient
+from autodoc.parser.tfs_client import TFSClient
 from autodoc.models.component import Component
 from autodoc.parser.steps.base import BaseDataFetcher
 
