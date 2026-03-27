@@ -1,4 +1,3 @@
-# Copyright (c) 2026 JSC InfoTeCS
 """
 Клиент для взаимодействия с REST API TFS.
 
