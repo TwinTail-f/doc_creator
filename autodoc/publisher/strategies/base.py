@@ -1,4 +1,3 @@
-# Copyright (c) 2026 JSC InfoTeCS
 """
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
