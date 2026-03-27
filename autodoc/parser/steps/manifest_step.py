@@ -1,7 +1,6 @@
 """Шаг пайплайна: загрузка и парсинг манифестов компонентов."""
-from autodoc.parser.fetchers.manifest_fetcher import ManifestParser
+from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
-
 
 class ManifestStep(BaseParseStep):
     """Шаг 1: Скачивает манифесты из TFS и парсит их в модели Component."""
@@ -10,8 +9,8 @@ class ManifestStep(BaseParseStep):
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:
-        parser = ManifestParser(ctx.config)
-        ctx.components = parser.fetch(
+        fetcher = ManifestFetcher(ctx.config)
+        ctx.components = fetcher.fetch(
             tmp_dir=ctx.tmp_dir,
             excluded=ctx.config.excluded_components or [],
         )

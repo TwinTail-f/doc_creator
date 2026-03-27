@@ -1,7 +1,7 @@
 """Тесты пайплайна: ComponentParser, BaseParseStep, PipelineContext."""
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -22,7 +22,6 @@ MINIMAL_CONFIG = ParserConfigSchema(
     manifests_remotes_path='/remotes/manifests',
 )
 
-
 class _SuccessStep(BaseParseStep):
     name = 'SuccessStep'
     is_critical = False
@@ -38,7 +37,6 @@ class _SuccessStep(BaseParseStep):
     def execute(self, ctx):
         ctx.intermediate[self._mark] = True
 
-
 class _FailStep(BaseParseStep):
     name = 'FailStep'
 
@@ -47,7 +45,6 @@ class _FailStep(BaseParseStep):
 
     def execute(self, ctx):
         raise RuntimeError('Намеренная ошибка шага')
-
 
 class _FinalizeStub(BaseParseStep):
     name = 'FinalizeStep'
@@ -59,7 +56,6 @@ class _FinalizeStub(BaseParseStep):
             components=[],
         )
 
-
 class TestBaseParseStepContract:
     """5.2 Тест контракта BaseParseStep."""
 
@@ -70,7 +66,6 @@ class TestBaseParseStepContract:
                 def execute(self, ctx):
                     pass
             # name не определён — должно упасть при объявлении
-
 
 class TestPipelineStepOrder:
     def test_all_steps_executed_in_order(self, tmp_path: Path) -> None:
@@ -110,7 +105,6 @@ class TestPipelineStepOrder:
             ComponentParser(MINIMAL_CONFIG, tmp_path, steps=[_FailStep(critical=True)]).parse()
         assert not (tmp_path / 'tmp').exists()
 
-
 class TestSaveIntermediate:
     def test_save_intermediate_creates_files(self, tmp_path: Path) -> None:
         steps = [_SuccessStep('a'), _FinalizeStub()]
@@ -122,26 +116,24 @@ class TestSaveIntermediate:
         ComponentParser(MINIMAL_CONFIG, tmp_path, steps=[_FinalizeStub()]).parse(save_intermediate=False)
         assert not (tmp_path / 'intermediate').exists()
 
-
 class TestManifestStepSingularity:
     def test_default_pipeline_has_exactly_one_manifest_step(self, tmp_path: Path) -> None:
         parser = ComponentParser(MINIMAL_CONFIG, tmp_path)
         manifest_steps = [s for s in parser._steps if isinstance(s, ManifestStep)]
         assert len(manifest_steps) == 1
 
-
 class TestProfileBuildFieldNames:
     """5.1 Проверка переименованных полей ProfileBuild в пайплайне."""
 
     def test_finalize_uses_exists_not_pb_exist(self, tmp_path: Path) -> None:
         """FinalizeStep использует pb.exists, а не pb.pb_exist."""
-        from autodoc.models.component import Component, ProfileBuild, Release, SvaceReport
+        from autodoc.models.component import Component, ProfileBuild, Release
         from autodoc.parser.steps.finalize_step import FinalizeStep
         from autodoc.parser.steps.base import PipelineContext
 
         pb = ProfileBuild(profile_name='test', exists=False)  # pb_exist убран
         release = Release(version='1.0', platform='2.0', channel='stable',
-                          git_url='https://tfs.example.com', svace_report=SvaceReport(profile=''))
+                          git_url='https://tfs.example.com')
         release.profile_builds = [pb]
         comp = Component(name='lib', releases=[release])
 

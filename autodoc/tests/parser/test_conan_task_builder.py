@@ -1,11 +1,9 @@
 """Тесты ConanTaskBuilder."""
-from typing import List
 
 import pytest
 
-from autodoc.models.component import Component, ProfileBuild, Release, SvaceReport
+from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
-
 
 def _make_release(version='1.0.0', channel='stable', profiles=None, options=None):
     release = Release(
@@ -13,17 +11,14 @@ def _make_release(version='1.0.0', channel='stable', profiles=None, options=None
         platform='2.0',
         channel=channel,
         git_url='https://tfs.example.com/repo',
-        svace_report=SvaceReport(profile=''),
         profile_builds=[ProfileBuild(profile_name=p) for p in (profiles or [])],
     )
     # 1.4 _conan_options_internal → _build_option_sets_internal
     release._build_option_sets_internal = options or {'1': ''}
     return release
 
-
 def _make_component(name, releases):
     return Component(name=name, releases=releases)
-
 
 class TestConanTaskBuilder:
     def setup_method(self):

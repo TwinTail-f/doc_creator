@@ -1,14 +1,13 @@
 """
 Трансформеры для документации релизов: полный и минимальный вид.
 """
-from typing import Any, Dict, Optional
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 
 _DEFAULT_PASSPORT_PATTERN = '/wiki/spaces/DOC/pages/{component_name}+{release_version}'
-
 
 class BaseReleaseTransformer(BaseDataTransformer):
     """
@@ -21,7 +20,7 @@ class BaseReleaseTransformer(BaseDataTransformer):
     def __init__(
         self,
         include_passport_links: bool = True,
-        passport_page_pattern: Optional[str] = None,
+        passport_page_pattern: str | None = None,
     ) -> None:
         """
         Args:
@@ -32,7 +31,7 @@ class BaseReleaseTransformer(BaseDataTransformer):
         self._include_passport_links = include_passport_links
         self._pattern = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
-    def _passport_link(self, comp_name: str, version: str) -> Optional[str]:
+    def _passport_link(self, comp_name: str, version: str) -> str | None:
         """
         Формирует ссылку на паспорт компонента.
 
@@ -50,7 +49,6 @@ class BaseReleaseTransformer(BaseDataTransformer):
             release_version=version.replace(' ', '+'),
         )
 
-
 class FullReleaseTransformer(BaseReleaseTransformer):
     """
     Трансформер для полного вида документации релиза.
@@ -59,7 +57,7 @@ class FullReleaseTransformer(BaseReleaseTransformer):
     Опционально добавляет ссылки на паспорта компонентов.
     """
 
-    def transform(self, data: ParsedResult) -> Dict[str, Any]:
+    def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Возвращает полный вид с вариантами и всеми деталями.
 
@@ -113,7 +111,6 @@ class FullReleaseTransformer(BaseReleaseTransformer):
             ],
         }
 
-
 class MinimalReleaseTransformer(BaseReleaseTransformer):
     """
     Трансформер для минимального вида документации релиза.
@@ -121,7 +118,7 @@ class MinimalReleaseTransformer(BaseReleaseTransformer):
     Возвращает данные без вариантов для облегчённого отображения.
     """
 
-    def transform(self, data: ParsedResult) -> Dict[str, Any]:
+    def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Возвращает минимальный вид без вариантов сборки.
 

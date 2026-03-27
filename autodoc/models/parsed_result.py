@@ -1,12 +1,10 @@
 """
 Финальная модель результата пайплайна парсера.
 """
-from typing import List
 
 from pydantic import BaseModel, Field
 
 from autodoc.models.component import Component
-
 
 class ParsedResult(BaseModel):
     """
@@ -18,7 +16,7 @@ class ParsedResult(BaseModel):
 
     generated_at: str = Field(..., description='Дата и время генерации в ISO 8601')
     platform_version: str = Field(..., description='Версия платформы (из конфига)')
-    components: List[Component] = Field(
+    components: list[Component] = Field(
         default_factory=list,
         description='Список всех обработанных компонентов платформы',
     )

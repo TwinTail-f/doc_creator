@@ -1,11 +1,11 @@
+# Copyright (c) 2026 JSC InfoTeCS
 """
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Type
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:  # 3.8 — импорты только для аннотаций, без циклических зависимостей
     from autodoc.models.parsed_result import ParsedResult
@@ -14,20 +14,18 @@ if TYPE_CHECKING:  # 3.8 — импорты только для аннотаци
 
 from autodoc.infrastructure.logger import logger
 
-
 @dataclass
 class PublishReport:
     """
     Типизированный результат выполнения стратегии публикации.
 
-    Заменяет ``Dict[str, Any]`` — контракт проверяется статически.
+    Заменяет ``dict[str, Any]`` — контракт проверяется статически.
     """
 
     success: bool
     pages_published: int
-    errors: List[str] = field(default_factory=list)
-    details: List[Dict[str, Any]] = field(default_factory=list)
-
+    errors: list[str] = field(default_factory=list)
+    details: list[dict[str, Any]] = field(default_factory=list)
 
 class BasePublishStrategy(ABC):
     """
@@ -40,7 +38,7 @@ class BasePublishStrategy(ABC):
     3.8 ``__init__`` аннотирован через ``TYPE_CHECKING`` — нет ``Any``.
     """
 
-    _registry: ClassVar[Dict[str, Type[BasePublishStrategy]]] = {}
+    _registry: ClassVar[dict[str, type[BasePublishStrategy]]] = {}
 
     def __init__(
         self,
@@ -66,7 +64,7 @@ class BasePublishStrategy(ABC):
     def __init_subclass__(
         cls,
         strategy_type: str = '',
-        transformer_cls: Optional[type] = None,  # 3.7 трансформер прямо в объявлении
+        transformer_cls: type | None = None,  # 3.7 трансформер прямо в объявлении
         **kwargs: Any,
     ) -> None:
         super().__init_subclass__(**kwargs)

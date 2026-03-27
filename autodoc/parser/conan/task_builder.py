@@ -2,13 +2,11 @@
 Построитель задач для Conan graph info.
 """
 from dataclasses import dataclass
-from typing import List
 
 from autodoc.models.component import Component, ProfileBuild, Release
 
 # Шаблон Conan version range с поддержкой pre-release версий
 _CONAN_REF_TEMPLATE = '{name}/[~{version},include_prerelease]@platform-{platform}/{channel}'
-
 
 @dataclass(frozen=True)
 class ConanTask:
@@ -19,7 +17,7 @@ class ConanTask:
     которые будут обогащены после успешного выполнения.
     """
 
-    cmd: List[str]
+    cmd: list[str]
     comp_name: str
     version: str
     channel: str
@@ -30,7 +28,6 @@ class ConanTask:
     artifactory_base_url: str
     release: Release
     pb: ProfileBuild
-
 
 class ConanTaskBuilder:
     """
@@ -43,10 +40,10 @@ class ConanTaskBuilder:
 
     def build(
         self,
-        components: List[Component],
+        components: list[Component],
         target_platform: str,
         artifactory_base_url: str,
-    ) -> List[ConanTask]:
+    ) -> list[ConanTask]:
         """
         Формирует полный список задач для параллельного выполнения.
 
@@ -58,7 +55,7 @@ class ConanTaskBuilder:
         Returns:
             Список задач. Может быть пустым, если у компонентов нет профилей.
         """
-        tasks: List[ConanTask] = []
+        tasks: list[ConanTask] = []
         art_base = artifactory_base_url.rstrip('/')
 
         for comp in components:
@@ -96,7 +93,7 @@ class ConanTaskBuilder:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _build_cmd(reference: str, profile_name: str, opt_str: str) -> List[str]:
+    def _build_cmd(reference: str, profile_name: str, opt_str: str) -> list[str]:
         """
         Собирает список аргументов CLI-команды ``conan graph info``.
 

@@ -3,14 +3,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autodoc.models.component import ProfileBuild, Release, SvaceReport
+from autodoc.models.component import ProfileBuild, Release
 from autodoc.parser.conan.result_parser import ConanEnrichData, ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTask
 
-
 def _make_task(comp_name='my_lib', version='1.0.0', channel='stable') -> ConanTask:
     release = Release(version=version, platform='2.0', channel=channel,
-                      git_url='https://tfs.example.com', svace_report=SvaceReport(profile=''))
+                      git_url='https://tfs.example.com')
     pb = ProfileBuild(profile_name='linux_x86_64')
     return ConanTask(
         cmd=['conan', 'graph', 'info'],
@@ -19,7 +18,6 @@ def _make_task(comp_name='my_lib', version='1.0.0', channel='stable') -> ConanTa
         target_platform='2.0', artifactory_base_url='https://art.example.com',
         release=release, pb=pb,
     )
-
 
 def _make_conan_graph(comp_name='my_lib', version='1.0.0', channel='stable',
                       package_id='abc123', include_patches=False, include_deps=False):
@@ -39,7 +37,6 @@ def _make_conan_graph(comp_name='my_lib', version='1.0.0', channel='stable',
             '2': {'ref': 'openssl/3.0.0@platform-2.0/stable'},
         }
     return {'graph': {'nodes': {'0': node}}}
-
 
 class TestConanResultParser:
     def setup_method(self):

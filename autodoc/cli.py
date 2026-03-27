@@ -13,7 +13,6 @@ Click CLI для запуска парсера и паблишера докум�
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -47,7 +46,6 @@ _VIEW_TO_TEMPLATE = {
     'combined': 'release_doc_combined.jinja2',
 }
 
-
 class _CliCtx:
     """Контекст, разделяемый между командами Click."""
 
@@ -56,7 +54,6 @@ class _CliCtx:
         self.configs_dir = configs_dir
         self.verbose = verbose
         self.config_manager = ConfigManager(str(configs_dir))
-
 
 # ---------------------------------------------------------------------------
 # Корневая группа
@@ -78,7 +75,7 @@ class _CliCtx:
 )
 @click.option('-v', '--verbose', is_flag=True, help='Подробный вывод логов')
 @click.pass_context
-def cli(ctx: click.Context, base_dir: str, configs_dir: Optional[str], verbose: bool) -> None:
+def cli(ctx: click.Context, base_dir: str, configs_dir: str | None, verbose: bool) -> None:
     """
     Doc Generator CLI — инструмент сбора и публикации документации компонентов платформы.
 
@@ -101,7 +98,6 @@ def cli(ctx: click.Context, base_dir: str, configs_dir: Optional[str], verbose: 
 
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
-
 
 # ---------------------------------------------------------------------------
 # Команда: parse
@@ -127,7 +123,7 @@ def cli(ctx: click.Context, base_dir: str, configs_dir: Optional[str], verbose: 
 @click.pass_context
 def parse(
     ctx: click.Context,
-    config: Optional[str],
+    config: str | None,
     save_intermediate: bool,
     skip_conan: bool,
     skip_validation: bool,
@@ -198,7 +194,6 @@ def parse(
             console.print_exception()
         sys.exit(2)
 
-
 # ---------------------------------------------------------------------------
 # Группа: publish
 # ---------------------------------------------------------------------------
@@ -206,7 +201,6 @@ def parse(
 @cli.group()
 def publish() -> None:
     """Публикация документации в Confluence."""
-
 
 def _load_parsed_data(base_dir: Path) -> ParsedResult:
     """Загружает parsed_data.json и десериализует в ParsedResult."""
@@ -219,10 +213,9 @@ def _load_parsed_data(base_dir: Path) -> ParsedResult:
         sys.exit(1)
     return ParsedResult.model_validate_json(data_file.read_text(encoding='utf-8'))
 
-
 def _make_publisher(
     cli_ctx: _CliCtx,
-    config_file: Optional[str] = None,
+    config_file: str | None = None,
 ) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
     """Создаёт DocumentPublisher и возвращает его вместе с конфигом."""
     conf_config = cli_ctx.config_manager.load_confluence_config(config_file)
@@ -230,7 +223,6 @@ def _make_publisher(
         cli_ctx.base_dir / 'autodoc' / 'publisher' / 'rendering' / 'templates'
     )
     return DocumentPublisher(conf_config, templates_dir), conf_config
-
 
 @publish.command('release')
 @click.option(
@@ -250,7 +242,7 @@ def _make_publisher(
 def publish_release(
     ctx: click.Context,
     view: str,
-    page_title: Optional[str],
+    page_title: str | None,
     no_passport_links: bool,
 ) -> None:
     """Публикация единой страницы релиза в Confluence."""
@@ -289,11 +281,10 @@ def publish_release(
             console.print_exception()
         sys.exit(2)
 
-
 @publish.command('passports')
 @click.option('--root-page', default=None, help='ID корневой страницы иерархии паспортов')
 @click.pass_context
-def publish_passports(ctx: click.Context, root_page: Optional[str]) -> None:
+def publish_passports(ctx: click.Context, root_page: str | None) -> None:
     """Публикация паспортов компонентов (иерархия страниц)."""
     cli_ctx: _CliCtx = ctx.obj['cli']
 
@@ -334,7 +325,6 @@ def publish_passports(ctx: click.Context, root_page: Optional[str]) -> None:
             console.print_exception()
         sys.exit(2)
 
-
 @publish.command('all')
 @click.option('--root-page', default=None, help='ID корневой страницы паспортов')
 @click.option('--page-title', default=None, help='Заголовок итоговой страницы релиза')
@@ -348,8 +338,8 @@ def publish_passports(ctx: click.Context, root_page: Optional[str]) -> None:
 @click.pass_context
 def publish_all(
     ctx: click.Context,
-    root_page: Optional[str],
-    page_title: Optional[str],
+    root_page: str | None,
+    page_title: str | None,
     view: str,
 ) -> None:
     """
@@ -402,7 +392,6 @@ def publish_all(
             console.print_exception()
         sys.exit(2)
 
-
 # ---------------------------------------------------------------------------
 # Группа: config
 # ---------------------------------------------------------------------------
@@ -410,7 +399,6 @@ def publish_all(
 @cli.group()
 def config() -> None:
     """Управление конфигурационными файлами."""
-
 
 @config.command('list')
 @click.pass_context
@@ -431,7 +419,6 @@ def config_list(ctx: click.Context) -> None:
             console.print(table)
         else:
             console.print(f'{fmt.upper()} конфиги: [yellow]не найдены[/yellow]')
-
 
 @config.command('validate')
 @click.argument('config-file')
@@ -471,7 +458,6 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
         console.print(f'❌ Файл невалиден: {error}', style='red bold')
         sys.exit(1)
 
-
 # ---------------------------------------------------------------------------
 # Команда: info
 # ---------------------------------------------------------------------------
@@ -492,7 +478,6 @@ def info() -> None:
         style='blue',
     ))
 
-
 # ---------------------------------------------------------------------------
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
@@ -511,7 +496,6 @@ def _print_publish_result(result: PublishReport) -> None:
             console.print(f'  • {err}', style='yellow')
         if result.pages_published == 0:
             sys.exit(1)
-
 
 if __name__ == '__main__':
     cli(obj={})

@@ -5,8 +5,7 @@
 без привязки к внутренностям пакета ``conan/``.
 """
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Tuple
-
+from typing import Any
 
 @dataclass
 class ReleaseConanData:
@@ -15,24 +14,21 @@ class ReleaseConanData:
     base_ref: str
     rrev: str
     full_version: str
-    default_options: List[Dict[str, Any]]
-    patches: List[str]
-    dependencies: List[str]
+    default_options: list[dict[str, Any]]
+    patches: list[str]
+    dependencies: list[str]
     artifactory_url: str
-
 
 @dataclass
 class ProfileConanData:
     """Данные Conan для обогащения одного ProfileBuild."""
 
-    conan_settings: Dict[str, Any]
+    conan_settings: dict[str, Any]
     exists: bool
-    variants: List[Dict[str, Any]]
-
+    variants: list[dict[str, Any]]
 
 # Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}
-_ErrorLog = Dict[str, Dict[str, Dict[str, Dict[str, List]]]]
-
+_ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
 
 @dataclass
 class ConanEnrichmentResult:
@@ -43,9 +39,9 @@ class ConanEnrichmentResult:
     """
 
     # Данные для обогащения Release: (comp_name, version, channel) → данные
-    release_data: Dict[Tuple[str, str, str], ReleaseConanData] = field(default_factory=dict)
+    release_data: dict[tuple[str, str, str], ReleaseConanData] = field(default_factory=dict)
     # Данные для обогащения ProfileBuild: id(pb) → данные
-    profile_data: Dict[int, ProfileConanData] = field(default_factory=dict)
+    profile_data: dict[int, ProfileConanData] = field(default_factory=dict)
     # Лог ошибок
     errors: _ErrorLog = field(default_factory=dict)
     total_tasks: int = 0

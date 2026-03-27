@@ -1,5 +1,5 @@
 """Тесты Registry стратегий публикации."""
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,7 +11,6 @@ import autodoc.publisher.strategies.passports_strategy  # noqa: F401
 
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
-
 
 class TestRegistry:
     def test_full_release_creates_release_page_strategy(self) -> None:
@@ -49,12 +48,11 @@ class TestRegistry:
         assert '_test_only' in BasePublishStrategy._registry
         del BasePublishStrategy._registry['_test_only']
 
-
 class TestPublishReport:
     """3.1 Тест типизированного PublishReport."""
 
     def test_execute_returns_publish_report(self) -> None:
-        """execute() возвращает PublishReport, а не Dict."""
+        """execute() возвращает PublishReport, а не dict."""
         strategy = BasePublishStrategy.create(
             'full_release',
             confluence_client=MagicMock(), document_builder=MagicMock(),
@@ -71,7 +69,7 @@ class TestPublishReport:
 
         result = strategy.execute()
 
-        assert isinstance(result, PublishReport)  # не Dict
+        assert isinstance(result, PublishReport)  # не dict
         assert result.success is True
         assert result.pages_published == 1
         assert isinstance(result.errors, list)
@@ -92,7 +90,6 @@ class TestPublishReport:
         assert result.success is False
         assert len(result.errors) == 1
 
-
 class TestCommonInit:
     """3.3 Тест что общие атрибуты инициализируются в базовом классе."""
 
@@ -108,7 +105,6 @@ class TestCommonInit:
         assert strategy._builder is builder
         assert strategy._data is data
         assert strategy._space == 'DOC'
-
 
 class TestPassportsStrategyInit:
     def test_missing_root_page_id_raises_value_error(self) -> None:

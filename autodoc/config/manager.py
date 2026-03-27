@@ -3,14 +3,13 @@
 """
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
 from autodoc.config.schemas import ConfluenceConfigSchema, ParserConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.infrastructure.logger import logger
-
 
 class ConfigManager:
     """
@@ -24,7 +23,7 @@ class ConfigManager:
         configs_dir: Путь к директории с конфигурационными файлами.
     """
 
-    SUPPORTED_FORMATS: List[str] = ['.json', '.yaml', '.yml']
+    SUPPORTED_FORMATS: list[str] = ['.json', '.yaml', '.yml']
 
     def __init__(self, configs_dir: str) -> None:
         """
@@ -45,7 +44,7 @@ class ConfigManager:
     # Публичные методы загрузки
     # ------------------------------------------------------------------
 
-    def load_parser_config(self, config_file: Optional[str] = None) -> ParserConfigSchema:
+    def load_parser_config(self, config_file: str | None = None) -> ParserConfigSchema:
         """
         Загружает и валидирует конфигурацию парсера.
 
@@ -70,7 +69,7 @@ class ConfigManager:
         except Exception as e:
             raise ConfigError(f'Ошибка валидации {filename}: {e}') from e
 
-    def load_confluence_config(self, config_file: Optional[str] = None) -> ConfluenceConfigSchema:
+    def load_confluence_config(self, config_file: str | None = None) -> ConfluenceConfigSchema:
         """
         Загружает и валидирует конфигурацию Confluence.
 
@@ -92,7 +91,7 @@ class ConfigManager:
         except Exception as e:
             raise ConfigError(f'Ошибка валидации {filename}: {e}') from e
 
-    def validate_config_file(self, filepath: str) -> tuple[bool, Optional[str]]:
+    def validate_config_file(self, filepath: str) -> tuple[bool, str | None]:
         """
         Проверяет синтаксическую корректность файла конфигурации.
 
@@ -119,14 +118,14 @@ class ConfigManager:
         except Exception as e:
             return False, f'Ошибка валидации: {e}'
 
-    def list_available_configs(self) -> Dict[str, List[str]]:
+    def list_available_configs(self) -> dict[str, list[str]]:
         """
         Возвращает список конфигурационных файлов в директории.
 
         Returns:
             Словарь вида ``{'json': [...], 'yaml': [...]}``.
         """
-        configs: Dict[str, List[str]] = {'json': [], 'yaml': []}
+        configs: dict[str, list[str]] = {'json': [], 'yaml': []}
         try:
             for entry in self.configs_dir.iterdir():
                 if entry.suffix == '.json':
@@ -166,7 +165,7 @@ class ConfigManager:
             f'Поддерживаемые форматы: {self.SUPPORTED_FORMATS}'
         )
 
-    def _load_config(self, filename: str) -> Dict[str, Any]:
+    def _load_config(self, filename: str) -> dict[str, Any]:
         """
         Загружает конфигурационный файл по имени.
 
@@ -200,7 +199,7 @@ class ConfigManager:
         except Exception as e:
             raise ConfigError(f'Ошибка при загрузке {filename}: {e}') from e
 
-    def _load_json(self, filepath: Path) -> Dict[str, Any]:
+    def _load_json(self, filepath: Path) -> dict[str, Any]:
         """
         Читает JSON-файл.
 
@@ -221,7 +220,7 @@ class ConfigManager:
         except OSError as e:
             raise ConfigError(f'Ошибка чтения {filepath.name}: {e}') from e
 
-    def _load_yaml(self, filepath: Path) -> Dict[str, Any]:
+    def _load_yaml(self, filepath: Path) -> dict[str, Any]:
         """
         Читает YAML-файл.
 

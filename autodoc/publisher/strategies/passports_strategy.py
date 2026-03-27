@@ -3,7 +3,7 @@
 """
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -14,7 +14,6 @@ from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer
 
 _DEFAULT_PASSPORT_TEMPLATE = 'component_passport.jinja2'
-
 
 class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
     """
@@ -29,7 +28,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         space: str,
         root_page_id: str,
         template_name: str = _DEFAULT_PASSPORT_TEMPLATE,
-        data_dir: Optional[Path] = None,  # 3.9
+        data_dir: Path | None = None,  # 3.9
     ) -> None:
         """
         Args:
@@ -59,8 +58,8 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
     def execute(self) -> PublishReport:
         """Публикует паспорта для всех компонентов и релизов."""
         logger.info('начало публикации паспортов')
-        errors: List[str] = []
-        details: List[Dict[str, Any]] = []
+        errors: list[str] = []
+        details: list[dict[str, Any]] = []
         pages_published = 0
 
         for comp in self._data.components:
@@ -103,7 +102,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
 
     # ------------------------------------------------------------------
 
-    def _publish_passport(self, comp_name: str, release_version: str) -> Tuple[str, int, str]:
+    def _publish_passport(self, comp_name: str, release_version: str) -> tuple[str, int, str]:
         """
         Публикует страницу паспорта одного релиза компонента в Confluence.
 
@@ -140,7 +139,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         transformer = PassportTransformer(comp_name, release_version)
         view_model = transformer.transform(self._data)
 
-        legacy_contents: Dict[str, str] = {}
+        legacy_contents: dict[str, str] = {}
         if legacy_body:
             from autodoc.publisher.transformers.legacy_extractor import LegacyContentExtractor
             all_legacy = LegacyContentExtractor.extract_platform_versions(legacy_body)
@@ -180,7 +179,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         return 'Документация %s %s' % (comp_name, release_version)
 
     @staticmethod
-    def _build_pages_map(details: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_pages_map(details: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Строит маппинг опубликованных страниц паспортов по компоненту и версии.
 
@@ -190,7 +189,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         Returns:
             Словарь вида ``{comp_name: {version: {page_id, page_title, version}}}``.
         """
-        pages_map: Dict[str, Any] = {}
+        pages_map: dict[str, Any] = {}
         for d in details:
             pages_map.setdefault(d['component_name'], {})[str(d['release_version'])] = {
                 'page_id': d['page_id'],
@@ -199,7 +198,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
             }
         return pages_map
 
-    def _save_passport_pages(self, pages_map: Dict[str, Any]) -> None:
+    def _save_passport_pages(self, pages_map: dict[str, Any]) -> None:
         """
         Сохраняет маппинг страниц паспортов в файл ``passport_pages.json``.
 

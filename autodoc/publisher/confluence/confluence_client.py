@@ -1,7 +1,7 @@
 """
 Confluence REST API client с retry-логикой и автоинкрементом версий страниц.
 """
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 from atlassian import Confluence
@@ -10,7 +10,6 @@ from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
 from autodoc.infrastructure.http_client import create_retryable_session  # 1.3
 from autodoc.infrastructure.logger import logger
-
 
 class ConfluenceClient:
     """
@@ -60,7 +59,7 @@ class ConfluenceClient:
         parent_id: str,
         title: str,
         body_html: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Создаёт или обновляет страницу с автоинкрементом версии.
 
@@ -154,7 +153,7 @@ class ConfluenceClient:
         self,
         space: str,
         title: str,
-        parent_id: Optional[str] = None,
+        parent_id: str | None = None,
         body: str = '',
     ) -> str:
         """
@@ -203,8 +202,8 @@ class ConfluenceClient:
     def get_page(
         self,
         page_id: str,
-        expand: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        expand: str | None = None,
+    ) -> dict[str, Any]:
         """
         Загружает детали страницы по ID.
 

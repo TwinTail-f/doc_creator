@@ -4,11 +4,28 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Generic, TypeVar
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
+
+_T = TypeVar('_T')
+
+
+class BaseDataFetcher(Generic[_T]):
+    """
+    Маркерный базовый класс для всех компонентов загрузки данных парсера.
+
+    Наследники:
+    - ``ManifestFetcher[list[Component]]`` — ``fetch(tmp_dir, excluded)``
+    - ``OptionsFetcher[OptionsMap]``       — ``fetch(components)``
+    - ``DockerFetcher[DockerLinksMap]``    — ``fetch(urls, target_platform)``
+    """
+
+    def fetch(self, *args: Any, **kwargs: Any) -> _T:
+        """Загружает данные и возвращает типизированный результат."""
+        raise NotImplementedError
 
 
 @dataclass
@@ -25,10 +42,9 @@ class PipelineContext:
 
     config: ParserConfigSchema
     tmp_dir: Path
-    components: List[Component] = field(default_factory=list)
-    result: Optional[ParsedResult] = None
-    intermediate: Dict[str, Any] = field(default_factory=dict)
-
+    components: list[Component] = field(default_factory=list)
+    result: ParsedResult | None = None
+    intermediate: dict[str, Any] = field(default_factory=dict)
 
 class BaseParseStep(ABC):
     """

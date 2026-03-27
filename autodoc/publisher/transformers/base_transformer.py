@@ -2,10 +2,9 @@
 Абстрактный базовый класс трансформеров данных.
 """
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-
 
 class BaseDataTransformer(ABC):
     """
@@ -16,7 +15,7 @@ class BaseDataTransformer(ABC):
     """
 
     @abstractmethod
-    def transform(self, data: ParsedResult) -> Dict[str, Any]:
+    def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Преобразует данные в view-model для шаблона.
 

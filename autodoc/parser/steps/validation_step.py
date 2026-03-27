@@ -3,7 +3,6 @@
 """
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Tuple
 
 import requests        # 3.1 нужен для requests.RequestException
 import urllib3
@@ -15,7 +14,6 @@ from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 _VALIDATION_MAX_WORKERS = 20
 _HEAD_TIMEOUT = 10
-
 
 class ArtifactoryValidationStep(BaseParseStep):
     """
@@ -76,8 +74,8 @@ class ArtifactoryValidationStep(BaseParseStep):
 
     @staticmethod
     def _collect_variants(
-        components: List[Component],
-    ) -> List[Tuple[ProfileBuild, ConanVariant, str]]:
+        components: list[Component],
+    ) -> list[tuple[ProfileBuild, ConanVariant, str]]:
         result = []
         for comp in components:
             for release in comp.releases:
@@ -92,12 +90,12 @@ class ArtifactoryValidationStep(BaseParseStep):
 
     @staticmethod
     def _check_urls_parallel(
-        variants_to_check: List[Tuple[ProfileBuild, ConanVariant, str]],
+        variants_to_check: list[tuple[ProfileBuild, ConanVariant, str]],
         session,
-    ) -> List[Tuple[ProfileBuild, ConanVariant]]:
-        dead: List[Tuple[ProfileBuild, ConanVariant]] = []
+    ) -> list[tuple[ProfileBuild, ConanVariant]]:
+        dead: list[tuple[ProfileBuild, ConanVariant]] = []
 
-        def check_one(item: Tuple[ProfileBuild, ConanVariant, str]):
+        def check_one(item: tuple[ProfileBuild, ConanVariant, str]):
             pb, variant, url = item
             try:
                 resp = session.head(url, allow_redirects=True, timeout=_HEAD_TIMEOUT)
@@ -123,7 +121,7 @@ class ArtifactoryValidationStep(BaseParseStep):
 
     @staticmethod
     def _remove_dead_variants(
-        dead_variants: List[Tuple[ProfileBuild, ConanVariant]],
+        dead_variants: list[tuple[ProfileBuild, ConanVariant]],
     ) -> None:
         for pb, variant in dead_variants:
             if variant in pb.variants:

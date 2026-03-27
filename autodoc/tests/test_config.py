@@ -19,7 +19,6 @@ VALID_PARSER_CONFIG = {
     'manifests_remotes_path': '/remotes/manifests',
 }
 
-
 class TestConfigManagerInit:
     def test_raises_if_dir_not_exists(self, tmp_path: Path) -> None:
         with pytest.raises(ConfigError, match='не найдена'):
@@ -28,7 +27,6 @@ class TestConfigManagerInit:
     def test_initializes_with_valid_dir(self, tmp_path: Path) -> None:
         manager = ConfigManager(str(tmp_path))
         assert manager.configs_dir == tmp_path
-
 
 class TestLoadParserConfig:
     def test_loads_valid_json(self, tmp_path: Path) -> None:
@@ -59,7 +57,6 @@ class TestLoadParserConfig:
         assert config.tfs_request_timeout == 15
         assert config.excluded_components == []
 
-
 class TestParserConfigSchemaMissingRequiredFields:
     @pytest.mark.parametrize('missing_field', [
         'platform_version',
@@ -77,7 +74,6 @@ class TestParserConfigSchemaMissingRequiredFields:
         with pytest.raises(ConfigError):
             ConfigManager(str(tmp_path)).load_parser_config()
 
-
 class TestAutoDiscovery:
     def test_finds_yaml_when_no_json(self, tmp_path: Path) -> None:
         import yaml
@@ -93,7 +89,6 @@ class TestAutoDiscovery:
         (tmp_path / 'parser_config.yaml').write_text(yaml.dump(yaml_data))
         config = ConfigManager(str(tmp_path)).load_parser_config()
         assert config.platform_version == 'from_json'
-
 
 class TestArtifactoryCredentials:
     """4.1 Тест заполнения credentials из env / конфига."""

@@ -1,14 +1,13 @@
 """
 Трансформер для профиль-центричного вида документации.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 
 _DEFAULT_PASSPORT_PATTERN = '/wiki/spaces/DOC/pages/{component_name}+{release_version}'
-
 
 class ProfileCentricTransformer(BaseDataTransformer):
     """
@@ -21,7 +20,7 @@ class ProfileCentricTransformer(BaseDataTransformer):
     def __init__(
         self,
         include_passport_links: bool = True,
-        passport_page_pattern: Optional[str] = None,
+        passport_page_pattern: str | None = None,
     ) -> None:
         """
         Args:
@@ -31,7 +30,7 @@ class ProfileCentricTransformer(BaseDataTransformer):
         self._include_passport_links = include_passport_links
         self._pattern = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
-    def _passport_link(self, comp_name: str, version: str) -> Optional[str]:
+    def _passport_link(self, comp_name: str, version: str) -> str | None:
         if not self._include_passport_links:
             return None
         return self._pattern.format(
@@ -39,7 +38,7 @@ class ProfileCentricTransformer(BaseDataTransformer):
             release_version=version.replace(' ', '+'),
         )
 
-    def transform(self, data: ParsedResult) -> Dict[str, Any]:
+    def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Возвращает профиль-центричный вид данных.
 
@@ -52,7 +51,7 @@ class ProfileCentricTransformer(BaseDataTransformer):
         logger.debug('трансформация в профиль-центричный вид')
 
         # Собираем агрегированные настройки и docker URL по профилям
-        profile_meta: Dict[str, Dict[str, Any]] = {}
+        profile_meta: dict[str, dict[str, Any]] = {}
         for comp in data.components:
             for rel in comp.releases:
                 for pb in rel.profile_builds:
@@ -63,10 +62,10 @@ class ProfileCentricTransformer(BaseDataTransformer):
                     if pb.docker_image:
                         profile_meta[pb.profile_name]['docker_url'] = pb.docker_image
 
-        profiles: List[Dict[str, Any]] = []
+        profiles: list[dict[str, Any]] = []
         for profile_name in sorted(profile_meta):
             settings = profile_meta[profile_name]['settings']
-            entry: Dict[str, Any] = {
+            entry: dict[str, Any] = {
                 'profile_name': profile_name,
                 'os': settings.get('os', 'Unknown'),
                 'arch': settings.get('arch', '—'),

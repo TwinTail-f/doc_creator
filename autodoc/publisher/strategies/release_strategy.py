@@ -3,7 +3,7 @@
 """
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -17,7 +17,6 @@ from autodoc.publisher.transformers.release_transformer import (
     FullReleaseTransformer,
     MinimalReleaseTransformer,
 )
-
 
 class ReleasePageStrategy(
     BasePublishStrategy,
@@ -41,8 +40,8 @@ class ReleasePageStrategy(
         space: str,
         page_title: str,
         template_name: str,
-        parent_id: Optional[str] = None,
-        data_dir: Optional[Path] = None,  # 3.9
+        parent_id: str | None = None,
+        data_dir: Path | None = None,  # 3.9
     ) -> None:
         """
         Args:
@@ -78,8 +77,8 @@ class ReleasePageStrategy(
     def execute(self) -> PublishReport:
         """Публикует страницу релиза."""
         logger.info('публикация страницы %r', self._page_title)
-        errors: List[str] = []
-        details: List[Dict[str, Any]] = []
+        errors: list[str] = []
+        details: list[dict[str, Any]] = []
 
         try:
             passport_pages = self._load_passport_pages()
@@ -117,7 +116,7 @@ class ReleasePageStrategy(
             logger.error('ошибка — %s', error_msg)
             return PublishReport(success=False, pages_published=0, errors=errors, details=details)
 
-    def _load_passport_pages(self) -> Dict[str, Any]:
+    def _load_passport_pages(self) -> dict[str, Any]:
         """
         Загружает маппинг страниц паспортов из ``passport_pages.json``.
 
@@ -136,8 +135,8 @@ class ReleasePageStrategy(
 
     @staticmethod
     def _inject_passport_links(
-        view_model: Dict[str, Any],
-        passport_pages: Dict[str, Any],
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
     ) -> None:
         """
         Добавляет ссылки на страницы паспортов в модель представления релиза.
@@ -162,7 +161,6 @@ class ReleasePageStrategy(
                 if v in release_versions
             }
 
-
 # 3.7 Подклассы-алиасы вместо прямой записи в _registry/_transformer_map снаружи.
 # Каждый объявляет свой strategy_type и transformer_cls через __init_subclass__.
 
@@ -173,14 +171,12 @@ class MinimalReleaseStrategy(
 ):
     pass
 
-
 class ProfileCentricStrategy(
     ReleasePageStrategy,
     strategy_type='profile_centric',
     transformer_cls=ProfileCentricTransformer,
 ):
     pass
-
 
 class FullCombinedStrategy(
     ReleasePageStrategy,

@@ -4,10 +4,9 @@
 import datetime
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from autodoc.parser.conan.task_builder import ConanTask
-
 
 @dataclass
 class ConanEnrichData:
@@ -21,17 +20,16 @@ class ConanEnrichData:
     base_ref: str
     rrev: str
     full_version: str
-    default_options: List[Dict[str, Any]]
-    patches: List[str]
-    dependencies: List[str]
-    conan_settings: Dict[str, Any]
+    default_options: list[dict[str, Any]]
+    patches: list[str]
+    dependencies: list[str]
+    conan_settings: dict[str, Any]
     package_id: str
     build_url: str
     build_date: str
-    conan_options: Dict[str, Any]
+    conan_options: dict[str, Any]
     # 3.3 option_set_id и option_set_str удалены — нигде не применяются
     #     после удаления из ConanVariant (доменной модели)
-
 
 class ConanResultParser:
     """
@@ -42,9 +40,9 @@ class ConanResultParser:
 
     def parse(
         self,
-        conan_json: Dict[str, Any],
+        conan_json: dict[str, Any],
         task: ConanTask,
-    ) -> Optional[ConanEnrichData]:
+    ) -> ConanEnrichData | None:
         """
         Извлекает данные о компоненте из JSON-графа зависимостей Conan.
 
@@ -55,7 +53,7 @@ class ConanResultParser:
         Returns:
             ``ConanEnrichData`` если нода компонента найдена, иначе ``None``.
         """
-        nodes: Dict = conan_json.get('graph', {}).get('nodes', {})
+        nodes: dict = conan_json.get('graph', {}).get('nodes', {})
         target_node = next(
             (n for n in nodes.values() if n.get('name') == task.comp_name),
             None,
@@ -68,12 +66,12 @@ class ConanResultParser:
         patches = self._extract_patches(target_node, task.version)
         dependencies = self._extract_dependencies(target_node, task.comp_name)
 
-        info_dict: Dict = target_node.get('info', {})
-        conan_settings: Dict = info_dict.get('settings', target_node.get('settings', {}))
+        info_dict: dict = target_node.get('info', {})
+        conan_settings: dict = info_dict.get('settings', target_node.get('settings', {}))
         package_id = target_node.get('package_id', '')
         build_url = self._build_artifactory_url(task, full_version, rrev) if package_id else ''
         build_date = self._extract_build_date(target_node)
-        conan_options: Dict = info_dict.get('options', target_node.get('options', {}))
+        conan_options: dict = info_dict.get('options', target_node.get('options', {}))
 
         return ConanEnrichData(
             base_ref=base_ref,
@@ -91,7 +89,7 @@ class ConanResultParser:
 
     @staticmethod
     def _extract_ref_info(
-        node: Dict[str, Any],
+        node: dict[str, Any],
         fallback_version: str,
     ) -> tuple:
         full_ref: str = node.get('ref', '')
@@ -110,10 +108,10 @@ class ConanResultParser:
         return base_ref, rrev, full_version
 
     @staticmethod
-    def _extract_default_options(node: Dict[str, Any]) -> List[Dict[str, Any]]:
-        opt_defs: Dict = node.get('options_definitions', {}) or {}
-        def_opts: Dict = node.get('default_options', {}) or {}
-        result: List[Dict[str, Any]] = []
+    def _extract_default_options(node: dict[str, Any]) -> list[dict[str, Any]]:
+        opt_defs: dict = node.get('options_definitions', {}) or {}
+        def_opts: dict = node.get('default_options', {}) or {}
+        result: list[dict[str, Any]] = []
 
         for opt_name, opt_val in def_opts.items():
             opt_type = 'string'
@@ -130,12 +128,12 @@ class ConanResultParser:
         return result
 
     @staticmethod
-    def _extract_patches(node: Dict[str, Any], version: str) -> List[str]:
-        patches_dict: Dict = node.get('conandata', {}).get('patches', {})
+    def _extract_patches(node: dict[str, Any], version: str) -> list[str]:
+        patches_dict: dict = node.get('conandata', {}).get('patches', {})
         if not isinstance(patches_dict, dict):
             return []
 
-        extracted: List[str] = []
+        extracted: list[str] = []
         for key, patch_list in patches_dict.items():
             if not (str(version).startswith(str(key)) or not str(key)[0].isdigit()):
                 continue
@@ -148,9 +146,9 @@ class ConanResultParser:
         return list(dict.fromkeys(extracted))
 
     @staticmethod
-    def _extract_dependencies(node: Dict[str, Any], comp_name: str) -> List[str]:
-        deps_node: Dict = node.get('dependencies', {})
-        deps: List[str] = []
+    def _extract_dependencies(node: dict[str, Any], comp_name: str) -> list[str]:
+        deps_node: dict = node.get('dependencies', {})
+        deps: list[str] = []
         for dep_info in deps_node.values():
             ref: str = dep_info.get('ref', '')
             if ref:
@@ -170,7 +168,7 @@ class ConanResultParser:
         )
 
     @staticmethod
-    def _extract_build_date(node: Dict[str, Any]) -> str:
+    def _extract_build_date(node: dict[str, Any]) -> str:
         prev_timestamp = node.get('prev_timestamp')
         if not prev_timestamp:
             return ''

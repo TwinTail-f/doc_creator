@@ -2,12 +2,11 @@
 Рендеринг Jinja2-шаблонов в HTML Confluence Storage Format.
 """
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
 from autodoc.infrastructure.logger import logger
-
 
 class DocumentBuilder:
     """
@@ -33,7 +32,7 @@ class DocumentBuilder:
         self._env = Environment(loader=FileSystemLoader(str(templates_dir)))
         logger.info(f'DocumentBuilder инициализирован: {templates_dir}')
 
-    def build(self, template_name: str, view_model: Dict[str, Any]) -> str:
+    def build(self, template_name: str, view_model: dict[str, Any]) -> str:
         """
         Рендерит шаблон с переданными данными.
 

@@ -1,12 +1,10 @@
 """
 Единственная точка мутации доменных моделей в пайплайне парсера.
 """
-from typing import Dict, List, Tuple
 
-from autodoc.models.component import Component, ConanVariant
+from autodoc.models.component import BuildOptionSet, Component, ConanVariant
 from autodoc.models.conan_result import ConanEnrichmentResult  # 3.12 прямой импорт без отсрочки
 from autodoc.parser.fetchers.options_fetcher import OptionsMap
-
 
 class DataEnricher:
     """
@@ -18,7 +16,7 @@ class DataEnricher:
 
     @staticmethod
     def apply_options(
-        components: List[Component],
+        components: list[Component],
         options_map: OptionsMap,
     ) -> None:
         """
@@ -30,16 +28,18 @@ class DataEnricher:
         """
         for comp in components:
             for release in comp.releases:
-                key: Tuple[str, str, str] = (comp.name, release.version, release.channel)
+                key: tuple[str, str, str] = (comp.name, release.version, release.channel)
                 opts = options_map.get(key)
                 if opts is not None:
                     release._build_option_sets_internal = opts
-                    release.build_option_sets = opts
+                    release.build_option_sets = [
+                        BuildOptionSet(id=k, options=v) for k, v in opts.items()
+                    ]
 
     @staticmethod
     def apply_docker_links(
-        components: List[Component],
-        docker_links: Dict[str, str],
+        components: list[Component],
+        docker_links: dict[str, str],
     ) -> None:
         """
         Заполняет ``docker_image`` для каждого ``ProfileBuild``.
@@ -55,7 +55,7 @@ class DataEnricher:
 
     @staticmethod
     def apply_conan_results(
-        components: List[Component],
+        components: list[Component],
         result: ConanEnrichmentResult,
     ) -> None:
         """

@@ -1,12 +1,17 @@
+# Copyright (c) 2026 JSC InfoTeCS
 """
 Клиент для взаимодействия с REST API TFS.
 
-Живёт в ``parser/`` — используется только парсером
-(``ManifestParser``, ``OptionsResolver``, ``DockerResolver``).
+Живёт в ``infrastructure/`` — используется fetcher-классами парсера
+(``ManifestFetcher``, ``DockerFetcher``, ``OptionsFetcher``).
 """
+
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from autodoc.config.schemas import ParserConfigSchema
 
 import requests
 
@@ -72,6 +77,28 @@ class TFSClient:
         )
         self.session.params = {'api-version': self._API_VERSION}
 
+    @classmethod
+    def from_config(cls, config: ParserConfigSchema) -> TFSClient:
+        """
+        Создаёт ``TFSClient`` из конфигурации парсера.
+
+        Удобный фабричный метод — избавляет от повторения одинакового
+        блока инициализации в каждом fetcher-классе.
+
+        Args:
+            config: Валидированная конфигурация парсера.
+
+        Returns:
+            Настроенный экземпляр ``TFSClient``.
+        """
+        return cls(
+            username=config.tfs_username,
+            token=config.tfs_token,
+            max_retries=config.max_retries,
+            backoff_factor=config.retry_backoff_factor,
+            timeout=config.tfs_request_timeout,
+        )
+
     def download_properties(
         self,
         items_url: str,
@@ -97,7 +124,7 @@ class TFSClient:
             'recursionLevel': RecursionLevel.ONE_LEVEL.value,
         }
 
-        logger.info('TFSClient: запрос списка файлов из %s (ветка: %s)', items_url, branch)
+        logger.info('запрос списка файлов из %s (ветка: %s)', items_url, branch)
 
         try:
             response = self.session.get(items_url, params=params)
@@ -108,7 +135,7 @@ class TFSClient:
             ) from e
 
         items = response.json().get('value', [])
-        logger.info('TFSClient: найдено %d элементов, начинаем скачивание…', len(items))
+        logger.info('найдено %d элементов, начинаем скачивание…', len(items))
 
         out_dir = Path(output_dir)
         downloaded_count = 0
@@ -125,9 +152,9 @@ class TFSClient:
                 (out_dir / file_name).write_text(file_response.text, encoding='utf-8')
                 downloaded_count += 1
             except requests.exceptions.RequestException as e:
-                logger.warning('TFSClient: не удалось скачать %s: %s. Пропускаем.', file_name, e)
+                logger.warning('не удалось скачать %s: %s. Пропускаем.', file_name, e)
 
-        logger.info('TFSClient: успешно скачано %d файлов.', downloaded_count)
+        logger.info('успешно скачано %d файлов.', downloaded_count)
 
     def get_file_content(
         self,

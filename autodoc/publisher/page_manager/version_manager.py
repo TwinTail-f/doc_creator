@@ -1,10 +1,9 @@
 """
 Вспомогательные утилиты для работы с версиями страниц Confluence.
 """
-from typing import Any, Dict
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
-
 
 class PageVersionManager:
     """
@@ -27,7 +26,7 @@ class PageVersionManager:
         return current_version + 1
 
     @staticmethod
-    def extract_version_from_response(response: Dict[str, Any]) -> int:
+    def extract_version_from_response(response: dict[str, Any]) -> int:
         """
         Извлекает номер версии из ответа Confluence API.
 

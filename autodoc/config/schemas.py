@@ -2,10 +2,8 @@
 Pydantic-схемы для валидации конфигурационных файлов проекта.
 """
 import os
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
 
 class ParserConfigSchema(BaseModel):
     """Схема валидации ``parser_config.json`` / ``parser_config.yaml``."""
@@ -24,11 +22,11 @@ class ParserConfigSchema(BaseModel):
         default='',
         description='URL Artifactory для Conan 2 пакетов',
     )
-    profiles_urls: List[str] = Field(
+    profiles_urls: list[str] = Field(
         default_factory=list,
         description='Список URL на YAML-файлы профилей сборки',
     )
-    excluded_components: List[str] = Field(
+    excluded_components: list[str] = Field(
         default_factory=list,
         description='Список компонентов для исключения из обработки',
     )
@@ -83,7 +81,6 @@ class ParserConfigSchema(BaseModel):
             self.artifactory_password = os.getenv('GET_PWD', '')
         return self
 
-
 class ConfluenceConfigSchema(BaseModel):
     """Схема валидации ``confluence_config.json`` / ``confluence_config.yaml``."""
 
@@ -91,17 +88,17 @@ class ConfluenceConfigSchema(BaseModel):
     token: str = Field(..., description='Atlassian API-токен')
     space: str = Field(..., description='Ключ Space в Confluence')
 
-    username: Optional[str] = Field(default=None, description='Имя пользователя (legacy-аутентификация)')
-    password: Optional[str] = Field(default=None, description='Пароль (deprecated)')
+    username: str | None = Field(default=None, description='Имя пользователя (legacy-аутентификация)')
+    password: str | None = Field(default=None, description='Пароль (deprecated)')
     cloud: bool = Field(default=True, description='True — Confluence Cloud, False — Data Center')
     verify_ssl: bool = Field(default=True, description='Проверять SSL-сертификаты')
 
-    parent_id: Optional[str] = Field(default=None, description='ID родительской страницы')
-    page_title: Optional[str] = Field(
+    parent_id: str | None = Field(default=None, description='ID родительской страницы')
+    page_title: str | None = Field(
         default='Сборки компонентов Платформы',
         description='Заголовок главной страницы',
     )
-    passports_root_parent_id: Optional[str] = Field(
+    passports_root_parent_id: str | None = Field(
         default=None,
         description='ID родительской страницы для дерева паспортов',
     )
@@ -116,7 +113,7 @@ class ConfluenceConfigSchema(BaseModel):
         default='Platform 2.2',
         description="Имя текущей платформы (например 'Platform 2.2')",
     )
-    preserve_legacy_platforms: List[str] = Field(
+    preserve_legacy_platforms: list[str] = Field(
         default_factory=list,
         description='Список имён старых платформ, контент которых нужно сохранить',
     )

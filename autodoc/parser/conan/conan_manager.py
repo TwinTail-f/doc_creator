@@ -2,8 +2,7 @@
 Менеджер Conan: параллельное выполнение задач и возврат результата для обогащения.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
@@ -20,23 +19,6 @@ from autodoc.models.conan_result import (
 
 _DEFAULT_MAX_WORKERS = 8
 
-
-@dataclass
-class _ReleaseUpdates:
-    """
-    Промежуточные данные обогащения одного Release, собранные из ответов Conan.
-
-    Заменяет неструктурированный ``Dict[str, Any]`` в ``_PbAgg``.
-    """
-
-    base_ref: str
-    rrev: str
-    full_version: str
-    default_options: list
-    patches: list
-    dependencies: list
-
-
 class ConanManager:
     """
     Управляет выполнением ``conan graph info`` и возвращает ``ConanEnrichmentResult``.
@@ -48,17 +30,14 @@ class ConanManager:
         self._runner: BaseConanRunner = Conan2Runner(timeout=config.conan_command_timeout)
         self._task_builder = ConanTaskBuilder()
         self._result_parser = ConanResultParser()
-        self._cache: Dict[str, ConanRawResult] = {}
 
     def clean_cache(self) -> None:
-        """Очищает локальный кэш Conan и внутренний кэш менеджера."""
+        """Очищает локальный кэш Conan."""
         self._runner.clean_cache()
-        self._cache.clear()
-        logger.debug('внутренний кеш сброшен.')
 
     def enrich_components(
         self,
-        components: List[Component],
+        components: list[Component],
         target_platform: str,
         artifactory_base_url: str,
     ) -> ConanEnrichmentResult:
@@ -91,63 +70,48 @@ class ConanManager:
 
     # ------------------------------------------------------------------
 
-    def _run_tasks_parallel(self, tasks: List[ConanTask]) -> List[Optional[ConanRawResult]]:
+    def _run_tasks_parallel(self, tasks: list[ConanTask]) -> list[ConanRawResult | None]:
         """
         Выполняет задачи Conan параллельно через ``ThreadPoolExecutor``.
 
-        Кеширует успешные результаты по ключу команды. Логирует прогресс
-        каждые 50 задач и по завершении.
+        Логирует прогресс каждые 50 задач и по завершении.
 
         Args:
             tasks: Список задач для выполнения.
 
         Returns:
             Список сырых результатов ``ConanRawResult`` в том же порядке,
-            что и входные задачи. Элемент равен ``None`` для ненайденных задач.
+            что и входные задачи.
         """
-        results: List[Optional[ConanRawResult]] = [None] * len(tasks)
-        tasks_to_run: List[Tuple[int, ConanTask]] = []
-
-        for idx, task in enumerate(tasks):
-            cache_key = ' '.join(task.cmd)
-            if cache_key in self._cache:
-                results[idx] = self._cache[cache_key]
-            else:
-                tasks_to_run.append((idx, task))
-
-        if not tasks_to_run:
-            return results
+        results: list[ConanRawResult | None] = [None] * len(tasks)
 
         with ThreadPoolExecutor(max_workers=_DEFAULT_MAX_WORKERS) as executor:
             future_to_idx = {
                 executor.submit(self._runner.run, task): idx
-                for idx, task in tasks_to_run
+                for idx, task in enumerate(tasks)
             }
 
             completed = 0
-            total = len(tasks_to_run)
+            total = len(tasks)
             for future in as_completed(future_to_idx):
                 completed += 1
                 if completed % 50 == 0 or completed == total:
                     logger.info('прогресс %d/%d задач…', completed, total)
 
                 idx = future_to_idx[future]
-                raw = future.result()
-                results[idx] = raw
-                if raw.success:
-                    self._cache[' '.join(raw.task.cmd)] = raw
+                results[idx] = future.result()
 
         return results
 
     def _build_enrichment_result(
         self,
-        tasks: List[ConanTask],
-        raw_results: List[Optional[ConanRawResult]],
+        tasks: list[ConanTask],
+        raw_results: list[ConanRawResult | None],
         art_base: str,
         target_platform: str,
     ) -> ConanEnrichmentResult:
         """Собирает ConanEnrichmentResult из сырых результатов без мутации моделей."""
-        pb_agg: Dict[int, _PbAgg] = {id(task.pb): _PbAgg() for task in tasks}
+        pb_agg: dict[int, _PbAgg] = {id(task.pb): _PbAgg() for task in tasks}
 
         for task, raw in zip(tasks, raw_results):
             if raw is None:
@@ -174,24 +138,24 @@ class ConanManager:
             visited_pbs.add(pb_id)
 
             agg = pb_agg[pb_id]
-            release_key: Tuple[str, str, str] = (task.comp_name, task.version, task.channel)
+            release_key: tuple[str, str, str] = (task.comp_name, task.version, task.channel)
 
-            if agg.release_updates and release_key not in result.release_data:
-                upd = agg.release_updates
+            if agg.first_enrich and release_key not in result.release_data:
+                fe = agg.first_enrich
                 art_url = ''
                 if art_base:
                     art_url = '%s/platform-%s/%s/%s/%s/%s' % (
                         art_base, target_platform,
-                        task.comp_name, upd.full_version,
-                        task.channel, upd.rrev,
+                        task.comp_name, fe.full_version,
+                        task.channel, fe.rrev,
                     )
                 result.release_data[release_key] = ReleaseConanData(
-                    base_ref=upd.base_ref,
-                    rrev=upd.rrev,
-                    full_version=upd.full_version,
-                    default_options=upd.default_options,
-                    patches=upd.patches,
-                    dependencies=upd.dependencies,
+                    base_ref=fe.base_ref,
+                    rrev=fe.rrev,
+                    full_version=fe.full_version,
+                    default_options=fe.default_options,
+                    patches=fe.patches,
+                    dependencies=fe.dependencies,
                     artifactory_url=art_url,
                 )
 
@@ -206,25 +170,24 @@ class ConanManager:
 
         return result
 
-
 class _PbAgg:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
-    __slots__ = ('any_success', 'unique_variants', 'release_updates', 'conan_settings', 'errors')
+    __slots__ = ('any_success', 'unique_variants', 'first_enrich', 'conan_settings', 'errors')
 
     def __init__(self) -> None:
         self.any_success = False
-        self.conan_settings: Dict[str, Any] = {}
-        self.unique_variants: Dict[str, Dict[str, Any]] = {}
-        self.release_updates: Optional[_ReleaseUpdates] = None  # 3.14 датакласс вместо Dict
-        self.errors: List[Dict] = []
+        self.conan_settings: dict[str, Any] = {}
+        self.unique_variants: dict[str, dict[str, Any]] = {}
+        self.first_enrich: ConanEnrichData | None = None
+        self.errors: list[dict] = []
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:
         """
         Применяет данные одной завершённой задачи к агрегатору.
 
-        Обновляет настройки Conan, фиксирует данные релиза при первом
-        успешном результате и добавляет вариант сборки в ``unique_variants``.
+        Обновляет настройки Conan, фиксирует первый успешный EnrichData при
+        наличии base_ref и добавляет вариант сборки в ``unique_variants``.
 
         Args:
             enrich: Структурированные данные из разобранного ответа Conan.
@@ -232,16 +195,8 @@ class _PbAgg:
         self.any_success = True
         self.conan_settings = enrich.conan_settings
 
-        if self.release_updates is None and enrich.base_ref:
-            # 3.14 Строго типизированный датакласс вместо Dict[str, Any]
-            self.release_updates = _ReleaseUpdates(
-                base_ref=enrich.base_ref,
-                rrev=enrich.rrev,
-                full_version=enrich.full_version,
-                default_options=enrich.default_options,
-                patches=enrich.patches,
-                dependencies=enrich.dependencies,
-            )
+        if self.first_enrich is None and enrich.base_ref:
+            self.first_enrich = enrich
 
         if enrich.package_id and enrich.package_id not in self.unique_variants:
             self.unique_variants[enrich.package_id] = {
@@ -251,8 +206,7 @@ class _PbAgg:
                 'conan_options': enrich.conan_options,
             }
 
-
-def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: List[Dict]) -> None:
+def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: list[dict]) -> None:
     """
     Добавляет запись об ошибке в структурированный лог ошибок.
 

@@ -3,7 +3,6 @@
 """
 from autodoc.infrastructure.logger import logger
 
-
 class PageHierarchyManager:
     """
     Управляет деревом страниц Confluence.

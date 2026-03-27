@@ -2,21 +2,20 @@
 Фетчер опций Conan: скачивает options.json из репозиториев компонентов.
 """
 import json
-from typing import Dict, List, Tuple
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.tfs_client import TFSClient
 from autodoc.models.component import Component
+from autodoc.parser.steps.base import BaseDataFetcher
 
 # Тип: (имя_компонента, версия, канал) → {id_набора: строка_опций}
-OptionsMap = Dict[Tuple[str, str, str], Dict[str, str]]
+OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
 _CI_PRIORITY = ('/ci-2.0/', '/ci-1.6/')
 
-
-class OptionsFetcher:
+class OptionsFetcher(BaseDataFetcher[OptionsMap]):
     """
     Скачивает ``options.json`` из репозиториев компонентов и возвращает маппинг опций.
 
@@ -32,7 +31,7 @@ class OptionsFetcher:
         self._tfs = TFSClient.from_config(config)
         self._base_url = config.tfs_dep_components_url.rstrip('/')
 
-    def fetch(self, components: List[Component]) -> OptionsMap:
+    def fetch(self, components: list[Component]) -> OptionsMap:
         """
         Собирает опции Conan для всех релизов компонентов.
 
@@ -48,7 +47,7 @@ class OptionsFetcher:
         """
         logger.info('начинаем сбор options.json…')
 
-        options_cache: Dict[str, Dict] = {}
+        options_cache: dict[str, dict] = {}
         result: OptionsMap = {}
 
         for comp in components:
@@ -75,7 +74,7 @@ class OptionsFetcher:
     # Приватные методы
     # ------------------------------------------------------------------
 
-    def _fetch_options_for_repo(self, repo_name: str, branch: str) -> Dict:
+    def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
         """
         Загружает все файлы ``options.json`` из указанной ветки репозитория.
 
@@ -86,7 +85,7 @@ class OptionsFetcher:
         Returns:
             Словарь с ключами ``global`` и ``channels``, содержащий найденные опции.
         """
-        repo_data: Dict = {'global': {}, 'channels': {}}
+        repo_data: dict = {'global': {}, 'channels': {}}
         items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, repo_name)
 
         try:
@@ -119,7 +118,7 @@ class OptionsFetcher:
         opt_path: str,
         branch: str,
         ci_prefix: str,
-        repo_data: Dict,
+        repo_data: dict,
     ) -> None:
         """
         Скачивает один файл ``options.json`` и сохраняет результат в ``repo_data``.
@@ -138,12 +137,12 @@ class OptionsFetcher:
             response = self._tfs.get_file_content(items_url, opt_path, branch)
             if response.status_code != 200:
                 return
-            parsed: Dict = json.loads(response.text)
+            parsed: dict = json.loads(response.text)
         except (json.JSONDecodeError, Exception) as e:
             logger.warning('ошибка чтения %s: %s', opt_path, e)
             return
 
-        cleaned: Dict[str, str] = {
+        cleaned: dict[str, str] = {
             str(k): (v.strip() if isinstance(v, str) else '')
             for k, v in parsed.items()
             if isinstance(v, (str, type(None)))
@@ -159,7 +158,7 @@ class OptionsFetcher:
             repo_data['global'] = cleaned
 
     @staticmethod
-    def _select_ci_prefix(options_paths: List[str]) -> str:
+    def _select_ci_prefix(options_paths: list[str]) -> str:
         """
         Выбирает CI-префикс с наивысшим приоритетом из списка доступных путей.
 
@@ -178,7 +177,7 @@ class OptionsFetcher:
         return ''
 
     @staticmethod
-    def _pick_options(repo_data: Dict, channel: str) -> Dict[str, str]:
+    def _pick_options(repo_data: dict, channel: str) -> dict[str, str]:
         """
         Выбирает подходящий словарь опций для указанного канала.
 
@@ -199,7 +198,3 @@ class OptionsFetcher:
         if global_opts:
             return global_opts
         return {'1': ''}
-
-
-# Обратная совместимость: старое имя оставлено для переходного периода
-OptionsResolver = OptionsFetcher

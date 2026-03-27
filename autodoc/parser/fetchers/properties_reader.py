@@ -2,10 +2,8 @@
 Утилита для чтения файлов формата .properties.
 """
 from pathlib import Path
-from typing import Dict
 
-
-def read_properties(filepath: Path) -> Dict[str, str]:
+def read_properties(filepath: Path) -> dict[str, str]:
     """
     Читает ``.properties``-файл в словарь ключ-значение.
 
@@ -26,7 +24,7 @@ def read_properties(filepath: Path) -> Dict[str, str]:
     # Склеиваем строки с переносом (заканчивающиеся на '\')
     content = content.replace('\\\n', '')
 
-    props: Dict[str, str] = {}
+    props: dict[str, str] = {}
     for line in content.split('\n'):
         line = line.strip()
         if not line or line.startswith('#'):

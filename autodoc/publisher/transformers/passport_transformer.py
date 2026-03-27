@@ -1,10 +1,9 @@
 """Трансформер для паспорта одного компонента."""
-from typing import Any, Dict
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
-
 
 class PassportTransformer(BaseDataTransformer):
     """
@@ -16,14 +15,13 @@ class PassportTransformer(BaseDataTransformer):
     - ``data.component.releases`` — список из одного релиза, чтобы шаблон мог
       группировать по каналам через Jinja2 ``groupby``.
     - Все поля профилей используют новые имена: ``docker_image``, ``exists``.
-    - Поле ``svace_report`` включено в каждый релиз.
     """
 
     def __init__(self, component_name: str, release_version: str) -> None:
         self._component_name = component_name
         self._release_version = release_version
 
-    def transform(self, data: ParsedResult) -> Dict[str, Any]:
+    def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Формирует паспорт для конкретного компонента и версии.
 
@@ -36,7 +34,7 @@ class PassportTransformer(BaseDataTransformer):
         Raises:
             ValueError: Если компонент или версия не найдены.
         """
-        profile_settings: Dict[str, Dict[str, Any]] = {}
+        profile_settings: dict[str, dict[str, Any]] = {}
         for comp in data.components:
             for rel in comp.releases:
                 for pb in rel.profile_builds:
@@ -89,11 +87,6 @@ class PassportTransformer(BaseDataTransformer):
             'patches': target_rel.patches,
             'dependencies': target_rel.dependencies,
             'profile_builds': enriched_pbs,
-            # svace_report — поле для шаблона (component_passport.jinja2)
-            'svace_report': {
-                'profile': target_rel.svace_report.profile,
-                'report_url': target_rel.svace_report.report_url,
-            },
         }
 
         return {

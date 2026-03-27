@@ -4,7 +4,6 @@
 import json
 import shutil
 from pathlib import Path
-from typing import List, Optional
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ParsingError
@@ -18,8 +17,7 @@ from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 
-
-def default_pipeline() -> List[BaseParseStep]:
+def default_pipeline() -> list[BaseParseStep]:
     """Возвращает стандартный набор шагов пайплайна в порядке выполнения."""
     return [
         ManifestStep(),
@@ -29,7 +27,6 @@ def default_pipeline() -> List[BaseParseStep]:
         ArtifactoryValidationStep(),
         FinalizeStep(),
     ]
-
 
 class ComponentParser:
     """
@@ -43,7 +40,7 @@ class ComponentParser:
         self,
         config: ParserConfigSchema,
         data_dir: Path,
-        steps: Optional[List[BaseParseStep]] = None,  # 3.6 явный Optional
+        steps: list[BaseParseStep | None] = None,  # 3.6 явный тип
     ) -> None:
         """
         Args:
@@ -55,7 +52,7 @@ class ComponentParser:
         self._data_dir = data_dir
         self._tmp_dir = data_dir / 'tmp'
         self._intermediate_dir = data_dir / 'intermediate'
-        self._steps: List[BaseParseStep] = (
+        self._steps: list[BaseParseStep] = (
             steps if steps is not None else default_pipeline()
         )
 
@@ -64,7 +61,7 @@ class ComponentParser:
         cls,
         config: ParserConfigSchema,
         data_dir: Path,
-        exclude: List[type],
+        exclude: list[type],
     ) -> 'ComponentParser':
         """
         Фабричный метод: создаёт парсер без указанных классов шагов.

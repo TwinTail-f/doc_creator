@@ -2,7 +2,7 @@
 Точка входа паблишера документации компонентов платформы.
 """
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.infrastructure.logger import logger
@@ -14,7 +14,6 @@ from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 # Импорт стратегий активирует их регистрацию в Registry
 import autodoc.publisher.strategies.release_strategy    # noqa: F401
 import autodoc.publisher.strategies.passports_strategy  # noqa: F401
-
 
 class DocumentPublisher:
     """
@@ -28,7 +27,7 @@ class DocumentPublisher:
         self,
         confluence_config: ConfluenceConfigSchema,
         templates_dir: Path,
-        data_dir: Optional[Path] = None,  # 3.9 для передачи стратегиям
+        data_dir: Path | None = None,  # 3.9 для передачи стратегиям
     ) -> None:
         """
         Args:
@@ -80,7 +79,7 @@ class DocumentPublisher:
         passports_root_page_id: str,
         release_page_title: str,
         release_template_name: str,
-        release_parent_id: Optional[str] = None,
+        release_parent_id: str | None = None,
         passport_template_name: str = 'component_passport.jinja2',
         include_passport_links: bool = True,
     ) -> PublishReport:

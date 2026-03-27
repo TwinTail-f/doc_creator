@@ -1,14 +1,13 @@
 """
 Трансформер для комбинированного вида: компоненты + профили на одной странице.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
 from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
-
 
 class FullCombinedTransformer(BaseDataTransformer):
     """
@@ -21,7 +20,7 @@ class FullCombinedTransformer(BaseDataTransformer):
     def __init__(
         self,
         include_passport_links: bool = True,
-        passport_page_pattern: Optional[str] = None,
+        passport_page_pattern: str | None = None,
     ) -> None:
         """
         Args:
@@ -36,7 +35,7 @@ class FullCombinedTransformer(BaseDataTransformer):
             include_passport_links, passport_page_pattern
         )
 
-    def transform(self, data: ParsedResult) -> Dict[str, Any]:
+    def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Объединяет компонентный и профильный виды в один документ.
 
@@ -51,7 +50,7 @@ class FullCombinedTransformer(BaseDataTransformer):
         components_data = self._component_transformer.transform(data)
         profiles_data = self._profile_transformer.transform(data)
 
-        sections: List[Dict[str, Any]] = [
+        sections: list[dict[str, Any]] = [
             {
                 'section_type': 'components',
                 'title': 'Component Documentation',

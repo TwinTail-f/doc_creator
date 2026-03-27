@@ -2,10 +2,8 @@
 Извлечение legacy-контента из Confluence Storage Format.
 """
 import re
-from typing import Dict, List, Optional
 
 from autodoc.infrastructure.logger import logger
-
 
 class LegacyContentExtractor:
     """
@@ -67,7 +65,7 @@ class LegacyContentExtractor:
         return ''
 
     @staticmethod
-    def extract_platform_versions(html: str) -> Dict[str, str]:
+    def extract_platform_versions(html: str) -> dict[str, str]:
         """
         Автоматически определяет все платформенные версии в HTML и извлекает их контент.
 
@@ -81,13 +79,13 @@ class LegacyContentExtractor:
             return {}
 
         pattern = r'<ac:parameter ac:name="(?:name|title)">([^<]+)</ac:parameter>'
-        platform_names: List[str] = []
+        platform_names: list[str] = []
         for match in re.finditer(pattern, html):
             name = match.group(1).strip()
             if name and name not in platform_names:
                 platform_names.append(name)
 
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         for name in platform_names:
             content = LegacyContentExtractor.extract_by_platform_tab(html, name)
             if content:

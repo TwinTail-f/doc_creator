@@ -2,14 +2,12 @@
 Шаг пайплайна: финализация и валидация данных.
 """
 import datetime
-from typing import List
 
 from autodoc.exceptions import ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
-
 
 class FinalizeStep(BaseParseStep):
     """
@@ -45,7 +43,7 @@ class FinalizeStep(BaseParseStep):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _compute_header_only_flags(components: List[Component]) -> None:
+    def _compute_header_only_flags(components: list[Component]) -> None:
         """
         Устанавливает флаг ``is_header_only`` для каждого ``Release``.
 
@@ -70,7 +68,7 @@ class FinalizeStep(BaseParseStep):
                 release.is_header_only = all_set_empty and has_empty_opts
 
     @staticmethod
-    def _filter_empty_profiles(components: List[Component]) -> int:
+    def _filter_empty_profiles(components: list[Component]) -> int:
         """
         Удаляет записи ``ProfileBuild`` с ``exists=False`` из всех релизов.
 

@@ -6,15 +6,14 @@ import json
 import pytest
 
 from autodoc.models.component import (
+    BuildOptionSet,
     ConanVariant,
     Component,
     OptionDefinition,
     ProfileBuild,
     Release,
-    SvaceReport,
 )
 from autodoc.models.parsed_result import ParsedResult
-
 
 class TestComponentCreation:
     """Тесты создания Component с вложенными объектами."""
@@ -40,7 +39,6 @@ class TestComponentCreation:
             docker_image='registry.example.com/builder:latest',
             variants=[variant],
         )
-        svace = SvaceReport(profile='linux_x86_64', report_url='https://svace.example.com/1')
         release = Release(
             version='1.2.3',
             platform='develop',
@@ -48,7 +46,6 @@ class TestComponentCreation:
             git_url='https://tfs.example.com/repo',
             # 1.3 git_project/git_repo убраны из Release
             conan_reference='crypto_lib/1.2.3@platform/stable',
-            svace_report=svace,
             profile_builds=[profile],
         )
         comp = Component(
@@ -94,7 +91,6 @@ class TestComponentCreation:
         comp = Component(name='lib', unknown_field='value')
         assert not hasattr(comp, 'unknown_field')
 
-
 class TestPrivateAttribute:
     """Тест: _build_option_sets_internal не попадает в сериализацию."""
 
@@ -122,7 +118,6 @@ class TestPrivateAttribute:
         release._build_option_sets_internal = {'key': 'value'}
         assert release._build_option_sets_internal == {'key': 'value'}
 
-
 class TestReleaseFieldNames:
     """1.4, 1.5 Проверка переименованных полей Release."""
 
@@ -131,9 +126,9 @@ class TestReleaseFieldNames:
         release = Release(
             version='1.0.0', platform='develop', channel='stable',
             git_url='https://tfs.example.com',
-            build_option_sets={'1': 'shared=True'},
+            build_option_sets=[BuildOptionSet(id='1', options='shared=True')],
         )
-        assert release.build_option_sets == {'1': 'shared=True'}
+        assert release.build_option_sets == [BuildOptionSet(id='1', options='shared=True')]
 
     def test_is_header_only_field_exists(self) -> None:
         """1.5 is_header_only_component → is_header_only."""
@@ -143,7 +138,6 @@ class TestReleaseFieldNames:
             is_header_only=True,
         )
         assert release.is_header_only is True
-
 
 class TestParsedResult:
     """Тесты сериализации / десериализации ParsedResult."""

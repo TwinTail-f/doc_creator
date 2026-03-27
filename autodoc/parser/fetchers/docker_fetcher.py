@@ -2,7 +2,7 @@
 Фетчер Docker-образов: извлекает ссылки из YAML-файлов профилей сборки.
 """
 from pathlib import Path
-from typing import Dict, List
+
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -11,12 +11,12 @@ import yaml
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.tfs_client import TFSClient
+from autodoc.parser.steps.base import BaseDataFetcher
 
 # Тип: имя_профиля → docker_image_url
-DockerLinksMap = Dict[str, str]
+DockerLinksMap = dict[str, str]
 
-
-class DockerFetcher:
+class DockerFetcher(BaseDataFetcher[DockerLinksMap]):
     """
     Извлекает Docker-образы из YAML-файлов профилей сборки.
 
@@ -30,7 +30,7 @@ class DockerFetcher:
         """
         self._tfs = TFSClient.from_config(config)
 
-    def fetch(self, urls: List[str], target_platform: str) -> DockerLinksMap:
+    def fetch(self, urls: list[str], target_platform: str) -> DockerLinksMap:
         """
         Парсит YAML-файлы профилей по переданным URL и собирает маппинг имён профилей
         на Docker-образы.
@@ -148,7 +148,3 @@ class DockerFetcher:
         docker_links[path_obj.stem] = docker_img
         if path_obj.parent != Path('.'):
             docker_links['%s/%s' % (path_obj.parent, path_obj.stem)] = docker_img
-
-
-# Обратная совместимость: старое имя оставлено для переходного периода
-DockerResolver = DockerFetcher

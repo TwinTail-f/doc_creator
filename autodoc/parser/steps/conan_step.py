@@ -3,7 +3,6 @@ from autodoc.parser.conan.conan_manager import ConanManager
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
-
 class ConanEnrichStep(BaseParseStep):
     """
     Шаг 3: Запускает conan graph info и применяет результаты к моделям.

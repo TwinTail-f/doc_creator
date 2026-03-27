@@ -1,11 +1,11 @@
-"""Тесты ManifestParser и read_properties."""
+"""Тесты ManifestFetcher и read_properties."""
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from autodoc.models.component import Component
-from autodoc.parser.fetchers.manifest_fetcher import ManifestParser
+from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.fetchers.properties_reader import read_properties
 
 # 4.2 Используем новое имя поля
@@ -18,17 +18,14 @@ MINIMAL_CONFIG_DATA = {
     'manifests_remotes_path': '/remotes/manifests',
 }
 
-
 def _make_config():
     from autodoc.config.schemas import ParserConfigSchema
     return ParserConfigSchema(**MINIMAL_CONFIG_DATA)
-
 
 def _write_properties(tmp_path: Path, filename: str, content: str) -> Path:
     p = tmp_path / filename
     p.write_text(content, encoding='utf-8')
     return p
-
 
 SAMPLE_PROPERTIES = """\
 name=crypto_lib
@@ -40,7 +37,6 @@ versions.platform=2.0-stable
 integration-profiles-develop-1.2.3-2.0-stable=linux_x86_64,linux_aarch64
 svace-profiles-1.2.3-2.0=linux_x86_64
 """
-
 
 class TestReadProperties:
     def test_reads_simple_key_value(self, tmp_path: Path) -> None:
@@ -63,13 +59,12 @@ class TestReadProperties:
         with pytest.raises(OSError):
             read_properties(tmp_path / 'nonexistent.properties')
 
-
-class TestManifestParser:
+class TestManifestFetcher:
     def _make_parser_with_mock(self, tmp_path: Path, content: str):
         config = _make_config()
         def fake_download(items_url, remote_path, branch, output_dir):
             _write_properties(Path(output_dir), 'comp.properties', content)
-        parser = ManifestParser(config)
+        parser = ManifestFetcher(config)
         parser._tfs = MagicMock()
         parser._tfs.download_properties.side_effect = fake_download
         return parser
@@ -117,7 +112,7 @@ class TestManifestParser:
     def test_raises_parsing_error_if_no_files(self, tmp_path: Path) -> None:
         from autodoc.exceptions import ParsingError
         config = _make_config()
-        parser = ManifestParser(config)
+        parser = ManifestFetcher(config)
         parser._tfs = MagicMock()
         parser._tfs.download_properties.return_value = None
         with pytest.raises(ParsingError, match='.properties'):

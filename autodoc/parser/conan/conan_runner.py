@@ -5,11 +5,10 @@ import json
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.parser.conan.task_builder import ConanTask
-
 
 @dataclass
 class ConanRawResult:
@@ -21,9 +20,8 @@ class ConanRawResult:
 
     task: ConanTask
     success: bool
-    data: Optional[Dict[str, Any]]  # разобранный JSON, если success=True
+    data: dict[str, Any | None]  # разобранный JSON, если success=True
     error: str                       # текст ошибки, если success=False
-
 
 class BaseConanRunner(ABC):
     """Интерфейс запуска команд Conan CLI."""
@@ -43,7 +41,6 @@ class BaseConanRunner(ABC):
     @abstractmethod
     def clean_cache(self) -> None:
         """Очищает локальный кэш Conan."""
-
 
 class Conan2Runner(BaseConanRunner):
     """

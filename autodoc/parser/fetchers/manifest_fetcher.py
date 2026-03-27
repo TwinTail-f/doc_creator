@@ -1,20 +1,19 @@
 """
-Парсер манифестов компонентов: скачивание из TFS и сборка доменных моделей.
+Фетчер манифестов компонентов: скачивание из TFS и сборка доменных моделей.
 """
 from pathlib import Path
-from typing import List
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import NetworkError, ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.tfs_client import TFSClient
-from autodoc.models.component import Component, ProfileBuild, Release, SvaceReport
+from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.fetchers.properties_reader import read_properties
+from autodoc.parser.steps.base import BaseDataFetcher
 
 _MANIFESTS_REPO = 'platform'
 
-
-class ManifestParser:
+class ManifestFetcher(BaseDataFetcher[list[Component]]):
     """
     Скачивает манифесты компонентов из TFS и парсит их в доменные модели.
 
@@ -29,7 +28,7 @@ class ManifestParser:
         self._config = config
         self._tfs = TFSClient.from_config(config)
 
-    def fetch(self, tmp_dir: Path, excluded: List[str]) -> List[Component]:
+    def fetch(self, tmp_dir: Path, excluded: list[str]) -> list[Component]:
         """
         Скачивает ``.properties``-файлы из TFS и парсит их в список ``Component``.
 
@@ -59,7 +58,7 @@ class ManifestParser:
         properties_files = list(tmp_dir.glob('*.properties'))
         if not properties_files:
             raise ParsingError(
-                'ManifestParser: в директории %s не найдено .properties-файлов '
+                'ManifestFetcher: в директории %s не найдено .properties-файлов '
                 'после скачивания из TFS.' % tmp_dir
             )
 
@@ -69,7 +68,7 @@ class ManifestParser:
     # Приватные методы
     # ------------------------------------------------------------------
 
-    def _parse_files(self, files: List[Path], excluded: List[str]) -> List[Component]:
+    def _parse_files(self, files: list[Path], excluded: list[str]) -> list[Component]:
         """
         Парсит список ``.properties``-файлов манифестов в модели ``Component``.
 
@@ -84,7 +83,7 @@ class ManifestParser:
             Список типизированных моделей ``Component``.
         """
         target_platform = self._config.platform_version
-        components: List[Component] = []
+        components: list[Component] = []
         parsed_count = 0
         excluded_count = 0
 
@@ -122,7 +121,7 @@ class ManifestParser:
         logger.info('обработано %d компонентов, исключено %d', parsed_count, excluded_count)
         return components
 
-    def _build_releases(self, props: dict, target_platform: str) -> List[Release]:
+    def _build_releases(self, props: dict, target_platform: str) -> list[Release]:
         """
         Строит список ``Release`` из словаря свойств манифеста.
 
@@ -151,7 +150,7 @@ class ManifestParser:
 
         git_project = props.get('tfs_git_project', '')
         git_repo = props.get('git_repo_name', '')
-        releases: List[Release] = []
+        releases: list[Release] = []
 
         for p_ver in plat_versions:
             if not (p_ver.startswith('%s-' % target_platform) or p_ver == target_platform):
@@ -164,7 +163,6 @@ class ManifestParser:
 
                 channel = p_ver.split('-')[1] if '-' in p_ver else ''
                 profile_list = [p.strip() for p in profiles_str.split(',') if p.strip()]
-                svace_profile = props.get('svace-profiles-%s-%s' % (c_ver, target_platform), '')
 
                 releases.append(Release(
                     version=c_ver,
@@ -172,7 +170,6 @@ class ManifestParser:
                     channel=channel,
                     git_url='%s/_git/%s' % (git_project, git_repo) if git_repo else '',
                     # 1.3 git_project/git_repo не пишем в Release — они на уровне Component
-                    svace_report=SvaceReport(profile=svace_profile),
                     profile_builds=[
                         ProfileBuild(profile_name=prof)
                         for prof in profile_list

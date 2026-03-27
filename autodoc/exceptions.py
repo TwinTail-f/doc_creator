@@ -1,28 +1,21 @@
 """
 Иерархия пользовательских исключений проекта autodoc.
 """
-from typing import Optional
-
 
 class DocGeneratorError(Exception):
     """Базовое исключение для всех ошибок проекта."""
 
-
 class ConfigError(DocGeneratorError):
     """Ошибка конфигурации: отсутствует поле, неверный тип или файл не найден."""
-
 
 class NetworkError(DocGeneratorError):
     """Ошибка сетевой операции (TFS, Artifactory, Confluence)."""
 
-
 class RetryExhaustedError(NetworkError):
     """Retry-попытки исчерпаны после N попыток."""
 
-
 class ParsingError(DocGeneratorError):
     """Ошибка парсинга данных (манифеста, JSON, YAML)."""
-
 
 class ComponentParsingError(ParsingError):
     """
@@ -35,7 +28,7 @@ class ComponentParsingError(ParsingError):
         self,
         component_name: str,
         message: str,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ) -> None:
         """
         Args:
@@ -47,10 +40,8 @@ class ComponentParsingError(ParsingError):
         self.original_error = original_error
         super().__init__(f"Компонент '{component_name}': {message}")
 
-
 class PublishError(DocGeneratorError):
     """Ошибка публикации страницы в Confluence."""
-
 
 class ValidationError(DocGeneratorError):
     """Ошибка валидации данных (Pydantic или пользовательская)."""

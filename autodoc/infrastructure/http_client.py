@@ -2,7 +2,6 @@
 HTTP утилиты с поддержкой retry-логики и exponential backoff.
 """
 import http
-from typing import Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -24,7 +23,6 @@ _RETRY_STATUS_CODES: frozenset = frozenset({
 _RETRY_METHODS: frozenset = frozenset({
     'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PUT', 'POST',
 })
-
 
 class RetryableSession(requests.Session):
     """
@@ -86,10 +84,9 @@ class RetryableSession(requests.Session):
         kwargs.setdefault('timeout', self.timeout)
         return super().head(url, **kwargs)
 
-
 def create_retryable_session(
-    username: Optional[str] = None,
-    token: Optional[str] = None,
+    username: str | None = None,
+    token: str | None = None,
     max_retries: int = 3,
     backoff_factor: float = 1.0,
     timeout: int = 15,

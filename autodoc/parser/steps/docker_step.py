@@ -5,7 +5,6 @@ from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.docker_fetcher import DockerFetcher
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
-
 class DockerResolveStep(BaseParseStep):
     """
     Шаг 4: Собирает Docker-образы и сразу применяет их к ProfileBuild.
