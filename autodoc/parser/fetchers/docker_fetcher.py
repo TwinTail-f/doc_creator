@@ -2,45 +2,41 @@
 Фетчер Docker-образов: извлекает ссылки из YAML-файлов профилей сборки.
 """
 from pathlib import Path
-
 from urllib.parse import parse_qs, urlparse
 
 import requests
 import yaml
 
-from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
-from autodoc.parser.tfs_client import TFSClient
-from autodoc.parser.steps.base import BaseDataFetcher
+from autodoc.parser.steps.base import BaseTFSFetcher, FetchResult, PipelineContext
 
 # Тип: имя_профиля → docker_image_url
 DockerLinksMap = dict[str, str]
 
-class DockerFetcher(BaseDataFetcher[DockerLinksMap]):
+
+class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
     """
     Извлекает Docker-образы из YAML-файлов профилей сборки.
 
-    Принимает конфиг, сам создаёт ``TFSClient`` — наружу клиент не передаётся.
+    Двухфазовый: сначала configure(ctx), потом fetch(urls, target_platform).
     """
 
-    def __init__(self, config: ParserConfigSchema) -> None:
-        """
-        Args:
-            config: Конфигурация парсера. ``TFSClient`` создаётся внутри из config.
-        """
-        self._tfs = TFSClient.from_config(config)
+    def configure(self, ctx: PipelineContext) -> None:
+        """Сохраняет нужные данные из ctx.config."""
+        from autodoc.parser.tfs_client import TFSClient
+        self._tfs = TFSClient.get_instance()
+        self._profiles_urls = ctx.config.profiles_urls or []
+        self._platform_version = ctx.config.platform_version
+        self._configured = True
 
-    def fetch(self, urls: list[str], target_platform: str) -> DockerLinksMap:
+    def fetch(self, urls: list[str], target_platform: str) -> 'FetchResult[DockerLinksMap]':
+        """Типизированная точка входа — делегирует в _guarded_fetch."""
+        return self._guarded_fetch(urls=urls, target_platform=target_platform)
+
+    def _do_fetch(self, urls: list[str], target_platform: str) -> 'FetchResult[DockerLinksMap]':
         """
         Парсит YAML-файлы профилей по переданным URL и собирает маппинг имён профилей
         на Docker-образы.
-
-        Args:
-            urls: Список URL из конфига (``profiles_urls``).
-            target_platform: Целевая платформа — используется как ветка если не указана явно.
-
-        Returns:
-            Словарь ``{имя_профиля: docker_image_url}`` с алиасами.
         """
         docker_links: DockerLinksMap = {}
 
@@ -77,20 +73,14 @@ class DockerFetcher(BaseDataFetcher[DockerLinksMap]):
 
             self._extract_from_yaml(content, docker_links)
 
-        return docker_links
+        return FetchResult(value=docker_links)
 
     # ------------------------------------------------------------------
     # Приватные методы
     # ------------------------------------------------------------------
 
     def _extract_from_yaml(self, content: dict, docker_links: DockerLinksMap) -> None:
-        """
-        Обходит раздел ``archs:`` YAML-профиля и заполняет маппинг ``docker_links``.
-
-        Args:
-            content: Разобранный YAML-словарь одного профиля сборки.
-            docker_links: Маппинг, который пополняется найденными Docker-образами.
-        """
+        """Обходит раздел archs: YAML-профиля и заполняет маппинг docker_links."""
         archs = content.get('archs', {})
         for key, val in archs.items():
             if key == 'common' or not isinstance(val, dict):
@@ -111,15 +101,7 @@ class DockerFetcher(BaseDataFetcher[DockerLinksMap]):
 
     @staticmethod
     def _extract_docker_image(arch_val: dict) -> str:
-        """
-        Извлекает URL Docker-образа из словаря значений одной архитектуры.
-
-        Args:
-            arch_val: Словарь значений одной архитектуры из YAML профиля.
-
-        Returns:
-            URL образа или пустая строка, если образ не найден.
-        """
+        """Извлекает URL Docker-образа из словаря значений одной архитектуры."""
         docker_val = arch_val.get('docker')
         if isinstance(docker_val, str):
             return docker_val
@@ -129,17 +111,7 @@ class DockerFetcher(BaseDataFetcher[DockerLinksMap]):
 
     @staticmethod
     def _add_aliases(name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
-        """
-        Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов.
-
-        Вставляет полное имя, имя файла, основу имени (stem) и форму
-        ``parent/stem`` для удобного поиска по различным вариантам написания.
-
-        Args:
-            name: Полное имя профиля (может содержать путь).
-            docker_img: URL Docker-образа, связанного с этим профилем.
-            docker_links: Маппинг, который пополняется псевдонимами.
-        """
+        """Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов."""
         if not name:
             return
         path_obj = Path(name)

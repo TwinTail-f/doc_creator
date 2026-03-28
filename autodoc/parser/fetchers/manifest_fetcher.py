@@ -3,32 +3,37 @@
 """
 from pathlib import Path
 
-from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import NetworkError, ParsingError
 from autodoc.infrastructure.logger import logger
-from autodoc.parser.tfs_client import TFSClient
 from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.fetchers.properties_reader import read_properties
-from autodoc.parser.steps.base import BaseDataFetcher
+from autodoc.parser.steps.base import BaseTFSFetcher, FetchResult, PipelineContext
 
 _MANIFESTS_REPO = 'platform'
 
-class ManifestFetcher(BaseDataFetcher[list[Component]]):
+
+class ManifestFetcher(BaseTFSFetcher[list[Component]]):
     """
     Скачивает манифесты компонентов из TFS и парсит их в доменные модели.
 
-    Принимает конфиг, сам создаёт ``TFSClient`` — наружу клиент не передаётся.
+    Двухфазовый: сначала configure(ctx), потом fetch(tmp_dir, excluded).
     """
 
-    def __init__(self, config: ParserConfigSchema) -> None:
-        """
-        Args:
-            config: Конфигурация парсера. ``TFSClient`` создаётся внутри из config.
-        """
-        self._config = config
-        self._tfs = TFSClient.from_config(config)
+    def configure(self, ctx: PipelineContext) -> None:
+        """Сохраняет нужные данные из ctx.config."""
+        from autodoc.parser.tfs_client import TFSClient
+        self._tfs = TFSClient.get_instance()
+        self._base_url = ctx.config.tfs_dep_components_url.rstrip('/')
+        self._manifests_remotes_path = ctx.config.manifests_remotes_path
+        self._platform_branch_name = ctx.config.platform_branch_name
+        self._platform_version = ctx.config.platform_version
+        self._configured = True
 
-    def fetch(self, tmp_dir: Path, excluded: list[str]) -> list[Component]:
+    def fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
+        """Типизированная точка входа — делегирует в _guarded_fetch."""
+        return self._guarded_fetch(tmp_dir=tmp_dir, excluded=excluded)
+
+    def _do_fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
         """
         Скачивает ``.properties``-файлы из TFS и парсит их в список ``Component``.
 
@@ -37,21 +42,20 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
             excluded: Имена компонентов, которые нужно пропустить.
 
         Returns:
-            Список типизированных моделей ``Component``.
+            FetchResult со списком Component.
 
         Raises:
             NetworkError: Если скачивание завершилось с ошибкой.
-            ParsingError: Если в директории не найдено ни одного ``.properties``-файла.
+            ParsingError: Если в директории не найдено ни одного .properties-файла.
         """
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
-        base_url = self._config.tfs_dep_components_url.rstrip('/')
-        items_url = '%s/_apis/git/repositories/%s/items' % (base_url, _MANIFESTS_REPO)
+        items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, _MANIFESTS_REPO)
 
         self._tfs.download_properties(
             items_url=items_url,
-            remote_path=self._config.manifests_remotes_path,
-            branch=self._config.platform_branch_name,
+            remote_path=self._manifests_remotes_path,
+            branch=self._platform_branch_name,
             output_dir=str(tmp_dir),
         )
 
@@ -62,7 +66,8 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
                 'после скачивания из TFS.' % tmp_dir
             )
 
-        return self._parse_files(properties_files, excluded)
+        components = self._parse_files(properties_files, excluded)
+        return FetchResult(value=components)
 
     # ------------------------------------------------------------------
     # Приватные методы
@@ -71,18 +76,8 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
     def _parse_files(self, files: list[Path], excluded: list[str]) -> list[Component]:
         """
         Парсит список ``.properties``-файлов манифестов в модели ``Component``.
-
-        Пропускает файлы, в которых отсутствует поле ``name``, а также
-        компоненты, чьё имя входит в список ``excluded``.
-
-        Args:
-            files: Список путей к ``.properties``-файлам.
-            excluded: Имена компонентов, которые следует пропустить.
-
-        Returns:
-            Список типизированных моделей ``Component``.
         """
-        target_platform = self._config.platform_version
+        target_platform = self._platform_version
         components: list[Component] = []
         parsed_count = 0
         excluded_count = 0
@@ -108,7 +103,6 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
             if not releases:
                 continue
 
-            # 1.3 git_project/git_repo берём из манифеста — записываем только в Component
             components.append(Component(
                 name=name,
                 description=props.get('description', ''),
@@ -122,21 +116,7 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
         return components
 
     def _build_releases(self, props: dict, target_platform: str) -> list[Release]:
-        """
-        Строит список ``Release`` из словаря свойств манифеста.
-
-        Фильтрует версии платформы, не относящиеся к ``target_platform``.
-        Для каждой подходящей пары (компонент, платформа) создаёт ``Release``
-        с набором ``ProfileBuild``.
-
-        Args:
-            props: Словарь свойств, прочитанный из ``.properties``-файла.
-            target_platform: Целевая версия платформы (например ``2.0``).
-
-        Returns:
-            Список объектов ``Release``. Может быть пустым, если ни одна версия
-            не соответствует целевой платформе.
-        """
+        """Строит список ``Release`` из словаря свойств манифеста."""
         comp_versions = [
             v.strip()
             for v in props.get('versions.component', '').split(',')
@@ -169,7 +149,6 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
                     platform=target_platform,
                     channel=channel,
                     git_url='%s/_git/%s' % (git_project, git_repo) if git_repo else '',
-                    # 1.3 git_project/git_repo не пишем в Release — они на уровне Component
                     profile_builds=[
                         ProfileBuild(profile_name=prof)
                         for prof in profile_list
@@ -180,20 +159,8 @@ class ManifestFetcher(BaseDataFetcher[list[Component]]):
 
     @staticmethod
     def _get_profiles_string(props: dict, c_ver: str, p_ver: str) -> str:
-        """
-        Извлекает строку со списком профилей сборки для заданной комбинации версий.
-
-        Сначала ищет ключ ``integration-profiles-develop-{c_ver}-{p_ver}``,
-        затем — ``profiles-{c_ver}-{p_ver}``.
-
-        Args:
-            props: Словарь свойств манифеста.
-            c_ver: Версия компонента.
-            p_ver: Версия платформы (включая канал, например ``2.0-stable``).
-
-        Returns:
-            Строка с именами профилей через запятую или пустая строка.
-        """
+        """Извлекает строку со списком профилей сборки для заданной комбинации версий."""
         key_develop = 'integration-profiles-develop-%s-%s' % (c_ver, p_ver)
         key_profiles = 'profiles-%s-%s' % (c_ver, p_ver)
         return props.get(key_develop, props.get(key_profiles, ''))
+

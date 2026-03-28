@@ -1,19 +1,18 @@
 """
 Шаг пайплайна: HTTP HEAD-проверка доступности сборок в Artifactory.
 """
-import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import requests        # 3.1 нужен для requests.RequestException
-import urllib3
+import requests        # нужен для requests.RequestException
 
-from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
+from autodoc.parser.artifactory_client import ArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 _VALIDATION_MAX_WORKERS = 20
 _HEAD_TIMEOUT = 10
+
 
 class ArtifactoryValidationStep(BaseParseStep):
     """
@@ -23,7 +22,9 @@ class ArtifactoryValidationStep(BaseParseStep):
     При сетевых ошибках вариант считается живым — чтобы не удалять данные
     из-за временных лагов сети.
 
-    Credentials берутся из ``ctx.config.artifactory_username/password``.
+    Использует ``ArtifactoryClient`` синглтон — SSL-подавление инкапсулировано
+    внутри ``client.head()``.
+
     Шаг некритический.
     """
 
@@ -34,10 +35,6 @@ class ArtifactoryValidationStep(BaseParseStep):
         """
         Собирает все ``build_url`` вариантов и проверяет их параллельно.
 
-        3.11 urllib3.disable_warnings перенесён внутрь execute()
-        и обёрнут в warnings.catch_warnings() — не глушит предупреждения
-        для всего процесса, только для этого шага.
-
         Args:
             ctx: Контекст пайплайна с обогащёнными компонентами.
         """
@@ -47,22 +44,10 @@ class ArtifactoryValidationStep(BaseParseStep):
             logger.info('нет ссылок для проверки.')
             return
 
-        logger.info(
-            'проверяем %d ссылок…',
-            len(variants_to_check),
-        )
+        logger.info('проверяем %d ссылок…', len(variants_to_check))
 
-        # 3.11 Suppress только на время этого шага, не глобально
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', urllib3.exceptions.InsecureRequestWarning)
-            session = create_retryable_session(
-                username=ctx.config.artifactory_username,
-                token=ctx.config.artifactory_password,
-                max_retries=1,
-                timeout=_HEAD_TIMEOUT,
-            )
-            session.verify = False  # внутренние серверы могут иметь самоподписанные сертификаты
-            dead_variants = self._check_urls_parallel(variants_to_check, session)
+        client = ArtifactoryClient.get_instance()
+        dead_variants = self._check_urls_parallel(variants_to_check, client)
         self._remove_dead_variants(dead_variants)
 
         logger.info(
@@ -91,14 +76,14 @@ class ArtifactoryValidationStep(BaseParseStep):
     @staticmethod
     def _check_urls_parallel(
         variants_to_check: list[tuple[ProfileBuild, ConanVariant, str]],
-        session,
+        client: ArtifactoryClient,
     ) -> list[tuple[ProfileBuild, ConanVariant]]:
         dead: list[tuple[ProfileBuild, ConanVariant]] = []
 
         def check_one(item: tuple[ProfileBuild, ConanVariant, str]):
             pb, variant, url = item
             try:
-                resp = session.head(url, allow_redirects=True, timeout=_HEAD_TIMEOUT)
+                resp = client.head(url)
                 if resp.status_code == 404:
                     return pb, variant, False
             except requests.RequestException:

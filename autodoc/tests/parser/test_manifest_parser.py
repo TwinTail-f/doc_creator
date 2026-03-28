@@ -61,25 +61,30 @@ class TestReadProperties:
 
 class TestManifestFetcher:
     def _make_parser_with_mock(self, tmp_path: Path, content: str):
-        config = _make_config()
         def fake_download(items_url, remote_path, branch, output_dir):
             _write_properties(Path(output_dir), 'comp.properties', content)
-        parser = ManifestFetcher(config)
+
+        parser = ManifestFetcher.__new__(ManifestFetcher)
         parser._tfs = MagicMock()
         parser._tfs.download_properties.side_effect = fake_download
+        parser._base_url = 'https://tfs.example.com/DEP'
+        parser._manifests_remotes_path = '/remotes/manifests'
+        parser._platform_branch_name = 'develop'
+        parser._platform_version = '2.0'
+        parser._configured = True
         return parser
 
     def test_returns_component_list(self, tmp_path: Path) -> None:
         parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
         result = parser.fetch(tmp_path / 'manifests', excluded=[])
-        assert len(result) == 1
-        assert isinstance(result[0], Component)
-        assert result[0].name == 'crypto_lib'
+        assert len(result.value) == 1
+        assert isinstance(result.value[0], Component)
+        assert result.value[0].name == 'crypto_lib'
 
     def test_release_fields_populated(self, tmp_path: Path) -> None:
         parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
         result = parser.fetch(tmp_path / 'manifests', excluded=[])
-        release = result[0].releases[0]
+        release = result.value[0].releases[0]
         assert release.version == '1.2.3'
         assert release.channel == 'stable'
 
@@ -87,7 +92,7 @@ class TestManifestFetcher:
         """1.3 git_repo/git_project должны быть на Component, не на Release."""
         parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
         result = parser.fetch(tmp_path / 'manifests', excluded=[])
-        comp = result[0]
+        comp = result.value[0]
         # На компоненте — есть
         assert comp.git_repo == 'crypto_lib'
         assert comp.git_project == 'DEP_Components'
@@ -97,23 +102,27 @@ class TestManifestFetcher:
     def test_profile_builds_populated(self, tmp_path: Path) -> None:
         parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
         result = parser.fetch(tmp_path / 'manifests', excluded=[])
-        profiles = result[0].releases[0].profile_builds
+        profiles = result.value[0].releases[0].profile_builds
         assert len(profiles) == 2
         assert {p.profile_name for p in profiles} == {'linux_x86_64', 'linux_aarch64'}
 
     def test_excluded_component_skipped(self, tmp_path: Path) -> None:
         parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
-        assert parser.fetch(tmp_path / 'manifests', excluded=['crypto_lib']) == []
+        assert parser.fetch(tmp_path / 'manifests', excluded=['crypto_lib']).value == []
 
     def test_component_without_name_skipped(self, tmp_path: Path) -> None:
         parser = self._make_parser_with_mock(tmp_path, 'description=No name\n')
-        assert parser.fetch(tmp_path / 'manifests', excluded=[]) == []
+        assert parser.fetch(tmp_path / 'manifests', excluded=[]).value == []
 
     def test_raises_parsing_error_if_no_files(self, tmp_path: Path) -> None:
         from autodoc.exceptions import ParsingError
-        config = _make_config()
-        parser = ManifestFetcher(config)
+        parser = ManifestFetcher.__new__(ManifestFetcher)
         parser._tfs = MagicMock()
         parser._tfs.download_properties.return_value = None
+        parser._base_url = 'https://tfs.example.com/DEP'
+        parser._manifests_remotes_path = '/remotes/manifests'
+        parser._platform_branch_name = 'develop'
+        parser._platform_version = '2.0'
+        parser._configured = True
         with pytest.raises(ParsingError, match='.properties'):
             parser.fetch(tmp_path / 'empty', excluded=[])

@@ -3,58 +3,56 @@
 """
 import json
 
-from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
-from autodoc.parser.tfs_client import TFSClient
 from autodoc.models.component import Component
-from autodoc.parser.steps.base import BaseDataFetcher
+from autodoc.parser.steps.base import BaseTFSFetcher, FetchResult, PipelineContext
 
 # Тип: (имя_компонента, версия, канал) → {id_набора: строка_опций}
 OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
 _CI_PRIORITY = ('/ci-2.0/', '/ci-1.6/')
 
-class OptionsFetcher(BaseDataFetcher[OptionsMap]):
+
+class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
     """
     Скачивает ``options.json`` из репозиториев компонентов и возвращает маппинг опций.
 
-    Принимает конфиг, сам создаёт ``TFSClient`` — наружу клиент не передаётся.
+    Двухфазовый: сначала configure(ctx), потом fetch(components).
     **Не мутирует** входные модели — возвращает ``OptionsMap``.
     """
 
-    def __init__(self, config: ParserConfigSchema) -> None:
-        """
-        Args:
-            config: Конфигурация парсера. ``TFSClient`` создаётся внутри из config.
-        """
-        self._tfs = TFSClient.from_config(config)
-        self._base_url = config.tfs_dep_components_url.rstrip('/')
+    def configure(self, ctx: PipelineContext) -> None:
+        """Сохраняет base_url из ctx.config."""
+        from autodoc.parser.tfs_client import TFSClient
+        self._tfs = TFSClient.get_instance()
+        self._base_url = ctx.config.tfs_dep_components_url.rstrip('/')
+        self._configured = True
 
-    def fetch(self, components: list[Component]) -> OptionsMap:
+    def fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
+        """Типизированная точка входа — делегирует в _guarded_fetch."""
+        return self._guarded_fetch(components)
+
+    def _do_fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
         Собирает опции Conan для всех релизов компонентов.
-
-        Для каждого релиза ищет ``options.json`` в ветке ``release_{version}``
-        репозитория компонента. Кеширует структуру репозитория.
 
         Args:
             components: Список компонентов для обработки.
 
         Returns:
-            Словарь ``(comp_name, version, channel) → {id: option_string}``.
-            Не мутирует входные объекты.
+            FetchResult с маппингом ``(comp_name, version, channel) → {id: option_string}``.
         """
         logger.info('начинаем сбор options.json…')
 
         options_cache: dict[str, dict] = {}
         result: OptionsMap = {}
+        fetch_warnings: list[str] = []
 
         for comp in components:
-            # 1.3 git_repo берём из Component, а не из Release
             repo_name = comp.git_repo
             if not repo_name:
-                logger.debug('"%s" без git_repo, пропуск', comp.name)
+                fetch_warnings.append('"%s" без git_repo, пропуск' % comp.name)
                 continue
 
             for release in comp.releases:
@@ -68,23 +66,13 @@ class OptionsFetcher(BaseDataFetcher[OptionsMap]):
                 result[(comp.name, release.version, release.channel)] = chosen
 
         logger.info('завершён. Собрано опций для %d релизов.', len(result))
-        return result
+        return FetchResult(value=result, warnings=fetch_warnings)
 
     # ------------------------------------------------------------------
     # Приватные методы
     # ------------------------------------------------------------------
 
     def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
-        """
-        Загружает все файлы ``options.json`` из указанной ветки репозитория.
-
-        Args:
-            repo_name: Имя репозитория компонента в TFS.
-            branch: Ветка, из которой скачиваются опции (например ``release_1.0.0``).
-
-        Returns:
-            Словарь с ключами ``global`` и ``channels``, содержащий найденные опции.
-        """
         repo_data: dict = {'global': {}, 'channels': {}}
         items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, repo_name)
 
@@ -120,19 +108,6 @@ class OptionsFetcher(BaseDataFetcher[OptionsMap]):
         ci_prefix: str,
         repo_data: dict,
     ) -> None:
-        """
-        Скачивает один файл ``options.json`` и сохраняет результат в ``repo_data``.
-
-        При сетевых или JSON-ошибках пишет предупреждение в лог и возвращает
-        управление без исключения.
-
-        Args:
-            items_url: API URL для запроса элементов репозитория.
-            opt_path: Путь к файлу ``options.json`` внутри репозитория.
-            branch: Название ветки.
-            ci_prefix: Выбранный CI-префикс (например ``/ci-2.0/``).
-            repo_data: Словарь-накопитель, в который записываются найденные опции.
-        """
         try:
             response = self._tfs.get_file_content(items_url, opt_path, branch)
             if response.status_code != 200:
@@ -159,18 +134,6 @@ class OptionsFetcher(BaseDataFetcher[OptionsMap]):
 
     @staticmethod
     def _select_ci_prefix(options_paths: list[str]) -> str:
-        """
-        Выбирает CI-префикс с наивысшим приоритетом из списка доступных путей.
-
-        Проверяет наличие префиксов в порядке приоритета: ``/ci-2.0/`` перед
-        ``/ci-1.6/``. Возвращает пустую строку, если ни один не найден.
-
-        Args:
-            options_paths: Список путей к файлам в репозитории.
-
-        Returns:
-            Строка CI-префикса или пустая строка, если подходящий не найден.
-        """
         for prefix in _CI_PRIORITY:
             if any(prefix in p for p in options_paths):
                 return prefix
@@ -178,19 +141,6 @@ class OptionsFetcher(BaseDataFetcher[OptionsMap]):
 
     @staticmethod
     def _pick_options(repo_data: dict, channel: str) -> dict[str, str]:
-        """
-        Выбирает подходящий словарь опций для указанного канала.
-
-        Сначала ищет опции для конкретного канала, затем — глобальные.
-        Если ничего не найдено, возвращает заглушку ``{'1': ''}``.
-
-        Args:
-            repo_data: Словарь с ключами ``global`` и ``channels``.
-            channel: Имя канала (например ``stable``).
-
-        Returns:
-            Словарь опций ``{id: строка_опций}``.
-        """
         channels = repo_data.get('channels', {})
         if channel and channel in channels:
             return channels[channel]
@@ -198,3 +148,4 @@ class OptionsFetcher(BaseDataFetcher[OptionsMap]):
         if global_opts:
             return global_opts
         return {'1': ''}
+

@@ -7,7 +7,7 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from autodoc.config.schemas import ParserConfigSchema
@@ -38,6 +38,7 @@ class TFSClient:
     """
 
     _API_VERSION = '7.1'
+    _instance: ClassVar['TFSClient | None'] = None
 
     def __init__(
         self,
@@ -60,7 +61,6 @@ class TFSClient:
         Raises:
             ConfigError: Если учётные данные не переданы.
         """
-        # 3.2 sys.exit заменён на ConfigError — корректная обработка ошибок конфигурации
         if not (username and token):
             raise ConfigError(
                 'TFSClient: учётные данные не переданы. '
@@ -77,12 +77,38 @@ class TFSClient:
         self.session.params = {'api-version': self._API_VERSION}
 
     @classmethod
-    def from_config(cls, config: ParserConfigSchema) -> TFSClient:
-        """
-        Создаёт ``TFSClient`` из конфигурации парсера.
+    def initialize(cls, config: 'ParserConfigSchema') -> None:
+        """Инициализирует синглтон из конфигурации. Повторный вызов — no-op."""
+        if cls._instance is None:
+            cls._instance = cls._from_config(config)
 
-        Удобный фабричный метод — избавляет от повторения одинакового
-        блока инициализации в каждом fetcher-классе.
+    @classmethod
+    def get_instance(cls) -> 'TFSClient':
+        """Возвращает текущий экземпляр синглтона.
+
+        Raises:
+            RuntimeError: Если ``initialize()`` не был вызван.
+        """
+        if cls._instance is None:
+            raise RuntimeError('TFSClient not initialized — call initialize() first')
+        return cls._instance
+
+    @classmethod
+    def shutdown(cls) -> None:
+        """Закрывает сессию и сбрасывает синглтон."""
+        if cls._instance is not None:
+            cls._instance.session.close()
+            cls._instance = None
+
+    @classmethod
+    def reset(cls) -> None:
+        """Для тестов только. Сбрасывает синглтон без закрытия сессии."""
+        cls._instance = None
+
+    @classmethod
+    def _from_config(cls, config: 'ParserConfigSchema') -> 'TFSClient':
+        """
+        Создаёт ``TFSClient`` из конфигурации парсера (приватный фабричный метод).
 
         Args:
             config: Валидированная конфигурация парсера.

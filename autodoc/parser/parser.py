@@ -9,6 +9,7 @@ from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.parser.artifactory_client import ArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.docker_step import DockerResolveStep
@@ -16,9 +17,13 @@ from autodoc.parser.steps.finalize_step import FinalizeStep
 from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
+from autodoc.parser.tfs_client import TFSClient
 
-def default_pipeline() -> list[BaseParseStep]:
-    """Возвращает стандартный набор шагов пайплайна в порядке выполнения."""
+
+def default_pipeline(config: ParserConfigSchema) -> list[BaseParseStep]:
+    """Инициализирует синглтоны и возвращает стандартный набор шагов пайплайна."""
+    TFSClient.initialize(config)
+    ArtifactoryClient.initialize(config)
     return [
         ManifestStep(),
         OptionsResolveStep(),
@@ -53,7 +58,7 @@ class ComponentParser:
         self._tmp_dir = data_dir / 'tmp'
         self._intermediate_dir = data_dir / 'intermediate'
         self._steps: list[BaseParseStep] = (
-            steps if steps is not None else default_pipeline()
+            steps if steps is not None else default_pipeline(config)
         )
 
     @classmethod
@@ -74,7 +79,7 @@ class ComponentParser:
         Returns:
             Экземпляр ``ComponentParser`` с отфильтрованным пайплайном.
         """
-        steps = [s for s in default_pipeline() if not isinstance(s, tuple(exclude))]
+        steps = [s for s in default_pipeline(config) if not isinstance(s, tuple(exclude))]
         return cls(config, data_dir, steps=steps)
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:
@@ -128,6 +133,8 @@ class ComponentParser:
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
+            TFSClient.shutdown()
+            ArtifactoryClient.shutdown()
             logger.debug('временная директория очищена.')
 
         if ctx.result is None:

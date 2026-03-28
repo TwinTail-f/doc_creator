@@ -67,6 +67,7 @@ class TestDockerFetcherFetch:
         }
         resolver = DockerFetcher.__new__(DockerFetcher)
         resolver._tfs = MagicMock()
+        resolver._configured = True
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.text = yaml.dump(yaml_data)
@@ -75,31 +76,34 @@ class TestDockerFetcherFetch:
         url = 'https://tfs.example.com/DEP/_git/profiles?path=/build.yaml&version=GBdevelop'
         result = resolver.fetch([url], 'develop')
 
-        assert 'linux_x86_64' in result
-        assert result['linux_x86_64'] == 'registry.example.com/builder:1.0'
-        assert 'settings/gcc.jinja' in result
-        assert 'gcc' in result
+        assert 'linux_x86_64' in result.value
+        assert result.value['linux_x86_64'] == 'registry.example.com/builder:1.0'
+        assert 'settings/gcc.jinja' in result.value
+        assert 'gcc' in result.value
 
     def test_url_without_git_segment_skipped(self) -> None:
         resolver = DockerFetcher.__new__(DockerFetcher)
         resolver._tfs = MagicMock()
+        resolver._configured = True
         result = resolver.fetch(['https://example.com/no-git-here'], 'develop')
-        assert result == {}
+        assert result.value == {}
 
     def test_http_error_response_skipped(self) -> None:
         resolver = DockerFetcher.__new__(DockerFetcher)
         resolver._tfs = MagicMock()
+        resolver._configured = True
         mock_resp = MagicMock()
         mock_resp.status_code = 404
         resolver._tfs.get_file_content.return_value = mock_resp
         url = 'https://tfs.example.com/DEP/_git/profiles?path=/b.yaml&version=GBdevelop'
         result = resolver.fetch([url], 'develop')
-        assert result == {}
+        assert result.value == {}
 
 class TestOptionsFetcher:
     def _resolver_with_options(self, options_json, opt_path='/repo/conan/ci-2.0/options.json'):
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = 'https://tfs.example.com/DEP'
+        resolver._configured = True
         mock_tfs = MagicMock()
         mock_tfs.get_items.return_value = [{'path': opt_path, 'isFolder': False}]
         mock_resp = MagicMock()
@@ -113,8 +117,8 @@ class TestOptionsFetcher:
         resolver = self._resolver_with_options({'1': 'shared=True'})
         comp = _make_component('my_lib', '1.0.0', 'stable', 'my_lib_repo')
         result = resolver.fetch([comp])
-        assert isinstance(result, dict)
-        assert ('my_lib', '1.0.0', 'stable') in result
+        assert isinstance(result.value, dict)
+        assert ('my_lib', '1.0.0', 'stable') in result.value
 
     def test_does_not_mutate_components(self) -> None:
         """2.1/1.4 resolver.fetch() не мутирует компоненты."""
@@ -128,18 +132,20 @@ class TestOptionsFetcher:
         """1.3 git_repo берётся из Component — если пустой, компонент пропускается."""
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = 'https://tfs.example.com/DEP'
+        resolver._configured = True
         resolver._tfs = MagicMock()
         comp = _make_component('no_repo_lib', '1.0.0', 'stable', '')
         result = resolver.fetch([comp])
-        assert result == {}
+        assert result.value == {}
         resolver._tfs.get_items.assert_not_called()
 
     def test_default_options_when_no_files_found(self) -> None:
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = 'https://tfs.example.com/DEP'
+        resolver._configured = True
         mock_tfs = MagicMock()
         mock_tfs.get_items.return_value = [{'path': '/other.txt', 'isFolder': False}]
         resolver._tfs = mock_tfs
         comp = _make_component('lib', '1.0.0', 'stable', 'lib_repo')
         result = resolver.fetch([comp])
-        assert result[('lib', '1.0.0', 'stable')] == {'1': ''}
+        assert result.value[('lib', '1.0.0', 'stable')] == {'1': ''}
