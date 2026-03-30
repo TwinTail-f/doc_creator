@@ -90,8 +90,8 @@ class FullReleaseTransformer(BaseReleaseTransformer):
                             'conan_reference': rel.conan_reference,
                             'artifactory_url': rel.artifactory_url,
                             'is_header_only': rel.is_header_only,
-                            'build_option_sets': rel.build_option_sets,
-                            'default_options': rel.default_options,
+                            'build_option_sets': [bos.model_dump() for bos in rel.build_option_sets],
+                            'default_options': [o.model_dump() for o in rel.default_options],
                             'patches': rel.patches,
                             'dependencies': rel.dependencies,
                             'profile_builds': [
