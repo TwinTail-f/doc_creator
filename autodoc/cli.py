@@ -33,18 +33,9 @@ from autodoc.publisher.strategies.base import PublishReport
 console = Console()
 
 _VERSION = '2.0.0'
-_VIEW_TO_STRATEGY = {
-    'full': 'full_release',
-    'minimal': 'minimal_release',
-    'profile_centric': 'profile_centric',
-    'combined': 'full_combined',
-}
-_VIEW_TO_TEMPLATE = {
-    'full': 'release_doc_full.jinja2',
-    'minimal': 'release_doc_minimal.jinja2',
-    'profile_centric': 'profile_centric.jinja2',
-    'combined': 'release_doc_combined.jinja2',
-}
+_RELEASE_TEMPLATE = 'release_doc.jinja2'
+_PROFILE_TEMPLATE = 'profile_centric.jinja2'
+_PASSPORT_TEMPLATE = 'component_passport.jinja2'
 
 class _CliCtx:
     """Контекст, разделяемый между командами Click."""
@@ -225,13 +216,6 @@ def _make_publisher(
     return DocumentPublisher(conf_config, templates_dir), conf_config
 
 @publish.command('release')
-@click.option(
-    '--view',
-    type=click.Choice(['full', 'minimal', 'profile_centric', 'combined']),
-    default='full',
-    show_default=True,
-    help='Тип отображения документа',
-)
 @click.option('--page-title', default=None, help='Заголовок страницы (переопределяет конфиг)')
 @click.option(
     '--no-passport-links',
@@ -241,16 +225,15 @@ def _make_publisher(
 @click.pass_context
 def publish_release(
     ctx: click.Context,
-    view: str,
     page_title: str | None,
     no_passport_links: bool,
 ) -> None:
-    """Публикация единой страницы релиза в Confluence."""
+    """Публикация релизной документации (вид от компонентов)."""
     cli_ctx: _CliCtx = ctx.obj['cli']
 
     try:
         console.print(Panel.fit(
-            f'[bold blue]🚀 Публикация релиза (вид: {view})[/bold blue]',
+            '[bold blue]🚀 Публикация релизной документации[/bold blue]',
             style='blue',
         ))
 
@@ -262,12 +245,54 @@ def publish_release(
 
         console.print('🔄 Публикация в Confluence…', style='cyan')
         result = publisher.publish(
-            strategy_type=_VIEW_TO_STRATEGY[view],
+            strategy_type='release',
             parsed_data=parsed_data,
             page_title=final_title,
-            template_name=_VIEW_TO_TEMPLATE[view],
+            template_name=_RELEASE_TEMPLATE,
             parent_id=conf_config.parent_id,
             include_passport_links=not no_passport_links,
+        )
+
+        _print_publish_result(result)
+
+    except (ConfigError, DocGeneratorError, PublishError) as e:
+        console.print(f'❌ Ошибка: {e}', style='red bold')
+        sys.exit(1)
+    except Exception as e:
+        console.print(f'❌ Неожиданная ошибка: {e}', style='red bold')
+        if cli_ctx.verbose:
+            console.print_exception()
+        sys.exit(2)
+
+@publish.command('profile')
+@click.option('--page-title', default=None, help='Заголовок страницы (переопределяет конфиг)')
+@click.pass_context
+def publish_profile(
+    ctx: click.Context,
+    page_title: str | None,
+) -> None:
+    """Публикация документации от профилей сборки."""
+    cli_ctx: _CliCtx = ctx.obj['cli']
+
+    try:
+        console.print(Panel.fit(
+            '[bold blue]🚀 Публикация документации от профилей[/bold blue]',
+            style='blue',
+        ))
+
+        parsed_data = _load_parsed_data(cli_ctx.base_dir)
+        console.print(f'✅ Данных: {len(parsed_data.components)} компонентов', style='green')
+
+        publisher, conf_config = _make_publisher(cli_ctx)
+        final_title = page_title or conf_config.page_title or 'Profile Documentation'
+
+        console.print('🔄 Публикация в Confluence…', style='cyan')
+        result = publisher.publish(
+            strategy_type='profile_centric',
+            parsed_data=parsed_data,
+            page_title=final_title,
+            template_name=_PROFILE_TEMPLATE,
+            parent_id=conf_config.parent_id,
         )
 
         _print_publish_result(result)
@@ -311,7 +336,7 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
             strategy_type='passports',
             parsed_data=parsed_data,
             root_page_id=target_root,
-            template_name='component_passport.jinja2',
+            template_name=_PASSPORT_TEMPLATE,
         )
 
         _print_publish_result(result)
@@ -329,24 +354,22 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
 @click.option('--root-page', default=None, help='ID корневой страницы паспортов')
 @click.option('--page-title', default=None, help='Заголовок итоговой страницы релиза')
 @click.option(
-    '--view',
-    type=click.Choice(['full', 'minimal', 'profile_centric', 'combined']),
-    default='full',
-    show_default=True,
-    help='Тип итоговой страницы',
+    '--no-passport-links',
+    is_flag=True,
+    help='Не добавлять ссылки на паспорта в релизную страницу',
 )
 @click.pass_context
 def publish_all(
     ctx: click.Context,
     root_page: str | None,
     page_title: str | None,
-    view: str,
+    no_passport_links: bool,
 ) -> None:
     """
-    Опубликовать паспорта и итоговую страницу релиза за один вызов.
+    Опубликовать паспорта + релизную страницу за один вызов.
 
     Сначала публикуются паспорта (генерируется карта ID),
-    затем итоговая страница с внедрёнными ссылками на паспорта.
+    затем релизная страница с внедрёнными ссылками на паспорта.
     """
     cli_ctx: _CliCtx = ctx.obj['cli']
 
@@ -360,7 +383,8 @@ def publish_all(
         target_root = root_page or conf_config.passports_root_parent_id
         if not target_root:
             console.print(
-                '❌ ID корневой страницы не указан для паспортов.',
+                '❌ ID корневой страницы не указан для паспортов. '
+                'Передайте --root-page или добавьте passports_root_parent_id в конфиг.',
                 style='red bold',
             )
             sys.exit(1)
@@ -373,8 +397,10 @@ def publish_all(
             parsed_data=parsed_data,
             passports_root_page_id=target_root,
             release_page_title=final_title,
-            release_template_name=_VIEW_TO_TEMPLATE[view],
+            release_template_name=_RELEASE_TEMPLATE,
+            passport_template_name=_PASSPORT_TEMPLATE,
             release_parent_id=conf_config.parent_id,
+            include_passport_links=not no_passport_links,
         )
 
         console.print(
@@ -470,10 +496,10 @@ def info() -> None:
         '✓ Автоматический сбор данных компонентов из TFS\n'
         '✓ Интеграция с Conan package manager\n'
         '✓ Получение Docker-ссылок из YAML профилей\n'
-        '✓ Публикация в Confluence (паспорта + релиз)\n'
-        '✓ Поддержка JSON и YAML конфигов\n'
-        '✓ Флаги --skip-conan, --skip-validation, --save-intermediate\n'
-        '✓ Команда publish all (паспорта + релиз за один вызов)',
+        '✓ Публикация паспортов компонентов (publish passports)\n'
+        '✓ Публикация релизной документации от компонентов (publish release)\n'
+        '✓ Публикация документации от профилей (publish profile)\n'
+        '✓ Команда publish all (паспорта + релиз за один вызов)\n',
         title='Doc Generator',
         style='blue',
     ))

@@ -11,16 +11,11 @@ from autodoc.publisher.confluence.confluence_client import ConfluenceClient
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
-from autodoc.publisher.transformers.combined_transformer import FullCombinedTransformer
-from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
-from autodoc.publisher.transformers.release_transformer import (
-    FullReleaseTransformer,
-    MinimalReleaseTransformer,
-)
+from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
 
 class ReleasePageStrategy(
     BasePublishStrategy,
-    strategy_type='full_release',
+    strategy_type='release',
     transformer_cls=FullReleaseTransformer,  # 3.7 transformer_cls в объявлении
 ):
     """
@@ -161,26 +156,4 @@ class ReleasePageStrategy(
                 if v in release_versions
             }
 
-# 3.7 Подклассы-алиасы вместо прямой записи в _registry/_transformer_map снаружи.
-# Каждый объявляет свой strategy_type и transformer_cls через __init_subclass__.
 
-class MinimalReleaseStrategy(
-    ReleasePageStrategy,
-    strategy_type='minimal_release',
-    transformer_cls=MinimalReleaseTransformer,
-):
-    pass
-
-class ProfileCentricStrategy(
-    ReleasePageStrategy,
-    strategy_type='profile_centric',
-    transformer_cls=ProfileCentricTransformer,
-):
-    pass
-
-class FullCombinedStrategy(
-    ReleasePageStrategy,
-    strategy_type='full_combined',
-    transformer_cls=FullCombinedTransformer,
-):
-    pass

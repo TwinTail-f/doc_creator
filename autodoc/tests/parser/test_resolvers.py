@@ -10,6 +10,7 @@ from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher
+from autodoc.parser.parsers.docker_parser import DockerParser
 
 # 4.2 Новое имя поля
 MINIMAL_CONFIG_DATA = {
@@ -35,10 +36,10 @@ def _make_component(name: str, version: str, channel: str, git_repo: str) -> Com
     # 1.3 git_repo — на Component, не на Release
     return Component(name=name, git_repo=git_repo, releases=[release])
 
-class TestDockerFetcherAliases:
+class TestDockerParserAliases:
     def test_simple_name_generates_aliases(self) -> None:
         links: DockerLinksMap = {}
-        DockerFetcher._add_aliases('settings/default_gcc.jinja', 'registry/img:1', links)
+        DockerParser.add_aliases('settings/default_gcc.jinja', 'registry/img:1', links)
         assert links.get('settings/default_gcc.jinja') == 'registry/img:1'
         assert links.get('default_gcc.jinja') == 'registry/img:1'
         assert links.get('default_gcc') == 'registry/img:1'
@@ -46,13 +47,13 @@ class TestDockerFetcherAliases:
 
     def test_flat_name_generates_two_aliases(self) -> None:
         links: DockerLinksMap = {}
-        DockerFetcher._add_aliases('profile.jinja', 'registry/img:2', links)
+        DockerParser.add_aliases('profile.jinja', 'registry/img:2', links)
         assert links.get('profile.jinja') == 'registry/img:2'
         assert links.get('profile') == 'registry/img:2'
 
     def test_empty_name_does_nothing(self) -> None:
         links: DockerLinksMap = {}
-        DockerFetcher._add_aliases('', 'registry/img:3', links)
+        DockerParser.add_aliases('', 'registry/img:3', links)
         assert links == {}
 
 class TestDockerFetcherFetch:

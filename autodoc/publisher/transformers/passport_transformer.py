@@ -82,7 +82,7 @@ class PassportTransformer(BaseDataTransformer):
             'conan_reference': target_rel.conan_reference,
             'artifactory_url': target_rel.artifactory_url,
             'is_header_only': target_rel.is_header_only,       # новое имя
-            'build_option_sets': target_rel.build_option_sets,
+            'build_option_sets': [bos.model_dump() for bos in target_rel.build_option_sets],
             'default_options': [o.model_dump() for o in target_rel.default_options],
             'patches': target_rel.patches,
             'dependencies': target_rel.dependencies,

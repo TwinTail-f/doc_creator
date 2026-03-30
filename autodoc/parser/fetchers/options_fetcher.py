@@ -1,25 +1,22 @@
 """
 Фетчер опций Conan: скачивает options.json из репозиториев компонентов.
+Разбор JSON делегируется OptionsParser.
 """
-import json
-
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
+from autodoc.parser.parsers.options_parser import OptionsParser
 from autodoc.parser.steps.base import BaseTFSFetcher, FetchResult, PipelineContext
 
-# Тип: (имя_компонента, версия, канал) → {id_набора: строка_опций}
 OptionsMap = dict[tuple[str, str, str], dict[str, str]]
-
-_CI_PRIORITY = ('/ci-2.0/', '/ci-1.6/')
 
 
 class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
     """
-    Скачивает ``options.json`` из репозиториев компонентов и возвращает маппинг опций.
+    Скачивает options.json из TFS и делегирует разбор OptionsParser.
 
     Двухфазовый: сначала configure(ctx), потом fetch(components).
-    **Не мутирует** входные модели — возвращает ``OptionsMap``.
+    Не мутирует входные модели — возвращает OptionsMap.
     """
 
     def configure(self, ctx: PipelineContext) -> None:
@@ -34,15 +31,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         return self._guarded_fetch(components)
 
     def _do_fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
-        """
-        Собирает опции Conan для всех релизов компонентов.
-
-        Args:
-            components: Список компонентов для обработки.
-
-        Returns:
-            FetchResult с маппингом ``(comp_name, version, channel) → {id: option_string}``.
-        """
+        """Собирает опции Conan для всех релизов компонентов."""
         logger.info('начинаем сбор options.json…')
 
         options_cache: dict[str, dict] = {}
@@ -62,17 +51,18 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 if cache_key not in options_cache:
                     options_cache[cache_key] = self._fetch_options_for_repo(repo_name, branch)
 
-                chosen = self._pick_options(options_cache[cache_key], release.channel)
+                chosen = OptionsParser.pick_options(options_cache[cache_key], release.channel)
                 result[(comp.name, release.version, release.channel)] = chosen
 
         logger.info('завершён. Собрано опций для %d релизов.', len(result))
         return FetchResult(value=result, warnings=fetch_warnings)
 
     # ------------------------------------------------------------------
-    # Приватные методы
+    # Приватные методы — IO только, без парсинга логики
     # ------------------------------------------------------------------
 
     def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
+        """Скачивает все options.json для репозитория и возвращает repo_data."""
         repo_data: dict = {'global': {}, 'channels': {}}
         items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, repo_name)
 
@@ -89,7 +79,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             and '/conan/' in item['path']
         ]
 
-        target_ci = self._select_ci_prefix(options_paths)
+        target_ci = OptionsParser.select_ci_prefix(options_paths)
         if not target_ci:
             return repo_data
 
@@ -108,44 +98,20 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         ci_prefix: str,
         repo_data: dict,
     ) -> None:
+        """Скачивает один options.json и сохраняет результат в repo_data."""
         try:
             response = self._tfs.get_file_content(items_url, opt_path, branch)
             if response.status_code != 200:
                 return
-            parsed: dict = json.loads(response.text)
-        except (json.JSONDecodeError, Exception) as e:
-            logger.warning('ошибка чтения %s: %s', opt_path, e)
+        except Exception as e:
+            logger.warning('ошибка скачивания %s: %s', opt_path, e)
             return
 
-        cleaned: dict[str, str] = {
-            str(k): (v.strip() if isinstance(v, str) else '')
-            for k, v in parsed.items()
-            if isinstance(v, (str, type(None)))
-        }
-
-        tail = opt_path.split(ci_prefix)[1]
-        parts = tail.split('/')
-        channel_name = parts[0] if len(parts) > 1 else None
+        channel_name, cleaned = OptionsParser.parse_file(response.text, opt_path, ci_prefix)
+        if not cleaned:
+            return
 
         if channel_name:
             repo_data['channels'][channel_name] = cleaned
         else:
             repo_data['global'] = cleaned
-
-    @staticmethod
-    def _select_ci_prefix(options_paths: list[str]) -> str:
-        for prefix in _CI_PRIORITY:
-            if any(prefix in p for p in options_paths):
-                return prefix
-        return ''
-
-    @staticmethod
-    def _pick_options(repo_data: dict, channel: str) -> dict[str, str]:
-        channels = repo_data.get('channels', {})
-        if channel and channel in channels:
-            return channels[channel]
-        global_opts = repo_data.get('global', {})
-        if global_opts:
-            return global_opts
-        return {'1': ''}
-

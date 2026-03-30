@@ -1,22 +1,21 @@
 """
 Фетчер Docker-образов: извлекает ссылки из YAML-файлов профилей сборки.
+Разбор YAML делегируется DockerParser.
 """
-from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import requests
 import yaml
 
 from autodoc.infrastructure.logger import logger
+from autodoc.parser.parsers.docker_parser import DockerLinksMap as DockerLinksMap  # noqa: F401
+from autodoc.parser.parsers.docker_parser import DockerParser
 from autodoc.parser.steps.base import BaseTFSFetcher, FetchResult, PipelineContext
-
-# Тип: имя_профиля → docker_image_url
-DockerLinksMap = dict[str, str]
 
 
 class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
     """
-    Извлекает Docker-образы из YAML-файлов профилей сборки.
+    Скачивает YAML-файлы профилей из TFS и делегирует разбор DockerParser.
 
     Двухфазовый: сначала configure(ctx), потом fetch(urls, target_platform).
     """
@@ -34,10 +33,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
         return self._guarded_fetch(urls=urls, target_platform=target_platform)
 
     def _do_fetch(self, urls: list[str], target_platform: str) -> 'FetchResult[DockerLinksMap]':
-        """
-        Парсит YAML-файлы профилей по переданным URL и собирает маппинг имён профилей
-        на Docker-образы.
-        """
+        """Скачивает YAML-файлы профилей и собирает маппинг Docker-образов."""
         docker_links: DockerLinksMap = {}
 
         for url in urls:
@@ -71,52 +67,6 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
                 logger.warning('ошибка получения/парсинга %s: %s', url, e)
                 continue
 
-            self._extract_from_yaml(content, docker_links)
+            DockerParser.extract_from_yaml(content, docker_links)
 
         return FetchResult(value=docker_links)
-
-    # ------------------------------------------------------------------
-    # Приватные методы
-    # ------------------------------------------------------------------
-
-    def _extract_from_yaml(self, content: dict, docker_links: DockerLinksMap) -> None:
-        """Обходит раздел archs: YAML-профиля и заполняет маппинг docker_links."""
-        archs = content.get('archs', {})
-        for key, val in archs.items():
-            if key == 'common' or not isinstance(val, dict):
-                continue
-
-            docker_img = self._extract_docker_image(val)
-            if not docker_img:
-                continue
-
-            self._add_aliases(key, docker_img, docker_links)
-
-            prof_host = val.get('profile_host')
-            if isinstance(prof_host, str):
-                self._add_aliases(prof_host, docker_img, docker_links)
-            elif isinstance(prof_host, list):
-                for ph in prof_host:
-                    self._add_aliases(ph, docker_img, docker_links)
-
-    @staticmethod
-    def _extract_docker_image(arch_val: dict) -> str:
-        """Извлекает URL Docker-образа из словаря значений одной архитектуры."""
-        docker_val = arch_val.get('docker')
-        if isinstance(docker_val, str):
-            return docker_val
-        if isinstance(docker_val, dict):
-            return docker_val.get('image', '')
-        return ''
-
-    @staticmethod
-    def _add_aliases(name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
-        """Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов."""
-        if not name:
-            return
-        path_obj = Path(name)
-        docker_links[name] = docker_img
-        docker_links[path_obj.name] = docker_img
-        docker_links[path_obj.stem] = docker_img
-        if path_obj.parent != Path('.'):
-            docker_links['%s/%s' % (path_obj.parent, path_obj.stem)] = docker_img

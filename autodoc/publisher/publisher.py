@@ -14,6 +14,7 @@ from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 # Импорт стратегий активирует их регистрацию в Registry
 import autodoc.publisher.strategies.release_strategy    # noqa: F401
 import autodoc.publisher.strategies.passports_strategy  # noqa: F401
+import autodoc.publisher.strategies.profile_strategy    # noqa: F401
 
 class DocumentPublisher:
     """
@@ -99,7 +100,7 @@ class DocumentPublisher:
         )
 
         release_report = self.publish(
-            strategy_type='full_release',
+            strategy_type='release',
             parsed_data=parsed_data,
             page_title=release_page_title,
             template_name=release_template_name,

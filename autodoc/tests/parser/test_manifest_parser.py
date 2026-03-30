@@ -7,6 +7,7 @@ import pytest
 from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.fetchers.properties_reader import read_properties
+from autodoc.parser.parsers.manifest_parser import ManifestParser
 
 # 4.2 Используем новое имя поля
 MINIMAL_CONFIG_DATA = {
@@ -126,3 +127,36 @@ class TestManifestFetcher:
         parser._configured = True
         with pytest.raises(ParsingError, match='.properties'):
             parser.fetch(tmp_path / 'empty', excluded=[])
+
+
+class TestManifestParser:
+    """Тесты ManifestParser напрямую — без TFS, без моков сети."""
+
+    def test_parse_returns_component(self, tmp_path: Path) -> None:
+        _write_properties(tmp_path, 'c.properties', SAMPLE_PROPERTIES)
+        parser = ManifestParser(target_platform='2.0')
+        components, warnings = parser.parse(list(tmp_path.glob('*.properties')), excluded=[])
+        assert len(components) == 1
+        assert components[0].name == 'crypto_lib'
+        assert warnings == []
+
+    def test_parse_excluded_returns_empty(self, tmp_path: Path) -> None:
+        _write_properties(tmp_path, 'c.properties', SAMPLE_PROPERTIES)
+        parser = ManifestParser(target_platform='2.0')
+        components, _ = parser.parse(list(tmp_path.glob('*.properties')), excluded=['crypto_lib'])
+        assert components == []
+
+    def test_parse_no_name_skipped(self, tmp_path: Path) -> None:
+        _write_properties(tmp_path, 'c.properties', 'description=No name\n')
+        parser = ManifestParser(target_platform='2.0')
+        components, _ = parser.parse(list(tmp_path.glob('*.properties')), excluded=[])
+        assert components == []
+
+    def test_release_fields_correct(self, tmp_path: Path) -> None:
+        _write_properties(tmp_path, 'c.properties', SAMPLE_PROPERTIES)
+        parser = ManifestParser(target_platform='2.0')
+        components, _ = parser.parse(list(tmp_path.glob('*.properties')), excluded=[])
+        release = components[0].releases[0]
+        assert release.version == '1.2.3'
+        assert release.channel == 'stable'
+        assert len(release.profile_builds) == 2
