@@ -9,7 +9,7 @@ from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.docker_step import DockerResolveStep
@@ -17,13 +17,21 @@ from autodoc.parser.steps.finalize_step import FinalizeStep
 from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-from autodoc.parser.tfs_client import TFSClient
+from autodoc.parser.clients.tfs_client import TFSClient
 
 
 def default_pipeline(config: ParserConfigSchema) -> list[BaseParseStep]:
-    """Инициализирует синглтоны и возвращает стандартный набор шагов пайплайна."""
-    TFSClient.initialize(config)
-    ArtifactoryClient.initialize(config)
+    """
+    Инициализирует синглтоны клиентов и возвращает стандартный набор шагов пайплайна.
+
+    Args:
+        config: Валидированная конфигурация парсера.
+
+    Returns:
+        Список шагов пайплайна в порядке выполнения.
+    """
+    TFSClient(config)
+    ArtifactoryClient(config)
     return [
         ManifestStep(),
         OptionsResolveStep(),
@@ -32,6 +40,7 @@ def default_pipeline(config: ParserConfigSchema) -> list[BaseParseStep]:
         ArtifactoryValidationStep(),
         FinalizeStep(),
     ]
+
 
 class ComponentParser:
     """
@@ -45,7 +54,7 @@ class ComponentParser:
         self,
         config: ParserConfigSchema,
         data_dir: Path,
-        steps: list[BaseParseStep | None] = None,  # 3.6 явный тип
+        steps: list[BaseParseStep] | None = None,
     ) -> None:
         """
         Args:
@@ -88,7 +97,7 @@ class ComponentParser:
 
         Критические шаги при ошибке останавливают пайплайн.
         Некритические — логируют и продолжают.
-        Временная директория очищается в ``finally``.
+        Временная директория и синглтоны клиентов очищаются в ``finally``.
 
         Args:
             save_intermediate: Сохранять ли JSON-снимок после каждого шага.
@@ -133,9 +142,9 @@ class ComponentParser:
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
-            TFSClient.shutdown()
-            ArtifactoryClient.shutdown()
-            logger.debug('временная директория очищена.')
+            TFSClient.reset()
+            ArtifactoryClient.reset()
+            logger.debug('временная директория и клиенты очищены.')
 
         if ctx.result is None:
             raise ParsingError('ComponentParser: FinalizeStep не заполнил ctx.result.')
@@ -153,7 +162,6 @@ class ComponentParser:
         snapshot = {
             'step': step_name,
             'components_count': len(ctx.components),
-            # 3.15 docker_links доступен через intermediate
             'docker_links_count': len(ctx.intermediate.get('docker_links', {})),
             'intermediate_keys': list(ctx.intermediate.keys()),
         }

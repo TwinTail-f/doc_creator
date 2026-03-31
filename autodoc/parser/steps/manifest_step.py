@@ -2,7 +2,8 @@
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
-from autodoc.parser.steps.base import BaseParseStep, IFetcher, PipelineContext
+from autodoc.parser.fetchers.base import IFetcher
+from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 
 class ManifestStep(BaseParseStep):

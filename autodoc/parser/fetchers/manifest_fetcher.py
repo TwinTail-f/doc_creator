@@ -7,35 +7,45 @@ from pathlib import Path
 from autodoc.exceptions import ParsingError
 from autodoc.models.component import Component
 from autodoc.parser.parsers.manifest_parser import ManifestParser
-from autodoc.parser.steps.base import BaseTFSFetcher, FetchResult, PipelineContext
+from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
+from autodoc.parser.steps.base import PipelineContext
+from autodoc.parser.clients.tfs_client import TFSClient
 
-_MANIFESTS_REPO = 'platform'
+_MANIFESTS_REPO: str = 'platform'
 
 
 class ManifestFetcher(BaseTFSFetcher[list[Component]]):
     """
     Скачивает .properties-файлы манифестов из TFS и делегирует парсинг ManifestParser.
 
-    Двухфазовый: сначала configure(ctx), потом fetch(tmp_dir, excluded).
+    Двухфазовый: сначала ``configure(ctx)``, потом ``fetch(tmp_dir, excluded)``.
     """
 
     def configure(self, ctx: PipelineContext) -> None:
-        """Сохраняет нужные данные из ctx.config."""
-        from autodoc.parser.tfs_client import TFSClient
-        self._tfs = TFSClient.get_instance()
+        """
+        Инициализирует фетчер из контекста пайплайна.
+
+        Получает синглтон ``TFSClient`` и сохраняет параметры конфигурации.
+
+        Args:
+            ctx: Контекст пайплайна с заполненной конфигурацией.
+        """
+        self._tfs = TFSClient(ctx.config)
         self._base_url = ctx.config.tfs_dep_components_url.rstrip('/')
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
         self._platform_version = ctx.config.platform_version
-        self._configured = True
 
     def fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
-        """Типизированная точка входа — делегирует в _guarded_fetch."""
-        return self._guarded_fetch(tmp_dir=tmp_dir, excluded=excluded)
-
-    def _do_fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
         """
         Скачивает .properties-файлы из TFS, затем передаёт их ManifestParser.
+
+        Args:
+            tmp_dir: Временная директория для сохранения скачанных файлов.
+            excluded: Список имён компонентов, которые нужно исключить из парсинга.
+
+        Returns:
+            ``FetchResult`` со списком компонентов и предупреждениями.
 
         Raises:
             ParsingError: Если в директории не найдено ни одного .properties-файла.

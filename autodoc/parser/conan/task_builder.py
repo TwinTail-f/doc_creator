@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from autodoc.models.component import Component, ProfileBuild, Release
 
 # Шаблон Conan version range с поддержкой pre-release версий
-_CONAN_REF_TEMPLATE = '{name}/[~{version},include_prerelease]@platform-{platform}/{channel}'
+_CONAN_REF_TEMPLATE: str = (
+    '{name}/[~{version},include_prerelease]@platform-{platform}/{channel}'
+)
+
 
 @dataclass(frozen=True)
 class ConanTask:
@@ -15,6 +18,19 @@ class ConanTask:
 
     Хранит готовую CLI-команду и ссылки на модели данных,
     которые будут обогащены после успешного выполнения.
+
+    Attributes:
+        cmd: Готовая CLI-команда для передачи в ``subprocess.run``.
+        comp_name: Имя компонента.
+        version: Версия компонента.
+        channel: Канал (например ``'stable'``).
+        profile_name: Имя профиля сборки Conan.
+        option_id: Идентификатор набора опций.
+        option_str: Строка опций через запятую.
+        target_platform: Целевая платформа.
+        artifactory_base_url: Базовый URL Artifactory для построения ссылок.
+        release: Ссылка на объект ``Release`` для последующего обогащения.
+        pb: Ссылка на объект ``ProfileBuild`` для последующего обогащения.
     """
 
     cmd: list[str]
@@ -28,6 +44,7 @@ class ConanTask:
     artifactory_base_url: str
     release: Release
     pb: ProfileBuild
+
 
 class ConanTaskBuilder:
     """
@@ -88,10 +105,6 @@ class ConanTaskBuilder:
 
         return tasks
 
-    # ------------------------------------------------------------------
-    # Приватные методы
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _build_cmd(reference: str, profile_name: str, opt_str: str) -> list[str]:
         """
@@ -112,8 +125,8 @@ class ConanTaskBuilder:
         """
         cmd = [
             'conan', 'graph', 'info',
-            f'--requires={reference}',
-            f'-pr={profile_name}',
+            '--requires=%s' % reference,
+            '-pr=%s' % profile_name,
             '--format=json',
         ]
 
@@ -141,6 +154,6 @@ class ConanTaskBuilder:
         if ':' in opt:
             if '/*:' not in opt and not opt.startswith('*:'):
                 pkg, rest = opt.split(':', 1)
-                return f'{pkg}/*:{rest}'
+                return '%s/*:%s' % (pkg, rest)
             return opt
-        return f'*:{opt}'
+        return '*:%s' % opt

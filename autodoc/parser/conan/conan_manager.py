@@ -7,7 +7,8 @@ from typing import Any
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
-from autodoc.parser.conan.conan_runner import BaseConanRunner, Conan2Runner, ConanRawResult
+from autodoc.parser.conan.conan_result import ConanRawResult
+from autodoc.parser.conan.conan_runner import BaseConanRunner, Conan2Runner
 from autodoc.parser.conan.result_parser import ConanEnrichData, ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
 from autodoc.models.conan_result import (

@@ -1,22 +1,25 @@
 """
 Клиент для взаимодействия с REST API TFS.
 
-Живёт в ``infrastructure/`` — используется fetcher-классами парсера
+Живёт в ``parser/`` — используется fetcher-классами парсера
 (``ManifestFetcher``, ``DockerFetcher``, ``OptionsFetcher``).
+
+Синглтон реализован через метакласс ``Singleton``:
+первый вызов ``TFSClient(config)`` создаёт экземпляр,
+последующие вызовы с любыми аргументами возвращают тот же экземпляр.
 """
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
-
-if TYPE_CHECKING:
-    from autodoc.config.schemas import ParserConfigSchema
+from typing import Any
 
 import requests
 
+from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ConfigError, NetworkError
 from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
+from autodoc.infrastructure.singleton import Singleton
 
 
 class RecursionLevel(str, Enum):
@@ -26,103 +29,58 @@ class RecursionLevel(str, Enum):
     FULL = 'Full'
 
 
-class TFSClient:
+class TFSClient(metaclass=Singleton):
     """
     Клиент для выполнения запросов к TFS с автоматической retry-логикой.
 
-    Использует ``RetryableSession`` из ``http_client`` — собственный retry-код
-    не дублируется.
+    Синглтон — первый вызов ``TFSClient(config)`` создаёт экземпляр,
+    последующие вызовы возвращают тот же объект без повторной инициализации.
+
+    Для сброса в тестах — ``TFSClient.reset()``.
 
     Attributes:
         session: HTTP-сессия с настроенной аутентификацией и retry-логикой.
     """
 
-    _API_VERSION = '7.1'
-    _instance: ClassVar['TFSClient | None'] = None
+    _API_VERSION: str = '7.1'
 
-    def __init__(
-        self,
-        username: str,
-        token: str,
-        max_retries: int = 3,
-        backoff_factor: float = 1.0,
-        timeout: int = 15,
-    ) -> None:
+    def __init__(self, config: ParserConfigSchema) -> None:
         """
-        Инициализирует TFS-клиент.
+        Инициализирует TFS-клиент из конфигурации парсера.
+
+        Вызывается только при первом создании синглтона. При повторных вызовах
+        ``TFSClient(config)`` метакласс возвращает существующий экземпляр,
+        не вызывая ``__init__`` повторно.
 
         Args:
-            username: Имя пользователя TFS.
-            token: Personal Access Token (PAT).
-            max_retries: Максимальное количество retry-попыток.
-            backoff_factor: Множитель для exponential backoff.
-            timeout: Таймаут HTTP-запросов в секундах.
+            config: Валидированная конфигурация парсера с учётными данными TFS.
 
         Raises:
-            ConfigError: Если учётные данные не переданы.
+            ConfigError: Если ``tfs_username`` или ``tfs_token`` не заданы.
         """
-        if not (username and token):
+        if not (config.tfs_username and config.tfs_token):
             raise ConfigError(
                 'TFSClient: учётные данные не переданы. '
                 'Укажите tfs_username и tfs_token в конфигурации.'
             )
 
         self.session = create_retryable_session(
-            username=username,
-            token=token,
-            max_retries=max_retries,
-            backoff_factor=backoff_factor,
-            timeout=timeout,
-        )
-        self.session.params = {'api-version': self._API_VERSION}
-
-    @classmethod
-    def initialize(cls, config: 'ParserConfigSchema') -> None:
-        """Инициализирует синглтон из конфигурации. Повторный вызов — no-op."""
-        if cls._instance is None:
-            cls._instance = cls._from_config(config)
-
-    @classmethod
-    def get_instance(cls) -> 'TFSClient':
-        """Возвращает текущий экземпляр синглтона.
-
-        Raises:
-            RuntimeError: Если ``initialize()`` не был вызван.
-        """
-        if cls._instance is None:
-            raise RuntimeError('TFSClient not initialized — call initialize() first')
-        return cls._instance
-
-    @classmethod
-    def shutdown(cls) -> None:
-        """Закрывает сессию и сбрасывает синглтон."""
-        if cls._instance is not None:
-            cls._instance.session.close()
-            cls._instance = None
-
-    @classmethod
-    def reset(cls) -> None:
-        """Для тестов только. Сбрасывает синглтон без закрытия сессии."""
-        cls._instance = None
-
-    @classmethod
-    def _from_config(cls, config: 'ParserConfigSchema') -> 'TFSClient':
-        """
-        Создаёт ``TFSClient`` из конфигурации парсера (приватный фабричный метод).
-
-        Args:
-            config: Валидированная конфигурация парсера.
-
-        Returns:
-            Настроенный экземпляр ``TFSClient``.
-        """
-        return cls(
             username=config.tfs_username,
             token=config.tfs_token,
             max_retries=config.max_retries,
             backoff_factor=config.retry_backoff_factor,
             timeout=config.tfs_request_timeout,
         )
+        self.session.params = {'api-version': self._API_VERSION}
+
+    @classmethod
+    def reset(cls) -> None:
+        """
+        Удаляет экземпляр из реестра синглтонов без закрытия сессии.
+
+        Предназначен только для использования в тестах.
+        """
+        Singleton._instances.pop(cls, None)
 
     def download_properties(
         self,
@@ -149,7 +107,7 @@ class TFSClient:
             'recursionLevel': RecursionLevel.ONE_LEVEL.value,
         }
 
-        logger.info('запрос списка файлов из %s (ветка: %s)', items_url, branch)
+        logger.info('TFSClient: запрос списка файлов из %s (ветка: %s)', items_url, branch)
 
         try:
             response = self.session.get(items_url, params=params)
@@ -160,7 +118,7 @@ class TFSClient:
             ) from e
 
         items = response.json().get('value', [])
-        logger.info('найдено %d элементов, начинаем скачивание…', len(items))
+        logger.info('TFSClient: найдено %d элементов, начинаем скачивание…', len(items))
 
         out_dir = Path(output_dir)
         downloaded_count = 0
@@ -177,9 +135,9 @@ class TFSClient:
                 (out_dir / file_name).write_text(file_response.text, encoding='utf-8')
                 downloaded_count += 1
             except requests.exceptions.RequestException as e:
-                logger.warning('не удалось скачать %s: %s. Пропускаем.', file_name, e)
+                logger.warning('TFSClient: не удалось скачать %s: %s. Пропускаем.', file_name, e)
 
-        logger.info('успешно скачано %d файлов.', downloaded_count)
+        logger.info('TFSClient: успешно скачано %d файлов.', downloaded_count)
 
     def get_file_content(
         self,

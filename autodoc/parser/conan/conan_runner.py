@@ -1,27 +1,17 @@
 """
 Запуск команд Conan CLI через subprocess.
+
+Содержит интерфейс ``BaseConanRunner`` и реализацию ``Conan2Runner``.
+Дата-класс результата вынесен в ``conan_result.py``.
 """
 import json
 import subprocess
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any
 
 from autodoc.infrastructure.logger import logger
+from autodoc.parser.conan.conan_result import ConanRawResult
 from autodoc.parser.conan.task_builder import ConanTask
 
-@dataclass
-class ConanRawResult:
-    """
-    Сырой результат выполнения одной команды ``conan graph info``.
-
-    Содержит либо распарсенный JSON (при успехе), либо текст ошибки.
-    """
-
-    task: ConanTask
-    success: bool
-    data: dict[str, Any | None]  # разобранный JSON, если success=True
-    error: str                       # текст ошибки, если success=False
 
 class BaseConanRunner(ABC):
     """Интерфейс запуска команд Conan CLI."""
@@ -42,27 +32,32 @@ class BaseConanRunner(ABC):
     def clean_cache(self) -> None:
         """Очищает локальный кэш Conan."""
 
+
 class Conan2Runner(BaseConanRunner):
     """
     Запускает команды Conan 2.x через ``subprocess``.
 
     Обрабатывает таймауты, ненулевые коды возврата и ошибки JSON-декодирования.
+    Каждый вызов ``run()`` независим — безопасен для использования из нескольких потоков.
     """
 
-    _CONAN_NOT_FOUND_MSG = 'Утилита conan не найдена. Проверьте PATH.'
-    _CLEAN_CACHE_CMD = ['conan', 'remove', '*', '-c']
-    _CLEAN_CACHE_TIMEOUT = 60
+    _CONAN_NOT_FOUND_MSG: str = 'Утилита conan не найдена. Проверьте PATH.'
+    _CLEAN_CACHE_CMD: list[str] = ['conan', 'remove', '*', '-c']
+    _CLEAN_CACHE_TIMEOUT: int = 60
 
     def __init__(self, timeout: int) -> None:
         """
         Args:
-            timeout: Таймаут выполнения команды в секундах.
+            timeout: Таймаут выполнения одной команды ``conan graph info`` в секундах.
         """
         self._timeout = timeout
 
     def run(self, task: ConanTask) -> ConanRawResult:
         """
         Выполняет ``conan graph info`` и возвращает сырой результат.
+
+        При таймауте или отсутствии утилиты возвращает ``success=False``
+        с описанием ошибки — не бросает исключений.
 
         Args:
             task: Задача с готовой CLI-командой.
@@ -82,7 +77,7 @@ class Conan2Runner(BaseConanRunner):
                 task=task,
                 success=False,
                 data=None,
-                error=f'Таймаут выполнения команды ({self._timeout} с).',
+                error='Таймаут выполнения команды (%d с).' % self._timeout,
             )
         except FileNotFoundError:
             return ConanRawResult(
@@ -108,7 +103,7 @@ class Conan2Runner(BaseConanRunner):
                 task=task,
                 success=False,
                 data=None,
-                error=f'JSON decode error: {e}. STDOUT: {result.stdout[:300]}',
+                error='JSON decode error: %s. STDOUT: %s' % (e, result.stdout[:300]),
             )
 
     def clean_cache(self) -> None:
@@ -130,8 +125,7 @@ class Conan2Runner(BaseConanRunner):
                 logger.info('Conan2Runner: кэш Conan 2 очищен.')
             else:
                 logger.debug(
-                    f'Conan2Runner: кэш пуст или некритичная ошибка: '
-                    f'{result.stderr.strip()}'
+                    'Conan2Runner: кэш пуст или некритичная ошибка: %s', result.stderr.strip()
                 )
         except subprocess.TimeoutExpired:
             logger.warning('Conan2Runner: таймаут при очистке кэша.')
@@ -144,7 +138,8 @@ class Conan2Runner(BaseConanRunner):
         Извлекает релевантное сообщение из stderr Conan.
 
         Ищет первое вхождение ``ERROR:`` или ``Error:`` и возвращает
-        текст начиная с найденной метки.
+        текст начиная с найденной метки. Если маркеры не найдены —
+        возвращает весь stderr без пробелов по краям.
 
         Args:
             stderr: Полный stderr процесса.

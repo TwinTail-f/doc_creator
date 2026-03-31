@@ -3,15 +3,16 @@
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import requests        # нужен для requests.RequestException
+import requests
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
-from autodoc.parser.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
-_VALIDATION_MAX_WORKERS = 20
-_HEAD_TIMEOUT = 10
+_VALIDATION_MAX_WORKERS: int = 20
+_HTTP_STATUS_NOT_FOUND: int = 404
+_LOG_PROGRESS_INTERVAL: int = 100
 
 
 class ArtifactoryValidationStep(BaseParseStep):
@@ -20,7 +21,7 @@ class ArtifactoryValidationStep(BaseParseStep):
 
     Варианты, вернувшие 404, удаляются из ``ProfileBuild.variants``.
     При сетевых ошибках вариант считается живым — чтобы не удалять данные
-    из-за временных лагов сети.
+    из-за временных проблем сети.
 
     Использует ``ArtifactoryClient`` синглтон — SSL-подавление инкапсулировано
     внутри ``client.head()``.
@@ -41,26 +42,35 @@ class ArtifactoryValidationStep(BaseParseStep):
         variants_to_check = self._collect_variants(ctx.components)
 
         if not variants_to_check:
-            logger.info('нет ссылок для проверки.')
+            logger.info('ArtifactoryValidationStep: нет ссылок для проверки.')
             return
 
-        logger.info('проверяем %d ссылок…', len(variants_to_check))
+        logger.info('ArtifactoryValidationStep: проверяем %d ссылок…', len(variants_to_check))
 
-        client = ArtifactoryClient.get_instance()
+        client = ArtifactoryClient(ctx.config)
         dead_variants = self._check_urls_parallel(variants_to_check, client)
         self._remove_dead_variants(dead_variants)
 
         logger.info(
-            'удалено %d недоступных вариантов (HTTP 404).',
+            'ArtifactoryValidationStep: удалено %d недоступных вариантов (HTTP 404).',
             len(dead_variants),
         )
-
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _collect_variants(
         components: list[Component],
     ) -> list[tuple[ProfileBuild, ConanVariant, str]]:
+        """
+        Собирает все варианты с непустыми ``build_url`` для проверки.
+
+        Преобразует UI-ссылки Artifactory в API-ссылки (замена пути).
+
+        Args:
+            components: Список компонентов с профилями и вариантами.
+
+        Returns:
+            Список кортежей ``(ProfileBuild, ConanVariant, api_url)`` для проверки.
+        """
         result = []
         for comp in components:
             for release in comp.releases:
@@ -78,13 +88,26 @@ class ArtifactoryValidationStep(BaseParseStep):
         variants_to_check: list[tuple[ProfileBuild, ConanVariant, str]],
         client: ArtifactoryClient,
     ) -> list[tuple[ProfileBuild, ConanVariant]]:
+        """
+        Проверяет доступность URL параллельно через ``ThreadPoolExecutor``.
+
+        При HTTP 404 вариант добавляется в список мёртвых.
+        При сетевых ошибках вариант считается живым.
+
+        Args:
+            variants_to_check: Список кортежей ``(pb, variant, url)`` для проверки.
+            client: Экземпляр ``ArtifactoryClient`` для HEAD-запросов.
+
+        Returns:
+            Список кортежей ``(ProfileBuild, ConanVariant)`` с недоступными вариантами.
+        """
         dead: list[tuple[ProfileBuild, ConanVariant]] = []
 
         def check_one(item: tuple[ProfileBuild, ConanVariant, str]):
             pb, variant, url = item
             try:
                 resp = client.head(url)
-                if resp.status_code == 404:
+                if resp.status_code == _HTTP_STATUS_NOT_FOUND:
                     return pb, variant, False
             except requests.RequestException:
                 pass  # при сетевом сбое считаем вариант живым
@@ -97,8 +120,10 @@ class ArtifactoryValidationStep(BaseParseStep):
             for future in as_completed(future_map):
                 pb, variant, is_valid = future.result()
                 completed += 1
-                if completed % 100 == 0 or completed == total:
-                    logger.debug('Проверено %d/%d ссылок…', completed, total)
+                if completed % _LOG_PROGRESS_INTERVAL == 0 or completed == total:
+                    logger.debug(
+                        'ArtifactoryValidationStep: проверено %d/%d ссылок…', completed, total
+                    )
                 if not is_valid:
                     dead.append((pb, variant))
 
@@ -108,6 +133,12 @@ class ArtifactoryValidationStep(BaseParseStep):
     def _remove_dead_variants(
         dead_variants: list[tuple[ProfileBuild, ConanVariant]],
     ) -> None:
+        """
+        Удаляет недоступные варианты из соответствующих ``ProfileBuild``.
+
+        Args:
+            dead_variants: Список кортежей ``(ProfileBuild, ConanVariant)`` для удаления.
+        """
         for pb, variant in dead_variants:
             if variant in pb.variants:
                 pb.variants.remove(variant)
