@@ -13,7 +13,7 @@ from typing import Any
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher  # noqa: F401
+from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher
 
 
 @dataclass
