@@ -4,7 +4,7 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
