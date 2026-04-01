@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.exceptions import ParsingError
+from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient

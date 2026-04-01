@@ -40,8 +40,6 @@ class FinalizeStep(BaseParseStep):
 
         ctx.result = self._build_result(ctx)
 
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _compute_header_only_flags(components: list[Component]) -> None:
         """
