@@ -24,14 +24,14 @@ class TestComponentCreation:
         assert comp.releases == []
 
     def test_component_with_full_release(self) -> None:
-        # 1.1 ConanVariant больше не имеет option_set_id, option_set_str
+
         variant = ConanVariant(
             package_id='abc123',
             build_url='https://art.example.com/pkg',
             build_date='2026-01-15',
             conan_options={'shared': 'True'},
         )
-        # 1.2 pb_exist → exists, profile_docker_url → docker_image
+
         profile = ProfileBuild(
             profile_name='linux_x86_64',
             conan_settings={'os': 'Linux', 'arch': 'x86_64'},
@@ -44,7 +44,6 @@ class TestComponentCreation:
             platform='develop',
             channel='stable',
             git_url='https://tfs.example.com/repo',
-            # 1.3 git_project/git_repo убраны из Release
             conan_reference='crypto_lib/1.2.3@platform/stable',
             profile_builds=[profile],
         )

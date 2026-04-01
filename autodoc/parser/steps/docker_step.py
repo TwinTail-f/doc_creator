@@ -11,13 +11,6 @@ from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 class DockerResolveStep(BaseParseStep):
     """
     Шаг 4: Собирает Docker-образы и сразу применяет их к ProfileBuild.
-
-    2.3 apply_docker_links вызывается здесь — обогащение происходит
-    в шаге, который за него отвечает.
-
-    3.15 Ссылки больше не записываются в ctx.docker_links (поле удалено).
-    Для диагностики/save_intermediate данные доступны через
-    ctx.intermediate['docker_links'].
     """
 
     name = 'Сбор Docker-ссылок профилей'
@@ -27,6 +20,16 @@ class DockerResolveStep(BaseParseStep):
         self._fetcher = fetcher or DockerFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:
+        """
+        Собирает Docker-ссылки профилей и применяет их к ProfileBuild.
+
+        Конфигурирует DockerFetcher, загружает ссылки по URL профилей из
+        конфигурации, передаёт результат в DataEnricher и сохраняет карту
+        в ctx.intermediate для диагностики и save_intermediate.
+
+        Args:
+            ctx: Контекст пайплайна с заполненными компонентами и конфигурацией.
+        """
         self._fetcher.configure(ctx)
         result = self._fetcher.fetch(
             urls=ctx.config.profiles_urls or [],

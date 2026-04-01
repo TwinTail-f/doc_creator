@@ -9,7 +9,6 @@ from autodoc.config.manager import ConfigManager
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ConfigError
 
-# 4.2 Поле переименовано: tfs_DEP_Components_url → tfs_dep_components_url
 VALID_PARSER_CONFIG = {
     'platform_version': '2.0',
     'platform_branch_name': 'develop',
@@ -63,7 +62,7 @@ class TestParserConfigSchemaMissingRequiredFields:
         'platform_branch_name',
         'tfs_username',
         'tfs_token',
-        'tfs_dep_components_url',   # 4.2 новое имя
+        'tfs_dep_components_url',
         'manifests_remotes_path',
     ])
     def test_missing_required_field_raises_config_error(

@@ -16,6 +16,16 @@ class OptionsResolveStep(BaseParseStep):
         self._fetcher = fetcher or OptionsFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:
+        """
+        Скачивает options.json и применяет опции Conan к компонентам.
+
+        Конфигурирует OptionsFetcher из контекста, выполняет загрузку,
+        передаёт результат в DataEnricher и сохраняет карту опций
+        в ctx.intermediate для диагностики.
+
+        Args:
+            ctx: Контекст пайплайна с заполненными компонентами.
+        """
         self._fetcher.configure(ctx)
         result = self._fetcher.fetch(ctx.components)
         if result.warnings:

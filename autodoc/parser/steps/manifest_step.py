@@ -16,6 +16,15 @@ class ManifestStep(BaseParseStep):
         self._fetcher = fetcher or ManifestFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:
+        """
+        Скачивает манифесты из TFS и разбирает их в модели Component.
+
+        Конфигурирует фетчер из контекста, запускает загрузку, логирует
+        предупреждения и записывает компоненты в ctx.components.
+
+        Args:
+            ctx: Контекст пайплайна с заполненной конфигурацией и tmp_dir.
+        """
         self._fetcher.configure(ctx)
         result = self._fetcher.fetch(
             tmp_dir=ctx.tmp_dir,

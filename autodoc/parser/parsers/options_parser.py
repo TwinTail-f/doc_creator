@@ -34,7 +34,7 @@ class OptionsParser:
         """
         try:
             parsed: dict = json.loads(text)
-        except (json.JSONDecodeError, Exception) as e:
+        except json.JSONDecodeError as e:
             logger.warning('ошибка чтения %s: %s', opt_path, e)
             return None, {}
 

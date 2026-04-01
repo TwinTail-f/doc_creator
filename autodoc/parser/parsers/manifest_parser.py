@@ -13,6 +13,13 @@ class ManifestParser:
     """Преобразует список .properties-файлов в список Component."""
 
     def __init__(self, target_platform: str) -> None:
+        """
+        Инициализирует парсер для указанной целевой платформы.
+
+        Args:
+            target_platform: Версия платформы (например '2.0'), используется
+                             для фильтрации релизов манифестов.
+        """
         self._target_platform = target_platform
 
     def parse(

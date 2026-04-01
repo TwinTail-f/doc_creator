@@ -18,16 +18,21 @@ from autodoc.models.conan_result import (
     _ErrorLog,
 )
 
-_DEFAULT_MAX_WORKERS = 8
+_DEFAULT_MAX_WORKERS: int = 8
 
 class ConanManager:
     """
     Управляет выполнением ``conan graph info`` и возвращает ``ConanEnrichmentResult``.
-
-    Не мутирует модели — мутацию выполняет ``DataEnricher.apply_conan_results()``.
     """
 
     def __init__(self, config: ParserConfigSchema) -> None:
+        """
+        Инициализирует менеджер с runner, task builder и result parser.
+
+        Args:
+            config: Валидированная конфигурация парсера. Используется для
+                    настройки таймаута команды Conan.
+        """
         self._runner: BaseConanRunner = Conan2Runner(timeout=config.conan_command_timeout)
         self._task_builder = ConanTaskBuilder()
         self._result_parser = ConanResultParser()
@@ -69,7 +74,6 @@ class ConanManager:
         raw_results = self._run_tasks_parallel(tasks)
         return self._build_enrichment_result(tasks, raw_results, artifactory_base_url, target_platform)
 
-    # ------------------------------------------------------------------
 
     def _run_tasks_parallel(self, tasks: list[ConanTask]) -> list[ConanRawResult | None]:
         """
@@ -112,7 +116,7 @@ class ConanManager:
         target_platform: str,
     ) -> ConanEnrichmentResult:
         """Собирает ConanEnrichmentResult из сырых результатов без мутации моделей."""
-        pb_agg: dict[int, ProfileBuildAggregator] = {id(task.pb): ProfileBuildAggregator() for task in tasks}
+        pb_agg: dict[int, _PbAgg] = {id(task.pb): _PbAgg() for task in tasks}
 
         for task, raw in zip(tasks, raw_results):
             if raw is None:
@@ -171,7 +175,8 @@ class ConanManager:
 
         return result
 
-class ProfileBuildAggregator:
+
+class _PbAgg:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
     __slots__ = ('any_success', 'unique_variants', 'first_enrich', 'conan_settings', 'errors')
@@ -181,7 +186,7 @@ class ProfileBuildAggregator:
         self.conan_settings: dict[str, Any] = {}
         self.unique_variants: dict[str, dict[str, Any]] = {}
         self.first_enrich: ConanEnrichData | None = None
-        self.errors: list[dict] = []
+        self.errors: list[dict[str, Any]] = []
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:
         """

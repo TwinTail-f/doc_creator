@@ -28,8 +28,6 @@ class ConanEnrichData:
     build_url: str
     build_date: str
     conan_options: dict[str, Any]
-    # 3.3 option_set_id и option_set_str удалены — нигде не применяются
-    #     после удаления из ConanVariant (доменной модели)
 
 class ConanResultParser:
     """
@@ -91,7 +89,7 @@ class ConanResultParser:
     def _extract_ref_info(
         node: dict[str, Any],
         fallback_version: str,
-    ) -> tuple:
+    ) -> tuple[str, str, str]:
         full_ref: str = node.get('ref', '')
         rrev: str = node.get('rrev', '')
         full_version = fallback_version

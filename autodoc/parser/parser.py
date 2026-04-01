@@ -122,7 +122,7 @@ class ComponentParser:
                 try:
                     step.execute(ctx)
                     logger.info('ComponentParser ✓ [%s]', step.name)
-                except Exception as exc:
+                except DocGeneratorError as exc:
                     if step.is_critical:
                         logger.error(
                             'ComponentParser ✗ [%s] — критическая ошибка: %s',

@@ -7,14 +7,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.exceptions import ParsingError
+from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.infrastructure.singleton import Singleton
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.manifest_step import ManifestStep
-from autodoc.parser.tfs_client import TFSClient
+from autodoc.parser.clients.tfs_client import TFSClient
 
 MINIMAL_CONFIG = ParserConfigSchema(
     platform_version='2.0',
@@ -37,7 +37,6 @@ def reset_singletons():
 
 
 class _SuccessStep(BaseParseStep):
-    name = 'SuccessStep'
     is_critical = False
 
     def __init__(self, mark='done', critical=False):
@@ -59,7 +58,7 @@ class _FailStep(BaseParseStep):
         self.is_critical = critical
 
     def execute(self, ctx):
-        raise RuntimeError('Намеренная ошибка шага')
+        raise DocGeneratorError('Намеренная ошибка шага')
 
 
 class _FinalizeStub(BaseParseStep):

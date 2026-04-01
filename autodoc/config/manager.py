@@ -11,6 +11,7 @@ from autodoc.config.schemas import ConfluenceConfigSchema, ParserConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.infrastructure.logger import logger
 
+
 class ConfigManager:
     """
     Менеджер для загрузки и валидации конфигурационных файлов.
@@ -39,10 +40,6 @@ class ConfigManager:
         if not self.configs_dir.is_dir():
             raise ConfigError(f'Директория с конфигами не найдена: {configs_dir}')
         logger.info(f'ConfigManager инициализирован: {configs_dir}')
-
-    # ------------------------------------------------------------------
-    # Публичные методы загрузки
-    # ------------------------------------------------------------------
 
     def load_parser_config(self, config_file: str | None = None) -> ParserConfigSchema:
         """
@@ -115,7 +112,7 @@ class ConfigManager:
             else:
                 return False, f'Неподдерживаемый формат: {path.suffix}'
             return True, None
-        except Exception as e:
+        except (json.JSONDecodeError, yaml.YAMLError, OSError) as e:
             return False, f'Ошибка валидации: {e}'
 
     def list_available_configs(self) -> dict[str, list[str]]:
@@ -135,10 +132,6 @@ class ConfigManager:
         except OSError as e:
             logger.warning(f'ошибка при чтении директории конфигов: {e}')
         return configs
-
-    # ------------------------------------------------------------------
-    # Приватные методы
-    # ------------------------------------------------------------------
 
     def _find_config_file(self, basename: str) -> str:
         """

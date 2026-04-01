@@ -32,10 +32,12 @@ from autodoc.publisher.strategies.base import PublishReport
 
 console = Console()
 
+
 _VERSION = '2.0.0'
 _RELEASE_TEMPLATE = 'release_doc.jinja2'
 _PROFILE_TEMPLATE = 'profile_centric.jinja2'
 _PASSPORT_TEMPLATE = 'component_passport.jinja2'
+
 
 class _CliCtx:
     """Контекст, разделяемый между командами Click."""
@@ -179,11 +181,7 @@ def parse(
     except DocGeneratorError as e:
         console.print(f'❌ Ошибка обработки: {e}', style='red bold')
         sys.exit(1)
-    except Exception as e:
-        console.print(f'❌ Неожиданная ошибка: {e}', style='red bold')
-        if cli_ctx.verbose:
-            console.print_exception()
-        sys.exit(2)
+
 
 # ---------------------------------------------------------------------------
 # Группа: publish
@@ -198,7 +196,8 @@ def _load_parsed_data(base_dir: Path) -> ParsedResult:
     data_file = base_dir / 'data' / 'parsed_data.json'
     if not data_file.exists():
         console.print(
-            "❌ Файл parsed_data.json не найден. Сначала запустите 'parse'.",
+            '❌ Файл parsed_data.json не найден. Сначала запустите ' \
+            '"parse".',
             style='red bold',
         )
         sys.exit(1)
@@ -258,11 +257,7 @@ def publish_release(
     except (ConfigError, DocGeneratorError, PublishError) as e:
         console.print(f'❌ Ошибка: {e}', style='red bold')
         sys.exit(1)
-    except Exception as e:
-        console.print(f'❌ Неожиданная ошибка: {e}', style='red bold')
-        if cli_ctx.verbose:
-            console.print_exception()
-        sys.exit(2)
+
 
 @publish.command('profile')
 @click.option('--page-title', default=None, help='Заголовок страницы (переопределяет конфиг)')
@@ -300,11 +295,7 @@ def publish_profile(
     except (ConfigError, DocGeneratorError, PublishError) as e:
         console.print(f'❌ Ошибка: {e}', style='red bold')
         sys.exit(1)
-    except Exception as e:
-        console.print(f'❌ Неожиданная ошибка: {e}', style='red bold')
-        if cli_ctx.verbose:
-            console.print_exception()
-        sys.exit(2)
+
 
 @publish.command('passports')
 @click.option('--root-page', default=None, help='ID корневой страницы иерархии паспортов')
@@ -344,11 +335,7 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
     except (ConfigError, DocGeneratorError, PublishError) as e:
         console.print(f'❌ Ошибка: {e}', style='red bold')
         sys.exit(1)
-    except Exception as e:
-        console.print(f'❌ Неожиданная ошибка: {e}', style='red bold')
-        if cli_ctx.verbose:
-            console.print_exception()
-        sys.exit(2)
+
 
 @publish.command('all')
 @click.option('--root-page', default=None, help='ID корневой страницы паспортов')
@@ -412,11 +399,7 @@ def publish_all(
     except (ConfigError, DocGeneratorError, PublishError) as e:
         console.print(f'❌ Ошибка: {e}', style='red bold')
         sys.exit(1)
-    except Exception as e:
-        console.print(f'❌ Неожиданная ошибка: {e}', style='red bold')
-        if cli_ctx.verbose:
-            console.print_exception()
-        sys.exit(2)
+
 
 # ---------------------------------------------------------------------------
 # Группа: config
