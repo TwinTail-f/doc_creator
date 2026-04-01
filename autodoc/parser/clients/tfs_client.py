@@ -107,18 +107,18 @@ class TFSClient(metaclass=Singleton):
             'recursionLevel': RecursionLevel.ONE_LEVEL.value,
         }
 
-        logger.info('TFSClient: запрос списка файлов из %s (ветка: %s)', items_url, branch)
+        logger.info('запрос списка файлов из %s (ветка: %s)', items_url, branch)
 
         try:
             response = self.session.get(items_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                'TFSClient.download_properties: ошибка при получении списка файлов: %s' % e
+                'ошибка при получении списка файлов: %s' % e
             ) from e
 
         items = response.json().get('value', [])
-        logger.info('TFSClient: найдено %d элементов, начинаем скачивание…', len(items))
+        logger.info('найдено %d элементов, начинаем скачивание…', len(items))
 
         out_dir = Path(output_dir)
         downloaded_count = 0
@@ -135,9 +135,9 @@ class TFSClient(metaclass=Singleton):
                 (out_dir / file_name).write_text(file_response.text, encoding='utf-8')
                 downloaded_count += 1
             except requests.exceptions.RequestException as e:
-                logger.warning('TFSClient: не удалось скачать %s: %s. Пропускаем.', file_name, e)
+                logger.warning('не удалось скачать %s: %s. Пропускаем.', file_name, e)
 
-        logger.info('TFSClient: успешно скачано %d файлов.', downloaded_count)
+        logger.info('успешно скачано %d файлов.', downloaded_count)
 
     def get_file_content(
         self,
@@ -167,7 +167,7 @@ class TFSClient(metaclass=Singleton):
             return self.session.get(items_url, params=params)
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                'TFSClient.get_file_content: ошибка запроса файла %s: %s' % (path, e)
+                'ошибка запроса файла %s: %s' % (path, e)
             ) from e
 
     def get_items(
@@ -200,6 +200,6 @@ class TFSClient(metaclass=Singleton):
             return response.json().get('value', [])
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                'TFSClient.get_items: ошибка запроса структуры репозитория '
+                'ошибка запроса структуры репозитория '
                 '(url=%s, branch=%s): %s' % (items_url, branch, e)
             ) from e

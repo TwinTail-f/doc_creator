@@ -1,61 +1,90 @@
 """
-Клиент Confluence REST API с retry-логикой и автоинкрементом версий страниц.
+Клиент Confluence REST API v1.
+
+Единственный HTTP-транспорт — ``RetryableSession`` из инфраструктурного слоя.
+Зависимость от сторонней библиотеки ``atlassian-python-api`` полностью убрана:
+это устраняет дублирование retry/timeout/SSL-логики и даёт полный контроль
+над запросами.
+
+Поддерживаемые операции:
+    - поиск страницы по заголовку (``find_page``)
+    - получение страницы по ID (``get_page``)
+    - создание страницы (``create_page``)
+    - обновление страницы с автоинкрементом версии (``update_page``)
+    - создание страницы или получение существующей (``get_or_create_page``)
+    - чтение тела страницы (``get_page_body``)
+    - публикация (создание или обновление) с единым интерфейсом (``publish_page``)
 """
 from typing import Any
 
-from atlassian import Confluence
+import requests
 
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
-from autodoc.infrastructure.http_client import create_retryable_session
+from autodoc.infrastructure.http_client import RetryableSession, create_retryable_session
 from autodoc.infrastructure.logger import logger
-from autodoc.publisher.page_manager.version_manager import PageVersionManager
 
-_DEFAULT_RETRY_COUNT: int = 3
-_DEFAULT_BACKOFF_FACTOR: float = 1.0
+# ---------------------------------------------------------------------------
+# Константы
+# ---------------------------------------------------------------------------
+
+_RETRY_COUNT: int = 3
+_BACKOFF_FACTOR: float = 1.0
+
 _PAGE_TYPE: str = 'page'
-_REPRESENTATION: str = 'storage'
+_STORAGE_REPRESENTATION: str = 'storage'
+
 _EXPAND_VERSION: str = 'version'
+_EXPAND_BODY: str = 'body.storage'
+_EXPAND_VERSION_AND_BODY: str = 'version,body.storage'
+
 _INITIAL_VERSION: int = 1
+_FALLBACK_VERSION: int = 0
+
+_PLACEHOLDER_BODY_TEMPLATE: str = '<p>Автоматически созданная страница: %s</p>'
 
 
 class ConfluenceClient:
     """
-    Клиент Confluence REST API с retry-логикой и автоинкрементом версий.
+    Клиент Confluence REST API v1.
 
-    Использует ``create_retryable_session`` из инфраструктуры вместо
-    ручного создания ``Session`` + ``HTTPAdapter`` для устранения дублирования
-    логики повторных попыток.
+    Все запросы идут через единственный ``RetryableSession`` —
+    retry-логика, таймауты и SSL-конфигурация применяются однородно
+    ко всем обращениям к Confluence.
+
+    Клиент не хранит состояния страниц и безопасен для повторного
+    использования в рамках одного процесса.
+
+    Attributes:
+        _base_url: Базовый URL Confluence без завершающего слеша.
+        _space:    Ключ Space по умолчанию (используется во всех методах).
+        _timeout:  Таймаут каждого HTTP-запроса в секундах.
+        _session:  HTTP-сессия с retry-логикой и аутентификацией.
     """
 
     def __init__(self, config: ConfluenceConfigSchema) -> None:
         """
+        Инициализирует клиент из конфигурации Confluence.
+
         Args:
-            config: Валидированная конфигурация Confluence.
+            config: Валидированная конфигурация с URL, токеном и параметрами SSL.
 
         Raises:
-            PublishError: Если инициализация клиента не удалась.
+            PublishError: Если конфигурация некорректна (например, пустой URL).
         """
-        try:
-            self._timeout: int = config.confluence_request_timeout
-            self._confluence = Confluence(
-                url=config.url,
-                username=config.username or '',
-                password=config.token,
-                verify_ssl=config.verify_ssl,
-                cloud=config.cloud,
-            )
-            self._session = create_retryable_session(
-                username=config.username or '',
-                token=config.token,
-                max_retries=_DEFAULT_RETRY_COUNT,
-                backoff_factor=_DEFAULT_BACKOFF_FACTOR,
-                timeout=config.confluence_request_timeout,
-            )
-            self._session.verify = config.verify_ssl
-            logger.debug('ConfluenceClient инициализирован: %s', config.url)
-        except Exception as e:
-            raise PublishError('Ошибка инициализации ConfluenceClient: %s' % e) from e
+        if not config.url:
+            raise PublishError('ConfluenceClient: url не может быть пустым')
+
+        self._base_url: str = config.url.rstrip('/')
+        self._space: str = config.space
+        self._timeout: int = config.confluence_request_timeout
+        self._session: RetryableSession = self._build_session(config)
+
+        logger.debug('ConfluenceClient инициализирован: %s (space=%s)', self._base_url, self._space)
+
+    # ---------------------------------------------------------------------------
+    # Публичный API
+    # ---------------------------------------------------------------------------
 
     def publish_page(
         self,
@@ -65,141 +94,30 @@ class ConfluenceClient:
         body_html: str,
     ) -> dict[str, Any]:
         """
-        Создаёт или обновляет страницу с автоинкрементом версии.
+        Создаёт или обновляет страницу Confluence.
 
-        Если страница с таким заголовком уже существует — обновляет её.
-        Номер версии вычисляется через ``PageVersionManager``. При ошибке
-        получения текущей версии используется версия 1 как безопасный fallback.
+        Если страница с таким заголовком уже существует в указанном Space —
+        обновляет её тело с автоинкрементом номера версии. Если не существует —
+        создаёт новую.
 
         Args:
-            space: Ключ Space в Confluence.
+            space:     Ключ Space в Confluence.
             parent_id: ID родительской страницы.
-            title: Заголовок страницы.
-            body_html: HTML в Confluence Storage Format.
+            title:     Заголовок страницы.
+            body_html: Тело страницы в Confluence Storage Format (HTML).
 
         Returns:
-            Словарь с полями ``id``, ``version``, ``status``, ``message``.
+            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
 
         Raises:
-            PublishError: Если публикация не удалась.
+            PublishError: Если создание или обновление не удалось.
         """
-        logger.info('публикация %r (Space: %s)', title, space)
+        logger.info('publish_page: %r (space=%s)', title, space)
 
-        try:
-            if self._confluence.page_exists(space=space, title=title):
-                return self._update_existing_page(space, parent_id, title, body_html)
-            return self._create_new_page(space, parent_id, title, body_html)
-
-        except PublishError:
-            raise
-        except Exception as e:
-            raise PublishError('Ошибка публикации страницы %r: %s' % (title, e)) from e
-
-    def _update_existing_page(
-        self,
-        space: str,
-        parent_id: str,
-        title: str,
-        body_html: str,
-    ) -> dict[str, Any]:
-        """
-        Обновляет существующую страницу Confluence.
-
-        Получает текущий номер версии через ``PageVersionManager``. При
-        ошибке получения версии использует ``_INITIAL_VERSION`` как fallback.
-
-        Args:
-            space: Ключ Space.
-            parent_id: ID родительской страницы.
-            title: Заголовок существующей страницы.
-            body_html: Новое тело страницы.
-
-        Returns:
-            Словарь с полями ``id``, ``version``, ``status``, ``message``.
-        """
-        page_id = self._confluence.get_page_id(space=space, title=title)
-        current_version: int = 0  # гарантирует определённость переменной до try-блока
-        try:
-            current_page = self.get_page(page_id)
-            current_version = PageVersionManager.extract_version_from_response(current_page)
-            next_version = PageVersionManager.get_next_version(current_version)
-            PageVersionManager.log_version_update(title, current_version, next_version)
-        except PublishError:
-            next_version = _INITIAL_VERSION
-
-        result = self._confluence.update_page(
-            page_id=page_id,
-            title=title,
-            body=body_html,
-            parent_id=parent_id,
-            type=_PAGE_TYPE,
-            representation=_REPRESENTATION,
-            minor_edit=False,
-        )
-        logger.info('%r обновлена (ID: %s, версия: %d)', title, result.get('id'), next_version)
-        return {
-            'id': result.get('id'),
-            'version': next_version,
-            'status': 'updated',
-            'message': 'Page updated to version %d' % next_version,
-        }
-
-    def _create_new_page(
-        self,
-        space: str,
-        parent_id: str,
-        title: str,
-        body_html: str,
-    ) -> dict[str, Any]:
-        """
-        Создаёт новую страницу Confluence.
-
-        Args:
-            space: Ключ Space.
-            parent_id: ID родительской страницы.
-            title: Заголовок новой страницы.
-            body_html: Тело страницы.
-
-        Returns:
-            Словарь с полями ``id``, ``version``, ``status``, ``message``.
-        """
-        result = self._confluence.create_page(
-            space=space,
-            title=title,
-            body=body_html,
-            parent_id=parent_id,
-            type=_PAGE_TYPE,
-            representation=_REPRESENTATION,
-        )
-        logger.info('%r создана (ID: %s)', title, result.get('id'))
-        return {
-            'id': result.get('id'),
-            'version': _INITIAL_VERSION,
-            'status': 'created',
-            'message': 'Page created with version %d' % _INITIAL_VERSION,
-        }
-
-    def get_page_body(self, space: str, title: str) -> str:
-        """
-        Возвращает тело страницы в Confluence Storage Format.
-
-        Args:
-            space: Ключ Space.
-            title: Заголовок страницы.
-
-        Returns:
-            HTML-тело или пустая строка, если страница не найдена
-            или произошла ошибка.
-        """
-        try:
-            if self._confluence.page_exists(space=space, title=title):
-                page = self._confluence.get_page_by_title(
-                    space=space, title=title, expand='body.storage'
-                )
-                return page.get('body', {}).get('storage', {}).get('value', '')
-        except Exception as e:
-            logger.warning('не удалось получить тело %r: %s', title, e)
-        return ''
+        existing = self.find_page(space, title, expand=_EXPAND_VERSION)
+        if existing:
+            return self._update_page(existing, parent_id, title, body_html)
+        return self._create_page(space, parent_id, title, body_html)
 
     def get_or_create_page(
         self,
@@ -209,78 +127,328 @@ class ConfluenceClient:
         body: str = '',
     ) -> str:
         """
-        Находит страницу по заголовку или создаёт новую.
+        Возвращает ID существующей страницы или создаёт новую.
+
+        Используется ``PageHierarchyManager`` для идемпотентного создания
+        промежуточных страниц иерархии (компонент, версия).
+
+        Args:
+            space:     Ключ Space.
+            title:     Заголовок страницы.
+            parent_id: ID родителя. Обязателен при создании новой страницы.
+            body:      Тело новой страницы. Если пустое — вставляется заглушка.
+
+        Returns:
+            ID страницы в виде строки.
+
+        Raises:
+            PublishError: Если страница не найдена и ``parent_id`` не указан,
+                          либо если запрос к API завершился ошибкой.
+        """
+        existing = self.find_page(space, title)
+        if existing:
+            return str(existing['id'])
+
+        if not parent_id:
+            raise PublishError(
+                'не указан parent_id для создания страницы %r' % title
+            )
+
+        placeholder = body or (_PLACEHOLDER_BODY_TEMPLATE % title)
+        result = self._create_page(space, parent_id, title, placeholder)
+        logger.info('создана страница %r (ID: %s)', title, result['id'])
+        return str(result['id'])
+
+    def get_page_body(self, space: str, title: str) -> str:
+        """
+        Возвращает тело страницы в Confluence Storage Format.
+
+        При отсутствии страницы или любой ошибке API возвращает пустую строку —
+        вызывающий код (``PassportsStrategy``) рассматривает это как первую публикацию.
 
         Args:
             space: Ключ Space.
             title: Заголовок страницы.
-            parent_id: ID родителя (обязателен при создании).
-            body: Тело новой страницы. Если пустое — используется
-                  заглушка-заголовок.
 
         Returns:
-            ID страницы (строка).
+            HTML-тело страницы или пустая строка.
+        """
+        existing = self.find_page(space, title, expand=_EXPAND_BODY)
+        if not existing:
+            return ''
+        return existing.get('body', {}).get('storage', {}).get('value', '')
+
+    def find_page(
+        self,
+        space: str,
+        title: str,
+        expand: str = '',
+    ) -> dict[str, Any] | None:
+        """
+        Ищет страницу по заголовку в указанном Space.
+
+        Args:
+            space:  Ключ Space.
+            title:  Заголовок страницы.
+            expand: Опциональный параметр ``expand`` для Confluence API
+                    (например ``'version'`` или ``'body.storage'``).
+
+        Returns:
+            Словарь с данными страницы или ``None``, если страница не найдена.
 
         Raises:
-            PublishError: Если страница не найдена и ``parent_id`` не передан,
-                          либо при ошибке API.
+            PublishError: Если запрос к API завершился ошибкой.
         """
+        params: dict[str, str] = {
+            'spaceKey': space,
+            'title': title,
+            'type': _PAGE_TYPE,
+        }
+        if expand:
+            params['expand'] = expand
+
+        url = self._api_url('content')
         try:
-            if self._confluence.page_exists(space=space, title=title):
-                return str(self._confluence.get_page_id(space=space, title=title))
+            response = self._session.get(url, params=params, timeout=self._timeout)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise PublishError('HTTP-ошибка при поиске %r: %s' % (title, e)) from e
+        except requests.exceptions.RequestException as e:
+            raise PublishError('сетевая ошибка при поиске %r: %s' % (title, e)) from e
 
-            if not parent_id:
-                raise PublishError(
-                    'Невозможно создать страницу %r: не указан parent_id' % title
-                )
-
-            placeholder_body = body or '<p>Автоматически созданная страница: %s</p>' % title
-            result = self._confluence.create_page(
-                space=space,
-                title=title,
-                body=placeholder_body,
-                parent_id=parent_id,
-                type=_PAGE_TYPE,
-                representation=_REPRESENTATION,
-            )
-            page_id = str(result.get('id', ''))
-            logger.info('создана страница %r (ID: %s)', title, page_id)
-            return page_id
-
-        except PublishError:
-            raise
-        except Exception as e:
-            raise PublishError(
-                'Ошибка получения/создания страницы %r: %s' % (title, e)
-            ) from e
+        results: list[dict[str, Any]] = response.json().get('results', [])
+        return results[0] if results else None
 
     def get_page(
         self,
         page_id: str,
-        expand: str | None = None,
+        expand: str = _EXPAND_VERSION,
     ) -> dict[str, Any]:
         """
-        Загружает детали страницы по ID через REST API.
+        Загружает страницу по ID.
 
         Args:
             page_id: ID страницы.
-            expand: Параметр ``expand`` запроса (например ``'version'``).
-                    По умолчанию ``'version'``.
+            expand:  Параметр ``expand`` (по умолчанию ``'version'``).
 
         Returns:
-            Словарь с деталями страницы.
+            Словарь с данными страницы.
 
         Raises:
-            PublishError: Если запрос завершился с ошибкой.
+            PublishError: Если страница не найдена (HTTP 404) или запрос не удался.
         """
+        url = self._api_url('content', page_id)
         try:
-            url = '%s/rest/api/content/%s' % (self._confluence.url, page_id)
             response = self._session.get(
-                url,
-                params={'expand': expand or _EXPAND_VERSION},
-                timeout=self._timeout,
+                url, params={'expand': expand}, timeout=self._timeout
             )
             response.raise_for_status()
             return response.json()
-        except Exception as e:
-            raise PublishError('Ошибка получения страницы %s: %s' % (page_id, e)) from e
+        except requests.exceptions.HTTPError as e:
+            raise PublishError('HTTP-ошибка для ID %s: %s' % (page_id, e)) from e
+        except requests.exceptions.RequestException as e:
+            raise PublishError('сетевая ошибка для ID %s: %s' % (page_id, e)) from e
+
+    # ---------------------------------------------------------------------------
+    # Приватные методы
+    # ---------------------------------------------------------------------------
+
+    def _create_page(
+        self,
+        space: str,
+        parent_id: str,
+        title: str,
+        body_html: str,
+    ) -> dict[str, Any]:
+        """
+        Выполняет POST-запрос для создания новой страницы.
+
+        Args:
+            space:     Ключ Space.
+            parent_id: ID родительской страницы.
+            title:     Заголовок новой страницы.
+            body_html: Тело страницы в Storage Format.
+
+        Returns:
+            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+
+        Raises:
+            PublishError: Если API вернул ошибку.
+        """
+        payload = self._build_page_payload(
+            title=title,
+            body_html=body_html,
+            space=space,
+            parent_id=parent_id,
+            version_number=_INITIAL_VERSION,
+        )
+        url = self._api_url('content')
+        try:
+            response = self._session.post(url, json=payload, timeout=self._timeout)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise PublishError('HTTP-ошибка при создании %r: %s' % (title, e)) from e
+        except requests.exceptions.RequestException as e:
+            raise PublishError('сетевая ошибка при создании %r: %s' % (title, e)) from e
+
+        page_id = str(response.json().get('id', ''))
+        logger.info('создана страница %r (ID: %s)', title, page_id)
+        return {
+            'id': page_id,
+            'version': _INITIAL_VERSION,
+            'status': 'created',
+            'message': 'Page created with version %d' % _INITIAL_VERSION,
+        }
+
+    def _update_page(
+        self,
+        existing_page: dict[str, Any],
+        parent_id: str,
+        title: str,
+        body_html: str,
+    ) -> dict[str, Any]:
+        """
+        Выполняет PUT-запрос для обновления существующей страницы.
+
+        Номер следующей версии вычисляется из данных существующей страницы.
+        При невозможности извлечь версию используется ``_FALLBACK_VERSION``,
+        что даёт следующую версию 1 — безопасный минимум для Confluence.
+
+        Args:
+            existing_page: Словарь с данными текущей страницы (из ``find_page``).
+            parent_id:     ID родительской страницы.
+            title:         Заголовок страницы.
+            body_html:     Новое тело страницы.
+
+        Returns:
+            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+
+        Raises:
+            PublishError: Если API вернул ошибку.
+        """
+        page_id = str(existing_page['id'])
+        current_version = self._extract_version(existing_page)
+        next_version = current_version + 1
+
+        logger.info('обновление %r: v%d → v%d (ID: %s)', title, current_version, next_version, page_id)
+
+        payload = self._build_page_payload(
+            title=title,
+            body_html=body_html,
+            space=None,
+            parent_id=parent_id,
+            version_number=next_version,
+        )
+        url = self._api_url('content', page_id)
+        try:
+            response = self._session.put(url, json=payload, timeout=self._timeout)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise PublishError('HTTP-ошибка при обновлении %r: %s' % (title, e)) from e
+        except requests.exceptions.RequestException as e:
+            raise PublishError('сетевая ошибка при обновлении %r: %s' % (title, e)) from e
+
+        return {
+            'id': page_id,
+            'version': next_version,
+            'status': 'updated',
+            'message': 'Page updated to version %d' % next_version,
+        }
+
+    @staticmethod
+    def _build_page_payload(
+        title: str,
+        body_html: str,
+        version_number: int,
+        parent_id: str,
+        space: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Собирает тело JSON-запроса для создания или обновления страницы.
+
+        ``space`` включается только при создании (POST). При обновлении (PUT)
+        Confluence принимает пейлоад без поля ``space``.
+
+        Args:
+            title:          Заголовок страницы.
+            body_html:      Тело в Storage Format.
+            version_number: Номер версии (для PUT — следующая версия).
+            parent_id:      ID родительской страницы.
+            space:          Ключ Space. ``None`` при обновлении.
+
+        Returns:
+            Словарь, готовый для сериализации в JSON.
+        """
+        payload: dict[str, Any] = {
+            'type': _PAGE_TYPE,
+            'title': title,
+            'version': {'number': version_number},
+            'body': {
+                'storage': {
+                    'value': body_html,
+                    'representation': _STORAGE_REPRESENTATION,
+                }
+            },
+            'ancestors': [{'id': parent_id}],
+        }
+        if space:
+            payload['space'] = {'key': space}
+        return payload
+
+    @staticmethod
+    def _extract_version(page: dict[str, Any]) -> int:
+        """
+        Извлекает номер версии из словаря страницы.
+
+        Confluence возвращает версию в структуре ``{'version': {'number': N}}``.
+        При отсутствии или некорректном типе возвращает ``_FALLBACK_VERSION``.
+
+        Args:
+            page: Словарь с данными страницы из ``find_page`` или ``get_page``.
+
+        Returns:
+            Текущий номер версии или ``_FALLBACK_VERSION`` (0) при ошибке парсинга.
+        """
+        try:
+            return int(page.get('version', {}).get('number', _FALLBACK_VERSION))
+        except (ValueError, TypeError, AttributeError):
+            logger.warning('не удалось извлечь версию из: %r', page)
+            return _FALLBACK_VERSION
+
+    def _api_url(self, *parts: str) -> str:
+        """
+        Собирает URL к Confluence REST API v1.
+
+        Args:
+            *parts: Сегменты пути после ``/rest/api/`` (например ``'content'``,
+                    ``'content'``, ``'12345'``).
+
+        Returns:
+            Полный URL вида ``https://confluence.example.com/rest/api/content/12345``.
+        """
+        return '%s/rest/api/%s' % (self._base_url, '/'.join(parts))
+
+    @staticmethod
+    def _build_session(config: ConfluenceConfigSchema) -> RetryableSession:
+        """
+        Создаёт HTTP-сессию с аутентификацией и retry-логикой.
+
+        Для Confluence Cloud используется Basic auth: ``username:token``.
+        Для Confluence Data Center — ``username:password`` или только токен.
+
+        Args:
+            config: Конфигурация Confluence.
+
+        Returns:
+            Настроенная ``RetryableSession``.
+        """
+        session = create_retryable_session(
+            username=config.username or '',
+            token=config.token,
+            max_retries=_RETRY_COUNT,
+            backoff_factor=_BACKOFF_FACTOR,
+            timeout=config.confluence_request_timeout,
+        )
+        session.verify = config.verify_ssl
+        session.headers.update({'Content-Type': 'application/json'})
+        return session
