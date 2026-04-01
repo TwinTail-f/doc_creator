@@ -5,14 +5,9 @@ from typing import Any
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
-
-# Импорт стратегий активирует их регистрацию в Registry через __init_subclass__.
-import autodoc.publisher.strategies.passports_strategy  # noqa: F401
-import autodoc.publisher.strategies.profile_strategy    # noqa: F401
-import autodoc.publisher.strategies.release_strategy    # noqa: F401
 
 _DEFAULT_DATA_DIR: Path = Path('data')
 _DEFAULT_PASSPORT_TEMPLATE: str = 'component_passport.jinja2'

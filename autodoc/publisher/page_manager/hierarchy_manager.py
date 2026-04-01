@@ -1,6 +1,6 @@
 """Менеджер иерархии страниц Confluence."""
 from autodoc.infrastructure.logger import logger
-from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
 _COMPONENT_PAGE_BODY: str = 'Автоматически созданная страница компонента'
 _VERSION_PAGE_BODY: str = 'Автоматически созданная страница версии'

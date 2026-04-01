@@ -112,7 +112,7 @@ class ConanManager:
         target_platform: str,
     ) -> ConanEnrichmentResult:
         """Собирает ConanEnrichmentResult из сырых результатов без мутации моделей."""
-        pb_agg: dict[int, _PbAgg] = {id(task.pb): _PbAgg() for task in tasks}
+        pb_agg: dict[int, ProfileBuildAggregator] = {id(task.pb): ProfileBuildAggregator() for task in tasks}
 
         for task, raw in zip(tasks, raw_results):
             if raw is None:
@@ -171,7 +171,7 @@ class ConanManager:
 
         return result
 
-class _PbAgg:
+class ProfileBuildAggregator:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
     __slots__ = ('any_success', 'unique_variants', 'first_enrich', 'conan_settings', 'errors')

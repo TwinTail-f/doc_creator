@@ -7,10 +7,6 @@ import pytest
 
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 
-import autodoc.publisher.strategies.passports_strategy  # noqa: F401
-import autodoc.publisher.strategies.profile_strategy    # noqa: F401
-import autodoc.publisher.strategies.release_strategy    # noqa: F401
-
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy

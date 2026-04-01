@@ -4,7 +4,7 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.legacy_content.legacy_service import LegacyContentService
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.passport_registry import PassportPageRegistry
