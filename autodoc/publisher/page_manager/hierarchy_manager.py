@@ -1,7 +1,10 @@
-"""
-Менеджер иерархии страниц Confluence.
-"""
+"""Менеджер иерархии страниц Confluence."""
 from autodoc.infrastructure.logger import logger
+from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+
+_COMPONENT_PAGE_BODY: str = 'Автоматически созданная страница компонента'
+_VERSION_PAGE_BODY: str = 'Автоматически созданная страница версии'
+
 
 class PageHierarchyManager:
     """
@@ -9,15 +12,15 @@ class PageHierarchyManager:
 
     Обеспечивает существование цепочки страниц:
     ``Корень → Компонент → Версия → Документация``.
-    Промежуточные страницы создаются автоматически.
+    Промежуточные страницы создаются автоматически при первом обращении.
     """
 
-    def __init__(self, confluence_client) -> None:
+    def __init__(self, confluence_client: ConfluenceClient) -> None:
         """
         Args:
             confluence_client: Экземпляр ``ConfluenceClient``.
         """
-        self._client = confluence_client
+        self._client: ConfluenceClient = confluence_client
         logger.debug('PageHierarchyManager инициализирован')
 
     def ensure_hierarchy_exists(
@@ -28,41 +31,41 @@ class PageHierarchyManager:
         release_version: str,
     ) -> str:
         """
-        Обеспечивает существование иерархии и возвращает ID родительской страницы.
+        Обеспечивает существование иерархии и возвращает ID страницы версии.
 
-        Создаёт при необходимости страницы уровней:
-        ``Компонент`` и ``Компонент Версия``.
+        Создаёт при необходимости страницы уровней ``Компонент`` и
+        ``Компонент Версия``. Обе операции идемпотентны: если страница
+        уже существует, возвращается её ID без создания дубликата.
 
         Args:
             space: Ключ Space в Confluence.
             root_parent_id: ID корневой страницы иерархии.
-            component_name: Имя компонента.
-            release_version: Версия релиза.
+            component_name: Имя компонента (используется как заголовок страницы).
+            release_version: Версия релиза (добавляется к имени компонента).
 
         Returns:
-            ID страницы версии — родителя для страницы документации.
+            ID страницы версии — она становится родителем для страницы паспорта.
 
         Raises:
-            PublishError: Если создание страниц не удалось.
+            PublishError: Если создание промежуточных страниц не удалось.
         """
         logger.debug(
-            f'PageHierarchyManager: обеспечиваем иерархию '
-            f'{component_name}@{release_version}'
+            'PageHierarchyManager: иерархия для %s@%s', component_name, release_version
         )
 
         comp_page_id = self._client.get_or_create_page(
             space=space,
             title=component_name,
             parent_id=root_parent_id,
-            body='Автоматически созданная страница компонента',
+            body=_COMPONENT_PAGE_BODY,
         )
 
-        version_title = f'{component_name} {release_version}'
+        version_title = '%s %s' % (component_name, release_version)
         version_page_id = self._client.get_or_create_page(
             space=space,
             title=version_title,
             parent_id=comp_page_id,
-            body='Автоматически созданная страница версии',
+            body=_VERSION_PAGE_BODY,
         )
 
         return version_page_id
@@ -72,12 +75,16 @@ class PageHierarchyManager:
         root_title: str,
         component_name: str,
         release_version: str,
-    ) -> tuple:
+    ) -> tuple[str, str, str]:
         """
         Формирует заголовки страниц иерархии.
 
+        Используется для предварительного вычисления заголовков без
+        обращения к Confluence API, например в тестах или при валидации.
+
         Args:
-            root_title: Заголовок корневой страницы.
+            root_title: Заголовок корневой страницы (не используется
+                        в результате, зарезервирован для расширений).
             component_name: Имя компонента.
             release_version: Версия релиза.
 
@@ -86,6 +93,6 @@ class PageHierarchyManager:
         """
         return (
             component_name,
-            f'{component_name} {release_version}',
-            f'Documentation {component_name} {release_version}',
+            '%s %s' % (component_name, release_version),
+            'Documentation %s %s' % (component_name, release_version),
         )

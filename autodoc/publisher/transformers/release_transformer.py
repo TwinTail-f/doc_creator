@@ -1,20 +1,21 @@
-"""
-Трансформеры для документации релизов: полный и минимальный вид.
-"""
+"""Трансформеры для документации релизов: полный вид."""
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
+from autodoc.publisher.transformers.base_transformer import (
+    BaseDataTransformer,
+    PassportLinkMixin,
+    _DEFAULT_PASSPORT_PATTERN,
+)
 
-_DEFAULT_PASSPORT_PATTERN = '/wiki/spaces/DOC/pages/{component_name}+{release_version}'
 
-class BaseReleaseTransformer(BaseDataTransformer):
+class BaseReleaseTransformer(PassportLinkMixin, BaseDataTransformer):
     """
     Базовый класс трансформеров документации релиза.
 
-    Содержит общий конструктор и вспомогательный метод формирования
-    ссылки на паспорт компонента. Конкретные виды реализуют ``transform()``.
+    Наследует ``_passport_link()`` из ``PassportLinkMixin``.
+    Конкретные виды реализуют ``transform()``.
     """
 
     def __init__(
@@ -27,27 +28,11 @@ class BaseReleaseTransformer(BaseDataTransformer):
             include_passport_links: Добавлять ли ссылки на паспорта компонентов.
             passport_page_pattern: Шаблон URL паспорта с плейсхолдерами
                 ``{component_name}`` и ``{release_version}``.
+                По умолчанию используется ``_DEFAULT_PASSPORT_PATTERN``.
         """
-        self._include_passport_links = include_passport_links
-        self._pattern = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
+        self._include_passport_links: bool = include_passport_links
+        self._pattern: str = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
-    def _passport_link(self, comp_name: str, version: str) -> str | None:
-        """
-        Формирует ссылку на паспорт компонента.
-
-        Args:
-            comp_name: Имя компонента.
-            version: Версия релиза.
-
-        Returns:
-            URL паспорта или ``None``, если ссылки отключены.
-        """
-        if not self._include_passport_links:
-            return None
-        return self._pattern.format(
-            component_name=comp_name.replace(' ', '+'),
-            release_version=version.replace(' ', '+'),
-        )
 
 class FullReleaseTransformer(BaseReleaseTransformer):
     """
@@ -110,4 +95,3 @@ class FullReleaseTransformer(BaseReleaseTransformer):
                 for comp in data.components
             ],
         }
-

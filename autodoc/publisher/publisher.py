@@ -1,6 +1,4 @@
-"""
-Точка входа паблишера документации компонентов платформы.
-"""
+"""Точка входа паблишера документации компонентов платформы."""
 from pathlib import Path
 from typing import Any
 
@@ -11,36 +9,41 @@ from autodoc.publisher.confluence.confluence_client import ConfluenceClient
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 
-# Импорт стратегий активирует их регистрацию в Registry
-import autodoc.publisher.strategies.release_strategy    # noqa: F401
+# Импорт стратегий активирует их регистрацию в Registry через __init_subclass__.
 import autodoc.publisher.strategies.passports_strategy  # noqa: F401
 import autodoc.publisher.strategies.profile_strategy    # noqa: F401
+import autodoc.publisher.strategies.release_strategy    # noqa: F401
+
+_DEFAULT_DATA_DIR: Path = Path('data')
+_DEFAULT_PASSPORT_TEMPLATE: str = 'component_passport.jinja2'
+
 
 class DocumentPublisher:
     """
     Верхний уровень бизнес-логики паблишера.
 
     Создаёт ``ConfluenceClient`` и ``DocumentBuilder``, выбирает стратегию
-    через Registry и запускает публикацию.
+    через Registry и запускает публикацию. Все стратегии получают одни и те же
+    инфраструктурные зависимости — клиент, рендерер и директорию данных.
     """
 
     def __init__(
         self,
         confluence_config: ConfluenceConfigSchema,
         templates_dir: Path,
-        data_dir: Path | None = None,  # 3.9 для передачи стратегиям
+        data_dir: Path | None = None,
     ) -> None:
         """
         Args:
             confluence_config: Валидированная конфигурация Confluence.
             templates_dir: Путь к директории с Jinja2-шаблонами.
-            data_dir: Рабочая директория. Используется для чтения/записи
-                ``passport_pages.json``. По умолчанию ``Path('data')``.
+            data_dir: Рабочая директория для ``passport_pages.json``.
+                      По умолчанию ``Path('data')``.
         """
-        self._config = confluence_config
-        self._client = ConfluenceClient(confluence_config)
-        self._builder = DocumentBuilder(templates_dir)
-        self._data_dir = data_dir or Path('data')
+        self._config: ConfluenceConfigSchema = confluence_config
+        self._client: ConfluenceClient = ConfluenceClient(confluence_config)
+        self._builder: DocumentBuilder = DocumentBuilder(templates_dir)
+        self._data_dir: Path = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
         logger.info('DocumentPublisher инициализирован')
 
     def publish(
@@ -52,17 +55,20 @@ class DocumentPublisher:
         """
         Публикует документацию согласно выбранной стратегии.
 
+        Создаёт стратегию через ``BasePublishStrategy.create()``, передавая
+        инфраструктурные зависимости и ``data_dir``. Дополнительные аргументы,
+        специфичные для конкретной стратегии, передаются через ``kwargs``.
+
         Args:
-            strategy_type: Тип стратегии.
+            strategy_type: Тип стратегии (``'passports'``, ``'release'``,
+                           ``'profile_centric'``).
             parsed_data: Данные парсера.
-            **kwargs: Аргументы, специфичные для стратегии.
+            **kwargs: Аргументы конструктора стратегии.
 
         Returns:
-            ``PublishReport`` с результатами.
+            ``PublishReport`` с результатами публикации.
         """
         logger.info('публикация стратегии "%s"', strategy_type)
-
-        # 3.9 data_dir передаётся стратегиям
         strategy = BasePublishStrategy.create(
             strategy_type,
             confluence_client=self._client,
@@ -81,16 +87,33 @@ class DocumentPublisher:
         release_page_title: str,
         release_template_name: str,
         release_parent_id: str | None = None,
-        passport_template_name: str = 'component_passport.jinja2',
+        passport_template_name: str = _DEFAULT_PASSPORT_TEMPLATE,
         include_passport_links: bool = True,
     ) -> PublishReport:
         """
-        Публикует паспорта и итоговую страницу релиза.
+        Публикует паспорта и итоговую страницу релиза за один вызов.
+
+        Порядок выполнения намеренно фиксирован: сначала паспорта (записывают
+        ``passport_pages.json``), затем релиз (читает этот файл для вставки
+        ссылок). Это гарантирует актуальность ссылок на паспорта.
+
+        Args:
+            parsed_data: Данные парсера.
+            passports_root_page_id: ID корневой страницы иерархии паспортов.
+            release_page_title: Заголовок итоговой страницы релиза.
+            release_template_name: Имя Jinja2-шаблона для страницы релиза.
+            release_parent_id: ID родителя страницы релиза. Если ``None`` —
+                               без родителя.
+            passport_template_name: Имя Jinja2-шаблона паспортов.
+                                    По умолчанию ``component_passport.jinja2``.
+            include_passport_links: Если ``True``, на странице релиза будут
+                                    ссылки на опубликованные паспорта.
 
         Returns:
-            Агрегированный ``PublishReport``.
+            Агрегированный ``PublishReport``: поля ``success``, ``pages_published``,
+            ``errors`` и ``details`` объединяются из обоих отчётов.
         """
-        logger.info('publish_all — паспорта + релиз')
+        logger.info('publish_all: паспорта + релиз')
 
         passports_report = self.publish(
             strategy_type='passports',

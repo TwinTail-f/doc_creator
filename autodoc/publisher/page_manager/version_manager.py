@@ -1,15 +1,17 @@
-"""
-Вспомогательные утилиты для работы с версиями страниц Confluence.
-"""
+"""Вспомогательные утилиты для работы с версиями страниц Confluence."""
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
+
+_FALLBACK_VERSION: int = 0
+
 
 class PageVersionManager:
     """
     Утилиты для работы с версионированием страниц Confluence.
 
-    Все методы статические — состояние не хранится.
+    Инкапсулирует извлечение, инкремент и логирование версий страниц.
+    Все методы статические — объект не хранит состояния.
     """
 
     @staticmethod
@@ -30,6 +32,11 @@ class PageVersionManager:
         """
         Извлекает номер версии из ответа Confluence API.
 
+        Ответ Confluence содержит структуру ``{"version": {"number": <int>}}``.
+        При любой ошибке парсинга (отсутствующий ключ, некорректный тип)
+        возвращает ``_FALLBACK_VERSION`` (0), что позволяет вызывающему коду
+        безопасно продолжить работу: ``get_next_version(0)`` даёт версию 1.
+
         Args:
             response: Словарь ответа от метода ``get_page``.
 
@@ -37,12 +44,12 @@ class PageVersionManager:
             Номер версии или ``0`` если извлечь не удалось.
         """
         try:
-            return int(response.get('version', {}).get('number', 0))
-        except (ValueError, TypeError, KeyError):
+            return int(response.get('version', {}).get('number', _FALLBACK_VERSION))
+        except (ValueError, TypeError, AttributeError):
             logger.warning(
-                f'PageVersionManager: не удалось извлечь версию из ответа: {response}'
+                'PageVersionManager: не удалось извлечь версию из ответа: %r', response
             )
-            return 0
+            return _FALLBACK_VERSION
 
     @staticmethod
     def log_version_update(
@@ -51,7 +58,7 @@ class PageVersionManager:
         new_version: int,
     ) -> None:
         """
-        Логирует обновление версии страницы.
+        Логирует обновление версии страницы на уровне INFO.
 
         Args:
             page_title: Заголовок обновлённой страницы.
@@ -59,6 +66,6 @@ class PageVersionManager:
             new_version: Новая версия.
         """
         logger.info(
-            f'PageVersionManager: "{page_title}" '
-            f'v{old_version} → v{new_version}'
+            'PageVersionManager: "%s" v%d → v%d',
+            page_title, old_version, new_version,
         )

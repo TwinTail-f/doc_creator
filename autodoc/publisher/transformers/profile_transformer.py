@@ -1,20 +1,22 @@
-"""
-Трансформер для профиль-центричного вида документации.
-"""
+"""Трансформер для профиль-центричного вида документации."""
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
+from autodoc.publisher.transformers.base_transformer import (
+    BaseDataTransformer,
+    PassportLinkMixin,
+    _DEFAULT_PASSPORT_PATTERN,
+)
 
-_DEFAULT_PASSPORT_PATTERN = '/wiki/spaces/DOC/pages/{component_name}+{release_version}'
 
-class ProfileCentricTransformer(BaseDataTransformer):
+class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
     """
     Трансформер для профиль-центричного вида.
 
     Перестраивает иерархию ``Компонент → Релиз → Профиль``
     в ``Профиль → Канал → Компонент`` для удобного анализа по профилям.
+    Наследует ``_passport_link()`` из ``PassportLinkMixin``.
     """
 
     def __init__(
@@ -25,22 +27,20 @@ class ProfileCentricTransformer(BaseDataTransformer):
         """
         Args:
             include_passport_links: Добавлять ли ссылки на паспорта.
-            passport_page_pattern: Шаблон URL паспорта.
+            passport_page_pattern: Шаблон URL паспорта с плейсхолдерами
+                ``{component_name}`` и ``{release_version}``.
+                По умолчанию используется ``_DEFAULT_PASSPORT_PATTERN``.
         """
-        self._include_passport_links = include_passport_links
-        self._pattern = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
-
-    def _passport_link(self, comp_name: str, version: str) -> str | None:
-        if not self._include_passport_links:
-            return None
-        return self._pattern.format(
-            component_name=comp_name.replace(' ', '+'),
-            release_version=version.replace(' ', '+'),
-        )
+        self._include_passport_links: bool = include_passport_links
+        self._pattern: str = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
     def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
         Возвращает профиль-центричный вид данных.
+
+        Собирает агрегированные настройки сборки (conan_settings) и Docker-образ
+        по каждому профилю, затем для каждого профиля выстраивает список
+        компонентов, сгруппированных по каналам.
 
         Args:
             data: Данные парсера.
@@ -86,7 +86,7 @@ class ProfileCentricTransformer(BaseDataTransformer):
                         'name': comp.name,
                         'version': rel.version,
                         'passport_link': self._passport_link(comp.name, rel.version),
-                        'git': f'{comp.git_project}/{comp.git_repo}',
+                        'git': '%s/%s' % (comp.git_project, comp.git_repo),
                         'reference': rel.conan_reference or '—',
                         'url': rel.artifactory_url or '—',
                         'is_header_only': rel.is_header_only,

@@ -8,12 +8,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
-if TYPE_CHECKING:  # 3.8 — импорты только для аннотаций, без циклических зависимостей
+if TYPE_CHECKING:
     from autodoc.models.parsed_result import ParsedResult
     from autodoc.publisher.confluence.confluence_client import ConfluenceClient
     from autodoc.publisher.rendering.document_builder import DocumentBuilder
 
 from autodoc.infrastructure.logger import logger
+
 
 @dataclass
 class PublishReport:
@@ -28,15 +29,30 @@ class PublishReport:
     errors: list[str] = field(default_factory=list)
     details: list[dict[str, Any]] = field(default_factory=list)
 
+
 class BasePublishStrategy(ABC):
     """
     Абстрактная стратегия публикации с Registry-паттерном.
 
-    3.7 Трансформер передаётся через ``transformer_cls`` в ``__init_subclass__``
-    — прямая запись в ``_transformer_map`` снаружи устранена.
-    ``_transformer_map`` убран; трансформер хранится прямо в классе стратегии.
+    Подклассы регистрируются автоматически через ``__init_subclass__``
+    при объявлении ``strategy_type``. Фабричный метод ``create()`` создаёт
+    нужный подкласс по строковому ключу.
 
-    3.8 ``__init__`` аннотирован через ``TYPE_CHECKING`` — нет ``Any``.
+    Четыре базовых атрибута — ``_client``, ``_builder``, ``_data``,
+    ``_space`` — инициализируются в ``__init__`` и доступны всем подклассам.
+    Подклассы не должны их переопределять.
+
+    **Контракт построения трансформера.**
+    Стратегия, которой нужен трансформер, создаваемый фабрикой, объявляет
+    classmethod ``_make_transformer(cls, kwargs: dict)``. Метод получает
+    прямую ссылку на ``kwargs`` и может:
+
+    - ``pop()`` ключи, которые нужны только трансформеру и не принимаются
+      ``__init__`` стратегии;
+    - ``get()`` ключи, которые должны попасть и в трансформер, и в стратегию
+      (они остаются в ``kwargs``).
+
+    Стратегии без ``_make_transformer`` получают ``kwargs`` без изменений.
     """
 
     _registry: ClassVar[dict[str, type[BasePublishStrategy]]] = {}
@@ -65,31 +81,43 @@ class BasePublishStrategy(ABC):
     def __init_subclass__(
         cls,
         strategy_type: str = '',
-        transformer_cls: type | None = None,  # 3.7 трансформер прямо в объявлении
         **kwargs: Any,
     ) -> None:
+        """
+        Регистрирует подкласс в реестре стратегий при объявлении класса.
+
+        Args:
+            strategy_type: Строковый ключ стратегии (например ``'release'``).
+                           Если не задан — класс в реестр не добавляется.
+            **kwargs: Передаётся в ``super().__init_subclass__``.
+        """
         super().__init_subclass__(**kwargs)
         if strategy_type:
             BasePublishStrategy._registry[strategy_type] = cls
-            # 3.7 Трансформер хранится как атрибут класса стратегии — не в _transformer_map
-            if transformer_cls is not None:
-                cls._transformer_cls = transformer_cls
             logger.debug(
                 'BasePublishStrategy: зарегистрирована "%s" → %s',
                 strategy_type, cls.__name__,
             )
 
     @classmethod
-    def create(cls, strategy_type: str, **kwargs: Any) -> BasePublishStrategy:
+    def create(cls, strategy_type: str, **kwargs: Any) -> 'BasePublishStrategy':
         """
         Создаёт экземпляр стратегии по типу через Registry.
 
-        3.7 Трансформер создаётся из ``_transformer_cls`` атрибута класса
-        — без отдельного ``_transformer_map``.
+        Если стратегия объявляет classmethod ``_make_transformer(cls, kwargs)``,
+        и ``transformer`` ещё не передан в ``kwargs``, вызывает его для
+        построения трансформера. Метод получает прямую ссылку на ``kwargs``
+        и может удалять из него ключи, которые не нужны конструктору стратегии.
+
+        Для стратегий без ``_make_transformer`` ``kwargs`` передаётся
+        в конструктор без изменений.
 
         Args:
-            strategy_type: Ключ стратегии.
-            **kwargs: Аргументы конструктора.
+            strategy_type: Ключ стратегии из реестра.
+            **kwargs: Аргументы конструктора стратегии.
+
+        Returns:
+            Готовый экземпляр стратегии.
 
         Raises:
             ValueError: Если ``strategy_type`` не зарегистрирован.
@@ -102,13 +130,9 @@ class BasePublishStrategy(ABC):
 
         strategy_cls = cls._registry[strategy_type]
 
-        # 3.7 Трансформер берётся из атрибута класса, а не из _transformer_map
-        transformer_cls = getattr(strategy_cls, '_transformer_cls', None)
-        if transformer_cls is not None and 'transformer' not in kwargs:
-            kwargs['transformer'] = transformer_cls(
-                include_passport_links=kwargs.pop('include_passport_links', True),
-                passport_page_pattern=kwargs.pop('passport_page_pattern', None),
-            )
+        make_transformer = getattr(strategy_cls, '_make_transformer', None)
+        if make_transformer is not None and 'transformer' not in kwargs:
+            kwargs['transformer'] = make_transformer(kwargs)
 
         logger.debug(
             'BasePublishStrategy.create: %s для типа "%s"',
@@ -117,8 +141,8 @@ class BasePublishStrategy(ABC):
         return strategy_cls(**kwargs)
 
     @classmethod
-    def available_strategies(cls) -> list:
-        """Возвращает список зарегистрированных типов стратегий."""
+    def available_strategies(cls) -> list[str]:
+        """Возвращает отсортированный список зарегистрированных типов стратегий."""
         return sorted(cls._registry)
 
     @abstractmethod
@@ -127,5 +151,5 @@ class BasePublishStrategy(ABC):
         Выполняет стратегию публикации.
 
         Returns:
-            ``PublishReport`` с результатами.
+            ``PublishReport`` с результатами выполнения.
         """

@@ -1,22 +1,31 @@
 """
-Confluence REST API client с retry-логикой и автоинкрементом версий страниц.
+Клиент Confluence REST API с retry-логикой и автоинкрементом версий страниц.
 """
 from typing import Any
 
-import requests
 from atlassian import Confluence
 
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
-from autodoc.infrastructure.http_client import create_retryable_session  # 1.3
+from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
+from autodoc.publisher.page_manager.version_manager import PageVersionManager
+
+_DEFAULT_RETRY_COUNT: int = 3
+_DEFAULT_BACKOFF_FACTOR: float = 1.0
+_PAGE_TYPE: str = 'page'
+_REPRESENTATION: str = 'storage'
+_EXPAND_VERSION: str = 'version'
+_INITIAL_VERSION: int = 1
+
 
 class ConfluenceClient:
     """
     Клиент Confluence REST API с retry-логикой и автоинкрементом версий.
 
-    1.3 Использует ``create_retryable_session`` из инфраструктуры —
-    без дублирования логики retry.
+    Использует ``create_retryable_session`` из инфраструктуры вместо
+    ручного создания ``Session`` + ``HTTPAdapter`` для устранения дублирования
+    логики повторных попыток.
     """
 
     def __init__(self, config: ConfluenceConfigSchema) -> None:
@@ -28,9 +37,7 @@ class ConfluenceClient:
             PublishError: Если инициализация клиента не удалась.
         """
         try:
-            self._timeout = config.confluence_request_timeout
-            self._verify_ssl = config.verify_ssl
-
+            self._timeout: int = config.confluence_request_timeout
             self._confluence = Confluence(
                 url=config.url,
                 username=config.username or '',
@@ -38,17 +45,14 @@ class ConfluenceClient:
                 verify_ssl=config.verify_ssl,
                 cloud=config.cloud,
             )
-
-            # 1.3 Заменяем ручное создание Session+HTTPAdapter на create_retryable_session
             self._session = create_retryable_session(
                 username=config.username or '',
                 token=config.token,
-                max_retries=3,
-                backoff_factor=1.0,
+                max_retries=_DEFAULT_RETRY_COUNT,
+                backoff_factor=_DEFAULT_BACKOFF_FACTOR,
                 timeout=config.confluence_request_timeout,
             )
             self._session.verify = config.verify_ssl
-
             logger.debug('ConfluenceClient инициализирован: %s', config.url)
         except Exception as e:
             raise PublishError('Ошибка инициализации ConfluenceClient: %s' % e) from e
@@ -62,6 +66,10 @@ class ConfluenceClient:
     ) -> dict[str, Any]:
         """
         Создаёт или обновляет страницу с автоинкрементом версии.
+
+        Если страница с таким заголовком уже существует — обновляет её.
+        Номер версии вычисляется через ``PageVersionManager``. При ошибке
+        получения текущей версии используется версия 1 как безопасный fallback.
 
         Args:
             space: Ключ Space в Confluence.
@@ -79,54 +87,97 @@ class ConfluenceClient:
 
         try:
             if self._confluence.page_exists(space=space, title=title):
-                page_id = self._confluence.get_page_id(space=space, title=title)
-                try:
-                    current_page = self.get_page(page_id)
-                    current_version = current_page.get('version', {}).get('number', 1)
-                    next_version = current_version + 1
-                except PublishError:
-                    next_version = 1
-
-                result = self._confluence.update_page(
-                    page_id=page_id,
-                    title=title,
-                    body=body_html,
-                    parent_id=parent_id,
-                    type='page',
-                    representation='storage',
-                    minor_edit=False,
-                )
-                logger.info(
-                    '%r обновлена (ID: %s, версия: %d)',
-                    title, result.get('id'), next_version,
-                )
-                return {
-                    'id': result.get('id'),
-                    'version': next_version,
-                    'status': 'updated',
-                    'message': 'Page updated to version %d' % next_version,
-                }
-
-            result = self._confluence.create_page(
-                space=space,
-                title=title,
-                body=body_html,
-                parent_id=parent_id,
-                type='page',
-                representation='storage',
-            )
-            logger.info('%r создана (ID: %s)', title, result.get('id'))
-            return {
-                'id': result.get('id'),
-                'version': 1,
-                'status': 'created',
-                'message': 'Page created with version 1',
-            }
+                return self._update_existing_page(space, parent_id, title, body_html)
+            return self._create_new_page(space, parent_id, title, body_html)
 
         except PublishError:
             raise
         except Exception as e:
             raise PublishError('Ошибка публикации страницы %r: %s' % (title, e)) from e
+
+    def _update_existing_page(
+        self,
+        space: str,
+        parent_id: str,
+        title: str,
+        body_html: str,
+    ) -> dict[str, Any]:
+        """
+        Обновляет существующую страницу Confluence.
+
+        Получает текущий номер версии через ``PageVersionManager``. При
+        ошибке получения версии использует ``_INITIAL_VERSION`` как fallback.
+
+        Args:
+            space: Ключ Space.
+            parent_id: ID родительской страницы.
+            title: Заголовок существующей страницы.
+            body_html: Новое тело страницы.
+
+        Returns:
+            Словарь с полями ``id``, ``version``, ``status``, ``message``.
+        """
+        page_id = self._confluence.get_page_id(space=space, title=title)
+        current_version: int = 0  # гарантирует определённость переменной до try-блока
+        try:
+            current_page = self.get_page(page_id)
+            current_version = PageVersionManager.extract_version_from_response(current_page)
+            next_version = PageVersionManager.get_next_version(current_version)
+            PageVersionManager.log_version_update(title, current_version, next_version)
+        except PublishError:
+            next_version = _INITIAL_VERSION
+
+        result = self._confluence.update_page(
+            page_id=page_id,
+            title=title,
+            body=body_html,
+            parent_id=parent_id,
+            type=_PAGE_TYPE,
+            representation=_REPRESENTATION,
+            minor_edit=False,
+        )
+        logger.info('%r обновлена (ID: %s, версия: %d)', title, result.get('id'), next_version)
+        return {
+            'id': result.get('id'),
+            'version': next_version,
+            'status': 'updated',
+            'message': 'Page updated to version %d' % next_version,
+        }
+
+    def _create_new_page(
+        self,
+        space: str,
+        parent_id: str,
+        title: str,
+        body_html: str,
+    ) -> dict[str, Any]:
+        """
+        Создаёт новую страницу Confluence.
+
+        Args:
+            space: Ключ Space.
+            parent_id: ID родительской страницы.
+            title: Заголовок новой страницы.
+            body_html: Тело страницы.
+
+        Returns:
+            Словарь с полями ``id``, ``version``, ``status``, ``message``.
+        """
+        result = self._confluence.create_page(
+            space=space,
+            title=title,
+            body=body_html,
+            parent_id=parent_id,
+            type=_PAGE_TYPE,
+            representation=_REPRESENTATION,
+        )
+        logger.info('%r создана (ID: %s)', title, result.get('id'))
+        return {
+            'id': result.get('id'),
+            'version': _INITIAL_VERSION,
+            'status': 'created',
+            'message': 'Page created with version %d' % _INITIAL_VERSION,
+        }
 
     def get_page_body(self, space: str, title: str) -> str:
         """
@@ -137,7 +188,8 @@ class ConfluenceClient:
             title: Заголовок страницы.
 
         Returns:
-            HTML или пустая строка.
+            HTML-тело или пустая строка, если страница не найдена
+            или произошла ошибка.
         """
         try:
             if self._confluence.page_exists(space=space, title=title):
@@ -157,19 +209,21 @@ class ConfluenceClient:
         body: str = '',
     ) -> str:
         """
-        Находит страницу или создаёт её.
+        Находит страницу по заголовку или создаёт новую.
 
         Args:
             space: Ключ Space.
-            title: Заголовок.
+            title: Заголовок страницы.
             parent_id: ID родителя (обязателен при создании).
-            body: Тело при создании.
+            body: Тело новой страницы. Если пустое — используется
+                  заглушка-заголовок.
 
         Returns:
-            ID страницы.
+            ID страницы (строка).
 
         Raises:
-            PublishError: Если операция не удалась.
+            PublishError: Если страница не найдена и ``parent_id`` не передан,
+                          либо при ошибке API.
         """
         try:
             if self._confluence.page_exists(space=space, title=title):
@@ -180,13 +234,14 @@ class ConfluenceClient:
                     'Невозможно создать страницу %r: не указан parent_id' % title
                 )
 
+            placeholder_body = body or '<p>Автоматически созданная страница: %s</p>' % title
             result = self._confluence.create_page(
                 space=space,
                 title=title,
-                body=body or '<p>Автоматически созданная страница: %s</p>' % title,
+                body=placeholder_body,
                 parent_id=parent_id,
-                type='page',
-                representation='storage',
+                type=_PAGE_TYPE,
+                representation=_REPRESENTATION,
             )
             page_id = str(result.get('id', ''))
             logger.info('создана страница %r (ID: %s)', title, page_id)
@@ -205,23 +260,24 @@ class ConfluenceClient:
         expand: str | None = None,
     ) -> dict[str, Any]:
         """
-        Загружает детали страницы по ID.
+        Загружает детали страницы по ID через REST API.
 
         Args:
             page_id: ID страницы.
-            expand: Параметр expand (например ``'version'``).
+            expand: Параметр ``expand`` запроса (например ``'version'``).
+                    По умолчанию ``'version'``.
 
         Returns:
             Словарь с деталями страницы.
 
         Raises:
-            PublishError: Если запрос не удался.
+            PublishError: Если запрос завершился с ошибкой.
         """
         try:
             url = '%s/rest/api/content/%s' % (self._confluence.url, page_id)
             response = self._session.get(
                 url,
-                params={'expand': expand or 'version'},
+                params={'expand': expand or _EXPAND_VERSION},
                 timeout=self._timeout,
             )
             response.raise_for_status()

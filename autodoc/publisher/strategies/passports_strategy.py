@@ -1,23 +1,34 @@
-"""
-Стратегия публикации коллекции паспортов компонентов.
-"""
-import json
+"""Стратегия публикации коллекции паспортов компонентов в Confluence."""
 from pathlib import Path
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+from autodoc.publisher.legacy_content.legacy_service import LegacyContentService
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
+from autodoc.publisher.passport_registry import PassportPageRegistry
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer
 
-_DEFAULT_PASSPORT_TEMPLATE = 'component_passport.jinja2'
+_DEFAULT_TEMPLATE: str = 'component_passport.jinja2'
+
 
 class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
     """
-    Публикует паспорта компонентов с иерархией страниц Confluence.
+    Публикует паспорта компонентов как иерархию страниц Confluence.
+
+    Для каждой пары компонент × релиз выполняет:
+      1. Обеспечивает существование иерархии (Корень → Компонент → Версия).
+      2. Получает и фильтрует legacy-контент существующей страницы.
+      3. Трансформирует данные через ``PassportTransformer``.
+      4. Рендерит Jinja2-шаблон (legacy-секции передаются в view-model).
+      5. Публикует страницу.
+
+    После обработки всех компонентов сохраняет карту ID страниц через
+    ``PassportPageRegistry``, чтобы ``ReleasePageStrategy`` смогла вставить
+    ссылки на паспорта в отдельном запуске.
     """
 
     def __init__(
@@ -27,40 +38,50 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         parsed_data: ParsedResult,
         space: str,
         root_page_id: str,
-        template_name: str = _DEFAULT_PASSPORT_TEMPLATE,
-        data_dir: Path | None = None,  # 3.9
+        template_name: str = _DEFAULT_TEMPLATE,
+        data_dir: Path | None = None,
     ) -> None:
         """
         Args:
-            confluence_client: Клиент Confluence.
-            document_builder: Рендерер шаблонов.
+            confluence_client: Клиент Confluence API.
+            document_builder: Рендерер Jinja2-шаблонов.
             parsed_data: Данные парсера.
-            space: Ключ Space.
+            space: Ключ Space в Confluence.
             root_page_id: ID корневой страницы иерархии паспортов.
-            template_name: Имя шаблона паспорта.
-            data_dir: Рабочая директория (для сохранения passport_pages.json).
+            template_name: Имя Jinja2-шаблона. По умолчанию ``component_passport.jinja2``.
+            data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
+
+        Raises:
+            ValueError: Если ``space`` или ``root_page_id`` пустые.
         """
-        # 3.10 Конкретные проверки с внятными сообщениями вместо if not all([...])
         if not space:
-            raise ValueError('space не может быть пустым')
+            raise ValueError('space cannot be empty')
         if not root_page_id:
-            raise ValueError('root_page_id не может быть пустым')
+            raise ValueError('root_page_id cannot be empty')
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
-        self._root_page_id = root_page_id
-        self._template_name = template_name
-        self._hierarchy = PageHierarchyManager(confluence_client)
-        # 3.9 путь из data_dir, а не hardcoded
-        self._passport_pages_file = (
-            (data_dir / 'passport_pages.json') if data_dir else Path('data') / 'passport_pages.json'
-        )
+        self._root_page_id: str = root_page_id
+        self._template_name: str = template_name
+        self._hierarchy: PageHierarchyManager = PageHierarchyManager(confluence_client)
+        self._legacy_svc: LegacyContentService = LegacyContentService()
+        self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
 
     def execute(self) -> PublishReport:
-        """Публикует паспорта для всех компонентов и релизов."""
-        logger.info('начало публикации паспортов')
+        """
+        Публикует паспорта для всех компонентов и всех релизов.
+
+        Итерирует по всем компонентам из ``ParsedResult``. Компоненты без
+        релизов пропускаются с записью в список ошибок. Ошибки отдельных
+        страниц логируются, но не прерывают обработку остальных.
+
+        Returns:
+            ``PublishReport`` с итоговым статусом, числом опубликованных
+            страниц, списком ошибок и детальными записями по каждой странице.
+        """
+        logger.info('PassportsStrategy: старт публикации паспортов')
         errors: list[str] = []
         details: list[dict[str, Any]] = []
-        pages_published = 0
+        pages_published: int = 0
 
         for comp in self._data.components:
             if not comp.releases:
@@ -69,14 +90,14 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
 
             for release in comp.releases:
                 try:
-                    page_id, version, status = self._publish_passport(
+                    page_id, version, status = self._publish_one(
                         comp.name, release.version
                     )
                     pages_published += 1
                     details.append({
                         'component_name': comp.name,
                         'release_version': release.version,
-                        'page_title': self._page_title(comp.name, release.version),
+                        'page_title': self._make_page_title(comp.name, release.version),
                         'page_id': page_id,
                         'version': version,
                         'status': status,
@@ -86,11 +107,11 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
                     errors.append(msg)
                     logger.error('%s', msg)
 
-        passport_pages_map = self._build_pages_map(details)
-        self._save_passport_pages(passport_pages_map)
+        pages_map = self._build_pages_map(details)
+        self._registry.save(pages_map)
 
         logger.info(
-            'опубликовано %d паспортов, ошибок: %d',
+            'PassportsStrategy: завершено — %d опубликовано, %d ошибок',
             pages_published, len(errors),
         )
         return PublishReport(
@@ -100,21 +121,26 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
             details=details,
         )
 
-    # ------------------------------------------------------------------
-
-    def _publish_passport(self, comp_name: str, release_version: str) -> tuple[str, int, str]:
+    def _publish_one(
+        self,
+        comp_name: str,
+        release_version: str,
+    ) -> tuple[str, int, str]:
         """
-        Публикует страницу паспорта одного релиза компонента в Confluence.
+        Публикует одну страницу паспорта.
 
-        Обеспечивает существование иерархии страниц, получает legacy-содержимое
-        существующей страницы, рендерит шаблон и публикует результат.
+        Последовательность:
+          1. Обеспечивает иерархию страниц через ``PageHierarchyManager``.
+          2. Получает текущее тело страницы (пустая строка при первой публикации).
+          3. Трансформирует данные, извлекает legacy-секции других платформ.
+          4. Рендерит шаблон и публикует страницу.
 
         Args:
             comp_name: Имя компонента.
             release_version: Версия релиза.
 
         Returns:
-            Кортеж ``(page_id, version, status)`` опубликованной страницы.
+            Кортеж ``(page_id, version, status)``.
         """
         version_page_id = self._hierarchy.ensure_hierarchy_exists(
             space=self._space,
@@ -123,36 +149,19 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
             release_version=release_version,
         )
 
-        page_title = self._page_title(comp_name, release_version)
+        page_title = self._make_page_title(comp_name, release_version)
+        existing_html = self._fetch_existing_body(page_title)
 
-        legacy_body = ''
-        try:
-            legacy_body = self._client.get_page_body(
-                space=self._space, title=page_title
-            )
-        except Exception as e:
-            logger.warning(
-                'не удалось получить legacy для %r: %s', page_title, e
-            )
-
-        # 3.2 ValueError если компонент/версия не найдены
         transformer = PassportTransformer(comp_name, release_version)
         view_model = transformer.transform(self._data)
+        platform_version = view_model.get('platform_version', '')
 
-        legacy_contents: dict[str, str] = {}
-        if legacy_body:
-            from autodoc.publisher.transformers.legacy_extractor import LegacyContentExtractor
-            all_legacy = LegacyContentExtractor.extract_platform_versions(legacy_body)
-            platform_version = view_model.get('platform_version', '')
-            legacy_contents = {
-                k: v for k, v in all_legacy.items()
-                if 'Платформа %s' % platform_version not in k
-                and not k.endswith(str(platform_version))
-            }
-
-        view_model['target_platform'] = (
-            'Платформа %s' % view_model.get('platform_version', '')
+        # Извлекаем legacy-секции других платформ, чтобы не потерять их
+        # при обновлении страницы для текущей платформы.
+        legacy_contents = self._legacy_svc.extract_for_platform(
+            existing_html, platform_version
         )
+        view_model['target_platform'] = 'Платформа %s' % platform_version
         view_model['legacy_contents'] = legacy_contents
 
         html_body = self._builder.build(self._template_name, view_model)
@@ -164,27 +173,52 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
         )
         return result['id'], result['version'], result['status']
 
-    @staticmethod
-    def _page_title(comp_name: str, release_version: str) -> str:
+    def _fetch_existing_body(self, page_title: str) -> str:
         """
-        Формирует заголовок страницы Confluence для паспорта компонента.
+        Возвращает текущее тело страницы или пустую строку при любой ошибке.
+
+        Ошибки при получении тела страницы не критичны: в худшем случае
+        legacy-контент других платформ будет потерян при следующей публикации,
+        но сам паспорт опубликуется корректно.
+
+        Args:
+            page_title: Заголовок страницы в Confluence.
+
+        Returns:
+            HTML тело страницы или пустая строка.
+        """
+        try:
+            return self._client.get_page_body(space=self._space, title=page_title)
+        except Exception as e:
+            logger.warning('Не удалось получить тело страницы %r: %s', page_title, e)
+            return ''
+
+    @staticmethod
+    def _make_page_title(comp_name: str, release_version: str) -> str:
+        """
+        Формирует заголовок страницы паспорта.
 
         Args:
             comp_name: Имя компонента.
             release_version: Версия релиза.
 
         Returns:
-            Строка заголовка страницы.
+            Строка вида ``'Документация <comp_name> <release_version>'``.
         """
         return 'Документация %s %s' % (comp_name, release_version)
 
     @staticmethod
     def _build_pages_map(details: list[dict[str, Any]]) -> dict[str, Any]:
         """
-        Строит маппинг опубликованных страниц паспортов по компоненту и версии.
+        Строит карту ID страниц из списка деталей публикации.
+
+        Результирующая структура передаётся в ``PassportPageRegistry.save()``
+        и позволяет ``ReleasePageStrategy`` найти страницу паспорта по имени
+        компонента и версии релиза.
 
         Args:
-            details: Список записей с данными об опубликованных страницах.
+            details: Список записей из ``execute()`` — по одной на каждую
+                     успешно опубликованную страницу.
 
         Returns:
             Словарь вида ``{comp_name: {version: {page_id, page_title, version}}}``.
@@ -197,24 +231,3 @@ class PassportsStrategy(BasePublishStrategy, strategy_type='passports'):
                 'version': d['version'],
             }
         return pages_map
-
-    def _save_passport_pages(self, pages_map: dict[str, Any]) -> None:
-        """
-        Сохраняет маппинг страниц паспортов в файл ``passport_pages.json``.
-
-        При ошибках ввода-вывода записывает предупреждение в лог и не
-        прерывает выполнение.
-
-        Args:
-            pages_map: Маппинг ``{comp_name: {version: {...}}}``, готовый для сериализации.
-        """
-        try:
-            self._passport_pages_file.parent.mkdir(parents=True, exist_ok=True)
-            self._passport_pages_file.write_text(
-                json.dumps(pages_map, ensure_ascii=False, indent=2),
-                encoding='utf-8',
-            )
-        except OSError as e:
-            logger.warning(
-                'не удалось сохранить passport_pages: %s', e
-            )

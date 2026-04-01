@@ -1,29 +1,29 @@
-"""
-Стратегии публикации одностраничной документации релиза.
-"""
-import json
+"""Стратегия публикации релизной документации на одной странице Confluence."""
 from pathlib import Path
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.confluence.confluence_client import ConfluenceClient
+from autodoc.publisher.passport_registry import PassportPageRegistry
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
 
-class ReleasePageStrategy(
-    BasePublishStrategy,
-    strategy_type='release',
-    transformer_cls=FullReleaseTransformer,  # 3.7 transformer_cls в объявлении
-):
-    """
-    Публикует документацию релиза на одной странице Confluence.
 
-    Используется для всех одностраничных типов:
-    ``full_release``, ``minimal_release``, ``profile_centric``, ``full_combined``.
-    Тип документа определяется трансформером, передаваемым через Registry.
+class ReleasePageStrategy(BasePublishStrategy, strategy_type='release'):
+    """
+    Публикует документацию релиза (вид от компонентов) на одной странице Confluence.
+
+    Опционально вставляет ссылки на индивидуальные паспорта компонентов,
+    если файл ``passport_pages.json`` был создан предшествующим запуском
+    ``PassportsStrategy``.
+
+    Трансформер строится фабрикой через ``_make_transformer``. Значение
+    ``include_passport_links`` попадает и в трансформер (управляет
+    генерацией URL-паттернов), и в стратегию (управляет загрузкой реестра
+    и инжекцией ссылок из ``passport_pages.json``).
     """
 
     def __init__(
@@ -36,53 +36,91 @@ class ReleasePageStrategy(
         page_title: str,
         template_name: str,
         parent_id: str | None = None,
-        data_dir: Path | None = None,  # 3.9
+        include_passport_links: bool = True,
+        data_dir: Path | None = None,
     ) -> None:
         """
         Args:
-            confluence_client: Клиент Confluence.
-            document_builder: Рендерер шаблонов.
-            transformer: Трансформер данных.
+            confluence_client: Клиент Confluence API.
+            document_builder: Рендерер Jinja2-шаблонов.
+            transformer: Экземпляр трансформера данных (обычно ``FullReleaseTransformer``).
             parsed_data: Данные парсера.
-            space: Ключ Space.
-            page_title: Заголовок целевой страницы.
-            template_name: Имя файла шаблона.
-            parent_id: ID родительской страницы.
-            data_dir: Рабочая директория (для чтения passport_pages.json).
+            space: Ключ Space в Confluence.
+            page_title: Заголовок страницы релиза.
+            template_name: Имя Jinja2-шаблона.
+            parent_id: ID родительской страницы. Если ``None`` — страница
+                       создаётся без родителя.
+            include_passport_links: Если ``True``, вставляет ссылки на паспорта
+                                    компонентов из ``passport_pages.json``.
+                                    Должно совпадать со значением, переданным
+                                    в трансформер — ``_make_transformer`` это гарантирует.
+            data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
+
+        Raises:
+            ValueError: Если ``space``, ``page_title`` или ``template_name`` пустые.
         """
-        # 3.10 Убрана бессодержательная проверка if not all([...]).
-        #      Pydantic и аннотации типов уже не допускают None для обязательных аргументов.
         if not space:
-            raise ValueError('space не может быть пустым')
+            raise ValueError('space cannot be empty')
         if not page_title:
-            raise ValueError('page_title не может быть пустым')
+            raise ValueError('page_title cannot be empty')
         if not template_name:
-            raise ValueError('template_name не может быть пустым')
+            raise ValueError('template_name cannot be empty')
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
-        self._transformer = transformer
-        self._page_title = page_title
-        self._template_name = template_name
-        self._parent_id = parent_id
-        # 3.9 путь к passport_pages.json из data_dir, а не hardcoded Path('data')
-        self._passport_pages_file = (
-            (data_dir / 'passport_pages.json') if data_dir else Path('data') / 'passport_pages.json'
+        self._transformer: BaseDataTransformer = transformer
+        self._page_title: str = page_title
+        self._template_name: str = template_name
+        self._parent_id: str | None = parent_id
+        self._include_passport_links: bool = include_passport_links
+        self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
+
+    @classmethod
+    def _make_transformer(cls, kwargs: dict) -> BaseDataTransformer:
+        """
+        Строит ``FullReleaseTransformer`` из kwargs перед вызовом ``__init__``.
+
+        ``passport_page_pattern`` извлекается (pop) — стратегия его не принимает.
+        ``include_passport_links`` читается через ``.get()`` и остаётся в kwargs,
+        чтобы стратегия и трансформер использовали одно и то же значение:
+        трансформер контролирует генерацию URL-паттернов, стратегия —
+        загрузку реестра и инжекцию ссылок из ``passport_pages.json``.
+
+        Args:
+            kwargs: Прямая ссылка на словарь аргументов из ``create()``.
+
+        Returns:
+            Готовый ``FullReleaseTransformer``.
+        """
+        return FullReleaseTransformer(
+            include_passport_links=kwargs.get('include_passport_links', True),
+            passport_page_pattern=kwargs.pop('passport_page_pattern', None),
         )
 
     def execute(self) -> PublishReport:
-        """Публикует страницу релиза."""
-        logger.info('публикация страницы %r', self._page_title)
+        """
+        Трансформирует данные, опционально вставляет ссылки на паспорта, рендерит и публикует.
+
+        Если трансформер вернул пустой результат — публикация прерывается
+        и возвращается отчёт с ошибкой. Любое другое исключение также
+        перехватывается, логируется и отражается в ``PublishReport``.
+
+        Returns:
+            ``PublishReport`` с результатом публикации одной страницы.
+        """
+        logger.info('ReleasePageStrategy: публикация %r', self._page_title)
         errors: list[str] = []
         details: list[dict[str, Any]] = []
 
         try:
-            passport_pages = self._load_passport_pages()
             view_model = self._transformer.transform(self._data)
             if not view_model:
-                raise ValueError('Трансформер вернул пустой результат')
+                raise ValueError('трансформер вернул пустой результат')
 
             view_model['space'] = self._space
-            self._inject_passport_links(view_model, passport_pages)
+
+            if self._include_passport_links:
+                passport_pages = self._registry.load()
+                PassportPageRegistry.inject_links(view_model, passport_pages)
 
             html_body = self._builder.build(self._template_name, view_model)
             result = self._client.publish_page(
@@ -106,54 +144,8 @@ class ReleasePageStrategy(
             return PublishReport(success=True, pages_published=1, details=details)
 
         except Exception as e:
-            error_msg = str(e)
-            errors.append(error_msg)
-            logger.error('ошибка — %s', error_msg)
-            return PublishReport(success=False, pages_published=0, errors=errors, details=details)
-
-    def _load_passport_pages(self) -> dict[str, Any]:
-        """
-        Загружает маппинг страниц паспортов из ``passport_pages.json``.
-
-        Если файл отсутствует или содержит невалидный JSON, возвращает
-        пустой словарь и пишет отладочное сообщение в лог.
-
-        Returns:
-            Словарь ``{comp_name: {version: {...}}}`` или пустой словарь.
-        """
-        if self._passport_pages_file.exists():
-            try:
-                return json.loads(self._passport_pages_file.read_text(encoding='utf-8'))
-            except Exception as e:
-                logger.debug('не удалось загрузить passport_pages: %s', e)
-        return {}
-
-    @staticmethod
-    def _inject_passport_links(
-        view_model: dict[str, Any],
-        passport_pages: dict[str, Any],
-    ) -> None:
-        """
-        Добавляет ссылки на страницы паспортов в модель представления релиза.
-
-        Для каждого компонента в ``view_model`` добавляет ключ
-        ``passport_versions``, содержащий только версии текущего релиза.
-
-        Args:
-            view_model: Словарь модели представления, формируемый трансформером.
-            passport_pages: Маппинг страниц паспортов из ``passport_pages.json``.
-        """
-        if not passport_pages or 'components' not in view_model:
-            return
-        for comp in view_model.get('components', []):
-            comp_name = comp.get('name')
-            if not comp_name or comp_name not in passport_pages:
-                continue
-            release_versions = {rel.get('version') for rel in comp.get('releases', [])}
-            comp['passport_versions'] = {
-                v: info
-                for v, info in passport_pages[comp_name].items()
-                if v in release_versions
-            }
-
-
+            errors.append(str(e))
+            logger.error('ReleasePageStrategy: ошибка публикации %r: %s', self._page_title, e)
+            return PublishReport(
+                success=False, pages_published=0, errors=errors, details=details
+            )
