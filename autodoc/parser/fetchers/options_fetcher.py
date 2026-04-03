@@ -31,7 +31,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             ctx: Контекст пайплайна с заполненной конфигурацией.
         """
         self._tfs = TFSClient(ctx.config)
-        self._base_url = ctx.config.tfs_dep_components_url.rstrip('/')
+        self._base_url = ctx.config.tfs_dep_components_url.rstrip("/")
 
     def fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
@@ -43,7 +43,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         Returns:
             ``FetchResult`` с маппингом ``(comp_name, version, channel) → options``.
         """
-        logger.info('OptionsFetcher: начинаем сбор options.json…')
+        logger.info("OptionsFetcher: начинаем сбор options.json…")
 
         options_cache: dict[str, dict] = {}
         result: OptionsMap = {}
@@ -52,12 +52,12 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         for comp in components:
             repo_name = comp.git_repo
             if not repo_name:
-                fetch_warnings.append('"%s" без git_repo, пропуск' % comp.name)
+                fetch_warnings.append("\"%s\" без git_repo, пропуск" % comp.name)
                 continue
 
             for release in comp.releases:
-                branch = 'release_%s' % release.version
-                cache_key = '%s_%s' % (repo_name, branch)
+                branch = "release_%s" % release.version
+                cache_key = "%s_%s" % (repo_name, branch)
 
                 if cache_key not in options_cache:
                     options_cache[cache_key] = self._fetch_options_for_repo(repo_name, branch)
@@ -65,7 +65,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 chosen = OptionsParser.pick_options(options_cache[cache_key], release.channel)
                 result[(comp.name, release.version, release.channel)] = chosen
 
-        logger.info('OptionsFetcher: завершён. Собрано опций для %d релизов.', len(result))
+        logger.info("OptionsFetcher: завершён. Собрано опций для %d релизов.", len(result))
         return FetchResult(value=result, warnings=fetch_warnings)
 
     def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
@@ -79,22 +79,22 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         Returns:
             Словарь с ключами ``'global'`` и ``'channels'``.
         """
-        repo_data: dict = {'global': {}, 'channels': {}}
-        items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, repo_name)
+        repo_data: dict = {"global": {}, "channels": {}}
+        items_url = "%s/_apis/git/repositories/%s/items" % (self._base_url, repo_name)
 
         try:
             items = self._tfs.get_items(items_url, branch)
         except NetworkError as e:
             logger.warning(
-                'OptionsFetcher: пропуск репо "%s" (ветка "%s"): %s', repo_name, branch, e
+                "OptionsFetcher: пропуск репо \"%s\" (ветка \"%s\"): %s", repo_name, branch, e
             )
             return repo_data
 
         options_paths = [
-            item['path'] for item in items
-            if not item.get('isFolder')
-            and item['path'].endswith('options.json')
-            and '/conan/' in item['path']
+            item["path"] for item in items
+            if not item.get("isFolder")
+            and item["path"].endswith("options.json")
+            and "/conan/" in item["path"]
         ]
 
         target_ci = OptionsParser.select_ci_prefix(options_paths)
@@ -131,7 +131,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             if response.status_code != 200:
                 return
         except (NetworkError, OSError) as e:
-            logger.warning('OptionsFetcher: ошибка скачивания %s: %s', opt_path, e)
+            logger.warning("OptionsFetcher: ошибка скачивания %s: %s", opt_path, e)
             return
 
         channel_name, cleaned = OptionsParser.parse_file(response.text, opt_path, ci_prefix)
@@ -139,6 +139,6 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             return
 
         if channel_name:
-            repo_data['channels'][channel_name] = cleaned
+            repo_data["channels"][channel_name] = cleaned
         else:
-            repo_data['global'] = cleaned
+            repo_data["global"] = cleaned

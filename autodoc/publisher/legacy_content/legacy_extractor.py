@@ -31,19 +31,19 @@ class LegacyContentExtractor:
             Содержимое вкладки или пустая строка, если вкладка не найдена.
         """
         if not html:
-            return ''
+            return ""
 
         tab_marker = '<ac:parameter ac:name="name">%s</ac:parameter>' % platform_name
         start_idx = html.find(tab_marker)
         if start_idx == -1:
-            return ''
+            return ""
 
-        open_tag = '<ac:rich-text-body>'
-        close_tag = '</ac:rich-text-body>'
+        open_tag = "<ac:rich-text-body>"
+        close_tag = "</ac:rich-text-body>"
 
         body_start = html.find(open_tag, start_idx)
         if body_start == -1:
-            return ''
+            return ""
 
         depth = 0
         curr_idx = body_start
@@ -64,7 +64,7 @@ class LegacyContentExtractor:
                 if depth == 0:
                     return html[body_start + len(open_tag):next_close].strip()
 
-        return ''
+        return ""
 
     @staticmethod
     def extract_platform_versions(html: str) -> dict[str, str]:

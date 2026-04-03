@@ -80,7 +80,7 @@ class BasePublishStrategy(ABC):
 
     def __init_subclass__(
         cls,
-        strategy_type: str = '',
+        strategy_type: str = "",
         **kwargs: Any,
     ) -> None:
         """
@@ -95,12 +95,12 @@ class BasePublishStrategy(ABC):
         if strategy_type:
             BasePublishStrategy._registry[strategy_type] = cls
             logger.debug(
-                'BasePublishStrategy: зарегистрирована "%s" → %s',
+                "BasePublishStrategy: зарегистрирована \"%s\" → %s",
                 strategy_type, cls.__name__,
             )
 
     @classmethod
-    def create(cls, strategy_type: str, **kwargs: Any) -> 'BasePublishStrategy':
+    def create(cls, strategy_type: str, **kwargs: Any) -> "BasePublishStrategy":
         """
         Создаёт экземпляр стратегии по типу через Registry.
 
@@ -124,18 +124,18 @@ class BasePublishStrategy(ABC):
         """
         if strategy_type not in cls._registry:
             raise ValueError(
-                'Неизвестная стратегия "%s". Доступные: %s'
+                "Неизвестная стратегия \"%s\". Доступные: %s"
                 % (strategy_type, sorted(cls._registry))
             )
 
         strategy_cls = cls._registry[strategy_type]
 
-        make_transformer = getattr(strategy_cls, '_make_transformer', None)
-        if make_transformer is not None and 'transformer' not in kwargs:
-            kwargs['transformer'] = make_transformer(kwargs)
+        make_transformer = getattr(strategy_cls, "_make_transformer", None)
+        if make_transformer is not None and "transformer" not in kwargs:
+            kwargs["transformer"] = make_transformer(kwargs)
 
         logger.debug(
-            'BasePublishStrategy.create: %s для типа "%s"',
+            "BasePublishStrategy.create: %s для типа \"%s\"",
             strategy_cls.__name__, strategy_type,
         )
         return strategy_cls(**kwargs)

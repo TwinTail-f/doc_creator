@@ -19,18 +19,18 @@ def read_properties(filepath: Path) -> dict[str, str]:
     Raises:
         OSError: Если файл не найден или недоступен для чтения.
     """
-    content = filepath.read_text(encoding='utf-8')
+    content = filepath.read_text(encoding="utf-8")
 
     # Склеиваем строки с переносом (заканчивающиеся на '\')
-    content = content.replace('\\\n', '')
+    content = content.replace("\\\n", "")
 
     props: dict[str, str] = {}
-    for line in content.split('\n'):
+    for line in content.split("\n"):
         line = line.strip()
-        if not line or line.startswith('#'):
+        if not line or line.startswith("#"):
             continue
-        if '=' in line:
-            key, val = line.split('=', 1)
+        if "=" in line:
+            key, val = line.split("=", 1)
             props[key.strip()] = val.strip()
 
     return props

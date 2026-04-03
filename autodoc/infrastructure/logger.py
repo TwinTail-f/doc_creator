@@ -1,6 +1,6 @@
 import logging
 
-def setup_logging(logger_name: str = 'doc_parser') -> logging.Logger:
+def setup_logging(logger_name: str = "doc_parser") -> logging.Logger:
     """
     Настраивает логгер с выводом модуля и функции.
 
@@ -16,8 +16,8 @@ def setup_logging(logger_name: str = 'doc_parser') -> logging.Logger:
         log.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter(
-            fmt='[%(asctime)s] | (%(module)s:%(funcName)s:%(lineno)d) -- %(levelname)s -- %(message)s',
-            datefmt='%H:%M:%S',
+            fmt="[%(asctime)s] | (%(module)s:%(funcName)s:%(lineno)d) -- %(levelname)s -- %(message)s",
+            datefmt="%H:%M:%S",
         )
 
         console_handler = logging.StreamHandler()

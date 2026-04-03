@@ -21,7 +21,7 @@ _RETRY_STATUS_CODES: frozenset = frozenset({
 
 # 1.1 frozenset: порядок не важен, дубликаты недопустимы, неизменяемо
 _RETRY_METHODS: frozenset = frozenset({
-    'HEAD', 'GET', 'DELETE', 'OPTIONS', 'PUT', 'POST',
+    "HEAD", "GET", "DELETE", "OPTIONS", "PUT", "POST",
 })
 
 class RetryableSession(requests.Session):
@@ -61,27 +61,27 @@ class RetryableSession(requests.Session):
         )
 
         adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.mount('http://', adapter)
-        self.mount('https://', adapter)
+        self.mount("http://", adapter)
+        self.mount("https://", adapter)
 
     def get(self, url: str, **kwargs) -> requests.Response:
         """GET-запрос с таймаутом по умолчанию."""
-        kwargs.setdefault('timeout', self.timeout)
+        kwargs.setdefault("timeout", self.timeout)
         return super().get(url, **kwargs)
 
     def post(self, url: str, **kwargs) -> requests.Response:
         """POST-запрос с таймаутом по умолчанию."""
-        kwargs.setdefault('timeout', self.timeout)
+        kwargs.setdefault("timeout", self.timeout)
         return super().post(url, **kwargs)
 
     def put(self, url: str, **kwargs) -> requests.Response:
         """PUT-запрос с таймаутом по умолчанию."""
-        kwargs.setdefault('timeout', self.timeout)
+        kwargs.setdefault("timeout", self.timeout)
         return super().put(url, **kwargs)
 
     def head(self, url: str, **kwargs) -> requests.Response:
         """HEAD-запрос с таймаутом по умолчанию."""
-        kwargs.setdefault('timeout', self.timeout)
+        kwargs.setdefault("timeout", self.timeout)
         return super().head(url, **kwargs)
 
 def create_retryable_session(
@@ -112,11 +112,11 @@ def create_retryable_session(
 
     if username and token:
         session.auth = (username, token)
-        logger.debug('настроена Basic-аутентификация для %r', username)
+        logger.debug("настроена Basic-аутентификация для %r", username)
     elif username or token:
         logger.warning(
-            'передан только username или только token. '
-            'Для Basic auth нужны оба значения.'
+            "передан только username или только token. "
+            "Для Basic auth нужны оба значения."
         )
 
     return session

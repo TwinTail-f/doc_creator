@@ -4,7 +4,7 @@ from autodoc.infrastructure.logger import logger
 from autodoc.publisher.legacy_content.legacy_extractor import LegacyContentExtractor
 from autodoc.publisher.legacy_content.legacy_merger import LegacyContentMerger
 
-_PLATFORM_LABEL_PREFIX: str = 'Платформа '
+_PLATFORM_LABEL_PREFIX: str = "Платформа "
 
 
 class LegacyContentService:
@@ -49,7 +49,7 @@ class LegacyContentService:
         }
 
         logger.debug(
-            'LegacyContentService: %d секций всего, %d после фильтрации платформы %s',
+            "LegacyContentService: %d секций всего, %d после фильтрации платформы %s",
             len(all_sections), len(filtered), current_platform_version,
         )
         return filtered

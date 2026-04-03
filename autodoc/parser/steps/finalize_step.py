@@ -18,7 +18,7 @@ class FinalizeStep(BaseParseStep):
     Файлы не сохраняет — это делает ``ComponentParser`` при ``save_intermediate=True``.
     """
 
-    name = 'Финализация и валидация данных'
+    name = "Финализация и валидация данных"
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:
@@ -36,7 +36,7 @@ class FinalizeStep(BaseParseStep):
 
         removed = self._filter_empty_profiles(ctx.components)
         if removed:
-            logger.info('удалено %d профилей с exists=False.', removed)
+            logger.info("удалено %d профилей с exists=False.", removed)
 
         ctx.result = self._build_result(ctx)
 
@@ -111,11 +111,11 @@ class FinalizeStep(BaseParseStep):
                 components=ctx.components,
             )
             logger.info(
-                'FinalizeStep: данные валидированы. %d компонентов.',
+                "FinalizeStep: данные валидированы. %d компонентов.",
                 len(result.components),
             )
             return result
         except Exception as e:
             raise ParsingError(
-                'FinalizeStep: валидация данных не прошла: %s' % e
+                "FinalizeStep: валидация данных не прошла: %s" % e
             ) from e

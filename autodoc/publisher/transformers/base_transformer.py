@@ -5,7 +5,7 @@ from typing import Any
 from autodoc.models.parsed_result import ParsedResult
 
 _DEFAULT_PASSPORT_PATTERN: str = (
-    '/wiki/spaces/DOC/pages/{component_name}+{release_version}'
+    "/wiki/spaces/DOC/pages/{component_name}+{release_version}"
 )
 
 
@@ -39,8 +39,8 @@ class PassportLinkMixin:
         if not self._include_passport_links:
             return None
         return self._pattern.format(
-            component_name=comp_name.replace(' ', '+'),
-            release_version=version.replace(' ', '+'),
+            component_name=comp_name.replace(" ", "+"),
+            release_version=version.replace(" ", "+"),
         )
 
 

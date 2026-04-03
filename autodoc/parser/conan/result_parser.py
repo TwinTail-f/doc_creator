@@ -51,9 +51,9 @@ class ConanResultParser:
         Returns:
             ``ConanEnrichData`` если нода компонента найдена, иначе ``None``.
         """
-        nodes: dict = conan_json.get('graph', {}).get('nodes', {})
+        nodes: dict = conan_json.get("graph", {}).get("nodes", {})
         target_node = next(
-            (n for n in nodes.values() if n.get('name') == task.comp_name),
+            (n for n in nodes.values() if n.get("name") == task.comp_name),
             None,
         )
         if target_node is None:
@@ -64,12 +64,12 @@ class ConanResultParser:
         patches = self._extract_patches(target_node, task.version)
         dependencies = self._extract_dependencies(target_node, task.comp_name)
 
-        info_dict: dict = target_node.get('info', {})
-        conan_settings: dict = info_dict.get('settings', target_node.get('settings', {}))
-        package_id = target_node.get('package_id', '')
-        build_url = self._build_artifactory_url(task, full_version, rrev) if package_id else ''
+        info_dict: dict = target_node.get("info", {})
+        conan_settings: dict = info_dict.get("settings", target_node.get("settings", {}))
+        package_id = target_node.get("package_id", "")
+        build_url = self._build_artifactory_url(task, full_version, rrev) if package_id else ""
         build_date = self._extract_build_date(target_node)
-        conan_options: dict = info_dict.get('options', target_node.get('options', {}))
+        conan_options: dict = info_dict.get("options", target_node.get("options", {}))
 
         return ConanEnrichData(
             base_ref=base_ref,
@@ -90,44 +90,44 @@ class ConanResultParser:
         node: dict[str, Any],
         fallback_version: str,
     ) -> tuple[str, str, str]:
-        full_ref: str = node.get('ref', '')
-        rrev: str = node.get('rrev', '')
+        full_ref: str = node.get("ref", "")
+        rrev: str = node.get("rrev", "")
         full_version = fallback_version
 
         if not full_ref:
-            return '', rrev, full_version
+            return "", rrev, full_version
 
-        base_ref = full_ref.split('#')[0]
-        if not rrev and '#' in full_ref:
-            rrev = full_ref.split('#')[1]
-        if '@' in base_ref and '/' in base_ref.split('@')[0]:
-            full_version = base_ref.split('@')[0].split('/')[1]
+        base_ref = full_ref.split("#")[0]
+        if not rrev and "#" in full_ref:
+            rrev = full_ref.split("#")[1]
+        if "@" in base_ref and "/" in base_ref.split("@")[0]:
+            full_version = base_ref.split("@")[0].split("/")[1]
 
         return base_ref, rrev, full_version
 
     @staticmethod
     def _extract_default_options(node: dict[str, Any]) -> list[dict[str, Any]]:
-        opt_defs: dict = node.get('options_definitions', {}) or {}
-        def_opts: dict = node.get('default_options', {}) or {}
+        opt_defs: dict = node.get("options_definitions", {}) or {}
+        def_opts: dict = node.get("default_options", {}) or {}
         result: list[dict[str, Any]] = []
 
         for opt_name, opt_val in def_opts.items():
-            opt_type = 'string'
+            opt_type = "string"
             definition = opt_defs.get(opt_name)
             if isinstance(definition, list) and len(definition) >= 2:
-                if 'ANY' in definition:
-                    opt_type = 'ANY'
-                elif set(definition).issubset({'True', 'False', True, False, 'None', None}):
-                    opt_type = 'bool'
+                if "ANY" in definition:
+                    opt_type = "ANY"
+                elif set(definition).issubset({"True", "False", True, False, "None", None}):
+                    opt_type = "bool"
                 else:
-                    opt_type = 'enum'
-            result.append({'name': opt_name, 'type': opt_type, 'default_value': opt_val})
+                    opt_type = "enum"
+            result.append({"name": opt_name, "type": opt_type, "default_value": opt_val})
 
         return result
 
     @staticmethod
     def _extract_patches(node: dict[str, Any], version: str) -> list[str]:
-        patches_dict: dict = node.get('conandata', {}).get('patches', {})
+        patches_dict: dict = node.get("conandata", {}).get("patches", {})
         if not isinstance(patches_dict, dict):
             return []
 
@@ -137,7 +137,7 @@ class ConanResultParser:
                 continue
             if isinstance(patch_list, list):
                 for p in patch_list:
-                    patch_file = p.get('patch_file', '')
+                    patch_file = p.get("patch_file", "")
                     if patch_file:
                         extracted.append(Path(patch_file).name)
 
@@ -145,12 +145,12 @@ class ConanResultParser:
 
     @staticmethod
     def _extract_dependencies(node: dict[str, Any], comp_name: str) -> list[str]:
-        deps_node: dict = node.get('dependencies', {})
+        deps_node: dict = node.get("dependencies", {})
         deps: list[str] = []
         for dep_info in deps_node.values():
-            ref: str = dep_info.get('ref', '')
+            ref: str = dep_info.get("ref", "")
             if ref:
-                dep_name = ref.split('/')[0]
+                dep_name = ref.split("/")[0]
                 if dep_name and dep_name != comp_name:
                     deps.append(dep_name)
         return sorted(set(deps))
@@ -158,21 +158,21 @@ class ConanResultParser:
     @staticmethod
     def _build_artifactory_url(task: ConanTask, full_version: str, rrev: str) -> str:
         if not task.artifactory_base_url or not rrev:
-            return ''
+            return ""
         return (
-            '%s/platform-%s/%s/%s/%s/%s'
+            "%s/platform-%s/%s/%s/%s/%s"
             % (task.artifactory_base_url, task.target_platform,
                task.comp_name, full_version, task.channel, rrev)
         )
 
     @staticmethod
     def _extract_build_date(node: dict[str, Any]) -> str:
-        prev_timestamp = node.get('prev_timestamp')
+        prev_timestamp = node.get("prev_timestamp")
         if not prev_timestamp:
-            return ''
+            return ""
         try:
             return datetime.datetime.fromtimestamp(
                 float(prev_timestamp), datetime.timezone.utc
             ).isoformat()
         except (ValueError, OSError, OverflowError):
-            return ''
+            return ""

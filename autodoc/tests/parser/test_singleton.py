@@ -12,12 +12,12 @@ from autodoc.parser.tfs_client import TFSClient
 from autodoc.parser.artifactory_client import ArtifactoryClient
 
 MINIMAL_CONFIG = ParserConfigSchema(
-    platform_version='2.0',
-    platform_branch_name='develop',
-    tfs_username='robot',
-    tfs_token='secret',
-    tfs_dep_components_url='https://tfs.example.com/DEP',
-    manifests_remotes_path='/remotes/manifests',
+    platform_version="2.0",
+    platform_branch_name="develop",
+    tfs_username="robot",
+    tfs_token="secret",
+    tfs_dep_components_url="https://tfs.example.com/DEP",
+    manifests_remotes_path="/remotes/manifests",
 )
 
 
@@ -36,14 +36,14 @@ class TestSingletonMetaclass:
 
     def test_same_instance_on_repeated_calls(self) -> None:
         """Повторный вызов возвращает тот же экземпляр."""
-        with patch('autodoc.parser.tfs_client.create_retryable_session', return_value=MagicMock()):
+        with patch("autodoc.parser.tfs_client.create_retryable_session", return_value=MagicMock()):
             first = TFSClient(MINIMAL_CONFIG)
             second = TFSClient(MINIMAL_CONFIG)
         assert first is second
 
     def test_reset_allows_new_instance(self) -> None:
         """После reset() создаётся новый экземпляр."""
-        with patch('autodoc.parser.tfs_client.create_retryable_session', return_value=MagicMock()):
+        with patch("autodoc.parser.tfs_client.create_retryable_session", return_value=MagicMock()):
             first = TFSClient(MINIMAL_CONFIG)
             TFSClient.reset()
             second = TFSClient(MINIMAL_CONFIG)
@@ -52,10 +52,10 @@ class TestSingletonMetaclass:
     def test_singleton_instances_are_class_local(self) -> None:
         """TFSClient и ArtifactoryClient хранятся раздельно в реестре Singleton."""
         mock_session = MagicMock()
-        with patch('autodoc.parser.tfs_client.create_retryable_session', return_value=mock_session):
+        with patch("autodoc.parser.tfs_client.create_retryable_session", return_value=mock_session):
             tfs = TFSClient(MINIMAL_CONFIG)
         with patch(
-            'autodoc.parser.artifactory_client.create_retryable_session',
+            "autodoc.parser.artifactory_client.create_retryable_session",
             return_value=mock_session,
         ):
             art = ArtifactoryClient(MINIMAL_CONFIG)
@@ -71,7 +71,7 @@ class TestTFSClientSingleton:
     def test_shutdown_closes_session_and_removes_instance(self) -> None:
         """shutdown() закрывает сессию и удаляет экземпляр из реестра."""
         mock_session = MagicMock()
-        with patch('autodoc.parser.tfs_client.create_retryable_session', return_value=mock_session):
+        with patch("autodoc.parser.tfs_client.create_retryable_session", return_value=mock_session):
             TFSClient(MINIMAL_CONFIG)
 
         TFSClient.shutdown()
@@ -81,7 +81,7 @@ class TestTFSClientSingleton:
 
     def test_shutdown_is_idempotent(self) -> None:
         """Повторный вызов shutdown() не вызывает ошибок."""
-        with patch('autodoc.parser.tfs_client.create_retryable_session', return_value=MagicMock()):
+        with patch("autodoc.parser.tfs_client.create_retryable_session", return_value=MagicMock()):
             TFSClient(MINIMAL_CONFIG)
         TFSClient.shutdown()
         TFSClient.shutdown()  # второй вызов — no-op
@@ -89,7 +89,7 @@ class TestTFSClientSingleton:
     def test_reset_does_not_close_session(self) -> None:
         """reset() удаляет экземпляр без закрытия сессии."""
         mock_session = MagicMock()
-        with patch('autodoc.parser.tfs_client.create_retryable_session', return_value=mock_session):
+        with patch("autodoc.parser.tfs_client.create_retryable_session", return_value=mock_session):
             TFSClient(MINIMAL_CONFIG)
 
         TFSClient.reset()
@@ -101,12 +101,12 @@ class TestTFSClientSingleton:
         """ConfigError при отсутствии учётных данных."""
         from autodoc.exceptions import ConfigError
         bad_config = ParserConfigSchema(
-            platform_version='2.0',
-            platform_branch_name='develop',
-            tfs_username='',
-            tfs_token='',
-            tfs_dep_components_url='https://tfs.example.com/DEP',
-            manifests_remotes_path='/remotes/manifests',
+            platform_version="2.0",
+            platform_branch_name="develop",
+            tfs_username="",
+            tfs_token="",
+            tfs_dep_components_url="https://tfs.example.com/DEP",
+            manifests_remotes_path="/remotes/manifests",
         )
         with pytest.raises(ConfigError):
             TFSClient(bad_config)
@@ -119,7 +119,7 @@ class TestArtifactoryClientSingleton:
         """shutdown() закрывает сессию и удаляет экземпляр из реестра."""
         mock_session = MagicMock()
         with patch(
-            'autodoc.parser.artifactory_client.create_retryable_session',
+            "autodoc.parser.artifactory_client.create_retryable_session",
             return_value=mock_session,
         ):
             ArtifactoryClient(MINIMAL_CONFIG)
@@ -132,7 +132,7 @@ class TestArtifactoryClientSingleton:
     def test_shutdown_is_idempotent(self) -> None:
         """Повторный вызов shutdown() не вызывает ошибок."""
         with patch(
-            'autodoc.parser.artifactory_client.create_retryable_session',
+            "autodoc.parser.artifactory_client.create_retryable_session",
             return_value=MagicMock(),
         ):
             ArtifactoryClient(MINIMAL_CONFIG)
@@ -143,7 +143,7 @@ class TestArtifactoryClientSingleton:
         """Повторный вызов ArtifactoryClient(config) возвращает тот же экземпляр."""
         mock_session = MagicMock()
         with patch(
-            'autodoc.parser.artifactory_client.create_retryable_session',
+            "autodoc.parser.artifactory_client.create_retryable_session",
             return_value=mock_session,
         ):
             first = ArtifactoryClient(MINIMAL_CONFIG)

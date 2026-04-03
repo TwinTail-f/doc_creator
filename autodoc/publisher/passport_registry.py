@@ -11,8 +11,8 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 
-_DEFAULT_DATA_DIR: Path = Path('data')
-_REGISTRY_FILENAME: str = 'passport_pages.json'
+_DEFAULT_DATA_DIR: Path = Path("data")
+_REGISTRY_FILENAME: str = "passport_pages.json"
 
 
 class PassportPageRegistry:
@@ -59,14 +59,14 @@ class PassportPageRegistry:
             self._file.parent.mkdir(parents=True, exist_ok=True)
             self._file.write_text(
                 json.dumps(pages_map, ensure_ascii=False, indent=2),
-                encoding='utf-8',
+                encoding="utf-8",
             )
             logger.debug(
-                'PassportPageRegistry: сохранено %d компонентов в %s',
+                "PassportPageRegistry: сохранено %d компонентов в %s",
                 len(pages_map), self._file,
             )
         except OSError as e:
-            logger.warning('PassportPageRegistry: не удалось сохранить файл: %s', e)
+            logger.warning("PassportPageRegistry: не удалось сохранить файл: %s", e)
 
     def load(self) -> dict[str, Any]:
         """
@@ -80,14 +80,14 @@ class PassportPageRegistry:
             Загруженная карта или пустой словарь.
         """
         if not self._file.exists():
-            logger.debug('PassportPageRegistry: файл не найден: %s', self._file)
+            logger.debug("PassportPageRegistry: файл не найден: %s", self._file)
             return {}
         try:
-            data = json.loads(self._file.read_text(encoding='utf-8'))
-            logger.debug('PassportPageRegistry: загружено %d компонентов', len(data))
+            data = json.loads(self._file.read_text(encoding="utf-8"))
+            logger.debug("PassportPageRegistry: загружено %d компонентов", len(data))
             return data
         except (OSError, json.JSONDecodeError) as e:
-            logger.debug('PassportPageRegistry: не удалось загрузить файл: %s', e)
+            logger.debug("PassportPageRegistry: не удалось загрузить файл: %s", e)
             return {}
 
     @staticmethod
@@ -110,15 +110,15 @@ class PassportPageRegistry:
             view_model: Словарь, созданный трансформером. Изменяется на месте.
             passport_pages: Карта, загруженная через ``PassportPageRegistry.load()``.
         """
-        if not passport_pages or 'components' not in view_model:
+        if not passport_pages or "components" not in view_model:
             return
 
-        for comp in view_model.get('components', []):
-            comp_name = comp.get('name')
+        for comp in view_model.get("components", []):
+            comp_name = comp.get("name")
             if not comp_name or comp_name not in passport_pages:
                 continue
-            release_versions = {rel.get('version') for rel in comp.get('releases', [])}
-            comp['passport_versions'] = {
+            release_versions = {rel.get("version") for rel in comp.get("releases", [])}
+            comp["passport_versions"] = {
                 v: info
                 for v, info in passport_pages[comp_name].items()
                 if v in release_versions

@@ -75,5 +75,5 @@ class ArtifactoryClient(metaclass=Singleton):
             HTTP-ответ.
         """
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', urllib3.exceptions.InsecureRequestWarning)
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
             return self.session.head(url, allow_redirects=True, timeout=_HEAD_TIMEOUT)

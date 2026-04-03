@@ -29,7 +29,7 @@ class ArtifactoryValidationStep(BaseParseStep):
     Шаг некритический.
     """
 
-    name = 'Валидация ссылок Artifactory'
+    name = "Валидация ссылок Artifactory"
     is_critical = False
 
     def execute(self, ctx: PipelineContext) -> None:
@@ -42,17 +42,17 @@ class ArtifactoryValidationStep(BaseParseStep):
         variants_to_check = self._collect_variants(ctx.components)
 
         if not variants_to_check:
-            logger.info('ArtifactoryValidationStep: нет ссылок для проверки.')
+            logger.info("ArtifactoryValidationStep: нет ссылок для проверки.")
             return
 
-        logger.info('ArtifactoryValidationStep: проверяем %d ссылок…', len(variants_to_check))
+        logger.info("ArtifactoryValidationStep: проверяем %d ссылок…", len(variants_to_check))
 
         client = ArtifactoryClient(ctx.config)
         dead_variants = self._check_urls_parallel(variants_to_check, client)
         self._remove_dead_variants(dead_variants)
 
         logger.info(
-            'ArtifactoryValidationStep: удалено %d недоступных вариантов (HTTP 404).',
+            "ArtifactoryValidationStep: удалено %d недоступных вариантов (HTTP 404).",
             len(dead_variants),
         )
 
@@ -78,7 +78,7 @@ class ArtifactoryValidationStep(BaseParseStep):
                     for variant in pb.variants:
                         if variant.build_url:
                             api_url = variant.build_url.replace(
-                                '/ui/repos/tree/General/', '/artifactory/'
+                                "/ui/repos/tree/General/", "/artifactory/"
                             )
                             result.append((pb, variant, api_url))
         return result
@@ -122,7 +122,7 @@ class ArtifactoryValidationStep(BaseParseStep):
                 completed += 1
                 if completed % _LOG_PROGRESS_INTERVAL == 0 or completed == total:
                     logger.debug(
-                        'ArtifactoryValidationStep: проверено %d/%d ссылок…', completed, total
+                        "ArtifactoryValidationStep: проверено %d/%d ссылок…", completed, total
                     )
                 if not is_valid:
                     dead.append((pb, variant))

@@ -9,8 +9,8 @@ from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 
-_DEFAULT_DATA_DIR: Path = Path('data')
-_DEFAULT_PASSPORT_TEMPLATE: str = 'component_passport.jinja2'
+_DEFAULT_DATA_DIR: Path = Path("data")
+_DEFAULT_PASSPORT_TEMPLATE: str = "component_passport.jinja2"
 
 
 class DocumentPublisher:
@@ -39,7 +39,7 @@ class DocumentPublisher:
         self._client: ConfluenceClient = ConfluenceClient(confluence_config)
         self._builder: DocumentBuilder = DocumentBuilder(templates_dir)
         self._data_dir: Path = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
-        logger.info('DocumentPublisher инициализирован')
+        logger.info("DocumentPublisher инициализирован")
 
     def publish(
         self,
@@ -63,7 +63,7 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатами публикации.
         """
-        logger.info('публикация стратегии "%s"', strategy_type)
+        logger.info("публикация стратегии \"%s\"", strategy_type)
         strategy = BasePublishStrategy.create(
             strategy_type,
             confluence_client=self._client,
@@ -108,17 +108,17 @@ class DocumentPublisher:
             Агрегированный ``PublishReport``: поля ``success``, ``pages_published``,
             ``errors`` и ``details`` объединяются из обоих отчётов.
         """
-        logger.info('publish_all: паспорта + релиз')
+        logger.info("publish_all: паспорта + релиз")
 
         passports_report = self.publish(
-            strategy_type='passports',
+            strategy_type="passports",
             parsed_data=parsed_data,
             root_page_id=passports_root_page_id,
             template_name=passport_template_name,
         )
 
         release_report = self.publish(
-            strategy_type='release',
+            strategy_type="release",
             parsed_data=parsed_data,
             page_title=release_page_title,
             template_name=release_template_name,

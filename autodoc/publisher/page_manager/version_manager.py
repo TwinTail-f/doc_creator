@@ -44,10 +44,10 @@ class PageVersionManager:
             Номер версии или ``0`` если извлечь не удалось.
         """
         try:
-            return int(response.get('version', {}).get('number', _FALLBACK_VERSION))
+            return int(response.get("version", {}).get("number", _FALLBACK_VERSION))
         except (ValueError, TypeError, AttributeError):
             logger.warning(
-                'PageVersionManager: не удалось извлечь версию из ответа: %r', response
+                "PageVersionManager: не удалось извлечь версию из ответа: %r", response
             )
             return _FALLBACK_VERSION
 

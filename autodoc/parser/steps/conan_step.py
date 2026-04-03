@@ -8,7 +8,7 @@ class ConanEnrichStep(BaseParseStep):
     Шаг 3: Запускает conan graph info и применяет результаты к моделям.
     """
 
-    name = 'Обогащение данными Conan graph info'
+    name = "Обогащение данными Conan graph info"
     is_critical = False
 
     def execute(self, ctx: PipelineContext) -> None:
@@ -26,8 +26,8 @@ class ConanEnrichStep(BaseParseStep):
         conan_result = manager.enrich_components(
             components=ctx.components,
             target_platform=ctx.config.platform_version,
-            artifactory_base_url=ctx.config.artifactory_components_conan2_url or '',
+            artifactory_base_url=ctx.config.artifactory_components_conan2_url or "",
         )
         # 2.2 Мутация — только через DataEnricher
         DataEnricher.apply_conan_results(ctx.components, conan_result)
-        ctx.intermediate['conan_report'] = conan_result.errors
+        ctx.intermediate["conan_report"] = conan_result.errors

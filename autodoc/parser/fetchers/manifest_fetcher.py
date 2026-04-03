@@ -11,7 +11,7 @@ from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
 from autodoc.parser.steps.base import PipelineContext
 from autodoc.parser.clients.tfs_client import TFSClient
 
-_MANIFESTS_REPO: str = 'platform'
+_MANIFESTS_REPO: str = "platform"
 
 
 class ManifestFetcher(BaseTFSFetcher[list[Component]]):
@@ -31,7 +31,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             ctx: Контекст пайплайна с заполненной конфигурацией.
         """
         self._tfs = TFSClient(ctx.config)
-        self._base_url = ctx.config.tfs_dep_components_url.rstrip('/')
+        self._base_url = ctx.config.tfs_dep_components_url.rstrip("/")
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
         self._platform_version = ctx.config.platform_version
@@ -52,7 +52,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         """
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
-        items_url = '%s/_apis/git/repositories/%s/items' % (self._base_url, _MANIFESTS_REPO)
+        items_url = "%s/_apis/git/repositories/%s/items" % (self._base_url, _MANIFESTS_REPO)
         self._tfs.download_properties(
             items_url=items_url,
             remote_path=self._manifests_remotes_path,
@@ -60,11 +60,11 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             output_dir=str(tmp_dir),
         )
 
-        properties_files = list(tmp_dir.glob('*.properties'))
+        properties_files = list(tmp_dir.glob("*.properties"))
         if not properties_files:
             raise ParsingError(
-                'ManifestFetcher: в директории %s не найдено .properties-файлов '
-                'после скачивания из TFS.' % tmp_dir
+                "ManifestFetcher: в директории %s не найдено .properties-файлов "
+                "после скачивания из TFS." % tmp_dir
             )
 
         parser = ManifestParser(target_platform=self._platform_version)

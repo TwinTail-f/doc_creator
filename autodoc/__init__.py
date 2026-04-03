@@ -5,7 +5,7 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.publisher.publisher import DocumentPublisher
 
 __all__ = [
-    'ConfigManager',
-    'ComponentParser',
-    'DocumentPublisher',
+    "ConfigManager",
+    "ComponentParser",
+    "DocumentPublisher",
 ]

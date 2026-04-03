@@ -4,16 +4,16 @@ from typing import Dict
 
 from autodoc.infrastructure.logger import logger
 
-_VERSION_HEADER_PATTERN: str = r'<h[2-3]>.*?([vV][\d.]+).*?</h[2-3]>'
-_UNKNOWN_SECTION_KEY: str = 'unknown'
+_VERSION_HEADER_PATTERN: str = r"<h[2-3]>.*?([vV][\d.]+).*?</h[2-3]>"
+_UNKNOWN_SECTION_KEY: str = "unknown"
 
 _TAG_TAB: str = '<ac:structured-macro ac:name="tab">'
 _TAG_TAB_PANE: str = '<ac:structured-macro ac:name="tab-pane">'
 _TAG_TABS_GROUP: str = '<ac:structured-macro ac:name="tabs-group">'
 _TAG_PARAM_NAME_OPEN: str = '<ac:parameter ac:name="name">'
-_TAG_PARAM_CLOSE: str = '</ac:parameter>'
-_TAG_BODY_OPEN: str = '<ac:rich-text-body>'
-_TAG_BODY_CLOSE: str = '</ac:rich-text-body>'
+_TAG_PARAM_CLOSE: str = "</ac:parameter>"
+_TAG_BODY_OPEN: str = "<ac:rich-text-body>"
+_TAG_BODY_CLOSE: str = "</ac:rich-text-body>"
 
 # Шаг смещения при пропуске нераспознанного фрагмента в цикле разбора вкладок.
 _PARSE_SKIP_STEP: int = 10
@@ -48,7 +48,7 @@ class LegacyContentMerger:
         Returns:
             Словарь ``{имя_версии: html_контент}``.
         """
-        logger.debug('LegacyContentMerger: разбор страницы на секции версий')
+        logger.debug("LegacyContentMerger: разбор страницы на секции версий")
         sections: Dict[str, str] = {}
 
         if _TAG_TAB_PANE in html or _TAG_TAB in html:
@@ -73,7 +73,7 @@ class LegacyContentMerger:
             Словарь ``{имя_вкладки: html_контент}`` или пустой словарь,
             если вкладки не удалось распознать.
         """
-        logger.debug('LegacyContentMerger: обнаружены вкладки, разбор по вкладкам')
+        logger.debug("LegacyContentMerger: обнаружены вкладки, разбор по вкладкам")
         sections: Dict[str, str] = {}
         curr_idx = 0
 
@@ -112,7 +112,7 @@ class LegacyContentMerger:
 
         if sections:
             logger.debug(
-                'LegacyContentMerger: разобрано %d секций из вкладок', len(sections)
+                "LegacyContentMerger: разобрано %d секций из вкладок", len(sections)
             )
         return sections
 
@@ -155,7 +155,7 @@ class LegacyContentMerger:
                     content = html[body_start + len(_TAG_BODY_OPEN):next_close].strip()
                     return content, search_idx
 
-        return '', search_idx
+        return "", search_idx
 
     @staticmethod
     def _parse_header_sections(html: str) -> Dict[str, str]:
@@ -175,28 +175,28 @@ class LegacyContentMerger:
         Returns:
             Словарь ``{версия: html_контент}``.
         """
-        logger.debug('LegacyContentMerger: вкладки не найдены, разбор по заголовкам h2/h3')
+        logger.debug("LegacyContentMerger: вкладки не найдены, разбор по заголовкам h2/h3")
         sections: Dict[str, str] = {}
         current_version = _UNKNOWN_SECTION_KEY
         current_content: list[str] = []
 
-        for line in html.split('\n'):
+        for line in html.split("\n"):
             version_match = re.search(_VERSION_HEADER_PATTERN, line)
             if version_match:
                 if current_content:
-                    sections[current_version] = '\n'.join(current_content).strip()
+                    sections[current_version] = "\n".join(current_content).strip()
                     current_content = []
                 current_version = version_match.group(1)
             current_content.append(line)
 
         if current_content:
-            sections[current_version] = '\n'.join(current_content).strip()
+            sections[current_version] = "\n".join(current_content).strip()
 
         if _UNKNOWN_SECTION_KEY in sections and not sections[_UNKNOWN_SECTION_KEY].strip():
             del sections[_UNKNOWN_SECTION_KEY]
 
         logger.debug(
-            'LegacyContentMerger: разобрано %d секций из заголовков', len(sections)
+            "LegacyContentMerger: разобрано %d секций из заголовков", len(sections)
         )
         return sections
 
@@ -227,25 +227,25 @@ class LegacyContentMerger:
             или ``new_html`` без изменений если вкладки уже есть в шаблоне.
         """
         if not legacy_contents:
-            logger.debug('LegacyContentMerger: нет legacy-контента, возврат нового HTML')
+            logger.debug("LegacyContentMerger: нет legacy-контента, возврат нового HTML")
             return new_html
 
         if _TAG_TABS_GROUP in new_html:
             logger.info(
-                'LegacyContentMerger: шаблон уже содержит tabs-group, пропуск оборачивания'
+                "LegacyContentMerger: шаблон уже содержит tabs-group, пропуск оборачивания"
             )
             return new_html
 
-        tabs_html = _TAG_TABS_GROUP + '\n'
+        tabs_html = _TAG_TABS_GROUP + "\n"
         tabs_html += LegacyContentMerger._render_tab(current_platform, new_html)
 
         for version_name, content in sorted(legacy_contents.items(), reverse=True):
             if version_name.lower() != current_platform.lower():
                 tabs_html += LegacyContentMerger._render_tab(version_name, content)
 
-        tabs_html += '</ac:structured-macro>'
+        tabs_html += "</ac:structured-macro>"
         logger.info(
-            'LegacyContentMerger: объединено %d legacy-секций с новым контентом',
+            "LegacyContentMerger: объединено %d legacy-секций с новым контентом",
             len(legacy_contents),
         )
         return tabs_html
@@ -265,6 +265,6 @@ class LegacyContentMerger:
         return (
             '  <ac:structured-macro ac:name="tab">\n'
             '    <ac:parameter ac:name="name">%s</ac:parameter>\n'
-            '    <ac:rich-text-body>\n      %s\n    </ac:rich-text-body>\n'
-            '  </ac:structured-macro>\n'
+            "    <ac:rich-text-body>\n      %s\n    </ac:rich-text-body>\n"
+            "  </ac:structured-macro>\n"
         ) % (name, content)

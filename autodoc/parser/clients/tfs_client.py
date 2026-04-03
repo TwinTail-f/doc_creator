@@ -25,8 +25,8 @@ from autodoc.infrastructure.singleton import Singleton
 class RecursionLevel(str, Enum):
     """Допустимые уровни рекурсии для TFS Items API."""
 
-    ONE_LEVEL = 'OneLevel'
-    FULL = 'Full'
+    ONE_LEVEL = "OneLevel"
+    FULL = "Full"
 
 
 class TFSClient(metaclass=Singleton):
@@ -42,7 +42,7 @@ class TFSClient(metaclass=Singleton):
         session: HTTP-сессия с настроенной аутентификацией и retry-логикой.
     """
 
-    _API_VERSION: str = '7.1'
+    _API_VERSION: str = "7.1"
 
     def __init__(self, config: ParserConfigSchema) -> None:
         """
@@ -60,8 +60,8 @@ class TFSClient(metaclass=Singleton):
         """
         if not (config.tfs_username and config.tfs_token):
             raise ConfigError(
-                'TFSClient: учётные данные не переданы. '
-                'Укажите tfs_username и tfs_token в конфигурации.'
+                "TFSClient: учётные данные не переданы. "
+                "Укажите tfs_username и tfs_token в конфигурации."
             )
 
         self.session = create_retryable_session(
@@ -71,7 +71,7 @@ class TFSClient(metaclass=Singleton):
             backoff_factor=config.retry_backoff_factor,
             timeout=config.tfs_request_timeout,
         )
-        self.session.params = {'api-version': self._API_VERSION}
+        self.session.params = {"api-version": self._API_VERSION}
 
     @classmethod
     def reset(cls) -> None:
@@ -102,42 +102,42 @@ class TFSClient(metaclass=Singleton):
             NetworkError: Если не удалось получить список файлов.
         """
         params = {
-            'scopePath': remote_path,
-            'versionDescriptor.version': branch,
-            'recursionLevel': RecursionLevel.ONE_LEVEL.value,
+            "scopePath": remote_path,
+            "versionDescriptor.version": branch,
+            "recursionLevel": RecursionLevel.ONE_LEVEL.value,
         }
 
-        logger.info('запрос списка файлов из %s (ветка: %s)', items_url, branch)
+        logger.info("запрос списка файлов из %s (ветка: %s)", items_url, branch)
 
         try:
             response = self.session.get(items_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                'ошибка при получении списка файлов: %s' % e
+                "ошибка при получении списка файлов: %s" % e
             ) from e
 
-        items = response.json().get('value', [])
-        logger.info('найдено %d элементов, начинаем скачивание…', len(items))
+        items = response.json().get("value", [])
+        logger.info("найдено %d элементов, начинаем скачивание…", len(items))
 
         out_dir = Path(output_dir)
         downloaded_count = 0
 
         for item in items:
-            path_str: str = item.get('path', '')
-            if item.get('isFolder') or not path_str.endswith('.properties'):
+            path_str: str = item.get("path", "")
+            if item.get("isFolder") or not path_str.endswith(".properties"):
                 continue
 
             file_name = Path(path_str).name
             try:
                 file_response = self.get_file_content(items_url, path_str, branch)
                 file_response.raise_for_status()
-                (out_dir / file_name).write_text(file_response.text, encoding='utf-8')
+                (out_dir / file_name).write_text(file_response.text, encoding="utf-8")
                 downloaded_count += 1
             except requests.exceptions.RequestException as e:
-                logger.warning('не удалось скачать %s: %s. Пропускаем.', file_name, e)
+                logger.warning("не удалось скачать %s: %s. Пропускаем.", file_name, e)
 
-        logger.info('успешно скачано %d файлов.', downloaded_count)
+        logger.info("успешно скачано %d файлов.", downloaded_count)
 
     def get_file_content(
         self,
@@ -160,14 +160,14 @@ class TFSClient(metaclass=Singleton):
             NetworkError: Если запрос не удался.
         """
         params = {
-            'path': path,
-            'versionDescriptor.version': branch,
+            "path": path,
+            "versionDescriptor.version": branch,
         }
         try:
             return self.session.get(items_url, params=params)
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                'ошибка запроса файла %s: %s' % (path, e)
+                "ошибка запроса файла %s: %s" % (path, e)
             ) from e
 
     def get_items(
@@ -191,15 +191,15 @@ class TFSClient(metaclass=Singleton):
             NetworkError: Если запрос не удался.
         """
         params = {
-            'recursionLevel': recursion.value,
-            'versionDescriptor.version': branch,
+            "recursionLevel": recursion.value,
+            "versionDescriptor.version": branch,
         }
         try:
             response = self.session.get(items_url, params=params)
             response.raise_for_status()
-            return response.json().get('value', [])
+            return response.json().get("value", [])
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                'ошибка запроса структуры репозитория '
-                '(url=%s, branch=%s): %s' % (items_url, branch, e)
+                "ошибка запроса структуры репозитория "
+                "(url=%s, branch=%s): %s" % (items_url, branch, e)
             ) from e

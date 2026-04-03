@@ -64,8 +64,8 @@ class ComponentParser:
         """
         self._config = config
         self._data_dir = data_dir
-        self._tmp_dir = data_dir / 'tmp'
-        self._intermediate_dir = data_dir / 'intermediate'
+        self._tmp_dir = data_dir / "tmp"
+        self._intermediate_dir = data_dir / "intermediate"
         self._steps: list[BaseParseStep] = (
             steps if steps is not None else default_pipeline(config)
         )
@@ -76,7 +76,7 @@ class ComponentParser:
         config: ParserConfigSchema,
         data_dir: Path,
         exclude: list[type],
-    ) -> 'ComponentParser':
+    ) -> "ComponentParser":
         """
         Фабричный метод: создаёт парсер без указанных классов шагов.
 
@@ -118,22 +118,22 @@ class ComponentParser:
 
         try:
             for step in self._steps:
-                logger.info('ComponentParser → [%s]…', step.name)
+                logger.info("ComponentParser → [%s]…", step.name)
                 try:
                     step.execute(ctx)
-                    logger.info('ComponentParser ✓ [%s]', step.name)
+                    logger.info("ComponentParser ✓ [%s]", step.name)
                 except DocGeneratorError as exc:
                     if step.is_critical:
                         logger.error(
-                            'ComponentParser ✗ [%s] — критическая ошибка: %s',
+                            "ComponentParser ✗ [%s] — критическая ошибка: %s",
                             step.name, exc,
                         )
                         raise ParsingError(
-                            'Критический шаг "%s" завершился с ошибкой: %s'
+                            "Критический шаг \"%s\" завершился с ошибкой: %s"
                             % (step.name, exc)
                         ) from exc
                     logger.warning(
-                        'ComponentParser ⚠ [%s] — некритическая ошибка (продолжаем): %s',
+                        "ComponentParser ⚠ [%s] — некритическая ошибка (продолжаем): %s",
                         step.name, exc,
                     )
 
@@ -144,10 +144,10 @@ class ComponentParser:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
             TFSClient.reset()
             ArtifactoryClient.reset()
-            logger.debug('временная директория и клиенты очищены.')
+            logger.debug("временная директория и клиенты очищены.")
 
         if ctx.result is None:
-            raise ParsingError('ComponentParser: FinalizeStep не заполнил ctx.result.')
+            raise ParsingError("ComponentParser: FinalizeStep не заполнил ctx.result.")
 
         return ctx.result
 
@@ -156,21 +156,21 @@ class ComponentParser:
         step_idx = next(
             (i for i, s in enumerate(self._steps) if s.name == step_name), 0
         )
-        safe_name = step_name.lower().replace(' ', '_').replace('/', '_')
-        filepath = self._intermediate_dir / ('%02d_%s.json' % (step_idx + 1, safe_name))
+        safe_name = step_name.lower().replace(" ", "_").replace("/", "_")
+        filepath = self._intermediate_dir / ("%02d_%s.json" % (step_idx + 1, safe_name))
 
         snapshot = {
-            'step': step_name,
-            'components_count': len(ctx.components),
-            'docker_links_count': len(ctx.intermediate.get('docker_links', {})),
-            'intermediate_keys': list(ctx.intermediate.keys()),
+            "step": step_name,
+            "components_count": len(ctx.components),
+            "docker_links_count": len(ctx.intermediate.get("docker_links", {})),
+            "intermediate_keys": list(ctx.intermediate.keys()),
         }
 
         try:
             filepath.write_text(
                 json.dumps(snapshot, indent=2, ensure_ascii=False, default=str),
-                encoding='utf-8',
+                encoding="utf-8",
             )
-            logger.debug('сохранён снимок → %s', filepath.name)
+            logger.debug("сохранён снимок → %s", filepath.name)
         except OSError as e:
-            logger.warning('не удалось сохранить снимок %s: %s', filepath, e)
+            logger.warning("не удалось сохранить снимок %s: %s", filepath, e)

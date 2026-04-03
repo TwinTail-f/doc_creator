@@ -38,7 +38,7 @@ class ComponentParsingError(ParsingError):
         """
         self.component_name = component_name
         self.original_error = original_error
-        super().__init__(f"Компонент '{component_name}': {message}")
+        super().__init__(f"Компонент \"{component_name}\": {message}")
 
 class PublishError(DocGeneratorError):
     """Ошибка публикации страницы в Confluence."""

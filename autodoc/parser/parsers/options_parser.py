@@ -6,7 +6,7 @@ import json
 
 from autodoc.infrastructure.logger import logger
 
-_CI_PRIORITY = ('/ci-2.0/', '/ci-1.6/')
+_CI_PRIORITY = ("/ci-2.0/", "/ci-1.6/")
 
 
 class OptionsParser:
@@ -18,7 +18,7 @@ class OptionsParser:
         for prefix in _CI_PRIORITY:
             if any(prefix in p for p in options_paths):
                 return prefix
-        return ''
+        return ""
 
     @staticmethod
     def parse_file(
@@ -35,17 +35,17 @@ class OptionsParser:
         try:
             parsed: dict = json.loads(text)
         except json.JSONDecodeError as e:
-            logger.warning('ошибка чтения %s: %s', opt_path, e)
+            logger.warning("ошибка чтения %s: %s", opt_path, e)
             return None, {}
 
         cleaned: dict[str, str] = {
-            str(k): (v.strip() if isinstance(v, str) else '')
+            str(k): (v.strip() if isinstance(v, str) else "")
             for k, v in parsed.items()
             if isinstance(v, (str, type(None)))
         }
 
         tail = opt_path.split(ci_prefix)[1]
-        parts = tail.split('/')
+        parts = tail.split("/")
         channel_name: str | None = parts[0] if len(parts) > 1 else None
 
         return channel_name, cleaned
@@ -53,10 +53,10 @@ class OptionsParser:
     @staticmethod
     def pick_options(repo_data: dict, channel: str) -> dict[str, str]:
         """Выбирает набор опций для заданного канала."""
-        channels = repo_data.get('channels', {})
+        channels = repo_data.get("channels", {})
         if channel and channel in channels:
             return channels[channel]
-        global_opts = repo_data.get('global', {})
+        global_opts = repo_data.get("global", {})
         if global_opts:
             return global_opts
-        return {'1': ''}
+        return {"1": ""}

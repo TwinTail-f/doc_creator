@@ -2,8 +2,8 @@
 from autodoc.infrastructure.logger import logger
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
-_COMPONENT_PAGE_BODY: str = 'Автоматически созданная страница компонента'
-_VERSION_PAGE_BODY: str = 'Автоматически созданная страница версии'
+_COMPONENT_PAGE_BODY: str = "Автоматически созданная страница компонента"
+_VERSION_PAGE_BODY: str = "Автоматически созданная страница версии"
 
 
 class PageHierarchyManager:
@@ -21,7 +21,7 @@ class PageHierarchyManager:
             confluence_client: Экземпляр ``ConfluenceClient``.
         """
         self._client: ConfluenceClient = confluence_client
-        logger.debug('PageHierarchyManager инициализирован')
+        logger.debug("PageHierarchyManager инициализирован")
 
     def ensure_hierarchy_exists(
         self,
@@ -50,7 +50,7 @@ class PageHierarchyManager:
             PublishError: Если создание промежуточных страниц не удалось.
         """
         logger.debug(
-            'PageHierarchyManager: иерархия для %s@%s', component_name, release_version
+            "PageHierarchyManager: иерархия для %s@%s", component_name, release_version
         )
 
         comp_page_id = self._client.get_or_create_page(
@@ -60,7 +60,7 @@ class PageHierarchyManager:
             body=_COMPONENT_PAGE_BODY,
         )
 
-        version_title = '%s %s' % (component_name, release_version)
+        version_title = "%s %s" % (component_name, release_version)
         version_page_id = self._client.get_or_create_page(
             space=space,
             title=version_title,
@@ -93,6 +93,6 @@ class PageHierarchyManager:
         """
         return (
             component_name,
-            '%s %s' % (component_name, release_version),
-            'Documentation %s %s' % (component_name, release_version),
+            "%s %s" % (component_name, release_version),
+            "Documentation %s %s" % (component_name, release_version),
         )

@@ -46,7 +46,7 @@ class PassportTransformer(BaseDataTransformer):
         )
         if not target_comp:
             raise ValueError(
-                'PassportTransformer: компонент "%s" не найден' % self._component_name
+                "PassportTransformer: компонент \"%s\" не найден" % self._component_name
             )
 
         target_rel = next(
@@ -56,7 +56,7 @@ class PassportTransformer(BaseDataTransformer):
         )
         if not target_rel:
             raise ValueError(
-                'PassportTransformer: версия %s для "%s" не найдена'
+                "PassportTransformer: версия %s для \"%s\" не найдена"
                 % (self._release_version, self._component_name)
             )
 
@@ -67,41 +67,41 @@ class PassportTransformer(BaseDataTransformer):
                 settings = profile_settings[pb.profile_name]
 
             enriched_pbs.append({
-                'profile_name': pb.profile_name,
-                'conan_settings': settings,
-                'exists': pb.exists,
-                'docker_image': pb.docker_image,   # новое имя
-                'variants': [v.model_dump() for v in (pb.variants or [])],
+                "profile_name": pb.profile_name,
+                "conan_settings": settings,
+                "exists": pb.exists,
+                "docker_image": pb.docker_image,   # новое имя
+                "variants": [v.model_dump() for v in (pb.variants or [])],
             })
 
         release_dict = {
-            'version': target_rel.version,
-            'platform': target_rel.platform,
-            'channel': target_rel.channel,
-            'git_url': target_rel.git_url,
-            'conan_reference': target_rel.conan_reference,
-            'artifactory_url': target_rel.artifactory_url,
-            'is_header_only': target_rel.is_header_only,       # новое имя
-            'build_option_sets': [bos.model_dump() for bos in target_rel.build_option_sets],
-            'default_options': [o.model_dump() for o in target_rel.default_options],
-            'patches': target_rel.patches,
-            'dependencies': target_rel.dependencies,
-            'profile_builds': enriched_pbs,
+            "version": target_rel.version,
+            "platform": target_rel.platform,
+            "channel": target_rel.channel,
+            "git_url": target_rel.git_url,
+            "conan_reference": target_rel.conan_reference,
+            "artifactory_url": target_rel.artifactory_url,
+            "is_header_only": target_rel.is_header_only,       # новое имя
+            "build_option_sets": [bos.model_dump() for bos in target_rel.build_option_sets],
+            "default_options": [o.model_dump() for o in target_rel.default_options],
+            "patches": target_rel.patches,
+            "dependencies": target_rel.dependencies,
+            "profile_builds": enriched_pbs,
         }
 
         return {
-            'platform_version': data.platform_version,
-            'generated_at': data.generated_at,
-            'component': {
-                'name': target_comp.name,
-                'description': target_comp.description,
-                'git_project': target_comp.git_project,
-                'git_repo': target_comp.git_repo,
+            "platform_version": data.platform_version,
+            "generated_at": data.generated_at,
+            "component": {
+                "name": target_comp.name,
+                "description": target_comp.description,
+                "git_project": target_comp.git_project,
+                "git_repo": target_comp.git_repo,
                 # data.component.releases — список из одного элемента,
                 # чтобы шаблон мог groupby('channel') без изменений
-                'releases': [release_dict],
+                "releases": [release_dict],
             },
             # data.release — для обратной совместимости и прямого доступа
-            'release': release_dict,
-            'legacy_contents': {},
+            "release": release_dict,
+            "legacy_contents": {},
         }

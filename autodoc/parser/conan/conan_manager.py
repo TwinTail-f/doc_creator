@@ -63,11 +63,11 @@ class ConanManager:
         tasks = self._task_builder.build(components, target_platform, artifactory_base_url)
 
         if not tasks:
-            logger.info('нет задач для выполнения.')
+            logger.info("нет задач для выполнения.")
             return ConanEnrichmentResult()
 
         logger.info(
-            'ConanManager: сформировано %d задач, запуск в %d потоках…',
+            "ConanManager: сформировано %d задач, запуск в %d потоках…",
             len(tasks), _DEFAULT_MAX_WORKERS,
         )
 
@@ -101,7 +101,7 @@ class ConanManager:
             for future in as_completed(future_to_idx):
                 completed += 1
                 if completed % 50 == 0 or completed == total:
-                    logger.info('прогресс %d/%d задач…', completed, total)
+                    logger.info("прогресс %d/%d задач…", completed, total)
 
                 idx = future_to_idx[future]
                 results[idx] = future.result()
@@ -127,7 +127,7 @@ class ConanManager:
                 if enrich:
                     agg.apply_enrich(enrich)
             else:
-                agg.errors.append({' '.join(task.cmd): raw.error})
+                agg.errors.append({" ".join(task.cmd): raw.error})
 
         result = ConanEnrichmentResult(
             total_tasks=len(tasks),
@@ -147,9 +147,9 @@ class ConanManager:
 
             if agg.first_enrich and release_key not in result.release_data:
                 fe = agg.first_enrich
-                art_url = ''
+                art_url = ""
                 if art_base:
-                    art_url = '%s/platform-%s/%s/%s/%s/%s' % (
+                    art_url = "%s/platform-%s/%s/%s/%s/%s" % (
                         art_base, target_platform,
                         task.comp_name, fe.full_version,
                         task.channel, fe.rrev,
@@ -179,7 +179,7 @@ class ConanManager:
 class _PbAgg:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
-    __slots__ = ('any_success', 'unique_variants', 'first_enrich', 'conan_settings', 'errors')
+    __slots__ = ("any_success", "unique_variants", "first_enrich", "conan_settings", "errors")
 
     def __init__(self) -> None:
         self.any_success = False
@@ -206,10 +206,10 @@ class _PbAgg:
 
         if enrich.package_id and enrich.package_id not in self.unique_variants:
             self.unique_variants[enrich.package_id] = {
-                'package_id': enrich.package_id,
-                'build_url': enrich.build_url,
-                'build_date': enrich.build_date,
-                'conan_options': enrich.conan_options,
+                "package_id": enrich.package_id,
+                "build_url": enrich.build_url,
+                "build_date": enrich.build_date,
+                "conan_options": enrich.conan_options,
             }
 
 def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: list[dict]) -> None:

@@ -9,33 +9,33 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, PrivateAttr
 
 # 1.6 Именованное множество допустимых типов опции Conan
-OptionType = Literal['bool', 'enum', 'ANY', 'string']
+OptionType = Literal["bool", "enum", "ANY", "string"]
 
 class BuildOptionSet(BaseModel):
     """Один набор опций сборки Conan с идентификатором для корреляции задач."""
 
-    id: str = Field(..., description='Идентификатор набора опций (например "1", "2")')
+    id: str = Field(..., description="Идентификатор набора опций (например \"1\", \"2\")")
     options: str = Field(
-        default='',
-        description='Строка опций в нативном формате Conan (например "shared=False, fPIC=True")',
+        default="",
+        description="Строка опций в нативном формате Conan (например \"shared=False, fPIC=True\")",
     )
 
 class OptionDefinition(BaseModel):
     """Описание одной дефолтной опции Conan-пакета."""
 
-    name: str = Field(..., description='Имя опции')
-    type: OptionType = Field(..., description='Тип значения опции')  # 1.6
-    default_value: Any = Field(..., description='Значение по умолчанию')
+    name: str = Field(..., description="Имя опции")
+    type: OptionType = Field(..., description="Тип значения опции")  # 1.6
+    default_value: Any = Field(..., description="Значение по умолчанию")
 
 class ConanVariant(BaseModel):
     """Один конкретный вариант сборки Conan-пакета (конкретный package_id)."""
 
-    package_id: str = Field(..., description='Идентификатор Conan-пакета')
-    build_url: str = Field(default='', description='URL сборки в Artifactory')
-    build_date: str = Field(default='', description='Дата сборки пакета')
+    package_id: str = Field(..., description="Идентификатор Conan-пакета")
+    build_url: str = Field(default="", description="URL сборки в Artifactory")
+    build_date: str = Field(default="", description="Дата сборки пакета")
     conan_options: dict[str, Any] = Field(
         default_factory=dict,
-        description='Фактические опции конкретной сборки: {name: value}',
+        description="Фактические опции конкретной сборки: {name: value}",
     )
     # 1.1 option_set_id и option_set_str удалены — артефакты пайплайна,
     #     не часть доменной модели. Остаются только в ConanEnrichData.
@@ -43,61 +43,61 @@ class ConanVariant(BaseModel):
 class ProfileBuild(BaseModel):
     """Сборка компонента под конкретный профиль (архитектура / платформа)."""
 
-    profile_name: str = Field(..., description='Имя профиля сборки')
+    profile_name: str = Field(..., description="Имя профиля сборки")
     conan_settings: dict[str, Any] = Field(
         default_factory=dict,
-        description='Настройки Conan для профиля',
+        description="Настройки Conan для профиля",
     )
     exists: bool = Field(          # 1.2 было: pb_exist
         default=False,
-        description='True — пакет для данного профиля найден в Artifactory',
+        description="True — пакет для данного профиля найден в Artifactory",
     )
     docker_image: str = Field(     # 1.2 было: profile_docker_url
-        default='',
-        description='URL Docker-образа для сборки профиля',
+        default="",
+        description="URL Docker-образа для сборки профиля",
     )
     variants: list[ConanVariant] = Field(
         default_factory=list,
-        description='Список конкретных вариантов пакета',
+        description="Список конкретных вариантов пакета",
     )
 
 class Release(BaseModel):
     """Один релиз (версия) компонента с привязкой к платформе и каналу."""
 
-    version: str = Field(..., description='Версия компонента')
-    platform: str = Field(..., description='Целевая платформа')
-    channel: str = Field(..., description='Conan-канал (например "stable")')
-    git_url: str = Field(..., description='URL репозитория в Git/TFS')
+    version: str = Field(..., description="Версия компонента")
+    platform: str = Field(..., description="Целевая платформа")
+    channel: str = Field(..., description="Conan-канал (например \"stable\")")
+    git_url: str = Field(..., description="URL репозитория в Git/TFS")
 
     # 1.3 git_project и git_repo удалены из Release — они есть в Component.
     #     OptionsFetcher берёт их из Component, который получает вместе с релизом.
 
-    conan_reference: str = Field(default='', description='Ссылка Conan (name/version@user/channel)')
-    artifactory_url: str = Field(default='', description='URL пакета в Artifactory')
+    conan_reference: str = Field(default="", description="Ссылка Conan (name/version@user/channel)")
+    artifactory_url: str = Field(default="", description="URL пакета в Artifactory")
 
     # 1.4 было: conan_options — переименовано, чтобы устранить коллизию смыслов.
     #     ConanVariant.conan_options — фактические опции конкретной сборки {name: value}.
     #     Release.build_option_sets — наборы конфигураций сборки {id: option_string}.
     build_option_sets: list[BuildOptionSet] = Field(
         default_factory=list,
-        description='Наборы конфигураций сборки Conan',
+        description="Наборы конфигураций сборки Conan",
     )
 
     default_options: list[OptionDefinition] = Field(
         default_factory=list,
-        description='Список дефолтных опций из conan graph info',
+        description="Список дефолтных опций из conan graph info",
     )
-    patches: list[str] = Field(default_factory=list, description='Список патчей')
-    dependencies: list[str] = Field(default_factory=list, description='Список зависимостей')
+    patches: list[str] = Field(default_factory=list, description="Список патчей")
+    dependencies: list[str] = Field(default_factory=list, description="Список зависимостей")
 
     is_header_only: bool = Field(  # 1.5 было: is_header_only_component
         default=False,
-        description='True — header-only компонент (нет бинарных артефактов)',
+        description="True — header-only компонент (нет бинарных артефактов)",
     )
 
     profile_builds: list[ProfileBuild] = Field(
         default_factory=list,
-        description='Список сборок по профилям',
+        description="Список сборок по профилям",
     )
 
     # Внутреннее хранилище наборов опций для шага Conan — не сериализуется
@@ -106,24 +106,21 @@ class Release(BaseModel):
 class Component(BaseModel):
     """Компонент платформы — верхний уровень доменной модели."""
 
-    name: str = Field(..., description='Уникальное имя компонента')
-    description: str = Field(default='', description='Краткое описание компонента')
-    git_project: str = Field(default='', description='Проект в TFS/Git')
-    git_repo: str = Field(default='', description='Имя репозитория')
+    name: str = Field(..., description="Уникальное имя компонента")
+    description: str = Field(default="", description="Краткое описание компонента")
+    git_project: str = Field(default="", description="Проект в TFS/Git")
+    git_repo: str = Field(default="", description="Имя репозитория")
     releases: list[Release] = Field(
         default_factory=list,
-        description='Список релизов компонента',
+        description="Список релизов компонента",
     )
 
-    # 1.7 extra='allow' убран — маскировал ошибки.
-    #     Pydantic v2 по умолчанию игнорирует лишние поля (extra='ignore').
-
 __all__ = [
-    'OptionType',
-    'BuildOptionSet',
-    'OptionDefinition',
-    'ConanVariant',
-    'ProfileBuild',
-    'Release',
-    'Component',
+    "OptionType",
+    "BuildOptionSet",
+    "OptionDefinition",
+    "ConanVariant",
+    "ProfileBuild",
+    "Release",
+    "Component",
 ]

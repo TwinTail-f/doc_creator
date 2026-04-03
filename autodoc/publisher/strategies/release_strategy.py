@@ -12,7 +12,7 @@ from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
 
 
-class ReleasePageStrategy(BasePublishStrategy, strategy_type='release'):
+class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
     """
     Публикует документацию релиза (вид от компонентов) на одной странице Confluence.
 
@@ -60,11 +60,11 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type='release'):
             ValueError: Если ``space``, ``page_title`` или ``template_name`` пустые.
         """
         if not space:
-            raise ValueError('space cannot be empty')
+            raise ValueError("space cannot be empty")
         if not page_title:
-            raise ValueError('page_title cannot be empty')
+            raise ValueError("page_title cannot be empty")
         if not template_name:
-            raise ValueError('template_name cannot be empty')
+            raise ValueError("template_name cannot be empty")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
         self._transformer: BaseDataTransformer = transformer
@@ -92,8 +92,8 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type='release'):
             Готовый ``FullReleaseTransformer``.
         """
         return FullReleaseTransformer(
-            include_passport_links=kwargs.get('include_passport_links', True),
-            passport_page_pattern=kwargs.pop('passport_page_pattern', None),
+            include_passport_links=kwargs.get("include_passport_links", True),
+            passport_page_pattern=kwargs.pop("passport_page_pattern", None),
         )
 
     def execute(self) -> PublishReport:
@@ -107,16 +107,16 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type='release'):
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
         """
-        logger.info('ReleasePageStrategy: публикация %r', self._page_title)
+        logger.info("ReleasePageStrategy: публикация %r", self._page_title)
         errors: list[str] = []
         details: list[dict[str, Any]] = []
 
         try:
             view_model = self._transformer.transform(self._data)
             if not view_model:
-                raise ValueError('трансформер вернул пустой результат')
+                raise ValueError("трансформер вернул пустой результат")
 
-            view_model['space'] = self._space
+            view_model["space"] = self._space
 
             if self._include_passport_links:
                 passport_pages = self._registry.load()
@@ -125,27 +125,27 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type='release'):
             html_body = self._builder.build(self._template_name, view_model)
             result = self._client.publish_page(
                 space=self._space,
-                parent_id=self._parent_id or '',
+                parent_id=self._parent_id or "",
                 title=self._page_title,
                 body_html=html_body,
             )
 
             details.append({
-                'page_title': self._page_title,
-                'page_id': result['id'],
-                'version': result['version'],
-                'status': result['status'],
-                'template': self._template_name,
+                "page_title": self._page_title,
+                "page_id": result["id"],
+                "version": result["version"],
+                "status": result["status"],
+                "template": self._template_name,
             })
             logger.info(
-                'ReleasePageStrategy: %r %s (ID: %s)',
-                self._page_title, result['status'], result['id'],
+                "ReleasePageStrategy: %r %s (ID: %s)",
+                self._page_title, result["status"], result["id"],
             )
             return PublishReport(success=True, pages_published=1, details=details)
 
         except Exception as e:
             errors.append(str(e))
-            logger.error('ReleasePageStrategy: ошибка публикации %r: %s', self._page_title, e)
+            logger.error("ReleasePageStrategy: ошибка публикации %r: %s", self._page_title, e)
             return PublishReport(
                 success=False, pages_published=0, errors=errors, details=details
             )

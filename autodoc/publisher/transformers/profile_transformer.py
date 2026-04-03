@@ -48,7 +48,7 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
         Returns:
             Словарь с профилями как верхним уровнем иерархии.
         """
-        logger.debug('трансформация в профиль-центричный вид')
+        logger.debug("трансформация в профиль-центричный вид")
 
         # Собираем агрегированные настройки и docker URL по профилям
         profile_meta: dict[str, dict[str, Any]] = {}
@@ -56,50 +56,50 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
             for rel in comp.releases:
                 for pb in rel.profile_builds:
                     if pb.profile_name not in profile_meta:
-                        profile_meta[pb.profile_name] = {'settings': {}, 'docker_url': ''}
+                        profile_meta[pb.profile_name] = {"settings": {}, "docker_url": ""}
                     if pb.conan_settings:
-                        profile_meta[pb.profile_name]['settings'].update(pb.conan_settings)
+                        profile_meta[pb.profile_name]["settings"].update(pb.conan_settings)
                     if pb.docker_image:
-                        profile_meta[pb.profile_name]['docker_url'] = pb.docker_image
+                        profile_meta[pb.profile_name]["docker_url"] = pb.docker_image
 
         profiles: list[dict[str, Any]] = []
         for profile_name in sorted(profile_meta):
-            settings = profile_meta[profile_name]['settings']
+            settings = profile_meta[profile_name]["settings"]
             entry: dict[str, Any] = {
-                'profile_name': profile_name,
-                'os': settings.get('os', 'Unknown'),
-                'arch': settings.get('arch', '—'),
-                'compiler': settings.get('compiler', '—'),
-                'compiler_version': settings.get('compiler.version', '—'),
-                'docker_url': profile_meta[profile_name]['docker_url'],
-                'include_passport_links': self._include_passport_links,
-                'channels': {},
+                "profile_name": profile_name,
+                "os": settings.get("os", "Unknown"),
+                "arch": settings.get("arch", "—"),
+                "compiler": settings.get("compiler", "—"),
+                "compiler_version": settings.get("compiler.version", "—"),
+                "docker_url": profile_meta[profile_name]["docker_url"],
+                "include_passport_links": self._include_passport_links,
+                "channels": {},
             }
 
             for comp in data.components:
                 for rel in comp.releases:
                     if not any(pb.profile_name == profile_name for pb in rel.profile_builds):
                         continue
-                    if rel.channel not in entry['channels']:
-                        entry['channels'][rel.channel] = []
-                    entry['channels'][rel.channel].append({
-                        'name': comp.name,
-                        'version': rel.version,
-                        'passport_link': self._passport_link(comp.name, rel.version),
-                        'git': '%s/%s' % (comp.git_project, comp.git_repo),
-                        'reference': rel.conan_reference or '—',
-                        'url': rel.artifactory_url or '—',
-                        'is_header_only': rel.is_header_only,
+                    if rel.channel not in entry["channels"]:
+                        entry["channels"][rel.channel] = []
+                    entry["channels"][rel.channel].append({
+                        "name": comp.name,
+                        "version": rel.version,
+                        "passport_link": self._passport_link(comp.name, rel.version),
+                        "git": "%s/%s" % (comp.git_project, comp.git_repo),
+                        "reference": rel.conan_reference or "—",
+                        "url": rel.artifactory_url or "—",
+                        "is_header_only": rel.is_header_only,
                     })
 
-            for channel in entry['channels']:
-                entry['channels'][channel].sort(key=lambda x: x['name'])
+            for channel in entry["channels"]:
+                entry["channels"][channel].sort(key=lambda x: x["name"])
 
             profiles.append(entry)
 
         return {
-            'platform_version': data.platform_version,
-            'generated_at': data.generated_at,
-            'include_passport_links': self._include_passport_links,
-            'profiles': profiles,
+            "platform_version": data.platform_version,
+            "generated_at": data.generated_at,
+            "include_passport_links": self._include_passport_links,
+            "profiles": profiles,
         }

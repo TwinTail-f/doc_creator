@@ -9,10 +9,10 @@ from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
 
-_DEFAULT_TEMPLATE: str = 'profile_centric.jinja2'
+_DEFAULT_TEMPLATE: str = "profile_centric.jinja2"
 
 
-class ProfileCentricStrategy(BasePublishStrategy, strategy_type='profile_centric'):
+class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric"):
     """
     Публикует профиль-центричную документацию релиза на одной странице Confluence.
 
@@ -65,9 +65,9 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type='profile_centric
             ValueError: Если ``space`` или ``page_title`` пустые.
         """
         if not space:
-            raise ValueError('space cannot be empty')
+            raise ValueError("space cannot be empty")
         if not page_title:
-            raise ValueError('page_title cannot be empty')
+            raise ValueError("page_title cannot be empty")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
         self._page_title: str = page_title
@@ -95,8 +95,8 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type='profile_centric
             Готовый ``ProfileCentricTransformer``.
         """
         return ProfileCentricTransformer(
-            include_passport_links=kwargs.get('include_passport_links', True),
-            passport_page_pattern=kwargs.get('passport_page_pattern', None),
+            include_passport_links=kwargs.get("include_passport_links", True),
+            passport_page_pattern=kwargs.get("passport_page_pattern", None),
         )
 
     def execute(self) -> PublishReport:
@@ -110,41 +110,41 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type='profile_centric
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
         """
-        logger.info('ProfileCentricStrategy: публикация %r', self._page_title)
+        logger.info("ProfileCentricStrategy: публикация %r", self._page_title)
         errors: list[str] = []
         details: list[dict[str, Any]] = []
 
         try:
             view_model = self._transformer.transform(self._data)
             if not view_model:
-                raise ValueError('трансформер вернул пустой результат')
+                raise ValueError("трансформер вернул пустой результат")
 
-            view_model['space'] = self._space
+            view_model["space"] = self._space
 
             html_body = self._builder.build(self._template_name, view_model)
             result = self._client.publish_page(
                 space=self._space,
-                parent_id=self._parent_id or '',
+                parent_id=self._parent_id or "",
                 title=self._page_title,
                 body_html=html_body,
             )
 
             details.append({
-                'page_title': self._page_title,
-                'page_id': result['id'],
-                'version': result['version'],
-                'status': result['status'],
-                'template': self._template_name,
+                "page_title": self._page_title,
+                "page_id": result["id"],
+                "version": result["version"],
+                "status": result["status"],
+                "template": self._template_name,
             })
             logger.info(
-                'ProfileCentricStrategy: %r %s (ID: %s)',
-                self._page_title, result['status'], result['id'],
+                "ProfileCentricStrategy: %r %s (ID: %s)",
+                self._page_title, result["status"], result["id"],
             )
             return PublishReport(success=True, pages_published=1, details=details)
 
         except Exception as e:
             errors.append(str(e))
-            logger.error('ProfileCentricStrategy: ошибка публикации %r: %s', self._page_title, e)
+            logger.error("ProfileCentricStrategy: ошибка публикации %r: %s", self._page_title, e)
             return PublishReport(
                 success=False, pages_published=0, errors=errors, details=details
             )

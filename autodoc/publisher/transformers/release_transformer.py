@@ -52,39 +52,39 @@ class FullReleaseTransformer(BaseReleaseTransformer):
         Returns:
             Словарь view-model для шаблона полного релиза.
         """
-        logger.debug('трансформация в полный вид')
+        logger.debug("трансформация в полный вид")
         return {
-            'platform_version': data.platform_version,
-            'generated_at': data.generated_at,
-            'include_passport_links': self._include_passport_links,
-            'components': [
+            "platform_version": data.platform_version,
+            "generated_at": data.generated_at,
+            "include_passport_links": self._include_passport_links,
+            "components": [
                 {
-                    'name': comp.name,
-                    'description': comp.description,
-                    'git_project': comp.git_project,
-                    'git_repo': comp.git_repo,
-                    'passport_link': self._passport_link(
+                    "name": comp.name,
+                    "description": comp.description,
+                    "git_project": comp.git_project,
+                    "git_repo": comp.git_repo,
+                    "passport_link": self._passport_link(
                         comp.name, comp.releases[0].version
                     ) if comp.releases else None,
-                    'releases': [
+                    "releases": [
                         {
-                            'version': rel.version,
-                            'platform': rel.platform,
-                            'channel': rel.channel,
-                            'git_url': rel.git_url,
-                            'conan_reference': rel.conan_reference,
-                            'artifactory_url': rel.artifactory_url,
-                            'is_header_only': rel.is_header_only,
-                            'build_option_sets': [bos.model_dump() for bos in rel.build_option_sets],
-                            'default_options': [o.model_dump() for o in rel.default_options],
-                            'patches': rel.patches,
-                            'dependencies': rel.dependencies,
-                            'profile_builds': [
+                            "version": rel.version,
+                            "platform": rel.platform,
+                            "channel": rel.channel,
+                            "git_url": rel.git_url,
+                            "conan_reference": rel.conan_reference,
+                            "artifactory_url": rel.artifactory_url,
+                            "is_header_only": rel.is_header_only,
+                            "build_option_sets": [bos.model_dump() for bos in rel.build_option_sets],
+                            "default_options": [o.model_dump() for o in rel.default_options],
+                            "patches": rel.patches,
+                            "dependencies": rel.dependencies,
+                            "profile_builds": [
                                 {
-                                    'profile_name': pb.profile_name,
-                                    'conan_settings': pb.conan_settings,
-                                    'docker_image': pb.docker_image,
-                                    'variants': [v.model_dump() for v in pb.variants],
+                                    "profile_name": pb.profile_name,
+                                    "conan_settings": pb.conan_settings,
+                                    "docker_image": pb.docker_image,
+                                    "variants": [v.model_dump() for v in pb.variants],
                                 }
                                 for pb in rel.profile_builds
                             ],

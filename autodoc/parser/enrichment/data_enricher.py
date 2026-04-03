@@ -51,7 +51,7 @@ class DataEnricher:
         for comp in components:
             for release in comp.releases:
                 for pb in release.profile_builds:
-                    pb.docker_image = docker_links.get(pb.profile_name, '')
+                    pb.docker_image = docker_links.get(pb.profile_name, "")
 
     @staticmethod
     def apply_conan_results(

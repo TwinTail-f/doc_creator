@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 if TYPE_CHECKING:
     from autodoc.parser.steps.base import PipelineContext
 
-_T = TypeVar('_T')
+_T = TypeVar("_T")
 
 
 @dataclass
@@ -42,7 +42,7 @@ class IFetcher(ABC, Generic[_T]):
     """
 
     @abstractmethod
-    def configure(self, ctx: 'PipelineContext') -> None:
+    def configure(self, ctx: "PipelineContext") -> None:
         """
         Инициализирует фетчер данными из контекста пайплайна.
 
@@ -54,7 +54,7 @@ class IFetcher(ABC, Generic[_T]):
         """
 
     @abstractmethod
-    def fetch(self, *args: Any, **kwargs: Any) -> 'FetchResult[_T]':
+    def fetch(self, *args: Any, **kwargs: Any) -> "FetchResult[_T]":
         """
         Загружает данные. Должен вызываться после ``configure()``.
 
@@ -78,4 +78,4 @@ class BaseTFSFetcher(IFetcher[_T]):
         self._tfs = None          # инициализируется в configure()
 
     @abstractmethod
-    def configure(self, ctx: 'PipelineContext') -> None: ...
+    def configure(self, ctx: "PipelineContext") -> None: ...

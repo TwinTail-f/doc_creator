@@ -4,8 +4,8 @@ from autodoc.publisher.transformers.release_transformer import FullReleaseTransf
 from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
 
 __all__ = [
-    'BaseDataTransformer',
-    'PassportTransformer',
-    'FullReleaseTransformer',
-    'ProfileCentricTransformer',
+    "BaseDataTransformer",
+    "PassportTransformer",
+    "FullReleaseTransformer",
+    "ProfileCentricTransformer",
 ]

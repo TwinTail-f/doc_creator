@@ -35,7 +35,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
         self._profiles_urls = ctx.config.profiles_urls or []
         self._platform_version = ctx.config.platform_version
 
-    def fetch(self, urls: list[str], target_platform: str) -> 'FetchResult[DockerLinksMap]':
+    def fetch(self, urls: list[str], target_platform: str) -> "FetchResult[DockerLinksMap]":
         """
         Скачивает YAML-файлы профилей и собирает маппинг Docker-образов.
 
@@ -50,33 +50,33 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
 
         for url in urls:
             parsed = urlparse(url)
-            if '/_git/' not in parsed.path:
-                logger.debug('DockerFetcher: пропуск URL без /_git/: %s', url)
+            if "/_git/" not in parsed.path:
+                logger.debug("DockerFetcher: пропуск URL без /_git/: %s", url)
                 continue
 
-            base_path, repo = parsed.path.split('/_git/', 1)
-            base_api_url = '%s://%s%s' % (parsed.scheme, parsed.netloc, base_path)
+            base_path, repo = parsed.path.split("/_git/", 1)
+            base_api_url = "%s://%s%s" % (parsed.scheme, parsed.netloc, base_path)
 
             query = parse_qs(parsed.query)
-            yaml_path = query.get('path', [''])[0]
-            branch_raw = query.get('version', [''])[0]
+            yaml_path = query.get("path", [""])[0]
+            branch_raw = query.get("version", [""])[0]
             branch = (
-                branch_raw[2:] if branch_raw.startswith('GB')
+                branch_raw[2:] if branch_raw.startswith("GB")
                 else (branch_raw or target_platform)
             )
 
-            items_url = '%s/_apis/git/repositories/%s/items' % (base_api_url, repo)
+            items_url = "%s/_apis/git/repositories/%s/items" % (base_api_url, repo)
 
             try:
                 res = self._tfs.get_file_content(items_url, yaml_path, branch)
                 if res.status_code != requests.codes.ok:
                     logger.warning(
-                        'DockerFetcher: файл недоступен (HTTP %d) — %s', res.status_code, url
+                        "DockerFetcher: файл недоступен (HTTP %d) — %s", res.status_code, url
                     )
                     continue
                 content = yaml.safe_load(res.text) or {}
             except (requests.exceptions.RequestException, yaml.YAMLError) as e:
-                logger.warning('DockerFetcher: ошибка получения/парсинга %s: %s', url, e)
+                logger.warning("DockerFetcher: ошибка получения/парсинга %s: %s", url, e)
                 continue
 
             DockerParser.extract_from_yaml(content, docker_links)

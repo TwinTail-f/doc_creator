@@ -41,8 +41,8 @@ class Conan2Runner(BaseConanRunner):
     Каждый вызов ``run()`` независим — безопасен для использования из нескольких потоков.
     """
 
-    _CONAN_NOT_FOUND_MSG: str = 'Утилита conan не найдена. Проверьте PATH.'
-    _CLEAN_CACHE_CMD: list[str] = ['conan', 'remove', '*', '-c']
+    _CONAN_NOT_FOUND_MSG: str = "Утилита conan не найдена. Проверьте PATH."
+    _CLEAN_CACHE_CMD: list[str] = ["conan", "remove", "*", "-c"]
     _CLEAN_CACHE_TIMEOUT: int = 60
 
     def __init__(self, timeout: int) -> None:
@@ -77,7 +77,7 @@ class Conan2Runner(BaseConanRunner):
                 task=task,
                 success=False,
                 data=None,
-                error='Таймаут выполнения команды (%d с).' % self._timeout,
+                error="Таймаут выполнения команды (%d с)." % self._timeout,
             )
         except FileNotFoundError:
             return ConanRawResult(
@@ -97,13 +97,13 @@ class Conan2Runner(BaseConanRunner):
 
         try:
             parsed = json.loads(result.stdout)
-            return ConanRawResult(task=task, success=True, data=parsed, error='')
+            return ConanRawResult(task=task, success=True, data=parsed, error="")
         except json.JSONDecodeError as e:
             return ConanRawResult(
                 task=task,
                 success=False,
                 data=None,
-                error='JSON decode error: %s. STDOUT: %s' % (e, result.stdout[:300]),
+                error="JSON decode error: %s. STDOUT: %s" % (e, result.stdout[:300]),
             )
 
     def clean_cache(self) -> None:
@@ -113,7 +113,7 @@ class Conan2Runner(BaseConanRunner):
         Raises:
             RuntimeError: Если утилита ``conan`` не найдена в PATH.
         """
-        logger.info('Conan2Runner: очищаем локальный кэш Conan 2…')
+        logger.info("Conan2Runner: очищаем локальный кэш Conan 2…")
         try:
             result = subprocess.run(
                 self._CLEAN_CACHE_CMD,
@@ -122,13 +122,13 @@ class Conan2Runner(BaseConanRunner):
                 timeout=self._CLEAN_CACHE_TIMEOUT,
             )
             if result.returncode == 0:
-                logger.info('Conan2Runner: кэш Conan 2 очищен.')
+                logger.info("Conan2Runner: кэш Conan 2 очищен.")
             else:
                 logger.debug(
-                    'Conan2Runner: кэш пуст или некритичная ошибка: %s', result.stderr.strip()
+                    "Conan2Runner: кэш пуст или некритичная ошибка: %s", result.stderr.strip()
                 )
         except subprocess.TimeoutExpired:
-            logger.warning('Conan2Runner: таймаут при очистке кэша.')
+            logger.warning("Conan2Runner: таймаут при очистке кэша.")
         except FileNotFoundError:
             raise RuntimeError(self._CONAN_NOT_FOUND_MSG)
 
@@ -147,7 +147,7 @@ class Conan2Runner(BaseConanRunner):
         Returns:
             Укороченное сообщение об ошибке.
         """
-        for prefix in ('ERROR:', 'Error:'):
+        for prefix in ("ERROR:", "Error:"):
             idx = stderr.find(prefix)
             if idx != -1:
                 return stderr[idx:]

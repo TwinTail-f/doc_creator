@@ -9,10 +9,10 @@ from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 class ManifestStep(BaseParseStep):
     """Шаг 1: Скачивает манифесты из TFS и парсит их в модели Component."""
 
-    name = 'Загрузка и парсинг манифестов'
+    name = "Загрузка и парсинг манифестов"
     is_critical = True
 
-    def __init__(self, fetcher: 'IFetcher[list[Component]] | None' = None) -> None:
+    def __init__(self, fetcher: "IFetcher[list[Component]] | None" = None) -> None:
         self._fetcher = fetcher or ManifestFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:

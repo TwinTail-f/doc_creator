@@ -53,13 +53,13 @@ class BaseParseStep(ABC):
     программы, а не во время выполнения пайплайна.
     """
 
-    name: str = ''
+    name: str = ""
     is_critical: bool = True
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        if not getattr(cls, '__abstractmethods__', None) and not cls.name:
-            raise TypeError('%s должен определить атрибут name' % cls.__name__)
+        if not getattr(cls, "__abstractmethods__", None) and not cls.name:
+            raise TypeError("%s должен определить атрибут name" % cls.__name__)
 
     @abstractmethod
     def execute(self, ctx: PipelineContext) -> None:

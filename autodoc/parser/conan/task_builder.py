@@ -7,7 +7,7 @@ from autodoc.models.component import Component, ProfileBuild, Release
 
 # Шаблон Conan version range с поддержкой pre-release версий
 _CONAN_REF_TEMPLATE: str = (
-    '{name}/[~{version},include_prerelease]@platform-{platform}/{channel}'
+    "{name}/[~{version},include_prerelease]@platform-{platform}/{channel}"
 )
 
 
@@ -73,11 +73,11 @@ class ConanTaskBuilder:
             Список задач. Может быть пустым, если у компонентов нет профилей.
         """
         tasks: list[ConanTask] = []
-        art_base = artifactory_base_url.rstrip('/')
+        art_base = artifactory_base_url.rstrip("/")
 
         for comp in components:
             for release in comp.releases:
-                options_dict = release._build_option_sets_internal or {'1': ''}
+                options_dict = release._build_option_sets_internal or {"1": ""}
 
                 reference = _CONAN_REF_TEMPLATE.format(
                     name=comp.name,
@@ -96,7 +96,7 @@ class ConanTaskBuilder:
                             channel=release.channel,
                             profile_name=pb.profile_name,
                             option_id=str(opt_id),
-                            option_str=opt_str.strip() if opt_str else '',
+                            option_str=opt_str.strip() if opt_str else "",
                             target_platform=target_platform,
                             artifactory_base_url=art_base,
                             release=release,
@@ -124,18 +124,18 @@ class ConanTaskBuilder:
             Список аргументов для передачи в ``subprocess.run``.
         """
         cmd = [
-            'conan', 'graph', 'info',
-            '--requires=%s' % reference,
-            '-pr=%s' % profile_name,
-            '--format=json',
+            "conan", "graph", "info",
+            "--requires=%s" % reference,
+            "-pr=%s" % profile_name,
+            "--format=json",
         ]
 
         if opt_str:
-            for raw_opt in opt_str.split(','):
+            for raw_opt in opt_str.split(","):
                 opt = raw_opt.strip()
                 if not opt:
                     continue
-                cmd.extend(['-o', ConanTaskBuilder._normalize_option(opt)])
+                cmd.extend(["-o", ConanTaskBuilder._normalize_option(opt)])
 
         return cmd
 
@@ -151,9 +151,9 @@ class ConanTaskBuilder:
         Returns:
             Нормализованная строка опции.
         """
-        if ':' in opt:
-            if '/*:' not in opt and not opt.startswith('*:'):
-                pkg, rest = opt.split(':', 1)
-                return '%s/*:%s' % (pkg, rest)
+        if ":" in opt:
+            if "/*:" not in opt and not opt.startswith("*:"):
+                pkg, rest = opt.split(":", 1)
+                return "%s/*:%s" % (pkg, rest)
             return opt
-        return '*:%s' % opt
+        return "*:%s" % opt
