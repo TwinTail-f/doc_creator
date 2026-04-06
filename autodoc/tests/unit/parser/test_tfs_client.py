@@ -3,7 +3,6 @@ Unit-тесты для TFSClient.
 
 Покрывают:
 - инициализацию и передачу параметров в сессию
-- поведение синглтона (создание, reset)
 - все публичные методы (download_properties, get_file_content, get_items)
 - обработку сетевых ошибок
 
@@ -16,7 +15,6 @@ from unittest.mock import MagicMock, patch, call
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ConfigError, NetworkError
-from autodoc.infrastructure.singleton import Singleton
 from autodoc.parser.clients.tfs_client import RecursionLevel, TFSClient
 
 _TFS_SESSION_PATH = "autodoc.parser.clients.tfs_client.create_retryable_session"
@@ -82,68 +80,15 @@ class TestTFSClientInit:
         with pytest.raises(ConfigError):
             TFSClient(bad)
 
-
-# ---------------------------------------------------------------------------
-# Singleton
-# ---------------------------------------------------------------------------
-
-class TestTFSClientSingleton:
-    """Тесты паттерна Singleton для TFSClient."""
-
-    def test_repeated_call_returns_same_instance(self, minimal_config: ParserConfigSchema) -> None:
-        """Повторный вызов TFSClient(config) возвращает тот же объект."""
+    def test_each_call_creates_independent_instance(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
+        """Каждый вызов TFSClient(config) возвращает новый независимый экземпляр."""
         with patch(_TFS_SESSION_PATH, return_value=_make_mock_session()):
             first = TFSClient(minimal_config)
-            second = TFSClient(minimal_config)
-
-        assert first is second
-
-    def test_factory_called_only_once_for_singleton(self, minimal_config: ParserConfigSchema) -> None:
-        """create_retryable_session вызывается ровно один раз при множественных вызовах конструктора."""
-        with patch(_TFS_SESSION_PATH, return_value=_make_mock_session()) as mock_factory:
-            TFSClient(minimal_config)
-            TFSClient(minimal_config)
-            TFSClient(minimal_config)
-
-        assert mock_factory.call_count == 1
-
-    def test_reset_removes_instance_from_registry(self, minimal_config: ParserConfigSchema) -> None:
-        """После reset() экземпляр исчезает из реестра Singleton."""
-        with patch(_TFS_SESSION_PATH, return_value=_make_mock_session()):
-            TFSClient(minimal_config)
-
-        assert TFSClient in Singleton._instances
-        TFSClient.reset()
-        assert TFSClient not in Singleton._instances
-
-    def test_reset_does_not_close_session(self, minimal_config: ParserConfigSchema) -> None:
-        """reset() удаляет экземпляр без вызова session.close()."""
-        mock_session = _make_mock_session()
-        with patch(_TFS_SESSION_PATH, return_value=mock_session):
-            TFSClient(minimal_config)
-
-        TFSClient.reset()
-        mock_session.close.assert_not_called()
-
-    def test_new_instance_created_after_reset(self, minimal_config: ParserConfigSchema) -> None:
-        """После reset() новый вызов создаёт другой экземпляр."""
-        with patch(_TFS_SESSION_PATH, return_value=_make_mock_session()):
-            first = TFSClient(minimal_config)
-            TFSClient.reset()
             second = TFSClient(minimal_config)
 
         assert first is not second
-
-    def test_new_config_applied_after_reset(self, minimal_config: ParserConfigSchema) -> None:
-        """После reset() новый экземпляр создаётся с другим конфигом."""
-        with patch(_TFS_SESSION_PATH, return_value=_make_mock_session()):
-            TFSClient(minimal_config)
-            TFSClient.reset()
-            new_config = minimal_config.model_copy(update={"tfs_username": "new_user"})
-            client2 = TFSClient(new_config)
-
-        # api-version по-прежнему выставлен
-        assert client2.session.params == {"api-version": "7.1"}
 
 
 # ---------------------------------------------------------------------------
@@ -332,7 +277,6 @@ class TestDownloadProperties:
             "https://tfs.example.com/items", "/remotes", "develop", str(tmp_path)
         )
 
-        # Только один файл скачан
         assert len(list(tmp_path.iterdir())) == 1
 
     def test_raises_network_error_on_list_failure(
@@ -356,7 +300,6 @@ class TestDownloadProperties:
         ])
         ok_resp = MagicMock(spec=requests.Response)
         ok_resp.text = "b=2\n"
-        # Первый файл — ошибка, второй — ок
         client.session.get.side_effect = [
             list_resp,
             requests.exceptions.Timeout("timeout"),

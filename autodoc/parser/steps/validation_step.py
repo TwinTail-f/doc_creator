@@ -23,8 +23,8 @@ class ArtifactoryValidationStep(BaseParseStep):
     При сетевых ошибках вариант считается живым — чтобы не удалять данные
     из-за временных проблем сети.
 
-    Использует ``ArtifactoryClient`` синглтон — SSL-подавление инкапсулировано
-    внутри ``client.head()``.
+    Получает ``ArtifactoryClient`` из ``PipelineContext`` — SSL-подавление
+    инкапсулировано внутри ``client.head()``.
 
     Шаг некритический.
     """
@@ -45,9 +45,9 @@ class ArtifactoryValidationStep(BaseParseStep):
             logger.info("ArtifactoryValidationStep: нет ссылок для проверки.")
             return
 
-        logger.info("ArtifactoryValidationStep: проверяем %d ссылок…", len(variants_to_check))
+        logger.info(f"ArtifactoryValidationStep: проверяем {len(variants_to_check)} ссылок…")
 
-        client = ArtifactoryClient(ctx.config)
+        client = ctx.artifactory_client
         dead_variants = self._check_urls_parallel(variants_to_check, client)
         self._remove_dead_variants(dead_variants)
 

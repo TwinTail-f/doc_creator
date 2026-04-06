@@ -86,7 +86,7 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
                         "name": comp.name,
                         "version": rel.version,
                         "passport_link": self._passport_link(comp.name, rel.version),
-                        "git": "%s/%s" % (comp.git_project, comp.git_repo),
+                        "git": f"{comp.git_project}/{comp.git_repo}",
                         "reference": rel.conan_reference or "—",
                         "url": rel.artifactory_url or "—",
                         "is_header_only": rel.is_header_only,

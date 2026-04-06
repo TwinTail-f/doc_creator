@@ -43,18 +43,18 @@ class ManifestParser:
             try:
                 props = read_properties(filepath)
             except OSError as e:
-                msg = "не удалось прочитать %s: %s" % (filepath.name, e)
+                msg = f"не удалось прочитать {filepath.name}: {e}"
                 logger.warning(msg)
                 warnings.append(msg)
                 continue
 
             name = props.get("name", "")
             if not name:
-                logger.debug("пропуск %s — отсутствует поле \"name\"", filepath.name)
+                logger.debug(f"пропуск {filepath.name} — отсутствует поле \"name\"")
                 continue
 
             if name in excluded:
-                logger.debug("компонент \"%s\" исключён", name)
+                logger.debug(f"компонент {name!r} исключён")
                 excluded_count += 1
                 continue
 
@@ -71,7 +71,7 @@ class ManifestParser:
             ))
             parsed_count += 1
 
-        logger.info("обработано %d компонентов, исключено %d", parsed_count, excluded_count)
+        logger.info(f"обработано {parsed_count} компонентов, исключено {excluded_count}")
         return components, warnings
 
     def _build_releases(self, props: dict) -> list[Release]:
@@ -92,7 +92,7 @@ class ManifestParser:
         releases: list[Release] = []
 
         for p_ver in plat_versions:
-            if not (p_ver.startswith("%s-" % target_platform) or p_ver == target_platform):
+            if not (p_ver.startswith(f"{target_platform}-") or p_ver == target_platform):
                 continue
             for c_ver in comp_versions:
                 profiles_str = self._get_profiles_string(props, c_ver, p_ver)
@@ -104,7 +104,7 @@ class ManifestParser:
                     version=c_ver,
                     platform=target_platform,
                     channel=channel,
-                    git_url="%s/_git/%s" % (git_project, git_repo) if git_repo else "",
+                    git_url=f"{git_project}/_git/{git_repo}" if git_repo else "",
                     profile_builds=[
                         ProfileBuild(profile_name=prof)
                         for prof in profile_list
@@ -116,6 +116,6 @@ class ManifestParser:
     @staticmethod
     def _get_profiles_string(props: dict, c_ver: str, p_ver: str) -> str:
         """Извлекает строку со списком профилей для заданной комбинации версий."""
-        key_develop = "integration-profiles-develop-%s-%s" % (c_ver, p_ver)
-        key_profiles = "profiles-%s-%s" % (c_ver, p_ver)
+        key_develop = f"integration-profiles-develop-{c_ver}-{p_ver}"
+        key_profiles = f"profiles-{c_ver}-{p_ver}"
         return props.get(key_develop, props.get(key_profiles, ""))

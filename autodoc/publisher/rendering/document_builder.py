@@ -25,13 +25,13 @@ class DocumentBuilder:
         """
         if not templates_dir.exists():
             raise FileNotFoundError(
-                "Директория шаблонов не найдена: %s" % templates_dir
+                f"Директория шаблонов не найдена: {templates_dir}"
             )
 
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(templates_dir))
         )
-        logger.info("DocumentBuilder инициализирован: %s", templates_dir)
+        logger.info(f"DocumentBuilder инициализирован: {templates_dir}")
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:
         """
@@ -49,12 +49,12 @@ class DocumentBuilder:
             TemplateNotFound: Если шаблон не найден в директории.
             TemplateError: Если рендеринг завершился с ошибкой.
         """
-        logger.debug('рендеринг шаблона "%s"', template_name)
+        logger.debug(f'рендеринг шаблона "{template_name}"')
         try:
             template = self._env.get_template(template_name)
             html = template.render(data=view_model)
-            logger.info('шаблон "%s" отрендерен', template_name)
+            logger.info(f'шаблон "{template_name}" отрендерен')
             return html
         except (TemplateNotFound, TemplateError) as e:
-            logger.error('DocumentBuilder: ошибка рендеринга "%s": %s', template_name, e)
+            logger.error(f'DocumentBuilder: ошибка рендеринга "{template_name}": {e}')
             raise

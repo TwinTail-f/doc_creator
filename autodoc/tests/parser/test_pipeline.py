@@ -2,19 +2,18 @@
 import json
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import DocGeneratorError, ParsingError
-from autodoc.infrastructure.singleton import Singleton
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.tfs_client import TFSClient
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.manifest_step import ManifestStep
-from autodoc.parser.clients.tfs_client import TFSClient
 
 MINIMAL_CONFIG = ParserConfigSchema(
     platform_version="2.0",
@@ -24,16 +23,6 @@ MINIMAL_CONFIG = ParserConfigSchema(
     tfs_dep_components_url="https://tfs.example.com/DEP",
     manifests_remotes_path="/remotes/manifests",
 )
-
-
-@pytest.fixture(autouse=True)
-def reset_singletons():
-    """Сбрасывает реестр синглтонов до и после каждого теста."""
-    TFSClient.reset()
-    ArtifactoryClient.reset()
-    yield
-    TFSClient.reset()
-    ArtifactoryClient.reset()
 
 
 class _SuccessStep(BaseParseStep):
@@ -129,19 +118,31 @@ class TestPipelineStepOrder:
             ).parse()
         assert not (tmp_path / "tmp").exists()
 
-    def test_singletons_shut_down_after_parse(self, tmp_path: Path) -> None:
-        """После завершения parse() синглтоны клиентов сброшены."""
-        mock_session = MagicMock()
-        with patch(
-            "autodoc.parser.tfs_client.create_retryable_session", return_value=mock_session
-        ), patch(
-            "autodoc.parser.artifactory_client.create_retryable_session",
-            return_value=MagicMock(),
-        ):
-            ComponentParser(MINIMAL_CONFIG, tmp_path, steps=[_FinalizeStub()]).parse()
+    def test_injected_clients_are_placed_in_context(self, tmp_path: Path) -> None:
+        """Клиенты, переданные в конструктор, доступны через ctx во время выполнения."""
+        captured: dict = {}
 
-        assert TFSClient not in Singleton._instances
-        assert ArtifactoryClient not in Singleton._instances
+        class CapturingStep(BaseParseStep):
+            name = "CapturingStep"
+            def execute(self, ctx):
+                captured["tfs"] = ctx.tfs_client
+                captured["art"] = ctx.artifactory_client
+                ctx.result = ParsedResult(
+                    generated_at="2026-01-01", platform_version="2.0", components=[]
+                )
+
+        mock_tfs = MagicMock(spec=TFSClient)
+        mock_art = MagicMock(spec=ArtifactoryClient)
+
+        ComponentParser(
+            MINIMAL_CONFIG, tmp_path,
+            steps=[CapturingStep()],
+            tfs_client=mock_tfs,
+            artifactory_client=mock_art,
+        ).parse()
+
+        assert captured["tfs"] is mock_tfs
+        assert captured["art"] is mock_art
 
 
 class TestSaveIntermediate:
@@ -160,14 +161,8 @@ class TestSaveIntermediate:
 
 class TestManifestStepSingularity:
     def test_default_pipeline_has_exactly_one_manifest_step(self, tmp_path: Path) -> None:
-        mock_session = MagicMock()
-        with patch(
-            "autodoc.parser.tfs_client.create_retryable_session", return_value=mock_session
-        ), patch(
-            "autodoc.parser.artifactory_client.create_retryable_session",
-            return_value=MagicMock(),
-        ):
-            parser = ComponentParser(MINIMAL_CONFIG, tmp_path)
+        """default_pipeline() содержит ровно один ManifestStep — клиенты не создаются."""
+        parser = ComponentParser(MINIMAL_CONFIG, tmp_path)
         manifest_steps = [s for s in parser._steps if isinstance(s, ManifestStep)]
         assert len(manifest_steps) == 1
 

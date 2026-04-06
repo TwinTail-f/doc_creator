@@ -4,9 +4,6 @@
 import pytest
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.infrastructure.singleton import Singleton
-from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-from autodoc.parser.clients.tfs_client import TFSClient
 
 
 @pytest.fixture
@@ -23,13 +20,3 @@ def minimal_config() -> ParserConfigSchema:
         max_retries=2,
         retry_backoff_factor=1.5,
     )
-
-
-@pytest.fixture(autouse=True)
-def reset_all_singletons():
-    """Сбрасывает все синглтоны до и после каждого теста."""
-    TFSClient.reset()
-    ArtifactoryClient.reset()
-    yield
-    TFSClient.reset()
-    ArtifactoryClient.reset()

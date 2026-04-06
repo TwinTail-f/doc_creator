@@ -11,9 +11,8 @@ class ParserConfigSchema(BaseModel):
     # Обязательные поля
     platform_version: str = Field(..., description="Версия платформы (например \"2.0\")")
     platform_branch_name: str = Field(..., description="Ветка в репозитории (например \"develop\")")
-    tfs_username: str = Field(..., description="Имя пользователя TFS")
     tfs_token: str = Field(..., description="Personal Access Token для TFS")
-    # 4.2 было: tfs_DEP_Components_url
+    tfs_username: str = Field(default="", description="Имя пользователя TFS (опционально при PAT-аутентификации)")
     tfs_dep_components_url: str = Field(..., description="Базовый URL проекта DEP_Components в TFS")
     manifests_remotes_path: str = Field(..., description="Путь к директории с манифестами в TFS")
 

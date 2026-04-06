@@ -160,9 +160,8 @@ class ConanResultParser:
         if not task.artifactory_base_url or not rrev:
             return ""
         return (
-            "%s/platform-%s/%s/%s/%s/%s"
-            % (task.artifactory_base_url, task.target_platform,
-               task.comp_name, full_version, task.channel, rrev)
+            f"{task.artifactory_base_url}/platform-{task.target_platform}"
+            f"/{task.comp_name}/{full_version}/{task.channel}/{rrev}"
         )
 
     @staticmethod

@@ -125,8 +125,8 @@ class ConanTaskBuilder:
         """
         cmd = [
             "conan", "graph", "info",
-            "--requires=%s" % reference,
-            "-pr=%s" % profile_name,
+            f"--requires={reference}",
+            f"-pr={profile_name}",
             "--format=json",
         ]
 
@@ -154,6 +154,6 @@ class ConanTaskBuilder:
         if ":" in opt:
             if "/*:" not in opt and not opt.startswith("*:"):
                 pkg, rest = opt.split(":", 1)
-                return "%s/*:%s" % (pkg, rest)
+                return f"{pkg}/*:{rest}"
             return opt
-        return "*:%s" % opt
+        return f"*:{opt}"

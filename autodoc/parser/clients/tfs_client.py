@@ -4,9 +4,8 @@
 Живёт в ``parser/`` — используется fetcher-классами парсера
 (``ManifestFetcher``, ``DockerFetcher``, ``OptionsFetcher``).
 
-Синглтон реализован через метакласс ``Singleton``:
-первый вызов ``TFSClient(config)`` создаёт экземпляр,
-последующие вызовы с любыми аргументами возвращают тот же экземпляр.
+Создаётся один раз в ``ComponentParser.parse()`` и передаётся в
+``PipelineContext``. Фетчеры получают экземпляр через ``ctx.tfs_client``.
 """
 
 from enum import Enum
@@ -19,7 +18,6 @@ from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ConfigError, NetworkError
 from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.singleton import Singleton
 
 
 class RecursionLevel(str, Enum):
@@ -29,14 +27,15 @@ class RecursionLevel(str, Enum):
     FULL = "Full"
 
 
-class TFSClient(metaclass=Singleton):
+class TFSClient:
     """
     Клиент для выполнения запросов к TFS с автоматической retry-логикой.
 
-    Синглтон — первый вызов ``TFSClient(config)`` создаёт экземпляр,
-    последующие вызовы возвращают тот же объект без повторной инициализации.
+    Создаётся через ``TFSClient(config)`` и внедряется в ``PipelineContext``.
+    Не хранит глобального состояния — каждый экземпляр независим.
 
-    Для сброса в тестах — ``TFSClient.reset()``.
+    Аутентификация: PAT-токен через Basic auth. Username опционален —
+    Azure DevOps принимает любое (в том числе пустое) значение.
 
     Attributes:
         session: HTTP-сессия с настроенной аутентификацией и retry-логикой.
@@ -48,39 +47,25 @@ class TFSClient(metaclass=Singleton):
         """
         Инициализирует TFS-клиент из конфигурации парсера.
 
-        Вызывается только при первом создании синглтона. При повторных вызовах
-        ``TFSClient(config)`` метакласс возвращает существующий экземпляр,
-        не вызывая ``__init__`` повторно.
-
         Args:
             config: Валидированная конфигурация парсера с учётными данными TFS.
 
         Raises:
-            ConfigError: Если ``tfs_username`` или ``tfs_token`` не заданы.
+            ConfigError: Если ``tfs_token`` не задан.
         """
-        if not (config.tfs_username and config.tfs_token):
+        if not config.tfs_token:
             raise ConfigError(
-                "TFSClient: учётные данные не переданы. "
-                "Укажите tfs_username и tfs_token в конфигурации."
+                "TFSClient: tfs_token не задан в конфигурации."
             )
 
         self.session = create_retryable_session(
-            username=config.tfs_username,
+            username=config.tfs_username or None,
             token=config.tfs_token,
             max_retries=config.max_retries,
             backoff_factor=config.retry_backoff_factor,
             timeout=config.tfs_request_timeout,
         )
         self.session.params = {"api-version": self._API_VERSION}
-
-    @classmethod
-    def reset(cls) -> None:
-        """
-        Удаляет экземпляр из реестра синглтонов без закрытия сессии.
-
-        Предназначен только для использования в тестах.
-        """
-        Singleton._instances.pop(cls, None)
 
     def download_properties(
         self,
@@ -107,18 +92,18 @@ class TFSClient(metaclass=Singleton):
             "recursionLevel": RecursionLevel.ONE_LEVEL.value,
         }
 
-        logger.info("запрос списка файлов из %s (ветка: %s)", items_url, branch)
+        logger.info(f"запрос списка файлов из {items_url} (ветка: {branch})")
 
         try:
             response = self.session.get(items_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                "ошибка при получении списка файлов: %s" % e
+                f"ошибка при получении списка файлов: {e}"
             ) from e
 
         items = response.json().get("value", [])
-        logger.info("найдено %d элементов, начинаем скачивание…", len(items))
+        logger.info(f"найдено {len(items)} элементов, начинаем скачивание…")
 
         out_dir = Path(output_dir)
         downloaded_count = 0
@@ -135,9 +120,9 @@ class TFSClient(metaclass=Singleton):
                 (out_dir / file_name).write_text(file_response.text, encoding="utf-8")
                 downloaded_count += 1
             except requests.exceptions.RequestException as e:
-                logger.warning("не удалось скачать %s: %s. Пропускаем.", file_name, e)
+                logger.warning(f"не удалось скачать {file_name}: {e}. Пропускаем.")
 
-        logger.info("успешно скачано %d файлов.", downloaded_count)
+        logger.info(f"успешно скачано {downloaded_count} файлов.")
 
     def get_file_content(
         self,
@@ -167,7 +152,7 @@ class TFSClient(metaclass=Singleton):
             return self.session.get(items_url, params=params)
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                "ошибка запроса файла %s: %s" % (path, e)
+                f"ошибка запроса файла {path}: {e}"
             ) from e
 
     def get_items(
@@ -200,6 +185,5 @@ class TFSClient(metaclass=Singleton):
             return response.json().get("value", [])
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                "ошибка запроса структуры репозитория "
-                "(url=%s, branch=%s): %s" % (items_url, branch, e)
+                f"ошибка запроса структуры репозитория (url={items_url}, branch={branch}): {e}"
             ) from e

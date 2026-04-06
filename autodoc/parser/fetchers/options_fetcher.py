@@ -8,7 +8,6 @@ from autodoc.models.component import Component
 from autodoc.parser.parsers.options_parser import OptionsParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
 from autodoc.parser.steps.base import PipelineContext
-from autodoc.parser.clients.tfs_client import TFSClient
 
 OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
@@ -25,12 +24,12 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         Инициализирует фетчер из контекста пайплайна.
 
-        Получает синглтон ``TFSClient`` и сохраняет базовый URL.
+        Получает ``TFSClient`` из контекста и сохраняет базовый URL.
 
         Args:
-            ctx: Контекст пайплайна с заполненной конфигурацией.
+            ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
-        self._tfs = TFSClient(ctx.config)
+        self._tfs = ctx.tfs_client
         self._base_url = ctx.config.tfs_dep_components_url.rstrip("/")
 
     def fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
@@ -52,12 +51,12 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         for comp in components:
             repo_name = comp.git_repo
             if not repo_name:
-                fetch_warnings.append("\"%s\" без git_repo, пропуск" % comp.name)
+                fetch_warnings.append(f"{comp.name!r} без git_repo, пропуск")
                 continue
 
             for release in comp.releases:
-                branch = "release_%s" % release.version
-                cache_key = "%s_%s" % (repo_name, branch)
+                branch = f"release_{release.version}"
+                cache_key = f"{repo_name}_{branch}"
 
                 if cache_key not in options_cache:
                     options_cache[cache_key] = self._fetch_options_for_repo(repo_name, branch)
@@ -65,7 +64,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 chosen = OptionsParser.pick_options(options_cache[cache_key], release.channel)
                 result[(comp.name, release.version, release.channel)] = chosen
 
-        logger.info("OptionsFetcher: завершён. Собрано опций для %d релизов.", len(result))
+        logger.info(f"OptionsFetcher: завершён. Собрано опций для {len(result)} релизов.")
         return FetchResult(value=result, warnings=fetch_warnings)
 
     def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
@@ -80,14 +79,12 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             Словарь с ключами ``'global'`` и ``'channels'``.
         """
         repo_data: dict = {"global": {}, "channels": {}}
-        items_url = "%s/_apis/git/repositories/%s/items" % (self._base_url, repo_name)
+        items_url = f"{self._base_url}/_apis/git/repositories/{repo_name}/items"
 
         try:
             items = self._tfs.get_items(items_url, branch)
         except NetworkError as e:
-            logger.warning(
-                "OptionsFetcher: пропуск репо \"%s\" (ветка \"%s\"): %s", repo_name, branch, e
-            )
+            logger.warning(f"OptionsFetcher: пропуск репо {repo_name!r} (ветка {branch!r}): {e}")
             return repo_data
 
         options_paths = [
@@ -131,7 +128,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             if response.status_code != 200:
                 return
         except (NetworkError, OSError) as e:
-            logger.warning("OptionsFetcher: ошибка скачивания %s: %s", opt_path, e)
+            logger.warning(f"OptionsFetcher: ошибка скачивания {opt_path}: {e}")
             return
 
         channel_name, cleaned = OptionsParser.parse_file(response.text, opt_path, ci_prefix)

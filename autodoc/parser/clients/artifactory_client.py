@@ -1,9 +1,9 @@
 """
 Клиент для HTTP HEAD-проверки ссылок в Artifactory.
 
-Синглтон реализован через метакласс ``Singleton``:
-первый вызов ``ArtifactoryClient(config)`` создаёт экземпляр,
-последующие вызовы возвращают тот же объект.
+Создаётся один раз в ``ComponentParser.parse()`` и передаётся в
+``PipelineContext``. Шаги пайплайна получают экземпляр через
+``ctx.artifactory_client``.
 """
 import warnings
 
@@ -13,18 +13,18 @@ import urllib3
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.singleton import Singleton
 
 _HEAD_TIMEOUT: int = 10
 _MAX_RETRIES: int = 1
 
 
-class ArtifactoryClient(metaclass=Singleton):
+class ArtifactoryClient:
     """
     HTTP-клиент для проверки доступности ссылок в Artifactory.
 
-    Синглтон — первый вызов ``ArtifactoryClient(config)`` создаёт экземпляр,
-    последующие вызовы возвращают тот же объект без повторной инициализации.
+    Создаётся через ``ArtifactoryClient(config)`` и внедряется в
+    ``PipelineContext``. Не хранит глобального состояния — каждый
+    экземпляр независим.
 
     Отключает SSL-верификацию и подавляет ``InsecureRequestWarning``
     только внутри ``head()`` — не глобально.
@@ -37,10 +37,6 @@ class ArtifactoryClient(metaclass=Singleton):
         """
         Инициализирует Artifactory-клиент из конфигурации парсера.
 
-        Вызывается только при первом создании синглтона. При повторных вызовах
-        ``ArtifactoryClient(config)`` метакласс возвращает существующий экземпляр,
-        не вызывая ``__init__`` повторно.
-
         Args:
             config: Валидированная конфигурация парсера с учётными данными Artifactory.
         """
@@ -51,15 +47,6 @@ class ArtifactoryClient(metaclass=Singleton):
             timeout=_HEAD_TIMEOUT,
         )
         self.session.verify = False
-
-    @classmethod
-    def reset(cls) -> None:
-        """
-        Удаляет экземпляр из реестра синглтонов без закрытия сессии.
-
-        Предназначен только для использования в тестах.
-        """
-        Singleton._instances.pop(cls, None)
 
     def head(self, url: str) -> requests.Response:
         """

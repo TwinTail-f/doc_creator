@@ -60,7 +60,7 @@ class PageHierarchyManager:
             body=_COMPONENT_PAGE_BODY,
         )
 
-        version_title = "%s %s" % (component_name, release_version)
+        version_title = f"{component_name} {release_version}"
         version_page_id = self._client.get_or_create_page(
             space=space,
             title=version_title,
@@ -93,6 +93,6 @@ class PageHierarchyManager:
         """
         return (
             component_name,
-            "%s %s" % (component_name, release_version),
-            "Documentation %s %s" % (component_name, release_version),
+            f"{component_name} {release_version}",
+            f"Documentation {component_name} {release_version}",
         )

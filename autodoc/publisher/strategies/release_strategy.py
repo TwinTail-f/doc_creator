@@ -107,7 +107,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
         """
-        logger.info("ReleasePageStrategy: публикация %r", self._page_title)
+        logger.info(f"ReleasePageStrategy: публикация {self._page_title!r}")
         errors: list[str] = []
         details: list[dict[str, Any]] = []
 
@@ -145,7 +145,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
 
         except Exception as e:
             errors.append(str(e))
-            logger.error("ReleasePageStrategy: ошибка публикации %r: %s", self._page_title, e)
+            logger.error(f"ReleasePageStrategy: ошибка публикации {self._page_title!r}: {e}")
             return PublishReport(
                 success=False, pages_published=0, errors=errors, details=details
             )

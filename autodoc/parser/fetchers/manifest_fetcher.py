@@ -9,7 +9,6 @@ from autodoc.models.component import Component
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
 from autodoc.parser.steps.base import PipelineContext
-from autodoc.parser.clients.tfs_client import TFSClient
 
 _MANIFESTS_REPO: str = "platform"
 
@@ -25,12 +24,12 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         """
         Инициализирует фетчер из контекста пайплайна.
 
-        Получает синглтон ``TFSClient`` и сохраняет параметры конфигурации.
+        Получает ``TFSClient`` из контекста и сохраняет параметры конфигурации.
 
         Args:
-            ctx: Контекст пайплайна с заполненной конфигурацией.
+            ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
-        self._tfs = TFSClient(ctx.config)
+        self._tfs = ctx.tfs_client
         self._base_url = ctx.config.tfs_dep_components_url.rstrip("/")
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
@@ -52,7 +51,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         """
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
-        items_url = "%s/_apis/git/repositories/%s/items" % (self._base_url, _MANIFESTS_REPO)
+        items_url = f"{self._base_url}/_apis/git/repositories/{_MANIFESTS_REPO}/items"
         self._tfs.download_properties(
             items_url=items_url,
             remote_path=self._manifests_remotes_path,
@@ -63,8 +62,8 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         properties_files = list(tmp_dir.glob("*.properties"))
         if not properties_files:
             raise ParsingError(
-                "ManifestFetcher: в директории %s не найдено .properties-файлов "
-                "после скачивания из TFS." % tmp_dir
+                f"ManifestFetcher: в директории {tmp_dir} не найдено .properties-файлов "
+                "после скачивания из TFS."
             )
 
         parser = ManifestParser(target_platform=self._platform_version)

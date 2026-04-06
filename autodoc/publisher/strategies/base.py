@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
@@ -95,7 +93,7 @@ class BasePublishStrategy(ABC):
         if strategy_type:
             BasePublishStrategy._registry[strategy_type] = cls
             logger.debug(
-                "BasePublishStrategy: зарегистрирована \"%s\" → %s",
+                f"BasePublishStrategy: зарегистрирована {cls.__name__!r} → {cls}",
                 strategy_type, cls.__name__,
             )
 
@@ -124,8 +122,7 @@ class BasePublishStrategy(ABC):
         """
         if strategy_type not in cls._registry:
             raise ValueError(
-                "Неизвестная стратегия \"%s\". Доступные: %s"
-                % (strategy_type, sorted(cls._registry))
+                f"Неизвестная стратегия {strategy_type!r}. Доступные: {sorted(cls._registry)}"
             )
 
         strategy_cls = cls._registry[strategy_type]
@@ -134,10 +131,7 @@ class BasePublishStrategy(ABC):
         if make_transformer is not None and "transformer" not in kwargs:
             kwargs["transformer"] = make_transformer(kwargs)
 
-        logger.debug(
-            "BasePublishStrategy.create: %s для типа \"%s\"",
-            strategy_cls.__name__, strategy_type,
-        )
+        logger.debug(f"BasePublishStrategy.create: {strategy_cls.__name__} для типа {strategy_type!r}")
         return strategy_cls(**kwargs)
 
     @classmethod

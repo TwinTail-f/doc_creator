@@ -8,13 +8,16 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher
 
+if TYPE_CHECKING:
+    from autodoc.parser.clients.artifactory_client import ArtifactoryClient
+    from autodoc.parser.clients.tfs_client import TFSClient
 
 @dataclass
 class PipelineContext:
@@ -32,6 +35,8 @@ class PipelineContext:
     Attributes:
         config: Валидированная конфигурация парсера.
         tmp_dir: Временная директория для промежуточных файлов.
+        tfs_client: Клиент TFS, внедряется ``ComponentParser`` перед запуском пайплайна.
+        artifactory_client: Клиент Artifactory, внедряется ``ComponentParser``.
         components: Список компонентов, накапливаемый шагами пайплайна.
         result: Финальный результат, заполняется ``FinalizeStep``.
         intermediate: Произвольные данные для диагностики и передачи между шагами.
@@ -39,6 +44,8 @@ class PipelineContext:
 
     config: ParserConfigSchema
     tmp_dir: Path
+    tfs_client: TFSClient | None = None
+    artifactory_client: ArtifactoryClient | None = None
     components: list[Component] = field(default_factory=list)
     result: ParsedResult | None = None
     intermediate: dict[str, Any] = field(default_factory=dict)
@@ -59,7 +66,7 @@ class BaseParseStep(ABC):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not getattr(cls, "__abstractmethods__", None) and not cls.name:
-            raise TypeError("%s должен определить атрибут name" % cls.__name__)
+            raise TypeError(f"{cls.__name__} должен определить атрибут name")
 
     @abstractmethod
     def execute(self, ctx: PipelineContext) -> None:

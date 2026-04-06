@@ -77,7 +77,7 @@ class Conan2Runner(BaseConanRunner):
                 task=task,
                 success=False,
                 data=None,
-                error="Таймаут выполнения команды (%d с)." % self._timeout,
+                error=f"Таймаут выполнения команды ({self._timeout} с).",
             )
         except FileNotFoundError:
             return ConanRawResult(
@@ -103,7 +103,7 @@ class Conan2Runner(BaseConanRunner):
                 task=task,
                 success=False,
                 data=None,
-                error="JSON decode error: %s. STDOUT: %s" % (e, result.stdout[:300]),
+                error=f"JSON decode error: {e}. STDOUT: {result.stdout[:300]}",
             )
 
     def clean_cache(self) -> None:

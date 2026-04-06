@@ -36,7 +36,7 @@ class FinalizeStep(BaseParseStep):
 
         removed = self._filter_empty_profiles(ctx.components)
         if removed:
-            logger.info("удалено %d профилей с exists=False.", removed)
+            logger.info(f"удалено {removed} профилей с exists=False.")
 
         ctx.result = self._build_result(ctx)
 
@@ -117,5 +117,5 @@ class FinalizeStep(BaseParseStep):
             return result
         except Exception as e:
             raise ParsingError(
-                "FinalizeStep: валидация данных не прошла: %s" % e
+                f"FinalizeStep: валидация данных не прошла: {e}"
             ) from e

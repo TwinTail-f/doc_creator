@@ -3,7 +3,6 @@ Unit-тесты для ArtifactoryClient.
 
 Покрывают:
 - инициализацию (передача credentials, отключение SSL)
-- поведение синглтона (создание, reset)
 - метод head() и подавление InsecureRequestWarning
 """
 import pytest
@@ -12,7 +11,6 @@ import urllib3
 from unittest.mock import MagicMock, patch
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.infrastructure.singleton import Singleton
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient, _HEAD_TIMEOUT
 
 _ART_SESSION_PATH = "autodoc.parser.clients.artifactory_client.create_retryable_session"
@@ -75,67 +73,20 @@ class TestArtifactoryClientInit:
 
         assert client.session is mock_session
 
-
-# ---------------------------------------------------------------------------
-# Singleton
-# ---------------------------------------------------------------------------
-
-class TestArtifactoryClientSingleton:
-    """Тесты паттерна Singleton для ArtifactoryClient."""
-
-    def test_repeated_call_returns_same_instance(
+    def test_each_call_creates_independent_instance(
         self, minimal_config: ParserConfigSchema
     ) -> None:
-        """Повторный вызов ArtifactoryClient(config) возвращает тот же объект."""
+        """Каждый вызов ArtifactoryClient(config) возвращает новый независимый экземпляр."""
         with patch(_ART_SESSION_PATH, return_value=_make_mock_session()):
             first = ArtifactoryClient(minimal_config)
-            second = ArtifactoryClient(minimal_config)
-
-        assert first is second
-
-    def test_factory_called_only_once(self, minimal_config: ParserConfigSchema) -> None:
-        """create_retryable_session вызывается только при первой инициализации."""
-        with patch(_ART_SESSION_PATH, return_value=_make_mock_session()) as mock_factory:
-            ArtifactoryClient(minimal_config)
-            ArtifactoryClient(minimal_config)
-
-        assert mock_factory.call_count == 1
-
-    def test_reset_removes_instance_from_registry(
-        self, minimal_config: ParserConfigSchema
-    ) -> None:
-        """После reset() экземпляр исчезает из реестра Singleton."""
-        with patch(_ART_SESSION_PATH, return_value=_make_mock_session()):
-            ArtifactoryClient(minimal_config)
-
-        assert ArtifactoryClient in Singleton._instances
-        ArtifactoryClient.reset()
-        assert ArtifactoryClient not in Singleton._instances
-
-    def test_reset_does_not_close_session(self, minimal_config: ParserConfigSchema) -> None:
-        """reset() не вызывает session.close()."""
-        mock_session = _make_mock_session()
-        with patch(_ART_SESSION_PATH, return_value=mock_session):
-            ArtifactoryClient(minimal_config)
-
-        ArtifactoryClient.reset()
-        mock_session.close.assert_not_called()
-
-    def test_new_instance_created_after_reset(
-        self, minimal_config: ParserConfigSchema
-    ) -> None:
-        """После reset() создаётся новый независимый экземпляр."""
-        with patch(_ART_SESSION_PATH, return_value=_make_mock_session()):
-            first = ArtifactoryClient(minimal_config)
-            ArtifactoryClient.reset()
             second = ArtifactoryClient(minimal_config)
 
         assert first is not second
 
-    def test_tfs_and_artifactory_are_separate_singletons(
+    def test_tfs_and_artifactory_are_independent(
         self, minimal_config: ParserConfigSchema
     ) -> None:
-        """TFSClient и ArtifactoryClient хранятся в реестре независимо."""
+        """TFSClient и ArtifactoryClient — полностью независимые объекты."""
         from autodoc.parser.clients.tfs_client import TFSClient
 
         with patch(
@@ -148,8 +99,6 @@ class TestArtifactoryClientSingleton:
             art = ArtifactoryClient(minimal_config)
 
         assert tfs is not art
-        assert TFSClient in Singleton._instances
-        assert ArtifactoryClient in Singleton._instances
 
 
 # ---------------------------------------------------------------------------

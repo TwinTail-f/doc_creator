@@ -10,6 +10,7 @@ from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.tfs_client import TFSClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.docker_step import DockerResolveStep
@@ -17,21 +18,18 @@ from autodoc.parser.steps.finalize_step import FinalizeStep
 from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-from autodoc.parser.clients.tfs_client import TFSClient
 
 
-def default_pipeline(config: ParserConfigSchema) -> list[BaseParseStep]:
+def default_pipeline() -> list[BaseParseStep]:
     """
-    Инициализирует синглтоны клиентов и возвращает стандартный набор шагов пайплайна.
+    Возвращает стандартный набор шагов пайплайна.
 
-    Args:
-        config: Валидированная конфигурация парсера.
+    Клиенты (TFS, Artifactory) не создаются здесь — они внедряются в
+    ``PipelineContext`` самим ``ComponentParser.parse()``.
 
     Returns:
         Список шагов пайплайна в порядке выполнения.
     """
-    TFSClient(config)
-    ArtifactoryClient(config)
     return [
         ManifestStep(),
         OptionsResolveStep(),
@@ -55,20 +53,28 @@ class ComponentParser:
         config: ParserConfigSchema,
         data_dir: Path,
         steps: list[BaseParseStep] | None = None,
+        tfs_client: TFSClient | None = None,
+        artifactory_client: ArtifactoryClient | None = None,
     ) -> None:
         """
         Args:
             config: Валидированная конфигурация парсера.
             data_dir: Корневая директория для временных и промежуточных файлов.
             steps: Список шагов пайплайна. ``None`` → ``default_pipeline()``.
+            tfs_client: Готовый экземпляр ``TFSClient``. ``None`` → создаётся
+                        из ``config`` при каждом вызове ``parse()``.
+            artifactory_client: Готовый экземпляр ``ArtifactoryClient``. ``None`` →
+                                создаётся из ``config`` при каждом вызове ``parse()``.
         """
         self._config = config
         self._data_dir = data_dir
         self._tmp_dir = data_dir / "tmp"
         self._intermediate_dir = data_dir / "intermediate"
         self._steps: list[BaseParseStep] = (
-            steps if steps is not None else default_pipeline(config)
+            steps if steps is not None else default_pipeline()
         )
+        self._tfs_client = tfs_client
+        self._artifactory_client = artifactory_client
 
     @classmethod
     def with_steps_excluded(
@@ -88,7 +94,7 @@ class ComponentParser:
         Returns:
             Экземпляр ``ComponentParser`` с отфильтрованным пайплайном.
         """
-        steps = [s for s in default_pipeline(config) if not isinstance(s, tuple(exclude))]
+        steps = [s for s in default_pipeline() if not isinstance(s, tuple(exclude))]
         return cls(config, data_dir, steps=steps)
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:
@@ -97,7 +103,11 @@ class ComponentParser:
 
         Критические шаги при ошибке останавливают пайплайн.
         Некритические — логируют и продолжают.
-        Временная директория и синглтоны клиентов очищаются в ``finally``.
+        Временная директория очищается в ``finally``.
+
+        Клиенты (TFS, Artifactory) создаются в начале каждого вызова,
+        если не были переданы в конструктор, и живут ровно столько,
+        сколько выполняется ``parse()``.
 
         Args:
             save_intermediate: Сохранять ли JSON-снимок после каждого шага.
@@ -108,9 +118,14 @@ class ComponentParser:
         Raises:
             ParsingError: Если критический шаг завершился с ошибкой.
         """
+        tfs_client = self._tfs_client or TFSClient(self._config)
+        artifactory_client = self._artifactory_client or ArtifactoryClient(self._config)
+
         ctx = PipelineContext(
             config=self._config,
             tmp_dir=self._tmp_dir,
+            tfs_client=tfs_client,
+            artifactory_client=artifactory_client,
         )
 
         if save_intermediate:
@@ -118,33 +133,24 @@ class ComponentParser:
 
         try:
             for step in self._steps:
-                logger.info("ComponentParser → [%s]…", step.name)
+                logger.info(f"ComponentParser → [{step.name}]…")
                 try:
                     step.execute(ctx)
-                    logger.info("ComponentParser ✓ [%s]", step.name)
+                    logger.info(f"ComponentParser ✓ [{step.name}]")
                 except DocGeneratorError as exc:
                     if step.is_critical:
-                        logger.error(
-                            "ComponentParser ✗ [%s] — критическая ошибка: %s",
-                            step.name, exc,
-                        )
+                        logger.error(f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}")
                         raise ParsingError(
-                            "Критический шаг \"%s\" завершился с ошибкой: %s"
-                            % (step.name, exc)
+                            f"Критический шаг {step.name!r} завершился с ошибкой: {exc}"
                         ) from exc
-                    logger.warning(
-                        "ComponentParser ⚠ [%s] — некритическая ошибка (продолжаем): %s",
-                        step.name, exc,
-                    )
+                    logger.warning(f"ComponentParser ⚠ [{step.name}] — некритическая ошибка (продолжаем): {exc}")
 
                 if save_intermediate:
                     self._save_intermediate(ctx, step.name)
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
-            TFSClient.reset()
-            ArtifactoryClient.reset()
-            logger.debug("временная директория и клиенты очищены.")
+            logger.debug("временная директория очищена.")
 
         if ctx.result is None:
             raise ParsingError("ComponentParser: FinalizeStep не заполнил ctx.result.")
@@ -157,7 +163,7 @@ class ComponentParser:
             (i for i, s in enumerate(self._steps) if s.name == step_name), 0
         )
         safe_name = step_name.lower().replace(" ", "_").replace("/", "_")
-        filepath = self._intermediate_dir / ("%02d_%s.json" % (step_idx + 1, safe_name))
+        filepath = self._intermediate_dir / f"{step_idx + 1:02d}_{safe_name}.json"
 
         snapshot = {
             "step": step_name,
@@ -171,6 +177,6 @@ class ComponentParser:
                 json.dumps(snapshot, indent=2, ensure_ascii=False, default=str),
                 encoding="utf-8",
             )
-            logger.debug("сохранён снимок → %s", filepath.name)
+            logger.debug(f"сохранён снимок → {filepath.name}")
         except OSError as e:
-            logger.warning("не удалось сохранить снимок %s: %s", filepath, e)
+            logger.warning(f"не удалось сохранить снимок {filepath}: {e}")

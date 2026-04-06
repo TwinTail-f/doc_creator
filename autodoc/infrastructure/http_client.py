@@ -19,10 +19,10 @@ _RETRY_STATUS_CODES: frozenset = frozenset({
     http.HTTPStatus.GATEWAY_TIMEOUT.value,        # 504
 })
 
-# 1.1 frozenset: порядок не важен, дубликаты недопустимы, неизменяемо
 _RETRY_METHODS: frozenset = frozenset({
     "HEAD", "GET", "DELETE", "OPTIONS", "PUT", "POST",
 })
+_PAT_DEFAULT_USERNAME: str = ""
 
 class RetryableSession(requests.Session):
     """
@@ -84,6 +84,7 @@ class RetryableSession(requests.Session):
         kwargs.setdefault("timeout", self.timeout)
         return super().head(url, **kwargs)
 
+
 def create_retryable_session(
     username: str | None = None,
     token: str | None = None,
@@ -94,9 +95,16 @@ def create_retryable_session(
     """
     Создаёт ``RetryableSession`` с опциональной Basic-аутентификацией.
 
+    Поддерживает два режима:
+
+    * **Basic auth** — передать ``username`` и ``token``.
+    * **PAT-only** — передать только ``token``; в этом случае username
+      подставляется как пустая строка, что корректно для Azure DevOps / TFS
+      и ряда других сервисов, где PAT не привязан к конкретному пользователю.
+
     Args:
-        username: Имя пользователя для Basic auth.
-        token: Токен/пароль для Basic auth.
+        username: Имя пользователя для Basic auth. Опционально при PAT-auth.
+        token: Токен / пароль / PAT для Basic auth.
         max_retries: Максимальное количество retry-попыток.
         backoff_factor: Множитель для exponential backoff.
         timeout: Таймаут запроса в секундах.
@@ -112,11 +120,12 @@ def create_retryable_session(
 
     if username and token:
         session.auth = (username, token)
-        logger.debug("настроена Basic-аутентификация для %r", username)
-    elif username or token:
-        logger.warning(
-            "передан только username или только token. "
-            "Для Basic auth нужны оба значения."
-        )
+        logger.debug(f"настроена Basic-аутентификация для {username!r}")
+    elif token:
+        # PAT-аутентификация: username не требуется (Azure DevOps / TFS, Confluence DC и др.)
+        session.auth = (_PAT_DEFAULT_USERNAME, token)
+        logger.debug("настроена PAT-аутентификация (username не задан, используется пустая строка)")
+    elif username:
+        logger.warning(f"передан только username {username!r} без token — Basic auth не настроена")
 
     return session

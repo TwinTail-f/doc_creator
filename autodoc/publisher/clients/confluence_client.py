@@ -24,10 +24,6 @@ from autodoc.exceptions import PublishError
 from autodoc.infrastructure.http_client import RetryableSession, create_retryable_session
 from autodoc.infrastructure.logger import logger
 
-# ---------------------------------------------------------------------------
-# Константы
-# ---------------------------------------------------------------------------
-
 _RETRY_COUNT: int = 3
 _BACKOFF_FACTOR: float = 1.0
 
@@ -80,7 +76,7 @@ class ConfluenceClient:
         self._timeout: int = config.confluence_request_timeout
         self._session: RetryableSession = self._build_session(config)
 
-        logger.debug("ConfluenceClient инициализирован: %s (space=%s)", self._base_url, self._space)
+        logger.debug(f"ConfluenceClient инициализирован: {self._base_url} (space={self._space})")
 
 
     def publish_page(
@@ -109,7 +105,7 @@ class ConfluenceClient:
         Raises:
             PublishError: Если создание или обновление не удалось.
         """
-        logger.info("publish_page: %r (space=%s)", title, space)
+        logger.info(f"publish_page: {title!r} (space={space})")
 
         existing = self.find_page(space, title, expand=_EXPAND_VERSION)
         if existing:
@@ -148,12 +144,12 @@ class ConfluenceClient:
 
         if not parent_id:
             raise PublishError(
-                "не указан parent_id для создания страницы %r" % title
+                f"не указан parent_id для создания страницы {title!r}"
             )
 
-        placeholder = body or (_PLACEHOLDER_BODY_TEMPLATE % title)
+        placeholder = body or (f"<p>Автоматически созданная страница: {title}</p>")
         result = self._create_page(space, parent_id, title, placeholder)
-        logger.info("создана страница %r (ID: %s)", title, result["id"])
+        logger.info(f"создана страница {title!r} (ID: {result['id']})")
         return str(result["id"])
 
     def get_page_body(self, space: str, title: str) -> str:
@@ -209,9 +205,9 @@ class ConfluenceClient:
             response = self._session.get(url, params=params, timeout=self._timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError("HTTP-ошибка при поиске %r: %s" % (title, e)) from e
+            raise PublishError(f"HTTP-ошибка при поиске {title!r}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError("сетевая ошибка при поиске %r: %s" % (title, e)) from e
+            raise PublishError(f"сетевая ошибка при поиске {title!r}: {e}") from e
 
         results: list[dict[str, Any]] = response.json().get("results", [])
         return results[0] if results else None
@@ -242,13 +238,9 @@ class ConfluenceClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            raise PublishError("HTTP-ошибка для ID %s: %s" % (page_id, e)) from e
+            raise PublishError(f"HTTP-ошибка для ID {page_id}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError("сетевая ошибка для ID %s: %s" % (page_id, e)) from e
-
-    # ---------------------------------------------------------------------------
-    # Приватные методы
-    # ---------------------------------------------------------------------------
+            raise PublishError(f"сетевая ошибка для ID {page_id}: {e}") from e
 
     def _create_page(
         self,
@@ -284,17 +276,17 @@ class ConfluenceClient:
             response = self._session.post(url, json=payload, timeout=self._timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError("HTTP-ошибка при создании %r: %s" % (title, e)) from e
+            raise PublishError(f"HTTP-ошибка при создании {title!r}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError("сетевая ошибка при создании %r: %s" % (title, e)) from e
+            raise PublishError(f"сетевая ошибка при создании {title!r}: {e}") from e
 
         page_id = str(response.json().get("id", ""))
-        logger.info("создана страница %r (ID: %s)", title, page_id)
+        logger.info(f"создана страница {title!r} (ID: {page_id})")
         return {
             "id": page_id,
             "version": _INITIAL_VERSION,
             "status": "created",
-            "message": "Page created with version %d" % _INITIAL_VERSION,
+            "message": f"Page created with version {_INITIAL_VERSION}",
         }
 
     def _update_page(
@@ -327,7 +319,7 @@ class ConfluenceClient:
         current_version = self._extract_version(existing_page)
         next_version = current_version + 1
 
-        logger.info("обновление %r: v%d → v%d (ID: %s)", title, current_version, next_version, page_id)
+        logger.info(f"обновление {title!r}: v{current_version} → v{next_version} (ID: {page_id})")
 
         payload = self._build_page_payload(
             title=title,
@@ -341,15 +333,15 @@ class ConfluenceClient:
             response = self._session.put(url, json=payload, timeout=self._timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError("HTTP-ошибка при обновлении %r: %s" % (title, e)) from e
+            raise PublishError(f"HTTP-ошибка при обновлении {title!r}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError("сетевая ошибка при обновлении %r: %s" % (title, e)) from e
+            raise PublishError(f"сетевая ошибка при обновлении {title!r}: {e}") from e
 
         return {
             "id": page_id,
             "version": next_version,
             "status": "updated",
-            "message": "Page updated to version %d" % next_version,
+            "message": f"Page updated to version {next_version}",
         }
 
     @staticmethod
@@ -409,7 +401,7 @@ class ConfluenceClient:
         try:
             return int(page.get("version", {}).get("number", _FALLBACK_VERSION))
         except (ValueError, TypeError, AttributeError):
-            logger.warning("не удалось извлечь версию из: %r", page)
+            logger.warning(f"не удалось извлечь версию из: {page!r}")
             return _FALLBACK_VERSION
 
     def _api_url(self, *parts: str) -> str:
@@ -423,7 +415,7 @@ class ConfluenceClient:
         Returns:
             Полный URL вида ``https://confluence.example.com/rest/api/content/12345``.
         """
-        return "%s/rest/api/%s" % (self._base_url, "/".join(parts))
+        return f"{self._base_url}/rest/api/{'/'.join(parts)}"
 
     @staticmethod
     def _build_session(config: ConfluenceConfigSchema) -> RetryableSession:

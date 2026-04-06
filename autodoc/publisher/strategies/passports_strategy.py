@@ -85,7 +85,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
 
         for comp in self._data.components:
             if not comp.releases:
-                errors.append("Нет релизов для компонента \"%s\"" % comp.name)
+                errors.append(f"Нет релизов для компонента {comp.name!r}")
                 continue
 
             for release in comp.releases:
@@ -103,9 +103,9 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
                         "status": status,
                     })
                 except Exception as e:
-                    msg = "Ошибка паспорта %s v%s: %s" % (comp.name, release.version, e)
+                    msg = f"Ошибка паспорта {comp.name} v{release.version}: {e}"
                     errors.append(msg)
-                    logger.error("%s", msg)
+                    logger.error(msg)
 
         pages_map = self._build_pages_map(details)
         self._registry.save(pages_map)
@@ -161,7 +161,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         legacy_contents = self._legacy_svc.extract_for_platform(
             existing_html, platform_version
         )
-        view_model["target_platform"] = "Платформа %s" % platform_version
+        view_model["target_platform"] = f"Платформа {platform_version}"
         view_model["legacy_contents"] = legacy_contents
 
         html_body = self._builder.build(self._template_name, view_model)
@@ -190,7 +190,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         try:
             return self._client.get_page_body(space=self._space, title=page_title)
         except Exception as e:
-            logger.warning("Не удалось получить тело страницы %r: %s", page_title, e)
+            logger.warning(f"Не удалось получить тело страницы {page_title!r}: {e}")
             return ""
 
     @staticmethod
@@ -205,7 +205,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         Returns:
             Строка вида ``'Документация <comp_name> <release_version>'``.
         """
-        return "Документация %s %s" % (comp_name, release_version)
+        return f"Документация {comp_name} {release_version}"
 
     @staticmethod
     def _build_pages_map(details: list[dict[str, Any]]) -> dict[str, Any]:

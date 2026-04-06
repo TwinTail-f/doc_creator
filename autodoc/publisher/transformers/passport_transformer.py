@@ -46,7 +46,7 @@ class PassportTransformer(BaseDataTransformer):
         )
         if not target_comp:
             raise ValueError(
-                "PassportTransformer: компонент \"%s\" не найден" % self._component_name
+                f"PassportTransformer: компонент {self._component_name!r} не найден"
             )
 
         target_rel = next(
@@ -56,8 +56,7 @@ class PassportTransformer(BaseDataTransformer):
         )
         if not target_rel:
             raise ValueError(
-                "PassportTransformer: версия %s для \"%s\" не найдена"
-                % (self._release_version, self._component_name)
+                f"PassportTransformer: версия {self._version} для {self._component_name!r} не найдена"
             )
 
         enriched_pbs = []

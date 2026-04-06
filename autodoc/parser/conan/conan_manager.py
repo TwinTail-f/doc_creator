@@ -66,10 +66,7 @@ class ConanManager:
             logger.info("нет задач для выполнения.")
             return ConanEnrichmentResult()
 
-        logger.info(
-            "ConanManager: сформировано %d задач, запуск в %d потоках…",
-            len(tasks), _DEFAULT_MAX_WORKERS,
-        )
+        logger.info(f"ConanManager: сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…")
 
         raw_results = self._run_tasks_parallel(tasks)
         return self._build_enrichment_result(tasks, raw_results, artifactory_base_url, target_platform)
@@ -101,7 +98,7 @@ class ConanManager:
             for future in as_completed(future_to_idx):
                 completed += 1
                 if completed % 50 == 0 or completed == total:
-                    logger.info("прогресс %d/%d задач…", completed, total)
+                    logger.info(f"прогресс {completed}/{total} задач…")
 
                 idx = future_to_idx[future]
                 results[idx] = future.result()
@@ -149,10 +146,9 @@ class ConanManager:
                 fe = agg.first_enrich
                 art_url = ""
                 if art_base:
-                    art_url = "%s/platform-%s/%s/%s/%s/%s" % (
-                        art_base, target_platform,
-                        task.comp_name, fe.full_version,
-                        task.channel, fe.rrev,
+                    art_url = (
+                        f"{art_base}/platform-{target_platform}"
+                        f"/{task.comp_name}/{fe.full_version}/{task.channel}/{fe.rrev}"
                     )
                 result.release_data[release_key] = ReleaseConanData(
                     base_ref=fe.base_ref,
