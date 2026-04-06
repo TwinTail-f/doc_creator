@@ -16,6 +16,8 @@ VALID_PARSER_CONFIG = {
     "tfs_token": "secret-pat",
     "tfs_dep_components_url": "https://tfs.example.com/DEP_Components",
     "manifests_remotes_path": "/remotes/manifests",
+    "artifactory_username": "art_user",
+    "artifactory_password": "art_pass",
 }
 
 class TestConfigManagerInit:

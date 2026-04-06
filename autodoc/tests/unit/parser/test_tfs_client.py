@@ -45,7 +45,7 @@ class TestTFSClientInit:
             TFSClient(minimal_config)
 
         mock_factory.assert_called_once_with(
-            username=minimal_config.tfs_username,
+            username=minimal_config.tfs_username or None,
             token=minimal_config.tfs_token,
             max_retries=minimal_config.max_retries,
             backoff_factor=minimal_config.retry_backoff_factor,
@@ -60,25 +60,19 @@ class TestTFSClientInit:
 
         assert client.session.params == {"api-version": "7.1"}
 
-    def test_raises_config_error_if_no_username(self, minimal_config: ParserConfigSchema) -> None:
-        """ConfigError если tfs_username пустой."""
-        bad = minimal_config.model_copy(update={"tfs_username": ""})
-        with pytest.raises(ConfigError, match="учётные данные не переданы"):
-            TFSClient(bad)
-
     def test_raises_config_error_if_no_token(self, minimal_config: ParserConfigSchema) -> None:
         """ConfigError если tfs_token пустой."""
         bad = minimal_config.model_copy(update={"tfs_token": ""})
-        with pytest.raises(ConfigError, match="учётные данные не переданы"):
+        with pytest.raises(ConfigError, match="tfs_token"):
             TFSClient(bad)
 
-    def test_raises_config_error_if_both_credentials_missing(
-        self, minimal_config: ParserConfigSchema
-    ) -> None:
-        """ConfigError если оба поля аутентификации пустые."""
-        bad = minimal_config.model_copy(update={"tfs_username": "", "tfs_token": ""})
-        with pytest.raises(ConfigError):
-            TFSClient(bad)
+    def test_works_without_username(self, minimal_config: ParserConfigSchema) -> None:
+        """TFSClient инициализируется без tfs_username — PAT-аутентификация."""
+        mock_session = _make_mock_session()
+        config_no_user = minimal_config.model_copy(update={"tfs_username": ""})
+        with patch(_TFS_SESSION_PATH, return_value=mock_session):
+            client = TFSClient(config_no_user)
+        assert client is not None
 
     def test_each_call_creates_independent_instance(
         self, minimal_config: ParserConfigSchema

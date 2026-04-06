@@ -17,6 +17,8 @@ def minimal_config() -> ParserConfigSchema:
         tfs_dep_components_url="https://tfs.example.com/DEP_Components",
         manifests_remotes_path="/remotes/manifests",
         tfs_request_timeout=10,
+        artifactory_username="art_user",
+        artifactory_password="art_pass",
         max_retries=2,
         retry_backoff_factor=1.5,
     )
