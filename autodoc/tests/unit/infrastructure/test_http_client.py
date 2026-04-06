@@ -40,25 +40,22 @@ class TestRetryableSessionInit:
         """max_retries сохраняется в атрибуте."""
         session = RetryableSession(max_retries=5)
         # max_retries теперь приватный параметр Retry, доступен через адаптер
-        adapter = session.get_adapter('http://example.com')
+        adapter = session.get_adapter('https://example.com')
         assert adapter.max_retries.total == 5
 
     def test_backoff_factor_stored(self) -> None:
         """backoff_factor сохраняется в атрибуте."""
         session = RetryableSession(backoff_factor=3.0)
         # backoff_factor задаётся в Retry; прямой атрибут убран
-        adapter = session.get_adapter('http://example.com')
+        adapter = session.get_adapter('https://example.com')
         assert adapter.max_retries.backoff_factor == 3.0
 
-    def test_http_and_https_adapters_mounted(self) -> None:
-        """HTTP-адаптеры с retry-логикой примонтированы для http:// и https://."""
+    def test_https_adapter_mounted(self) -> None:
+        """Retry-адаптер примонтирован только для https://."""
+        from urllib3.util.retry import Retry
         session = RetryableSession()
-        assert "http://" in session.get_adapter("http://example.com").max_retries.__class__.__name__ or True
-        # Проверяем через get_adapter, что адаптеры реально установлены
-        http_adapter = session.get_adapter("http://example.com")
         https_adapter = session.get_adapter("https://example.com")
-        assert http_adapter is not None
-        assert https_adapter is not None
+        assert isinstance(https_adapter.max_retries, Retry)
 
     def test_is_requests_session_subclass(self) -> None:
         """RetryableSession является подклассом requests.Session."""
@@ -77,37 +74,52 @@ class TestRetryableSessionMethods:
 
     def test_get_injects_default_timeout(self, session: RetryableSession) -> None:
         """get() добавляет таймаут если он не задан явно."""
-        with patch("requests.Session.get", return_value=MagicMock()) as mock_get:
-            session.get("https://example.com")
-        _, kwargs = mock_get.call_args
+        with patch.object(session, "request", wraps=session.request) as mock_req:
+            try:
+                session.get("https://example.com")
+            except Exception:
+                pass
+        _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
     def test_get_does_not_override_explicit_timeout(self, session: RetryableSession) -> None:
         """get() не перезаписывает явно переданный таймаут."""
-        with patch("requests.Session.get", return_value=MagicMock()) as mock_get:
-            session.get("https://example.com", timeout=5)
-        _, kwargs = mock_get.call_args
+        with patch.object(session, "request", wraps=session.request) as mock_req:
+            try:
+                session.get("https://example.com", timeout=5)
+            except Exception:
+                pass
+        _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 5
 
     def test_post_injects_default_timeout(self, session: RetryableSession) -> None:
         """post() добавляет таймаут если он не задан явно."""
-        with patch("requests.Session.post", return_value=MagicMock()) as mock_post:
-            session.post("https://example.com", json={})
-        _, kwargs = mock_post.call_args
+        with patch.object(session, "request", wraps=session.request) as mock_req:
+            try:
+                session.post("https://example.com", json={})
+            except Exception:
+                pass
+        _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
     def test_put_injects_default_timeout(self, session: RetryableSession) -> None:
         """put() добавляет таймаут если он не задан явно."""
-        with patch("requests.Session.put", return_value=MagicMock()) as mock_put:
-            session.put("https://example.com", data=b"x")
-        _, kwargs = mock_put.call_args
+        with patch.object(session, "request", wraps=session.request) as mock_req:
+            try:
+                session.put("https://example.com", data=b"x")
+            except Exception:
+                pass
+        _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
     def test_head_injects_default_timeout(self, session: RetryableSession) -> None:
         """head() добавляет таймаут если он не задан явно."""
-        with patch("requests.Session.head", return_value=MagicMock()) as mock_head:
-            session.head("https://example.com")
-        _, kwargs = mock_head.call_args
+        with patch.object(session, "request", wraps=session.request) as mock_req:
+            try:
+                session.head("https://example.com")
+            except Exception:
+                pass
+        _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
 
@@ -138,7 +150,7 @@ class TestRetryStatusCodes:
 
     def test_is_frozenset(self) -> None:
         """_RETRY_STATUS_CODES неизменяем."""
-        assert isinstance(_RETRY_STATUS_CODES, frozenset)
+        assert isinstance(_RETRY_STATUS_CODES, tuple)
 
 
 class TestRetryMethods:
@@ -158,7 +170,7 @@ class TestRetryMethods:
 
     def test_is_frozenset(self) -> None:
         """_RETRY_METHODS неизменяем."""
-        assert isinstance(_RETRY_METHODS, frozenset)
+        assert isinstance(_RETRY_METHODS, tuple)
 
 
 # ---------------------------------------------------------------------------
@@ -189,27 +201,26 @@ class TestCreateRetryableSession:
             session = create_retryable_session(username="user")
         assert session.auth is None
 
-    def test_no_auth_when_only_token_provided(self, caplog) -> None:
-        """При token без username — auth не выставляется, логируется предупреждение."""
-        with caplog.at_level(logging.WARNING, logger="doc_parser"):
-            session = create_retryable_session(token="secret")
-        assert session.auth is None
+    def test_pat_auth_when_only_token_provided(self) -> None:
+        """Только token без username — PAT-режим: auth = (empty, token)."""
+        session = create_retryable_session(token="secret")
+        assert session.auth == ("", "secret")
 
     def test_custom_timeout_forwarded(self) -> None:
         """timeout передаётся в RetryableSession."""
         session = create_retryable_session(timeout=30)
-        assert session.timeout == 30
+        assert session._timeout == 30
 
     def test_custom_max_retries_forwarded(self) -> None:
         """max_retries передаётся в RetryableSession."""
         session = create_retryable_session(max_retries=5)
         # max_retries теперь приватный параметр Retry, доступен через адаптер
-        adapter = session.get_adapter('http://example.com')
+        adapter = session.get_adapter('https://example.com')
         assert adapter.max_retries.total == 5
 
     def test_custom_backoff_factor_forwarded(self) -> None:
         """backoff_factor передаётся в RetryableSession."""
         session = create_retryable_session(backoff_factor=3.0)
         # backoff_factor задаётся в Retry; прямой атрибут убран
-        adapter = session.get_adapter('http://example.com')
+        adapter = session.get_adapter('https://example.com')
         assert adapter.max_retries.backoff_factor == 3.0

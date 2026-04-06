@@ -4,7 +4,8 @@ Pydantic-схемы для валидации конфигурационных �
 """
 import os
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo
+from typing import Any
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ParserConfigSchema(BaseModel):
@@ -101,8 +102,8 @@ class ParserConfigSchema(BaseModel):
     @field_validator("artifactory_username", "artifactory_password", mode="before")
     @classmethod
     def fill_artifactory_credentials_from_env(
-        cls, v: str | None, info: ValidationInfo
-    ) -> str:
+        cls, v: str | None, info: Any
+    ) -> str:  # type: ignore[override]
         """
         Заполняет Artifactory-credentials из env GET_USR / GET_PWD если не заданы явно.
 
