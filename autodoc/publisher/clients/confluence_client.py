@@ -24,6 +24,10 @@ from autodoc.exceptions import PublishError
 from autodoc.infrastructure.http_client import RetryableSession, create_retryable_session
 from autodoc.infrastructure.logger import logger
 
+# ---------------------------------------------------------------------------
+# Константы
+# ---------------------------------------------------------------------------
+
 _RETRY_COUNT: int = 3
 _BACKOFF_FACTOR: float = 1.0
 
@@ -241,6 +245,10 @@ class ConfluenceClient:
             raise PublishError(f"HTTP-ошибка для ID {page_id}: {e}") from e
         except requests.exceptions.RequestException as e:
             raise PublishError(f"сетевая ошибка для ID {page_id}: {e}") from e
+
+    # ---------------------------------------------------------------------------
+    # Приватные методы
+    # ---------------------------------------------------------------------------
 
     def _create_page(
         self,

@@ -28,5 +28,6 @@ class ConanEnrichStep(BaseParseStep):
             target_platform=ctx.config.platform_version,
             artifactory_base_url=ctx.config.artifactory_components_conan2_url or "",
         )
+        # 2.2 Мутация — только через DataEnricher
         DataEnricher.apply_conan_results(ctx.components, conan_result)
         ctx.intermediate["conan_report"] = conan_result.errors

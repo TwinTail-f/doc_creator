@@ -5,6 +5,8 @@
 вынесены в ``autodoc.parser.fetchers.base`` — они относятся к слою загрузки данных,
 а не к слою шагов.
 """
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,6 +20,7 @@ from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher
 if TYPE_CHECKING:
     from autodoc.parser.clients.artifactory_client import ArtifactoryClient
     from autodoc.parser.clients.tfs_client import TFSClient
+
 
 @dataclass
 class PipelineContext:

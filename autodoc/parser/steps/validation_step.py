@@ -7,7 +7,6 @@ import requests
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
-from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 _VALIDATION_MAX_WORKERS: int = 20

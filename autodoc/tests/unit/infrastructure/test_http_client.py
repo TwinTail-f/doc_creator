@@ -29,22 +29,26 @@ class TestRetryableSessionInit:
     def test_default_timeout_stored(self) -> None:
         """Таймаут по умолчанию сохраняется в атрибуте."""
         session = RetryableSession()
-        assert session.timeout == 15
+        assert session._timeout == 15
 
     def test_custom_timeout_stored(self) -> None:
         """Кастомный таймаут сохраняется в атрибуте."""
         session = RetryableSession(timeout=42)
-        assert session.timeout == 42
+        assert session._timeout == 42
 
     def test_max_retries_stored(self) -> None:
         """max_retries сохраняется в атрибуте."""
         session = RetryableSession(max_retries=5)
-        assert session.max_retries == 5
+        # max_retries теперь приватный параметр Retry, доступен через адаптер
+        adapter = session.get_adapter('http://example.com')
+        assert adapter.max_retries.total == 5
 
     def test_backoff_factor_stored(self) -> None:
         """backoff_factor сохраняется в атрибуте."""
         session = RetryableSession(backoff_factor=3.0)
-        assert session.backoff_factor == 3.0
+        # backoff_factor задаётся в Retry; прямой атрибут убран
+        adapter = session.get_adapter('http://example.com')
+        assert adapter.max_retries.backoff_factor == 3.0
 
     def test_http_and_https_adapters_mounted(self) -> None:
         """HTTP-адаптеры с retry-логикой примонтированы для http:// и https://."""
@@ -199,9 +203,13 @@ class TestCreateRetryableSession:
     def test_custom_max_retries_forwarded(self) -> None:
         """max_retries передаётся в RetryableSession."""
         session = create_retryable_session(max_retries=5)
-        assert session.max_retries == 5
+        # max_retries теперь приватный параметр Retry, доступен через адаптер
+        adapter = session.get_adapter('http://example.com')
+        assert adapter.max_retries.total == 5
 
     def test_custom_backoff_factor_forwarded(self) -> None:
         """backoff_factor передаётся в RetryableSession."""
         session = create_retryable_session(backoff_factor=3.0)
-        assert session.backoff_factor == 3.0
+        # backoff_factor задаётся в Retry; прямой атрибут убран
+        adapter = session.get_adapter('http://example.com')
+        assert adapter.max_retries.backoff_factor == 3.0

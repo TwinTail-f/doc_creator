@@ -1,20 +1,44 @@
 """
 Pydantic-схемы для валидации конфигурационных файлов проекта.
+Совместимо с Pydantic v2.
 """
 import os
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationInfo
+
 
 class ParserConfigSchema(BaseModel):
     """Схема валидации ``parser_config.json`` / ``parser_config.yaml``."""
 
+    model_config = ConfigDict(extra="allow")
+
     # Обязательные поля
-    platform_version: str = Field(..., description="Версия платформы (например \"2.0\")")
-    platform_branch_name: str = Field(..., description="Ветка в репозитории (например \"develop\")")
-    tfs_token: str = Field(..., description="Personal Access Token для TFS")
-    tfs_username: str = Field(default="", description="Имя пользователя TFS (опционально при PAT-аутентификации)")
-    tfs_dep_components_url: str = Field(..., description="Базовый URL проекта DEP_Components в TFS")
-    manifests_remotes_path: str = Field(..., description="Путь к директории с манифестами в TFS")
+    platform_version: str = Field(
+        ...,
+        description='Версия платформы (например "2.0")',
+    )
+    platform_branch_name: str = Field(
+        ...,
+        description='Ветка в репозитории (например "develop")',
+    )
+    tfs_token: str = Field(
+        ...,
+        description="Personal Access Token для TFS",
+    )
+    tfs_dep_components_url: str = Field(
+        ...,
+        description="Базовый URL проекта DEP_Components в TFS",
+    )
+    manifests_remotes_path: str = Field(
+        ...,
+        description="Путь к директории с манифестами в TFS",
+    )
+
+    # tfs_username опционален: Azure DevOps принимает любое (в т. ч. пустое) значение при PAT-auth
+    tfs_username: str = Field(
+        default="",
+        description="Имя пользователя TFS (опционально при PAT-аутентификации)",
+    )
 
     # Опциональные поля
     artifactory_components_conan2_url: str = Field(
@@ -30,14 +54,15 @@ class ParserConfigSchema(BaseModel):
         description="Список компонентов для исключения из обработки",
     )
 
-    # 4.1 Credentials Artifactory — из конфига с fallback на env-переменные
-    artifactory_username: str = Field(
-        default="",
-        description="Пользователь Artifactory (или из env GET_USR)",
+    # Credentials Artifactory — из конфига с fallback на env-переменные.
+    # default=None позволяет field_validator заполнить значение из env до валидации типа.
+    artifactory_username: str | None = Field(
+        default=None,
+        description="Пользователь Artifactory (из env GET_USR если не задан явно)",
     )
-    artifactory_password: str = Field(
-        default="",
-        description="Пароль Artifactory (или из env GET_PWD)",
+    artifactory_password: str | None = Field(
+        default=None,
+        description="Пароль Artifactory (из env GET_PWD если не задан явно)",
     )
 
     # Тайм-ауты
@@ -68,31 +93,75 @@ class ParserConfigSchema(BaseModel):
         description="Множитель для exponential backoff (1 с, затем 2, 4, 8…)",
     )
 
-    model_config = ConfigDict(extra="allow")
+    _ENV_MAP: dict[str, str] = {
+        "artifactory_username": "GET_USR",
+        "artifactory_password": "GET_PWD",
+    }
 
-    # 4.1 Fallback на env-переменные если credentials не заданы явно в конфиге
-    @model_validator(mode="after")
-    def fill_artifactory_credentials_from_env(self) -> "ParserConfigSchema":
-        """Заполняет Artifactory-credentials из env GET_USR / GET_PWD если не заданы."""
-        if not self.artifactory_username:
-            self.artifactory_username = os.getenv("GET_USR", "")
-        if not self.artifactory_password:
-            self.artifactory_password = os.getenv("GET_PWD", "")
-        return self
+    @field_validator("artifactory_username", "artifactory_password", mode="before")
+    @classmethod
+    def fill_artifactory_credentials_from_env(
+        cls, v: str | None, info: ValidationInfo
+    ) -> str:
+        """
+        Заполняет Artifactory-credentials из env GET_USR / GET_PWD если не заданы явно.
+
+        Raises:
+            ValueError: Если ни конфигурация, ни переменная окружения не содержат значение.
+        """
+        if v:
+            return v
+        env_map = {"artifactory_username": "GET_USR", "artifactory_password": "GET_PWD"}
+        env_key = env_map[info.field_name]
+        env_val = os.getenv(env_key, "")
+        if not env_val:
+            raise ValueError(
+                f"Поле {info.field_name!r} не задано в конфигурации "
+                f"и переменная окружения {env_key!r} не установлена. "
+                "Укажите credentials явно или задайте соответствующую переменную окружения."
+            )
+        return env_val
+
 
 class ConfluenceConfigSchema(BaseModel):
     """Схема валидации ``confluence_config.json`` / ``confluence_config.yaml``."""
 
-    url: str = Field(..., description="Базовый URL Confluence")
-    token: str = Field(..., description="Atlassian API-токен")
-    space: str = Field(..., description="Ключ Space в Confluence")
+    model_config = ConfigDict(extra="allow")
 
-    username: str | None = Field(default=None, description="Имя пользователя (legacy-аутентификация)")
-    password: str | None = Field(default=None, description="Пароль (deprecated)")
-    cloud: bool = Field(default=True, description="True — Confluence Cloud, False — Data Center")
-    verify_ssl: bool = Field(default=True, description="Проверять SSL-сертификаты")
+    url: str = Field(
+        ...,
+        description="Базовый URL Confluence",
+    )
+    token: str = Field(
+        ...,
+        description="Atlassian API-токен",
+    )
+    space: str = Field(
+        ...,
+        description="Ключ Space в Confluence",
+    )
 
-    parent_id: str | None = Field(default=None, description="ID родительской страницы")
+    username: str | None = Field(
+        default=None,
+        description="Имя пользователя (legacy-аутентификация)",
+    )
+    password: str | None = Field(
+        default=None,
+        description="Пароль (deprecated)",
+    )
+    cloud: bool = Field(
+        default=True,
+        description="True — Confluence Cloud, False — Data Center",
+    )
+    verify_ssl: bool = Field(
+        default=True,
+        description="Проверять SSL-сертификаты",
+    )
+
+    parent_id: str | None = Field(
+        default=None,
+        description="ID родительской страницы",
+    )
     page_title: str | None = Field(
         default="Сборки компонентов Платформы",
         description="Заголовок главной страницы",
@@ -110,11 +179,9 @@ class ConfluenceConfigSchema(BaseModel):
     )
     target_platform_version: str = Field(
         default="Platform 2.2",
-        description="Имя текущей платформы (например \"Platform 2.2\")",
+        description='Имя текущей платформы (например "Platform 2.2")',
     )
     preserve_legacy_platforms: list[str] = Field(
         default_factory=list,
         description="Список имён старых платформ, контент которых нужно сохранить",
     )
-
-    model_config = ConfigDict(extra="allow")
