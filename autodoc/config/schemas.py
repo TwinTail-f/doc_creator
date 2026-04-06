@@ -143,15 +143,7 @@ class ConfluenceConfigSchema(BaseModel):
 
     username: str | None = Field(
         default=None,
-        description="Имя пользователя (legacy-аутентификация)",
-    )
-    password: str | None = Field(
-        default=None,
-        description="Пароль (deprecated)",
-    )
-    cloud: bool = Field(
-        default=True,
-        description="True — Confluence Cloud, False — Data Center",
+        description="Имя пользователя (legacy-аутентификация, не используется при PAT)",
     )
     verify_ssl: bool = Field(
         default=True,

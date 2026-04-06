@@ -62,7 +62,6 @@ class RetryableSession(requests.Session):
         )
 
         adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.mount("http://", adapter)
         self.mount("https://", adapter)
 
     def request(self, method: str, url: str, **kwargs) -> requests.Response:
@@ -74,26 +73,23 @@ class RetryableSession(requests.Session):
 def create_retryable_session(
     username: str | None = None,
     token: str | None = None,
-    bearer_token: str | None = None,
     max_retries: int = 3,
     backoff_factor: float = 1.0,
     timeout: int = 15,
 ) -> RetryableSession:
     """
-    Создаёт ``RetryableSession`` с опциональной аутентификацией.
+    Создаёт ``RetryableSession`` с опциональной Basic-аутентификацией.
 
-    Поддерживает три режима (в порядке приоритета):
+    Поддерживает два режима:
 
-    * **Bearer** — передать только ``bearer_token``; заголовок
-      ``Authorization: Bearer <token>`` (Confluence Cloud, JFrog с API-key и др.)
     * **Basic auth** — передать ``username`` и ``token``.
     * **PAT-only** — передать только ``token``; username подставляется
-      как пустая строка, что корректно для Azure DevOps / TFS и Confluence DC.
+      как пустая строка, что корректно для Azure DevOps / TFS
+      и Confluence Data Center, где PAT не привязан к конкретному пользователю.
 
     Args:
         username: Имя пользователя для Basic auth. Опционально при PAT-auth.
         token: Токен / пароль / PAT для Basic auth.
-        bearer_token: Токен для Bearer-аутентификации.
         max_retries: Максимальное количество retry-попыток.
         backoff_factor: Множитель для exponential backoff.
         timeout: Таймаут запроса в секундах.
@@ -107,10 +103,7 @@ def create_retryable_session(
         timeout=timeout,
     )
 
-    if bearer_token:
-        session.headers.update({"Authorization": f"Bearer {bearer_token}"})
-        logger.debug("настроена Bearer-аутентификация")
-    elif username and token:
+    if username and token:
         session.auth = (username, token)
         logger.debug(f"настроена Basic-аутентификация для {username!r}")
     elif token:

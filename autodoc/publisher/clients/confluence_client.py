@@ -430,8 +430,8 @@ class ConfluenceClient:
         """
         Создаёт HTTP-сессию с аутентификацией и retry-логикой.
 
-        Для Confluence Cloud используется Basic auth: ``username:token``.
-        Для Confluence Data Center — ``username:password`` или только токен.
+        Confluence Data Center: PAT-аутентификация — только токен,
+        username не требуется.
 
         Args:
             config: Конфигурация Confluence.
@@ -440,7 +440,6 @@ class ConfluenceClient:
             Настроенная ``RetryableSession``.
         """
         session = create_retryable_session(
-            username=config.username or "",
             token=config.token,
             max_retries=_RETRY_COUNT,
             backoff_factor=_BACKOFF_FACTOR,
