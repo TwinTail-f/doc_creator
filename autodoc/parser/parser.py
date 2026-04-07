@@ -165,16 +165,25 @@ class ComponentParser:
     def _save_intermediate(self, ctx: PipelineContext, step_name: str) -> None:
         """Сохраняет снимок промежуточного состояния контекста в JSON-файл."""
         step_idx = next(
-            (i for i, s in enumerate(self._steps) if s.name == step_name), 0
+            (i for i, s in enumerate(self._steps) if s.name == step_name), -1
         )
+        if step_idx == -1:
+            logger.warning(f"шаг {step_name!r} не найден в списке шагов, снимок пропущен")
+            return
+
         safe_name = step_name.lower().replace(" ", "_").replace("/", "_")
         filepath = self._intermediate_dir / f"{step_idx + 1:02d}_{safe_name}.json"
 
         snapshot = {
             "step": step_name,
             "components_count": len(ctx.components),
-            "docker_links_count": len(ctx.intermediate.get("docker_links", {})),
             "intermediate_keys": list(ctx.intermediate.keys()),
+            "components": [c.model_dump() for c in ctx.components],
+            "intermediate": {
+                k: v for k, v in ctx.intermediate.items()
+                if k != "docker_links"
+            },
+            "docker_links_count": len(ctx.intermediate.get("docker_links", {})),
         }
 
         try:

@@ -2,12 +2,9 @@
 Единственная точка мутации доменных моделей в пайплайне парсера.
 """
 
-from autodoc.models.component import BuildOptionSet, Component, ConanVariant
-from autodoc.models.conan_result import (
-    ConanEnrichmentResult,
-)  # 3.12 прямой импорт без отсрочки
+from autodoc.models.component import BuildOptionSet, Component, ConanVariant, OptionDefinition
+from autodoc.models.conan_result import ConanEnrichmentResult
 from autodoc.parser.fetchers.options_fetcher import OptionsMap
-
 
 class DataEnricher:
     """
@@ -31,11 +28,7 @@ class DataEnricher:
         """
         for comp in components:
             for release in comp.releases:
-                key: tuple[str, str, str] = (
-                    comp.name,
-                    release.version,
-                    release.channel,
-                )
+                key: tuple[str, str, str] = (comp.name, release.version, release.channel)
                 opts = options_map.get(key)
                 if opts is not None:
                     release._build_option_sets_internal = opts
@@ -79,7 +72,9 @@ class DataEnricher:
                 if rel_data:
                     release.conan_reference = rel_data.base_ref
                     release.artifactory_url = rel_data.artifactory_url
-                    release.default_options = rel_data.default_options
+                    release.default_options = [
+                        OptionDefinition(**opt) for opt in rel_data.default_options
+                    ]
                     release.patches = rel_data.patches
                     release.dependencies = rel_data.dependencies
 
@@ -88,4 +83,6 @@ class DataEnricher:
                     if pb_data:
                         pb.conan_settings = pb_data.conan_settings
                         pb.exists = pb_data.exists
-                        pb.variants = [ConanVariant(**v) for v in pb_data.variants]
+                        pb.variants = [
+                            ConanVariant(**v) for v in pb_data.variants
+                        ]
