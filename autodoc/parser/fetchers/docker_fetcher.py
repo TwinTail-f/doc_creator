@@ -50,7 +50,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
         for url in urls:
             parsed = urlparse(url)
             if "/_git/" not in parsed.path:
-                logger.debug(f"DockerFetcher: пропуск URL без /_git/: {url}")
+                logger.debug(f"пропуск URL без /_git/: {url}")
                 continue
 
             base_path, repo = parsed.path.split("/_git/", 1)
@@ -69,11 +69,11 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
             try:
                 res = self._tfs.get_file_content(items_url, yaml_path, branch)
                 if res.status_code != requests.codes.ok:
-                    logger.warning(f"DockerFetcher: файл недоступен (HTTP {res.status_code}) — {url}")
+                    logger.warning(f"файл недоступен (HTTP {res.status_code}) — {url}")
                     continue
                 content = yaml.safe_load(res.text) or {}
             except (requests.exceptions.RequestException, yaml.YAMLError) as e:
-                logger.warning(f"DockerFetcher: ошибка получения/парсинга {url}: {e}")
+                logger.warning(f"ошибка получения/парсинга {url}: {e}")
                 continue
 
             DockerParser.extract_from_yaml(content, docker_links)

@@ -77,7 +77,7 @@ class ConfluenceClient:
         self._timeout: int = config.confluence_request_timeout
         self._session: RetryableSession = self._build_session(config)
 
-        logger.debug(f"ConfluenceClient инициализирован: {self._base_url} (space={self._space})")
+        logger.debug(f"инициализирован: {self._base_url} (space={self._space})")
 
 
     def publish_page(

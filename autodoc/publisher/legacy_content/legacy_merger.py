@@ -48,7 +48,7 @@ class LegacyContentMerger:
         Returns:
             Словарь ``{имя_версии: html_контент}``.
         """
-        logger.debug("LegacyContentMerger: разбор страницы на секции версий")
+        logger.debug("разбор страницы на секции версий")
         sections: Dict[str, str] = {}
 
         if _TAG_TAB_PANE in html or _TAG_TAB in html:
@@ -73,7 +73,7 @@ class LegacyContentMerger:
             Словарь ``{имя_вкладки: html_контент}`` или пустой словарь,
             если вкладки не удалось распознать.
         """
-        logger.debug("LegacyContentMerger: обнаружены вкладки, разбор по вкладкам")
+        logger.debug("обнаружены вкладки, разбор по вкладкам")
         sections: Dict[str, str] = {}
         curr_idx = 0
 
@@ -111,9 +111,7 @@ class LegacyContentMerger:
             curr_idx = search_idx if search_idx > body_start else body_start + _PARSE_SKIP_STEP
 
         if sections:
-            logger.debug(
-                "LegacyContentMerger: разобрано %d секций из вкладок", len(sections)
-            )
+            logger.debug(f"разобрано {len(sections)} секций из вкладок")
         return sections
 
     @staticmethod
@@ -175,7 +173,7 @@ class LegacyContentMerger:
         Returns:
             Словарь ``{версия: html_контент}``.
         """
-        logger.debug("LegacyContentMerger: вкладки не найдены, разбор по заголовкам h2/h3")
+        logger.debug("вкладки не найдены, разбор по заголовкам h2/h3")
         sections: Dict[str, str] = {}
         current_version = _UNKNOWN_SECTION_KEY
         current_content: list[str] = []
@@ -195,9 +193,7 @@ class LegacyContentMerger:
         if _UNKNOWN_SECTION_KEY in sections and not sections[_UNKNOWN_SECTION_KEY].strip():
             del sections[_UNKNOWN_SECTION_KEY]
 
-        logger.debug(
-            "LegacyContentMerger: разобрано %d секций из заголовков", len(sections)
-        )
+        logger.debug(f"разобрано {len(sections)} секций из заголовков")
         return sections
 
     @staticmethod
@@ -227,13 +223,11 @@ class LegacyContentMerger:
             или ``new_html`` без изменений если вкладки уже есть в шаблоне.
         """
         if not legacy_contents:
-            logger.debug("LegacyContentMerger: нет legacy-контента, возврат нового HTML")
+            logger.debug("нет legacy-контента, возврат нового HTML")
             return new_html
 
         if _TAG_TABS_GROUP in new_html:
-            logger.info(
-                "LegacyContentMerger: шаблон уже содержит tabs-group, пропуск оборачивания"
-            )
+            logger.info("шаблон уже содержит tabs-group, пропуск оборачивания")
             return new_html
 
         tabs_html = _TAG_TABS_GROUP + "\n"
@@ -244,10 +238,7 @@ class LegacyContentMerger:
                 tabs_html += LegacyContentMerger._render_tab(version_name, content)
 
         tabs_html += "</ac:structured-macro>"
-        logger.info(
-            "LegacyContentMerger: объединено %d legacy-секций с новым контентом",
-            len(legacy_contents),
-        )
+        logger.info(f"объединено {len(legacy_contents)} legacy-секций с новым контентом")
         return tabs_html
 
     @staticmethod

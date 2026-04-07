@@ -61,12 +61,9 @@ class PassportPageRegistry:
                 json.dumps(pages_map, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
-            logger.debug(
-                "PassportPageRegistry: сохранено %d компонентов в %s",
-                len(pages_map), self._file,
-            )
+            logger.debug(f"сохранено {len(pages_map)} компонентов в {self._file}")
         except OSError as e:
-            logger.warning(f"PassportPageRegistry: не удалось сохранить файл: {e}")
+            logger.warning(f"не удалось сохранить файл: {e}")
 
     def load(self) -> dict[str, Any]:
         """
@@ -80,14 +77,14 @@ class PassportPageRegistry:
             Загруженная карта или пустой словарь.
         """
         if not self._file.exists():
-            logger.debug(f"PassportPageRegistry: файл не найден: {self._file}")
+            logger.debug(f"файл не найден: {self._file}")
             return {}
         try:
             data = json.loads(self._file.read_text(encoding="utf-8"))
-            logger.debug(f"PassportPageRegistry: загружено {len(data)} компонентов")
+            logger.debug(f"загружено {len(data)} компонентов")
             return data
         except (OSError, json.JSONDecodeError) as e:
-            logger.debug(f"PassportPageRegistry: не удалось загрузить файл: {e}")
+            logger.debug(f"не удалось загрузить файл: {e}")
             return {}
 
     @staticmethod

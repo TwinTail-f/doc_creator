@@ -66,7 +66,7 @@ class ConanManager:
             logger.info("нет задач для выполнения.")
             return ConanEnrichmentResult()
 
-        logger.info(f"ConanManager: сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…")
+        logger.info(f"сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…")
 
         raw_results = self._run_tasks_parallel(tasks)
         return self._build_enrichment_result(tasks, raw_results, artifactory_base_url, target_platform)

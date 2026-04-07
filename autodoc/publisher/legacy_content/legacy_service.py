@@ -48,10 +48,7 @@ class LegacyContentService:
             if current_label not in k and not k.endswith(current_platform_version)
         }
 
-        logger.debug(
-            "LegacyContentService: %d секций всего, %d после фильтрации платформы %s",
-            len(all_sections), len(filtered), current_platform_version,
-        )
+        logger.debug(f"{len(all_sections)} секций всего, {len(filtered)} после фильтрации платформы {current_platform_version}")
         return filtered
 
     @staticmethod

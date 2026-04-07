@@ -31,7 +31,7 @@ class DocumentBuilder:
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(templates_dir))
         )
-        logger.info(f"DocumentBuilder инициализирован: {templates_dir}")
+        logger.info(f"инициализирован: {templates_dir}")
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:
         """
@@ -56,5 +56,5 @@ class DocumentBuilder:
             logger.info(f'шаблон "{template_name}" отрендерен')
             return html
         except (TemplateNotFound, TemplateError) as e:
-            logger.error(f'DocumentBuilder: ошибка рендеринга "{template_name}": {e}')
+            logger.error(f'ошибка рендеринга "{template_name}": {e}')
             raise

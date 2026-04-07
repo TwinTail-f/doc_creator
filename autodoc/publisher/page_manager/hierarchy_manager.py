@@ -21,7 +21,7 @@ class PageHierarchyManager:
             confluence_client: Экземпляр ``ConfluenceClient``.
         """
         self._client: ConfluenceClient = confluence_client
-        logger.debug("PageHierarchyManager инициализирован")
+        logger.debug("инициализирован")
 
     def ensure_hierarchy_exists(
         self,
@@ -49,9 +49,7 @@ class PageHierarchyManager:
         Raises:
             PublishError: Если создание промежуточных страниц не удалось.
         """
-        logger.debug(
-            "PageHierarchyManager: иерархия для %s@%s", component_name, release_version
-        )
+        logger.debug(f"иерархия для {component_name}@{release_version}")
 
         comp_page_id = self._client.get_or_create_page(
             space=space,

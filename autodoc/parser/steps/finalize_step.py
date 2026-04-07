@@ -110,10 +110,7 @@ class FinalizeStep(BaseParseStep):
                 platform_version=ctx.config.platform_version,
                 components=ctx.components,
             )
-            logger.info(
-                "FinalizeStep: данные валидированы. %d компонентов.",
-                len(result.components),
-            )
+            logger.info(f"данные валидированы. {len(result.components)} компонентов.")
             return result
         except Exception as e:
             raise ParsingError(

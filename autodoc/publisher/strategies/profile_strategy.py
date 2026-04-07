@@ -110,7 +110,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
         """
-        logger.info(f"ProfileCentricStrategy: публикация {self._page_title!r}")
+        logger.info(f"публикация {self._page_title!r}")
         errors: list[str] = []
         details: list[dict[str, Any]] = []
 
@@ -136,15 +136,12 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
                 "status": result["status"],
                 "template": self._template_name,
             })
-            logger.info(
-                "ProfileCentricStrategy: %r %s (ID: %s)",
-                self._page_title, result["status"], result["id"],
-            )
+            logger.info(f"{self._page_title!r} {result["status"]} (ID: {result["id"]})")
             return PublishReport(success=True, pages_published=1, details=details)
 
         except Exception as e:
             errors.append(str(e))
-            logger.error(f"ProfileCentricStrategy: ошибка публикации {self._page_title!r}: {e}")
+            logger.error(f"ошибка публикации {self._page_title!r}: {e}")
             return PublishReport(
                 success=False, pages_published=0, errors=errors, details=details
             )

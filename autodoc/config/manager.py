@@ -39,7 +39,7 @@ class ConfigManager:
         self.configs_dir = Path(configs_dir)
         if not self.configs_dir.is_dir():
             raise ConfigError(f"Директория с конфигами не найдена: {configs_dir}")
-        logger.info(f"ConfigManager инициализирован: {configs_dir}")
+        logger.info(f"инициализирован: {configs_dir}")
 
     def load_parser_config(self, config_file: str | None = None) -> ParserConfigSchema:
         """
