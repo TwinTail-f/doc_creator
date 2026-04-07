@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
@@ -95,8 +93,7 @@ class BasePublishStrategy(ABC):
         if strategy_type:
             BasePublishStrategy._registry[strategy_type] = cls
             logger.debug(
-                f"BasePublishStrategy: зарегистрирована {name!r} → {cls}",
-                strategy_type, cls.__name__,
+                f"BasePublishStrategy: зарегистрирована {strategy_type} → {cls.__name__}",
             )
 
     @classmethod

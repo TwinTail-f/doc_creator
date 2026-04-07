@@ -56,7 +56,6 @@ class ParserConfigSchema(BaseModel):
     )
 
     # Credentials Artifactory — из конфига с fallback на env-переменные.
-    # default=None позволяет field_validator заполнить значение из env до валидации типа.
     artifactory_username: str | None = Field(
         default=None,
         description="Пользователь Artifactory (из env GET_USR если не задан явно)",

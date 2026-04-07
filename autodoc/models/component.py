@@ -8,7 +8,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, PrivateAttr
 
-# 1.6 Именованное множество допустимых типов опции Conan
 OptionType = Literal["bool", "enum", "ANY", "string"]
 
 class BuildOptionSet(BaseModel):
@@ -37,8 +36,6 @@ class ConanVariant(BaseModel):
         default_factory=dict,
         description="Фактические опции конкретной сборки: {name: value}",
     )
-    # 1.1 option_set_id и option_set_str удалены — артефакты пайплайна,
-    #     не часть доменной модели. Остаются только в ConanEnrichData.
 
 class ProfileBuild(BaseModel):
     """Сборка компонента под конкретный профиль (архитектура / платформа)."""
@@ -69,15 +66,9 @@ class Release(BaseModel):
     channel: str = Field(..., description="Conan-канал (например \"stable\")")
     git_url: str = Field(..., description="URL репозитория в Git/TFS")
 
-    # 1.3 git_project и git_repo удалены из Release — они есть в Component.
-    #     OptionsFetcher берёт их из Component, который получает вместе с релизом.
-
     conan_reference: str = Field(default="", description="Ссылка Conan (name/version@user/channel)")
     artifactory_url: str = Field(default="", description="URL пакета в Artifactory")
 
-    # 1.4 было: conan_options — переименовано, чтобы устранить коллизию смыслов.
-    #     ConanVariant.conan_options — фактические опции конкретной сборки {name: value}.
-    #     Release.build_option_sets — наборы конфигураций сборки {id: option_string}.
     build_option_sets: list[BuildOptionSet] = Field(
         default_factory=list,
         description="Наборы конфигураций сборки Conan",
@@ -100,7 +91,6 @@ class Release(BaseModel):
         description="Список сборок по профилям",
     )
 
-    # Внутреннее хранилище наборов опций для шага Conan — не сериализуется
     _build_option_sets_internal: dict[str, str] = PrivateAttr(default_factory=dict)
 
 class Component(BaseModel):

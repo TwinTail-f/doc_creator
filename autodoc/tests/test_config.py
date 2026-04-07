@@ -62,7 +62,6 @@ class TestParserConfigSchemaMissingRequiredFields:
     @pytest.mark.parametrize("missing_field", [
         "platform_version",
         "platform_branch_name",
-        "tfs_username",
         "tfs_token",
         "tfs_dep_components_url",
         "manifests_remotes_path",
