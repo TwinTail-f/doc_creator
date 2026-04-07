@@ -14,6 +14,9 @@ from autodoc.parser.conan.result_parser import ConanEnrichData, ConanResultParse
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
 from autodoc.models.conan_result import (
     ConanEnrichmentResult,
+    ConanCommandRecord,
+    ConanComponentReport,
+    ConanProfileReport,
     ProfileConanData,
     ReleaseConanData,
     _ErrorLog,
@@ -77,9 +80,11 @@ class ConanManager:
         )
 
         raw_results = self._run_tasks_parallel(tasks)
-        return self._build_enrichment_result(
+        result = self._build_enrichment_result(
             tasks, raw_results, artifactory_base_url, target_platform
         )
+        result.execution_report = self._build_execution_report(tasks, raw_results)
+        return result
 
     def _run_tasks_parallel(
         self, tasks: list[ConanTask]
@@ -116,6 +121,65 @@ class ConanManager:
 
         return results
 
+    def _build_execution_report(
+        self,
+        tasks: list[ConanTask],
+        raw_results: list[ConanRawResult | None],
+    ) -> list[ConanComponentReport]:
+        """
+        Строит диагностический отчёт по каждому вызову ``conan graph info``.
+
+        Группирует записи по ключу (component, version, channel) → profile_name.
+        Порядок компонентов соответствует порядку задач.
+
+        Args:
+            tasks: Список задач в том же порядке, что и ``raw_results``.
+            raw_results: Сырые результаты параллельного выполнения.
+
+        Returns:
+            Список ``ConanComponentReport``, упорядоченный по компонентам.
+        """
+        # (comp, version, channel) → ConanComponentReport
+        comp_map: dict[tuple[str, str, str], ConanComponentReport] = {}
+
+        for task, raw in zip(tasks, raw_results):
+            key = (task.comp_name, task.version, task.channel)
+            comp_report = comp_map.setdefault(
+                key,
+                ConanComponentReport(
+                    component=task.comp_name,
+                    version=task.version,
+                    channel=task.channel,
+                ),
+            )
+
+            profile_report = comp_report.profiles.setdefault(
+                task.profile_name,
+                ConanProfileReport(profile_name=task.profile_name),
+            )
+
+            if raw is None:
+                record = ConanCommandRecord(
+                    command=" ".join(task.cmd),
+                    status="FAILED",
+                    error="Результат не получен (внутренняя ошибка).",
+                )
+            elif raw.success:
+                record = ConanCommandRecord(
+                    command=" ".join(task.cmd),
+                    status="SUCCESS",
+                )
+            else:
+                record = ConanCommandRecord(
+                    command=" ".join(task.cmd),
+                    status="FAILED",
+                    error=raw.error,
+                )
+
+            profile_report.commands.append(record)
+
+        return list(comp_map.values())
+
     def _build_enrichment_result(
         self,
         tasks: list[ConanTask],
@@ -124,7 +188,7 @@ class ConanManager:
         target_platform: str,
     ) -> ConanEnrichmentResult:
         """Собирает ConanEnrichmentResult из сырых результатов без мутации моделей."""
-        pb_agg: dict[int, _PbAgg] = {id(task.pb): _PbAgg() for task in tasks}
+        pb_agg: dict[int, _ProfileBuildAggregator] = {id(task.pb): _ProfileBuildAggregator() for task in tasks}
 
         for task, raw in zip(tasks, raw_results):
             if raw is None:
@@ -187,7 +251,7 @@ class ConanManager:
         return result
 
 
-class _PbAgg:
+class _ProfileBuildAggregator:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
     __slots__ = (

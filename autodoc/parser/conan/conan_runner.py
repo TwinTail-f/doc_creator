@@ -6,7 +6,11 @@
 """
 
 import json
+from pathlib import Path
+import os
+import shutil
 import subprocess
+import tempfile
 from abc import ABC, abstractmethod
 
 from autodoc.infrastructure.logger import logger
@@ -53,9 +57,29 @@ class Conan2Runner(BaseConanRunner):
         """
         self._timeout = timeout
 
+    @staticmethod
+    def _real_conan_home() -> Path:
+        """Возвращает путь к реальному CONAN_HOME (из env или ~/.conan2)."""
+        return Path(os.environ.get("CONAN_HOME", Path.home() / ".conan2"))
+
+    @staticmethod
+    def _setup_isolated_conan_home(src_home: Path, dst_home: Path) -> None:
+        """
+        Копирует папку ``.conan2`` из реального CONAN_HOME в изолированный.
+
+        Без этого Conan не находит ни пользовательские профили (-pr=...),
+        ни дефолтный профиль, и завершается с ошибкой.
+        """
+        shutil.copytree(src_home, dst_home)
+
     def run(self, task: ConanTask) -> ConanRawResult:
         """
         Выполняет ``conan graph info`` и возвращает сырой результат.
+
+        Для каждого вызова создаётся изолированный временный ``CONAN_HOME``
+        с скопированными профилями из реального окружения пользователя.
+        Это устраняет race condition в кэше Conan 2.x при параллельных вызовах:
+        каждый поток работает со своим независимым кэшем.
 
         При таймауте или отсутствии утилиты возвращает ``success=False``
         с описанием ошибки — не бросает исключений.
@@ -66,46 +90,50 @@ class Conan2Runner(BaseConanRunner):
         Returns:
             ``ConanRawResult`` с данными или описанием ошибки.
         """
-        try:
-            result = subprocess.run(
-                task.cmd,
-                capture_output=True,
-                text=True,
-                timeout=self._timeout,
-            )
-        except subprocess.TimeoutExpired:
-            return ConanRawResult(
-                task=task,
-                success=False,
-                data=None,
-                error=f"Таймаут выполнения команды ({self._timeout} с).",
-            )
-        except FileNotFoundError:
-            return ConanRawResult(
-                task=task,
-                success=False,
-                data=None,
-                error=self._CONAN_NOT_FOUND_MSG,
-            )
+        with tempfile.TemporaryDirectory(prefix="conan_home_") as tmp_home:
+            self._setup_isolated_conan_home(self._real_conan_home(), Path(tmp_home))
+            env = {**os.environ, "CONAN_HOME": tmp_home}
+            try:
+                result = subprocess.run(
+                    task.cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=self._timeout,
+                    env=env,
+                )
+            except subprocess.TimeoutExpired:
+                return ConanRawResult(
+                    task=task,
+                    success=False,
+                    data=None,
+                    error=f"Таймаут выполнения команды ({self._timeout} с).",
+                )
+            except FileNotFoundError:
+                return ConanRawResult(
+                    task=task,
+                    success=False,
+                    data=None,
+                    error=self._CONAN_NOT_FOUND_MSG,
+                )
 
-        if result.returncode != 0:
-            return ConanRawResult(
-                task=task,
-                success=False,
-                data=None,
-                error=self._extract_error_message(result.stderr),
-            )
+            if result.returncode != 0:
+                return ConanRawResult(
+                    task=task,
+                    success=False,
+                    data=None,
+                    error=self._extract_error_message(result.stderr),
+                )
 
-        try:
-            parsed = json.loads(result.stdout)
-            return ConanRawResult(task=task, success=True, data=parsed, error="")
-        except json.JSONDecodeError as e:
-            return ConanRawResult(
-                task=task,
-                success=False,
-                data=None,
-                error=f"JSON decode error: {e}. STDOUT: {result.stdout[:300]}",
-            )
+            try:
+                parsed = json.loads(result.stdout)
+                return ConanRawResult(task=task, success=True, data=parsed, error="")
+            except json.JSONDecodeError as e:
+                return ConanRawResult(
+                    task=task,
+                    success=False,
+                    data=None,
+                    error=f"JSON decode error: {e}. STDOUT: {result.stdout[:300]}",
+                )
 
     def clean_cache(self) -> None:
         """

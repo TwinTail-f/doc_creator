@@ -1,32 +1,82 @@
 """
-Результат выполнения одной команды ``conan graph info``.
+Типы данных результата выполнения Conan graph info.
 
-Намеренно отделён от ``conan_runner`` — дата-класс без зависимостей,
-используется как ``ConanRunner``-ами, так и ``ConanManager``-ом.
+Живут в ``models/`` — разделяются между слоями парсера и энричера
+без привязки к внутренностям пакета ``conan/``.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
-
-from autodoc.parser.conan.task_builder import ConanTask
 
 
 @dataclass
-class ConanRawResult:
+class ReleaseConanData:
+    """Данные Conan для обогащения одного Release."""
+
+    base_ref: str
+    rrev: str
+    full_version: str
+    default_options: list[dict[str, Any]]
+    patches: list[str]
+    dependencies: list[str]
+    artifactory_url: str
+
+
+@dataclass
+class ProfileConanData:
+    """Данные Conan для обогащения одного ProfileBuild."""
+
+    conan_settings: dict[str, Any]
+    exists: bool
+    variants: list[dict[str, Any]]
+
+
+# Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}
+_ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
+
+
+@dataclass
+class ConanCommandRecord:
+    """Запись об одном выполненном вызове ``conan graph info``."""
+
+    command: str
+    status: str  # "SUCCESS" | "FAILED"
+    error: str = ""
+
+
+@dataclass
+class ConanProfileReport:
+    """Все вызовы conan graph info для одного профиля."""
+
+    profile_name: str
+    commands: list[ConanCommandRecord] = field(default_factory=list)
+
+
+@dataclass
+class ConanComponentReport:
+    """Диагностический отчёт по всем вызовам одного компонента/версии/канала."""
+
+    component: str
+    version: str
+    channel: str
+    # profile_name → отчёт профиля
+    profiles: dict[str, ConanProfileReport] = field(default_factory=dict)
+
+
+@dataclass
+class ConanEnrichmentResult:
     """
-    Сырой результат выполнения одной команды ``conan graph info``.
+    Результат выполнения Conan graph info, готовый для применения к моделям.
 
-    Содержит либо распарсенный JSON (при успехе), либо текст ошибки.
-    Промежуточный тип — преобразуется в ``ConanEnrichData`` через ``ConanResultParser``.
-
-    Attributes:
-        task: Задача, породившая этот результат.
-        success: ``True`` если команда завершилась с кодом 0 и JSON разобран.
-        data: Разобранный JSON-ответ ``conan graph info``, если ``success=True``.
-        error: Текст ошибки, если ``success=False``.
+    Не мутирует модели — передаётся в ``DataEnricher.apply_conan_results()``.
     """
 
-    task: ConanTask
-    success: bool
-    data: dict[str, Any] | None
-    error: str
+    release_data: dict[tuple[str, str, str], ReleaseConanData] = field(
+        default_factory=dict
+    )
+    profile_data: dict[int, ProfileConanData] = field(default_factory=dict)
+    errors: _ErrorLog = field(default_factory=dict)
+    total_tasks: int = 0
+    succeeded: int = 0
+    failed: int = 0
+    execution_report: list[ConanComponentReport] = field(default_factory=list)
