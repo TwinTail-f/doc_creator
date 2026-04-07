@@ -168,7 +168,9 @@ class ComponentParser:
             (i for i, s in enumerate(self._steps) if s.name == step_name), -1
         )
         if step_idx == -1:
-            logger.warning(f"шаг {step_name!r} не найден в списке шагов, снимок пропущен")
+            logger.warning(
+                f"шаг {step_name!r} не найден в списке шагов, снимок пропущен"
+            )
             return
 
         safe_name = step_name.lower().replace(" ", "_").replace("/", "_")
@@ -180,8 +182,7 @@ class ComponentParser:
             "intermediate_keys": list(ctx.intermediate.keys()),
             "components": [c.model_dump() for c in ctx.components],
             "intermediate": {
-                k: v for k, v in ctx.intermediate.items()
-                if k != "docker_links"
+                k: v for k, v in ctx.intermediate.items() if k != "docker_links"
             },
             "docker_links_count": len(ctx.intermediate.get("docker_links", {})),
         }

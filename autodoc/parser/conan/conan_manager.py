@@ -188,7 +188,9 @@ class ConanManager:
         target_platform: str,
     ) -> ConanEnrichmentResult:
         """Собирает ConanEnrichmentResult из сырых результатов без мутации моделей."""
-        pb_agg: dict[int, _ProfileBuildAggregator] = {id(task.pb): _ProfileBuildAggregator() for task in tasks}
+        pb_agg: dict[int, _ProfileBuildAggregator] = {
+            id(task.pb): _ProfileBuildAggregator() for task in tasks
+        }
 
         for task, raw in zip(tasks, raw_results):
             if raw is None:
