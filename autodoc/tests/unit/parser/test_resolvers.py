@@ -12,6 +12,7 @@ from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher
 from autodoc.parser.parsers.docker_parser import DockerParser
 
+# 4.2 Новое имя поля
 MINIMAL_CONFIG_DATA = {
     "platform_version": "2.0",
     "platform_branch_name": "develop",
