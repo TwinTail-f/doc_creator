@@ -102,10 +102,13 @@ class TestArtifactoryCredentials:
 
     def test_credentials_default_empty(self, tmp_path: Path) -> None:
         """Если credentials не заданы ни в конфиге, ни в env — должна быть ошибка валидации."""
-        (tmp_path / "parser_config.json").write_text(json.dumps(VALID_PARSER_CONFIG))
+        config_without_creds = {
+            k: v for k, v in VALID_PARSER_CONFIG.items()
+            if k not in ("artifactory_username", "artifactory_password")
+        }
+        (tmp_path / "parser_config.json").write_text(json.dumps(config_without_creds))
         import os
-        from pydantic import ValidationError
         os.environ.pop("GET_USR", None)
         os.environ.pop("GET_PWD", None)
-        with pytest.raises(ValidationError, match="GET_USR"):
+        with pytest.raises(ConfigError, match="GET_USR"):
             ConfigManager(str(tmp_path)).load_parser_config()

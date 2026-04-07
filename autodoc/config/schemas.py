@@ -58,10 +58,12 @@ class ParserConfigSchema(BaseModel):
     # Credentials Artifactory — из конфига с fallback на env-переменные.
     artifactory_username: str | None = Field(
         default=None,
+        validate_default=True,
         description="Пользователь Artifactory (из env GET_USR если не задан явно)",
     )
     artifactory_password: str | None = Field(
         default=None,
+        validate_default=True,
         description="Пароль Artifactory (из env GET_PWD если не задан явно)",
     )
 

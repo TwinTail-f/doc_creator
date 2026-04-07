@@ -12,7 +12,6 @@ from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher
 from autodoc.parser.parsers.docker_parser import DockerParser
 
-# 4.2 Новое имя поля
 MINIMAL_CONFIG_DATA = {
     "platform_version": "2.0",
     "platform_branch_name": "develop",
@@ -21,6 +20,8 @@ MINIMAL_CONFIG_DATA = {
     "tfs_dep_components_url": "https://tfs.example.com/DEP",
     "manifests_remotes_path": "/remotes/manifests",
     "profiles_urls": [],
+    "artifactory_username": "art_user",
+    "artifactory_password": "art_pass",
 }
 
 def _make_config() -> ParserConfigSchema:

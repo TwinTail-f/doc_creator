@@ -119,7 +119,7 @@ class TFSClient:
                 file_response.raise_for_status()
                 (out_dir / file_name).write_text(file_response.text, encoding="utf-8")
                 downloaded_count += 1
-            except requests.exceptions.RequestException as e:
+            except (requests.exceptions.RequestException, NetworkError) as e:
                 logger.warning(f"не удалось скачать {file_name}: {e}. Пропускаем.")
 
         logger.info(f"успешно скачано {downloaded_count} файлов.")
