@@ -1,4 +1,5 @@
 """Тесты ManifestFetcher и read_properties."""
+
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -21,14 +22,18 @@ MINIMAL_CONFIG_DATA = {
     "artifactory_password": "art_pass",
 }
 
+
 def _make_config():
     from autodoc.config.schemas import ParserConfigSchema
+
     return ParserConfigSchema(**MINIMAL_CONFIG_DATA)
+
 
 def _write_properties(tmp_path: Path, filename: str, content: str) -> Path:
     p = tmp_path / filename
     p.write_text(content, encoding="utf-8")
     return p
+
 
 SAMPLE_PROPERTIES = """\
 name=crypto_lib
@@ -41,6 +46,7 @@ integration-profiles-develop-1.2.3-2.0-stable=linux_x86_64,linux_aarch64
 svace-profiles-1.2.3-2.0=linux_x86_64
 """
 
+
 class TestReadProperties:
     def test_reads_simple_key_value(self, tmp_path: Path) -> None:
         p = _write_properties(tmp_path, "test.properties", "key=value\nfoo=bar\n")
@@ -51,7 +57,9 @@ class TestReadProperties:
         assert read_properties(p) == {"key": "value"}
 
     def test_multiline_continuation(self, tmp_path: Path) -> None:
-        p = _write_properties(tmp_path, "test.properties", "key=first\\\nsecond\\\nthird\n")
+        p = _write_properties(
+            tmp_path, "test.properties", "key=first\\\nsecond\\\nthird\n"
+        )
         assert read_properties(p)["key"] == "firstsecondthird"
 
     def test_strips_whitespace(self, tmp_path: Path) -> None:
@@ -61,6 +69,7 @@ class TestReadProperties:
     def test_raises_os_error_for_missing_file(self, tmp_path: Path) -> None:
         with pytest.raises(OSError):
             read_properties(tmp_path / "nonexistent.properties")
+
 
 class TestManifestFetcher:
     def _make_parser_with_mock(self, tmp_path: Path, content: str):
@@ -119,6 +128,7 @@ class TestManifestFetcher:
 
     def test_raises_parsing_error_if_no_files(self, tmp_path: Path) -> None:
         from autodoc.exceptions import ParsingError
+
         parser = ManifestFetcher.__new__(ManifestFetcher)
         parser._tfs = MagicMock()
         parser._tfs.download_properties.return_value = None
@@ -137,7 +147,9 @@ class TestManifestParser:
     def test_parse_returns_component(self, tmp_path: Path) -> None:
         _write_properties(tmp_path, "c.properties", SAMPLE_PROPERTIES)
         parser = ManifestParser(target_platform="2.0")
-        components, warnings = parser.parse(list(tmp_path.glob("*.properties")), excluded=[])
+        components, warnings = parser.parse(
+            list(tmp_path.glob("*.properties")), excluded=[]
+        )
         assert len(components) == 1
         assert components[0].name == "crypto_lib"
         assert warnings == []
@@ -145,7 +157,9 @@ class TestManifestParser:
     def test_parse_excluded_returns_empty(self, tmp_path: Path) -> None:
         _write_properties(tmp_path, "c.properties", SAMPLE_PROPERTIES)
         parser = ManifestParser(target_platform="2.0")
-        components, _ = parser.parse(list(tmp_path.glob("*.properties")), excluded=["crypto_lib"])
+        components, _ = parser.parse(
+            list(tmp_path.glob("*.properties")), excluded=["crypto_lib"]
+        )
         assert components == []
 
     def test_parse_no_name_skipped(self, tmp_path: Path) -> None:

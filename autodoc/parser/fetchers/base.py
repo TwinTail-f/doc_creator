@@ -77,7 +77,7 @@ class BaseTFSFetcher(IFetcher[_T]):
     """
 
     def __init__(self) -> None:
-        self._tfs = None          # инициализируется в configure()
+        self._tfs = None  # инициализируется в configure()
 
     @abstractmethod
     def configure(self, ctx: "PipelineContext") -> None: ...

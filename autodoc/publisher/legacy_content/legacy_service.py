@@ -44,11 +44,14 @@ class LegacyContentService:
         all_sections = LegacyContentExtractor.extract_platform_versions(existing_html)
         current_label = _PLATFORM_LABEL_PREFIX + current_platform_version
         filtered = {
-            k: v for k, v in all_sections.items()
+            k: v
+            for k, v in all_sections.items()
             if current_label not in k and not k.endswith(current_platform_version)
         }
 
-        logger.debug(f"{len(all_sections)} секций всего, {len(filtered)} после фильтрации платформы {current_platform_version}")
+        logger.debug(
+            f"{len(all_sections)} секций всего, {len(filtered)} после фильтрации платформы {current_platform_version}"
+        )
         return filtered
 
     @staticmethod
@@ -71,4 +74,6 @@ class LegacyContentService:
         Returns:
             Финальный HTML, готовый для публикации в Confluence.
         """
-        return LegacyContentMerger.merge_by_tabs(new_html, legacy_contents, current_platform)
+        return LegacyContentMerger.merge_by_tabs(
+            new_html, legacy_contents, current_platform
+        )

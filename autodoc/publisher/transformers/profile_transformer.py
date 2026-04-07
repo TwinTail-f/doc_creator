@@ -1,4 +1,5 @@
 """Трансформер для профиль-центричного вида документации."""
+
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
@@ -56,9 +57,14 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
             for rel in comp.releases:
                 for pb in rel.profile_builds:
                     if pb.profile_name not in profile_meta:
-                        profile_meta[pb.profile_name] = {"settings": {}, "docker_url": ""}
+                        profile_meta[pb.profile_name] = {
+                            "settings": {},
+                            "docker_url": "",
+                        }
                     if pb.conan_settings:
-                        profile_meta[pb.profile_name]["settings"].update(pb.conan_settings)
+                        profile_meta[pb.profile_name]["settings"].update(
+                            pb.conan_settings
+                        )
                     if pb.docker_image:
                         profile_meta[pb.profile_name]["docker_url"] = pb.docker_image
 
@@ -78,19 +84,25 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
 
             for comp in data.components:
                 for rel in comp.releases:
-                    if not any(pb.profile_name == profile_name for pb in rel.profile_builds):
+                    if not any(
+                        pb.profile_name == profile_name for pb in rel.profile_builds
+                    ):
                         continue
                     if rel.channel not in entry["channels"]:
                         entry["channels"][rel.channel] = []
-                    entry["channels"][rel.channel].append({
-                        "name": comp.name,
-                        "version": rel.version,
-                        "passport_link": self._passport_link(comp.name, rel.version),
-                        "git": f"{comp.git_project}/{comp.git_repo}",
-                        "reference": rel.conan_reference or "—",
-                        "url": rel.artifactory_url or "—",
-                        "is_header_only": rel.is_header_only,
-                    })
+                    entry["channels"][rel.channel].append(
+                        {
+                            "name": comp.name,
+                            "version": rel.version,
+                            "passport_link": self._passport_link(
+                                comp.name, rel.version
+                            ),
+                            "git": f"{comp.git_project}/{comp.git_repo}",
+                            "reference": rel.conan_reference or "—",
+                            "url": rel.artifactory_url or "—",
+                            "is_header_only": rel.is_header_only,
+                        }
+                    )
 
             for channel in entry["channels"]:
                 entry["channels"][channel].sort(key=lambda x: x["name"])

@@ -1,5 +1,6 @@
 import logging
 
+
 def setup_logging(logger_name: str = "doc_parser") -> logging.Logger:
     """
     Настраивает логгер с выводом модуля и функции.
@@ -27,5 +28,6 @@ def setup_logging(logger_name: str = "doc_parser") -> logging.Logger:
         log.addHandler(console_handler)
 
     return log
+
 
 logger = setup_logging()

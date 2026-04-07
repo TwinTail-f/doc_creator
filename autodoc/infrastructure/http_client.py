@@ -1,6 +1,7 @@
 """
 HTTP утилиты с поддержкой retry-логики и exponential backoff.
 """
+
 import http
 
 import requests
@@ -11,16 +12,21 @@ from autodoc.infrastructure.logger import logger
 
 # Именованные статус-коды вместо магических чисел
 _RETRY_STATUS_CODES: tuple[int, ...] = (
-    http.HTTPStatus.REQUEST_TIMEOUT.value,        # 408
-    http.HTTPStatus.TOO_MANY_REQUESTS.value,      # 429
+    http.HTTPStatus.REQUEST_TIMEOUT.value,  # 408
+    http.HTTPStatus.TOO_MANY_REQUESTS.value,  # 429
     http.HTTPStatus.INTERNAL_SERVER_ERROR.value,  # 500
-    http.HTTPStatus.BAD_GATEWAY.value,            # 502
-    http.HTTPStatus.SERVICE_UNAVAILABLE.value,    # 503
-    http.HTTPStatus.GATEWAY_TIMEOUT.value,        # 504
+    http.HTTPStatus.BAD_GATEWAY.value,  # 502
+    http.HTTPStatus.SERVICE_UNAVAILABLE.value,  # 503
+    http.HTTPStatus.GATEWAY_TIMEOUT.value,  # 504
 )
 
 _RETRY_METHODS: tuple[str, ...] = (
-    "HEAD", "GET", "DELETE", "OPTIONS", "PUT", "POST",
+    "HEAD",
+    "GET",
+    "DELETE",
+    "OPTIONS",
+    "PUT",
+    "POST",
 )
 
 _PAT_DEFAULT_USERNAME: str = ""
@@ -111,6 +117,8 @@ def create_retryable_session(
         session.auth = (_PAT_DEFAULT_USERNAME, token)
         logger.debug("настроена PAT-аутентификация (username не задан)")
     elif username:
-        logger.warning(f"передан только username {username!r} без token — аутентификация не настроена")
+        logger.warning(
+            f"передан только username {username!r} без token — аутентификация не настроена"
+        )
 
     return session

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from autodoc.models.component import Component
 
+
 class ParsedResult(BaseModel):
     """
     Финальная модель данных после выполнения всего пайплайна парсера.

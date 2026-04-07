@@ -1,4 +1,5 @@
 """Тесты пайплайна: ComponentParser, BaseParseStep, PipelineContext."""
+
 import json
 from pathlib import Path
 from typing import Any
@@ -69,6 +70,7 @@ class TestBaseParseStepContract:
     def test_step_without_name_raises_on_declaration(self) -> None:
         """Шаг без name вызывает TypeError при объявлении класса."""
         with pytest.raises(TypeError, match="должен определить атрибут name"):
+
             class BrokenStep(BaseParseStep):
                 def execute(self, ctx):
                     pass
@@ -80,9 +82,11 @@ class TestPipelineStepOrder:
 
         class OrderStep(BaseParseStep):
             name = "placeholder"
+
             def __init__(self, n):
                 self._n = n
                 self.name = "Step%d" % n
+
             def execute(self, ctx):
                 order.append(self._n)
                 if self._n == 3:
@@ -105,7 +109,9 @@ class TestPipelineStepOrder:
     def test_critical_step_failure_raises(self, tmp_path: Path) -> None:
         with pytest.raises(ParsingError, match="Намеренная ошибка"):
             ComponentParser(
-                MINIMAL_CONFIG, tmp_path, steps=[_FailStep(critical=True), _FinalizeStub()]
+                MINIMAL_CONFIG,
+                tmp_path,
+                steps=[_FailStep(critical=True), _FinalizeStub()],
             ).parse()
 
     def test_tmp_dir_cleaned_on_success(self, tmp_path: Path) -> None:
@@ -126,6 +132,7 @@ class TestPipelineStepOrder:
 
         class CapturingStep(BaseParseStep):
             name = "CapturingStep"
+
             def execute(self, ctx):
                 captured["tfs"] = ctx.tfs_client
                 captured["art"] = ctx.artifactory_client
@@ -137,7 +144,8 @@ class TestPipelineStepOrder:
         mock_art = MagicMock(spec=ArtifactoryClient)
 
         ComponentParser(
-            MINIMAL_CONFIG, tmp_path,
+            MINIMAL_CONFIG,
+            tmp_path,
             steps=[CapturingStep()],
             tfs_client=mock_tfs,
             artifactory_client=mock_art,
@@ -150,19 +158,23 @@ class TestPipelineStepOrder:
 class TestSaveIntermediate:
     def test_save_intermediate_creates_files(self, tmp_path: Path) -> None:
         steps = [_SuccessStep("a"), _FinalizeStub()]
-        ComponentParser(MINIMAL_CONFIG, tmp_path, steps=steps).parse(save_intermediate=True)
+        ComponentParser(MINIMAL_CONFIG, tmp_path, steps=steps).parse(
+            save_intermediate=True
+        )
         files = list((tmp_path / "intermediate").glob("*.json"))
         assert len(files) == 2
 
     def test_save_intermediate_false_no_files(self, tmp_path: Path) -> None:
-        ComponentParser(
-            MINIMAL_CONFIG, tmp_path, steps=[_FinalizeStub()]
-        ).parse(save_intermediate=False)
+        ComponentParser(MINIMAL_CONFIG, tmp_path, steps=[_FinalizeStub()]).parse(
+            save_intermediate=False
+        )
         assert not (tmp_path / "intermediate").exists()
 
 
 class TestManifestStepSingularity:
-    def test_default_pipeline_has_exactly_one_manifest_step(self, tmp_path: Path) -> None:
+    def test_default_pipeline_has_exactly_one_manifest_step(
+        self, tmp_path: Path
+    ) -> None:
         """default_pipeline() содержит ровно один ManifestStep — клиенты не создаются."""
         parser = ComponentParser(MINIMAL_CONFIG, tmp_path)
         manifest_steps = [s for s in parser._steps if isinstance(s, ManifestStep)]
@@ -178,8 +190,12 @@ class TestProfileBuildFieldNames:
         from autodoc.parser.steps.finalize_step import FinalizeStep
 
         pb = ProfileBuild(profile_name="test", exists=False)
-        release = Release(version="1.0", platform="2.0", channel="stable",
-                          git_url="https://tfs.example.com")
+        release = Release(
+            version="1.0",
+            platform="2.0",
+            channel="stable",
+            git_url="https://tfs.example.com",
+        )
         release.profile_builds = [pb]
         comp = Component(name="lib", releases=[release])
 

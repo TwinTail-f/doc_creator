@@ -4,6 +4,7 @@
 Содержит интерфейс ``BaseConanRunner`` и реализацию ``Conan2Runner``.
 Дата-класс результата вынесен в ``conan_result.py``.
 """
+
 import json
 import subprocess
 from abc import ABC, abstractmethod
@@ -124,7 +125,9 @@ class Conan2Runner(BaseConanRunner):
             if result.returncode == 0:
                 logger.info("кэш Conan 2 очищен.")
             else:
-                logger.debug(f"кэш пуст или некритичная ошибка: {result.stderr.strip()}")
+                logger.debug(
+                    f"кэш пуст или некритичная ошибка: {result.stderr.strip()}"
+                )
         except subprocess.TimeoutExpired:
             logger.warning("таймаут при очистке кэша.")
         except FileNotFoundError:

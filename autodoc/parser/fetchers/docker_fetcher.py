@@ -2,6 +2,7 @@
 Фетчер Docker-образов: извлекает ссылки из YAML-файлов профилей сборки.
 Разбор YAML делегируется DockerParser.
 """
+
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -34,7 +35,9 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
         self._profiles_urls = ctx.config.profiles_urls or []
         self._platform_version = ctx.config.platform_version
 
-    def fetch(self, urls: list[str], target_platform: str) -> "FetchResult[DockerLinksMap]":
+    def fetch(
+        self, urls: list[str], target_platform: str
+    ) -> "FetchResult[DockerLinksMap]":
         """
         Скачивает YAML-файлы профилей и собирает маппинг Docker-образов.
 
@@ -60,7 +63,8 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
             yaml_path = query.get("path", [""])[0]
             branch_raw = query.get("version", [""])[0]
             branch = (
-                branch_raw[2:] if branch_raw.startswith("GB")
+                branch_raw[2:]
+                if branch_raw.startswith("GB")
                 else (branch_raw or target_platform)
             )
 

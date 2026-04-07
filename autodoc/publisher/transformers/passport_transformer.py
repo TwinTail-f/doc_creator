@@ -1,9 +1,11 @@
 """Трансформер для паспорта одного компонента."""
+
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
+
 
 class PassportTransformer(BaseDataTransformer):
     """
@@ -50,8 +52,11 @@ class PassportTransformer(BaseDataTransformer):
             )
 
         target_rel = next(
-            (r for r in target_comp.releases
-             if str(r.version) == str(self._release_version)),
+            (
+                r
+                for r in target_comp.releases
+                if str(r.version) == str(self._release_version)
+            ),
             None,
         )
         if not target_rel:
@@ -65,13 +70,15 @@ class PassportTransformer(BaseDataTransformer):
             if not settings and pb.profile_name in profile_settings:
                 settings = profile_settings[pb.profile_name]
 
-            enriched_pbs.append({
-                "profile_name": pb.profile_name,
-                "conan_settings": settings,
-                "exists": pb.exists,
-                "docker_image": pb.docker_image,   # новое имя
-                "variants": [v.model_dump() for v in (pb.variants or [])],
-            })
+            enriched_pbs.append(
+                {
+                    "profile_name": pb.profile_name,
+                    "conan_settings": settings,
+                    "exists": pb.exists,
+                    "docker_image": pb.docker_image,  # новое имя
+                    "variants": [v.model_dump() for v in (pb.variants or [])],
+                }
+            )
 
         release_dict = {
             "version": target_rel.version,
@@ -80,8 +87,10 @@ class PassportTransformer(BaseDataTransformer):
             "git_url": target_rel.git_url,
             "conan_reference": target_rel.conan_reference,
             "artifactory_url": target_rel.artifactory_url,
-            "is_header_only": target_rel.is_header_only,       # новое имя
-            "build_option_sets": [bos.model_dump() for bos in target_rel.build_option_sets],
+            "is_header_only": target_rel.is_header_only,  # новое имя
+            "build_option_sets": [
+                bos.model_dump() for bos in target_rel.build_option_sets
+            ],
             "default_options": [o.model_dump() for o in target_rel.default_options],
             "patches": target_rel.patches,
             "dependencies": target_rel.dependencies,

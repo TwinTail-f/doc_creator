@@ -1,7 +1,9 @@
 """
 Утилита для чтения файлов формата .properties.
 """
+
 from pathlib import Path
+
 
 def read_properties(filepath: Path) -> dict[str, str]:
     """

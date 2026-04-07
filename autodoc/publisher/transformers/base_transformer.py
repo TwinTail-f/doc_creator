@@ -1,4 +1,5 @@
 """Абстрактный базовый класс трансформеров данных и миксин для ссылок на паспорта."""
+
 from abc import ABC, abstractmethod
 from typing import Any
 

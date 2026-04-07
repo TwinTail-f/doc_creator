@@ -54,9 +54,7 @@ class TFSClient:
             ConfigError: Если ``tfs_token`` не задан.
         """
         if not config.tfs_token:
-            raise ConfigError(
-                "TFSClient: tfs_token не задан в конфигурации."
-            )
+            raise ConfigError("TFSClient: tfs_token не задан в конфигурации.")
 
         self.session = create_retryable_session(
             username=config.tfs_username or None,
@@ -98,9 +96,7 @@ class TFSClient:
             response = self.session.get(items_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            raise NetworkError(
-                f"ошибка при получении списка файлов: {e}"
-            ) from e
+            raise NetworkError(f"ошибка при получении списка файлов: {e}") from e
 
         items = response.json().get("value", [])
         logger.info(f"найдено {len(items)} элементов, начинаем скачивание…")
@@ -151,9 +147,7 @@ class TFSClient:
         try:
             return self.session.get(items_url, params=params)
         except requests.exceptions.RequestException as e:
-            raise NetworkError(
-                f"ошибка запроса файла {path}: {e}"
-            ) from e
+            raise NetworkError(f"ошибка запроса файла {path}: {e}") from e
 
     def get_items(
         self,

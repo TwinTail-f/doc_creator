@@ -2,6 +2,7 @@
 Парсер манифестов компонентов: разбор .properties-файлов в доменные модели.
 Не имеет доступа к TFS и не выполняет сетевых вызовов.
 """
+
 from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
@@ -50,7 +51,7 @@ class ManifestParser:
 
             name = props.get("name", "")
             if not name:
-                logger.debug(f"пропуск {filepath.name} — отсутствует поле \"name\"")
+                logger.debug(f'пропуск {filepath.name} — отсутствует поле "name"')
                 continue
 
             if name in excluded:
@@ -62,16 +63,20 @@ class ManifestParser:
             if not releases:
                 continue
 
-            components.append(Component(
-                name=name,
-                description=props.get("description", ""),
-                git_project=props.get("tfs_git_project", ""),
-                git_repo=props.get("git_repo_name", ""),
-                releases=releases,
-            ))
+            components.append(
+                Component(
+                    name=name,
+                    description=props.get("description", ""),
+                    git_project=props.get("tfs_git_project", ""),
+                    git_repo=props.get("git_repo_name", ""),
+                    releases=releases,
+                )
+            )
             parsed_count += 1
 
-        logger.info(f"обработано {parsed_count} компонентов, исключено {excluded_count}")
+        logger.info(
+            f"обработано {parsed_count} компонентов, исключено {excluded_count}"
+        )
         return components, warnings
 
     def _build_releases(self, props: dict) -> list[Release]:
@@ -92,7 +97,9 @@ class ManifestParser:
         releases: list[Release] = []
 
         for p_ver in plat_versions:
-            if not (p_ver.startswith(f"{target_platform}-") or p_ver == target_platform):
+            if not (
+                p_ver.startswith(f"{target_platform}-") or p_ver == target_platform
+            ):
                 continue
             for c_ver in comp_versions:
                 profiles_str = self._get_profiles_string(props, c_ver, p_ver)
@@ -100,16 +107,17 @@ class ManifestParser:
                     continue
                 channel = p_ver.split("-")[1] if "-" in p_ver else ""
                 profile_list = [p.strip() for p in profiles_str.split(",") if p.strip()]
-                releases.append(Release(
-                    version=c_ver,
-                    platform=target_platform,
-                    channel=channel,
-                    git_url=f"{git_project}/_git/{git_repo}" if git_repo else "",
-                    profile_builds=[
-                        ProfileBuild(profile_name=prof)
-                        for prof in profile_list
-                    ],
-                ))
+                releases.append(
+                    Release(
+                        version=c_ver,
+                        platform=target_platform,
+                        channel=channel,
+                        git_url=f"{git_project}/_git/{git_repo}" if git_repo else "",
+                        profile_builds=[
+                            ProfileBuild(profile_name=prof) for prof in profile_list
+                        ],
+                    )
+                )
 
         return releases
 

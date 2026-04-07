@@ -1,4 +1,5 @@
 """Тесты OptionsFetcher и DockerFetcher."""
+
 import json
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -25,8 +26,10 @@ MINIMAL_CONFIG_DATA = {
     "artifactory_password": "art_pass",
 }
 
+
 def _make_config() -> ParserConfigSchema:
     return ParserConfigSchema(**MINIMAL_CONFIG_DATA)
+
 
 def _make_component(name: str, version: str, channel: str, git_repo: str) -> Component:
     release = Release(
@@ -37,6 +40,7 @@ def _make_component(name: str, version: str, channel: str, git_repo: str) -> Com
     )
     # 1.3 git_repo — на Component, не на Release
     return Component(name=name, git_repo=git_repo, releases=[release])
+
 
 class TestDockerParserAliases:
     def test_simple_name_generates_aliases(self) -> None:
@@ -57,6 +61,7 @@ class TestDockerParserAliases:
         links: DockerLinksMap = {}
         DockerParser.add_aliases("", "registry/img:3", links)
         assert links == {}
+
 
 class TestDockerFetcherFetch:
     def test_valid_yaml_returns_docker_links(self) -> None:
@@ -102,8 +107,11 @@ class TestDockerFetcherFetch:
         result = resolver.fetch([url], "develop")
         assert result.value == {}
 
+
 class TestOptionsFetcher:
-    def _resolver_with_options(self, options_json, opt_path="/repo/conan/ci-2.0/options.json"):
+    def _resolver_with_options(
+        self, options_json, opt_path="/repo/conan/ci-2.0/options.json"
+    ):
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = "https://tfs.example.com/DEP"
         resolver._configured = True

@@ -10,6 +10,7 @@ Click CLI для запуска парсера и паблишера докум�
     config validate     — валидация конфиг-файла
     info                — версия и сводка возможностей
 """
+
 import json
 import sys
 from pathlib import Path
@@ -48,9 +49,11 @@ class _CliCtx:
         self.verbose = verbose
         self.config_manager = ConfigManager(str(configs_dir))
 
+
 # ---------------------------------------------------------------------------
 # Корневая группа
 # ---------------------------------------------------------------------------
+
 
 @click.group(invoke_without_command=True)
 @click.option(
@@ -68,7 +71,9 @@ class _CliCtx:
 )
 @click.option("-v", "--verbose", is_flag=True, help="Подробный вывод логов")
 @click.pass_context
-def cli(ctx: click.Context, base_dir: str, configs_dir: str | None, verbose: bool) -> None:
+def cli(
+    ctx: click.Context, base_dir: str, configs_dir: str | None, verbose: bool
+) -> None:
     """
     Doc Generator CLI — инструмент сбора и публикации документации компонентов платформы.
 
@@ -92,9 +97,11 @@ def cli(ctx: click.Context, base_dir: str, configs_dir: str | None, verbose: boo
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
 
+
 # ---------------------------------------------------------------------------
 # Команда: parse
 # ---------------------------------------------------------------------------
+
 
 @cli.command()
 @click.option("--config", default=None, help="Имя файла конфига парсера")
@@ -130,10 +137,12 @@ def parse(
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     try:
-        console.print(Panel.fit(
-            "[bold blue]🚀 Запуск парсера документации[/bold blue]",
-            style="blue",
-        ))
+        console.print(
+            Panel.fit(
+                "[bold blue]🚀 Запуск парсера документации[/bold blue]",
+                style="blue",
+            )
+        )
 
         console.print("📋 Загрузка конфигурации…", style="cyan")
         parser_config = cli_ctx.config_manager.load_parser_config(config)
@@ -152,7 +161,9 @@ def parse(
                 exclude.append(ConanEnrichStep)
             if skip_validation:
                 exclude.append(ArtifactoryValidationStep)
-            parser = ComponentParser.with_steps_excluded(parser_config, data_dir, exclude)
+            parser = ComponentParser.with_steps_excluded(
+                parser_config, data_dir, exclude
+            )
             skipped = [cls.__name__ for cls in exclude]
             console.print(
                 f"⚠️  Пропущены шаги: {", ".join(skipped)}",
@@ -168,12 +179,14 @@ def parse(
         output_file = data_dir / "parsed_data.json"
         output_file.write_text(result.model_dump_json(indent=2), encoding="utf-8")
 
-        console.print(Panel.fit(
-            f"[bold green]✅ Парсер завершил работу успешно![/bold green]\n"
-            f"Компонентов: {len(result.components)}\n"
-            f"Результат: {output_file}",
-            style="green",
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold green]✅ Парсер завершил работу успешно![/bold green]\n"
+                f"Компонентов: {len(result.components)}\n"
+                f"Результат: {output_file}",
+                style="green",
+            )
+        )
 
     except ConfigError as e:
         console.print(f"❌ Ошибка конфигурации: {e}", style="red bold")
@@ -187,17 +200,18 @@ def parse(
 def publish() -> None:
     """Публикация документации в Confluence."""
 
+
 def _load_parsed_data(base_dir: Path) -> ParsedResult:
     """Загружает parsed_data.json и десериализует в ParsedResult."""
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
         console.print(
-            "❌ Файл parsed_data.json не найден. Сначала запустите " \
-            "\"parse\".",
+            "❌ Файл parsed_data.json не найден. Сначала запустите " '"parse".',
             style="red bold",
         )
         sys.exit(1)
     return ParsedResult.model_validate_json(data_file.read_text(encoding="utf-8"))
+
 
 def _make_publisher(
     cli_ctx: _CliCtx,
@@ -210,8 +224,11 @@ def _make_publisher(
     )
     return DocumentPublisher(conf_config, templates_dir), conf_config
 
+
 @publish.command("release")
-@click.option("--page-title", default=None, help="Заголовок страницы (переопределяет конфиг)")
+@click.option(
+    "--page-title", default=None, help="Заголовок страницы (переопределяет конфиг)"
+)
 @click.option(
     "--no-passport-links",
     is_flag=True,
@@ -227,13 +244,17 @@ def publish_release(
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     try:
-        console.print(Panel.fit(
-            "[bold blue]🚀 Публикация релизной документации[/bold blue]",
-            style="blue",
-        ))
+        console.print(
+            Panel.fit(
+                "[bold blue]🚀 Публикация релизной документации[/bold blue]",
+                style="blue",
+            )
+        )
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
-        console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
+        console.print(
+            f"✅ Данных: {len(parsed_data.components)} компонентов", style="green"
+        )
 
         publisher, conf_config = _make_publisher(cli_ctx)
         final_title = page_title or conf_config.page_title or "Release Documentation"
@@ -256,7 +277,9 @@ def publish_release(
 
 
 @publish.command("profile")
-@click.option("--page-title", default=None, help="Заголовок страницы (переопределяет конфиг)")
+@click.option(
+    "--page-title", default=None, help="Заголовок страницы (переопределяет конфиг)"
+)
 @click.pass_context
 def publish_profile(
     ctx: click.Context,
@@ -266,13 +289,17 @@ def publish_profile(
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     try:
-        console.print(Panel.fit(
-            "[bold blue]🚀 Публикация документации от профилей[/bold blue]",
-            style="blue",
-        ))
+        console.print(
+            Panel.fit(
+                "[bold blue]🚀 Публикация документации от профилей[/bold blue]",
+                style="blue",
+            )
+        )
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
-        console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
+        console.print(
+            f"✅ Данных: {len(parsed_data.components)} компонентов", style="green"
+        )
 
         publisher, conf_config = _make_publisher(cli_ctx)
         final_title = page_title or conf_config.page_title or "Profile Documentation"
@@ -294,17 +321,21 @@ def publish_profile(
 
 
 @publish.command("passports")
-@click.option("--root-page", default=None, help="ID корневой страницы иерархии паспортов")
+@click.option(
+    "--root-page", default=None, help="ID корневой страницы иерархии паспортов"
+)
 @click.pass_context
 def publish_passports(ctx: click.Context, root_page: str | None) -> None:
     """Публикация паспортов компонентов (иерархия страниц)."""
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     try:
-        console.print(Panel.fit(
-            "[bold blue]🚀 Публикация паспортов компонентов[/bold blue]",
-            style="blue",
-        ))
+        console.print(
+            Panel.fit(
+                "[bold blue]🚀 Публикация паспортов компонентов[/bold blue]",
+                style="blue",
+            )
+        )
 
         publisher, conf_config = _make_publisher(cli_ctx)
         target_root = root_page or conf_config.passports_root_parent_id
@@ -357,10 +388,12 @@ def publish_all(
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     try:
-        console.print(Panel.fit(
-            "[bold blue]🚀 Публикация: паспорта + релиз[/bold blue]",
-            style="blue",
-        ))
+        console.print(
+            Panel.fit(
+                "[bold blue]🚀 Публикация: паспорта + релиз[/bold blue]",
+                style="blue",
+            )
+        )
 
         publisher, conf_config = _make_publisher(cli_ctx)
         target_root = root_page or conf_config.passports_root_parent_id
@@ -401,9 +434,11 @@ def publish_all(
 # Группа: config
 # ---------------------------------------------------------------------------
 
+
 @cli.group()
 def config() -> None:
     """Управление конфигурационными файлами."""
+
 
 @config.command("list")
 @click.pass_context
@@ -425,6 +460,7 @@ def config_list(ctx: click.Context) -> None:
         else:
             console.print(f"{fmt.upper()} конфиги: [yellow]не найдены[/yellow]")
 
+
 @config.command("validate")
 @click.argument("config-file")
 @click.pass_context
@@ -440,7 +476,9 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
         schema_loaded = False
         try:
             cli_ctx.config_manager.load_parser_config(config_file)
-            console.print("✅ Pydantic валидация пройдена (схема: parser)", style="green")
+            console.print(
+                "✅ Pydantic валидация пройдена (схема: parser)", style="green"
+            )
             schema_loaded = True
         except ConfigError:
             pass
@@ -448,7 +486,9 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
         if not schema_loaded:
             try:
                 cli_ctx.config_manager.load_confluence_config(config_file)
-                console.print("✅ Pydantic валидация пройдена (схема: confluence)", style="green")
+                console.print(
+                    "✅ Pydantic валидация пройдена (схема: confluence)", style="green"
+                )
                 schema_loaded = True
             except ConfigError:
                 pass
@@ -463,44 +503,53 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
         console.print(f"❌ Файл невалиден: {error}", style="red bold")
         sys.exit(1)
 
+
 # ---------------------------------------------------------------------------
 # Команда: info
 # ---------------------------------------------------------------------------
 
+
 @cli.command()
 def info() -> None:
     """Показать версию и список возможностей."""
-    console.print(Panel(
-        f"[bold cyan]Doc Generator v{_VERSION}[/bold cyan]\n\n"
-        "✓ Автоматический сбор данных компонентов из TFS\n"
-        "✓ Интеграция с Conan package manager\n"
-        "✓ Получение Docker-ссылок из YAML профилей\n"
-        "✓ Публикация паспортов компонентов (publish passports)\n"
-        "✓ Публикация релизной документации от компонентов (publish release)\n"
-        "✓ Публикация документации от профилей (publish profile)\n"
-        "✓ Команда publish all (паспорта + релиз за один вызов)\n",
-        title="Doc Generator",
-        style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold cyan]Doc Generator v{_VERSION}[/bold cyan]\n\n"
+            "✓ Автоматический сбор данных компонентов из TFS\n"
+            "✓ Интеграция с Conan package manager\n"
+            "✓ Получение Docker-ссылок из YAML профилей\n"
+            "✓ Публикация паспортов компонентов (publish passports)\n"
+            "✓ Публикация релизной документации от компонентов (publish release)\n"
+            "✓ Публикация документации от профилей (publish profile)\n"
+            "✓ Команда publish all (паспорта + релиз за один вызов)\n",
+            title="Doc Generator",
+            style="blue",
+        )
+    )
+
 
 # ---------------------------------------------------------------------------
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
 
+
 def _print_publish_result(result: PublishReport) -> None:
     """Выводит результат публикации в консоль."""
     if result.success:
-        console.print(Panel.fit(
-            f"[bold green]✅ Публикация завершена успешно![/bold green]\n"
-            f"Страниц создано/обновлено: {result.pages_published}",
-            style="green",
-        ))
+        console.print(
+            Panel.fit(
+                f"[bold green]✅ Публикация завершена успешно![/bold green]\n"
+                f"Страниц создано/обновлено: {result.pages_published}",
+                style="green",
+            )
+        )
     else:
         console.print("⚠️  Публикация завершена с ошибками:", style="yellow bold")
         for err in result.errors:
             console.print(f"  • {err}", style="yellow")
         if result.pages_published == 0:
             sys.exit(1)
+
 
 if __name__ == "__main__":
     cli(obj={})

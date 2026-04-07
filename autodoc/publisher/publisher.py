@@ -1,4 +1,5 @@
 """Точка входа паблишера документации компонентов платформы."""
+
 from pathlib import Path
 from typing import Any
 
@@ -128,7 +129,8 @@ class DocumentPublisher:
 
         return PublishReport(
             success=passports_report.success and release_report.success,
-            pages_published=passports_report.pages_published + release_report.pages_published,
+            pages_published=passports_report.pages_published
+            + release_report.pages_published,
             errors=passports_report.errors + release_report.errors,
             details=passports_report.details + release_report.details,
         )

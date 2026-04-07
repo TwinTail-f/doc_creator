@@ -4,20 +4,23 @@
 Используются на всём протяжении пайплайна — от парсинга манифестов
 до финальной публикации в Confluence.
 """
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, PrivateAttr
 
 OptionType = Literal["bool", "enum", "ANY", "string"]
 
+
 class BuildOptionSet(BaseModel):
     """Один набор опций сборки Conan с идентификатором для корреляции задач."""
 
-    id: str = Field(..., description="Идентификатор набора опций (например \"1\", \"2\")")
+    id: str = Field(..., description='Идентификатор набора опций (например "1", "2")')
     options: str = Field(
         default="",
-        description="Строка опций в нативном формате Conan (например \"shared=False, fPIC=True\")",
+        description='Строка опций в нативном формате Conan (например "shared=False, fPIC=True")',
     )
+
 
 class OptionDefinition(BaseModel):
     """Описание одной дефолтной опции Conan-пакета."""
@@ -25,6 +28,7 @@ class OptionDefinition(BaseModel):
     name: str = Field(..., description="Имя опции")
     type: OptionType = Field(..., description="Тип значения опции")  # 1.6
     default_value: Any = Field(..., description="Значение по умолчанию")
+
 
 class ConanVariant(BaseModel):
     """Один конкретный вариант сборки Conan-пакета (конкретный package_id)."""
@@ -37,6 +41,7 @@ class ConanVariant(BaseModel):
         description="Фактические опции конкретной сборки: {name: value}",
     )
 
+
 class ProfileBuild(BaseModel):
     """Сборка компонента под конкретный профиль (архитектура / платформа)."""
 
@@ -45,11 +50,11 @@ class ProfileBuild(BaseModel):
         default_factory=dict,
         description="Настройки Conan для профиля",
     )
-    exists: bool = Field(          # 1.2 было: pb_exist
+    exists: bool = Field(  # 1.2 было: pb_exist
         default=False,
         description="True — пакет для данного профиля найден в Artifactory",
     )
-    docker_image: str = Field(     # 1.2 было: profile_docker_url
+    docker_image: str = Field(  # 1.2 было: profile_docker_url
         default="",
         description="URL Docker-образа для сборки профиля",
     )
@@ -58,15 +63,18 @@ class ProfileBuild(BaseModel):
         description="Список конкретных вариантов пакета",
     )
 
+
 class Release(BaseModel):
     """Один релиз (версия) компонента с привязкой к платформе и каналу."""
 
     version: str = Field(..., description="Версия компонента")
     platform: str = Field(..., description="Целевая платформа")
-    channel: str = Field(..., description="Conan-канал (например \"stable\")")
+    channel: str = Field(..., description='Conan-канал (например "stable")')
     git_url: str = Field(..., description="URL репозитория в Git/TFS")
 
-    conan_reference: str = Field(default="", description="Ссылка Conan (name/version@user/channel)")
+    conan_reference: str = Field(
+        default="", description="Ссылка Conan (name/version@user/channel)"
+    )
     artifactory_url: str = Field(default="", description="URL пакета в Artifactory")
 
     build_option_sets: list[BuildOptionSet] = Field(
@@ -79,7 +87,9 @@ class Release(BaseModel):
         description="Список дефолтных опций из conan graph info",
     )
     patches: list[str] = Field(default_factory=list, description="Список патчей")
-    dependencies: list[str] = Field(default_factory=list, description="Список зависимостей")
+    dependencies: list[str] = Field(
+        default_factory=list, description="Список зависимостей"
+    )
 
     is_header_only: bool = Field(  # 1.5 было: is_header_only_component
         default=False,
@@ -93,6 +103,7 @@ class Release(BaseModel):
 
     _build_option_sets_internal: dict[str, str] = PrivateAttr(default_factory=dict)
 
+
 class Component(BaseModel):
     """Компонент платформы — верхний уровень доменной модели."""
 
@@ -104,6 +115,7 @@ class Component(BaseModel):
         default_factory=list,
         description="Список релизов компонента",
     )
+
 
 __all__ = [
     "OptionType",

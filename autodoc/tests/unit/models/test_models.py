@@ -1,6 +1,7 @@
 """
 Тесты доменных моделей: Component, Release, ParsedResult.
 """
+
 import json
 
 import pytest
@@ -14,6 +15,7 @@ from autodoc.models.component import (
     Release,
 )
 from autodoc.models.parsed_result import ParsedResult
+
 
 class TestComponentCreation:
     """Тесты создания Component с вложенными объектами."""
@@ -59,7 +61,7 @@ class TestComponentCreation:
         assert comp.releases[0].version == "1.2.3"
         pb = comp.releases[0].profile_builds[0]
         assert pb.profile_name == "linux_x86_64"
-        assert pb.exists is True                            # 1.2
+        assert pb.exists is True  # 1.2
         assert pb.docker_image == "registry.example.com/builder:latest"  # 1.2
         assert pb.variants[0].package_id == "abc123"
 
@@ -90,6 +92,7 @@ class TestComponentCreation:
         comp = Component(name="lib", unknown_field="value")
         assert not hasattr(comp, "unknown_field")
 
+
 class TestPrivateAttribute:
     """Тест: _build_option_sets_internal не попадает в сериализацию."""
 
@@ -117,33 +120,43 @@ class TestPrivateAttribute:
         release._build_option_sets_internal = {"key": "value"}
         assert release._build_option_sets_internal == {"key": "value"}
 
+
 class TestReleaseFieldNames:
     """1.4, 1.5 Проверка переименованных полей Release."""
 
     def test_build_option_sets_field_exists(self) -> None:
         """1.4 conan_options → build_option_sets."""
         release = Release(
-            version="1.0.0", platform="develop", channel="stable",
+            version="1.0.0",
+            platform="develop",
+            channel="stable",
             git_url="https://tfs.example.com",
             build_option_sets=[BuildOptionSet(id="1", options="shared=True")],
         )
-        assert release.build_option_sets == [BuildOptionSet(id="1", options="shared=True")]
+        assert release.build_option_sets == [
+            BuildOptionSet(id="1", options="shared=True")
+        ]
 
     def test_is_header_only_field_exists(self) -> None:
         """1.5 is_header_only_component → is_header_only."""
         release = Release(
-            version="1.0.0", platform="develop", channel="stable",
+            version="1.0.0",
+            platform="develop",
+            channel="stable",
             git_url="https://tfs.example.com",
             is_header_only=True,
         )
         assert release.is_header_only is True
+
 
 class TestParsedResult:
     """Тесты сериализации / десериализации ParsedResult."""
 
     def _make_result(self) -> ParsedResult:
         release = Release(
-            version="2.0.0", platform="develop", channel="stable",
+            version="2.0.0",
+            platform="develop",
+            channel="stable",
             git_url="https://tfs.example.com/repo",
         )
         comp = Component(name="my_lib", releases=[release])

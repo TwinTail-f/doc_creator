@@ -5,6 +5,7 @@
 Альтернатива: установить пакет в режиме разработки:
     pip install -e .
 """
+
 import sys
 from pathlib import Path
 

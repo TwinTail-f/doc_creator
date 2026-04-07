@@ -8,6 +8,7 @@ Unit-тесты для TFSClient.
 
 Все тесты используют моки — сетевых запросов нет.
 """
+
 import pytest
 import requests
 from pathlib import Path
@@ -24,6 +25,7 @@ _TFS_SESSION_PATH = "autodoc.parser.clients.tfs_client.create_retryable_session"
 # Вспомогательные утилиты
 # ---------------------------------------------------------------------------
 
+
 def _make_mock_session() -> MagicMock:
     """Возвращает сконфигурированный mock сессии."""
     session = MagicMock()
@@ -35,10 +37,13 @@ def _make_mock_session() -> MagicMock:
 # Инициализация
 # ---------------------------------------------------------------------------
 
+
 class TestTFSClientInit:
     """Тесты корректной инициализации TFSClient."""
 
-    def test_session_created_with_correct_params(self, minimal_config: ParserConfigSchema) -> None:
+    def test_session_created_with_correct_params(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
         """create_retryable_session вызывается с параметрами из конфига."""
         mock_session = _make_mock_session()
         with patch(_TFS_SESSION_PATH, return_value=mock_session) as mock_factory:
@@ -52,7 +57,9 @@ class TestTFSClientInit:
             timeout=minimal_config.tfs_request_timeout,
         )
 
-    def test_api_version_set_in_session_params(self, minimal_config: ParserConfigSchema) -> None:
+    def test_api_version_set_in_session_params(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
         """После инициализации session.params содержит api-version."""
         mock_session = _make_mock_session()
         with patch(_TFS_SESSION_PATH, return_value=mock_session):
@@ -60,7 +67,9 @@ class TestTFSClientInit:
 
         assert client.session.params == {"api-version": "7.1"}
 
-    def test_raises_config_error_if_no_token(self, minimal_config: ParserConfigSchema) -> None:
+    def test_raises_config_error_if_no_token(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
         """ConfigError если tfs_token пустой."""
         bad = minimal_config.model_copy(update={"tfs_token": ""})
         with pytest.raises(ConfigError, match="tfs_token"):
@@ -88,6 +97,7 @@ class TestTFSClientInit:
 # ---------------------------------------------------------------------------
 # get_file_content
 # ---------------------------------------------------------------------------
+
 
 class TestGetFileContent:
     """Тесты метода TFSClient.get_file_content."""
@@ -122,20 +132,28 @@ class TestGetFileContent:
 
         client.session.get.assert_called_once_with(
             "https://tfs.example.com/items",
-            params={"path": "/components/lib.yaml", "versionDescriptor.version": "main"},
+            params={
+                "path": "/components/lib.yaml",
+                "versionDescriptor.version": "main",
+            },
         )
 
     def test_raises_network_error_on_request_exception(self, client: TFSClient) -> None:
         """NetworkError возникает при requests.RequestException."""
-        client.session.get.side_effect = requests.exceptions.ConnectionError("conn refused")
+        client.session.get.side_effect = requests.exceptions.ConnectionError(
+            "conn refused"
+        )
 
         with pytest.raises(NetworkError, match="ошибка запроса файла"):
-            client.get_file_content("https://tfs.example.com/items", "/file.yaml", "develop")
+            client.get_file_content(
+                "https://tfs.example.com/items", "/file.yaml", "develop"
+            )
 
 
 # ---------------------------------------------------------------------------
 # get_items
 # ---------------------------------------------------------------------------
+
 
 class TestGetItems:
     """Тесты метода TFSClient.get_items."""
@@ -203,6 +221,7 @@ class TestGetItems:
 # download_properties
 # ---------------------------------------------------------------------------
 
+
 class TestDownloadProperties:
     """Тесты метода TFSClient.download_properties."""
 
@@ -220,9 +239,11 @@ class TestDownloadProperties:
         self, client: TFSClient, tmp_path: Path
     ) -> None:
         """Скачивает .properties файлы и сохраняет их в output_dir."""
-        list_resp = self._items_response([
-            {"path": "/remotes/comp.properties", "isFolder": False},
-        ])
+        list_resp = self._items_response(
+            [
+                {"path": "/remotes/comp.properties", "isFolder": False},
+            ]
+        )
         file_resp = MagicMock(spec=requests.Response)
         file_resp.text = "key=value\n"
         client.session.get.side_effect = [list_resp, file_resp]
@@ -242,10 +263,12 @@ class TestDownloadProperties:
         self, client: TFSClient, tmp_path: Path
     ) -> None:
         """Файлы без расширения .properties пропускаются."""
-        list_resp = self._items_response([
-            {"path": "/remotes/readme.md", "isFolder": False},
-            {"path": "/remotes/comp.properties", "isFolder": False},
-        ])
+        list_resp = self._items_response(
+            [
+                {"path": "/remotes/readme.md", "isFolder": False},
+                {"path": "/remotes/comp.properties", "isFolder": False},
+            ]
+        )
         file_resp = MagicMock(spec=requests.Response)
         file_resp.text = "x=1\n"
         client.session.get.side_effect = [list_resp, file_resp]
@@ -259,10 +282,12 @@ class TestDownloadProperties:
 
     def test_skips_folders(self, client: TFSClient, tmp_path: Path) -> None:
         """Элементы с isFolder=True пропускаются."""
-        list_resp = self._items_response([
-            {"path": "/remotes/subdir", "isFolder": True},
-            {"path": "/remotes/a.properties", "isFolder": False},
-        ])
+        list_resp = self._items_response(
+            [
+                {"path": "/remotes/subdir", "isFolder": True},
+                {"path": "/remotes/a.properties", "isFolder": False},
+            ]
+        )
         file_resp = MagicMock(spec=requests.Response)
         file_resp.text = "a=1\n"
         client.session.get.side_effect = [list_resp, file_resp]
@@ -288,10 +313,12 @@ class TestDownloadProperties:
         self, client: TFSClient, tmp_path: Path
     ) -> None:
         """Если скачивание одного файла упало — остальные файлы всё равно скачиваются."""
-        list_resp = self._items_response([
-            {"path": "/remotes/a.properties", "isFolder": False},
-            {"path": "/remotes/b.properties", "isFolder": False},
-        ])
+        list_resp = self._items_response(
+            [
+                {"path": "/remotes/a.properties", "isFolder": False},
+                {"path": "/remotes/b.properties", "isFolder": False},
+            ]
+        )
         ok_resp = MagicMock(spec=requests.Response)
         ok_resp.text = "b=2\n"
         client.session.get.side_effect = [

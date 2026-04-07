@@ -1,6 +1,7 @@
 """
 Общие фикстуры для unit-тестов.
 """
+
 import pytest
 
 from autodoc.config.schemas import ParserConfigSchema

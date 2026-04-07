@@ -1,6 +1,7 @@
 """
 Шаг пайплайна: финализация и валидация данных.
 """
+
 import datetime
 
 from autodoc.exceptions import ParsingError
@@ -8,6 +9,7 @@ from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+
 
 class FinalizeStep(BaseParseStep):
     """
@@ -113,6 +115,4 @@ class FinalizeStep(BaseParseStep):
             logger.info(f"данные валидированы. {len(result.components)} компонентов.")
             return result
         except Exception as e:
-            raise ParsingError(
-                f"FinalizeStep: валидация данных не прошла: {e}"
-            ) from e
+            raise ParsingError(f"FinalizeStep: валидация данных не прошла: {e}") from e

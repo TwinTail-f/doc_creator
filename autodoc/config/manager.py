@@ -1,6 +1,7 @@
 """
 Менеджер конфигураций с поддержкой форматов JSON и YAML.
 """
+
 import json
 from pathlib import Path
 from typing import Any
@@ -66,7 +67,9 @@ class ConfigManager:
         except Exception as e:
             raise ConfigError(f"Ошибка валидации {filename}: {e}") from e
 
-    def load_confluence_config(self, config_file: str | None = None) -> ConfluenceConfigSchema:
+    def load_confluence_config(
+        self, config_file: str | None = None
+    ) -> ConfluenceConfigSchema:
         """
         Загружает и валидирует конфигурацию Confluence.
 
@@ -153,7 +156,7 @@ class ConfigManager:
 
         available = [e.name for e in self.configs_dir.iterdir()]
         raise ConfigError(
-            f"Конфиг \"{basename}\" не найден в {self.configs_dir}\n"
+            f'Конфиг "{basename}" не найден в {self.configs_dir}\n'
             f"Доступные файлы: {available}\n"
             f"Поддерживаемые форматы: {self.SUPPORTED_FORMATS}"
         )

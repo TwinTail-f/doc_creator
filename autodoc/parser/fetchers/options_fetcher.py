@@ -2,6 +2,7 @@
 Фетчер опций Conan: скачивает options.json из репозиториев компонентов.
 Разбор JSON делегируется OptionsParser.
 """
+
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
@@ -59,9 +60,13 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 cache_key = f"{repo_name}_{branch}"
 
                 if cache_key not in options_cache:
-                    options_cache[cache_key] = self._fetch_options_for_repo(repo_name, branch)
+                    options_cache[cache_key] = self._fetch_options_for_repo(
+                        repo_name, branch
+                    )
 
-                chosen = OptionsParser.pick_options(options_cache[cache_key], release.channel)
+                chosen = OptionsParser.pick_options(
+                    options_cache[cache_key], release.channel
+                )
                 result[(comp.name, release.version, release.channel)] = chosen
 
         logger.info(f"завершён. Собрано опций для {len(result)} релизов.")
@@ -88,7 +93,8 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             return repo_data
 
         options_paths = [
-            item["path"] for item in items
+            item["path"]
+            for item in items
             if not item.get("isFolder")
             and item["path"].endswith("options.json")
             and "/conan/" in item["path"]
@@ -101,7 +107,9 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         for opt_path in options_paths:
             if target_ci not in opt_path:
                 continue
-            self._load_single_options_file(items_url, opt_path, branch, target_ci, repo_data)
+            self._load_single_options_file(
+                items_url, opt_path, branch, target_ci, repo_data
+            )
 
         return repo_data
 
@@ -131,7 +139,9 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             logger.warning(f"ошибка скачивания {opt_path}: {e}")
             return
 
-        channel_name, cleaned = OptionsParser.parse_file(response.text, opt_path, ci_prefix)
+        channel_name, cleaned = OptionsParser.parse_file(
+            response.text, opt_path, ci_prefix
+        )
         if not cleaned:
             return
 

@@ -1,4 +1,5 @@
 """Извлечение legacy-контента из Confluence Storage Format."""
+
 import re
 
 from autodoc.infrastructure.logger import logger
@@ -62,7 +63,7 @@ class LegacyContentExtractor:
                 depth -= 1
                 curr_idx = next_close + len(close_tag)
                 if depth == 0:
-                    return html[body_start + len(open_tag):next_close].strip()
+                    return html[body_start + len(open_tag) : next_close].strip()
 
         return ""
 
@@ -85,7 +86,9 @@ class LegacyContentExtractor:
         if not html:
             return {}
 
-        tab_name_pattern = r'<ac:parameter ac:name="(?:name|title)">([^<]+)</ac:parameter>'
+        tab_name_pattern = (
+            r'<ac:parameter ac:name="(?:name|title)">([^<]+)</ac:parameter>'
+        )
         platform_names: list[str] = []
         for match in re.finditer(tab_name_pattern, html):
             name = match.group(1).strip()

@@ -1,6 +1,7 @@
 """
 Построитель задач для Conan graph info.
 """
+
 from dataclasses import dataclass
 
 from autodoc.models.component import Component, ProfileBuild, Release
@@ -89,19 +90,21 @@ class ConanTaskBuilder:
                 for pb in release.profile_builds:
                     for opt_id, opt_str in options_dict.items():
                         cmd = self._build_cmd(reference, pb.profile_name, opt_str)
-                        tasks.append(ConanTask(
-                            cmd=cmd,
-                            comp_name=comp.name,
-                            version=release.version,
-                            channel=release.channel,
-                            profile_name=pb.profile_name,
-                            option_id=str(opt_id),
-                            option_str=opt_str.strip() if opt_str else "",
-                            target_platform=target_platform,
-                            artifactory_base_url=art_base,
-                            release=release,
-                            pb=pb,
-                        ))
+                        tasks.append(
+                            ConanTask(
+                                cmd=cmd,
+                                comp_name=comp.name,
+                                version=release.version,
+                                channel=release.channel,
+                                profile_name=pb.profile_name,
+                                option_id=str(opt_id),
+                                option_str=opt_str.strip() if opt_str else "",
+                                target_platform=target_platform,
+                                artifactory_base_url=art_base,
+                                release=release,
+                                pb=pb,
+                            )
+                        )
 
         return tasks
 
@@ -124,7 +127,9 @@ class ConanTaskBuilder:
             Список аргументов для передачи в ``subprocess.run``.
         """
         cmd = [
-            "conan", "graph", "info",
+            "conan",
+            "graph",
+            "info",
             f"--requires={reference}",
             f"-pr={profile_name}",
             "--format=json",

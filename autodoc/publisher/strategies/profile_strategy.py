@@ -1,4 +1,5 @@
 """Стратегия публикации профиль-центричной документации в Confluence."""
+
 from pathlib import Path
 from typing import Any
 
@@ -73,9 +74,12 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         self._page_title: str = page_title
         self._template_name: str = template_name
         self._parent_id: str | None = parent_id
-        self._transformer: ProfileCentricTransformer = transformer or ProfileCentricTransformer(
-            include_passport_links=include_passport_links,
-            passport_page_pattern=passport_page_pattern,
+        self._transformer: ProfileCentricTransformer = (
+            transformer
+            or ProfileCentricTransformer(
+                include_passport_links=include_passport_links,
+                passport_page_pattern=passport_page_pattern,
+            )
         )
 
     @classmethod
@@ -129,13 +133,15 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
                 body_html=html_body,
             )
 
-            details.append({
-                "page_title": self._page_title,
-                "page_id": result["id"],
-                "version": result["version"],
-                "status": result["status"],
-                "template": self._template_name,
-            })
+            details.append(
+                {
+                    "page_title": self._page_title,
+                    "page_id": result["id"],
+                    "version": result["version"],
+                    "status": result["status"],
+                    "template": self._template_name,
+                }
+            )
             logger.info(f"{self._page_title!r} {result["status"]} (ID: {result["id"]})")
             return PublishReport(success=True, pages_published=1, details=details)
 

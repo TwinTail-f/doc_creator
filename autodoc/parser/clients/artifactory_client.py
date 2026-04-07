@@ -5,6 +5,7 @@
 ``PipelineContext``. Шаги пайплайна получают экземпляр через
 ``ctx.artifactory_client``.
 """
+
 import warnings
 
 import requests

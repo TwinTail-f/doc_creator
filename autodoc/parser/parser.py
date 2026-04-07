@@ -1,6 +1,7 @@
 """
 Точка входа парсера компонентов платформы.
 """
+
 import json
 import shutil
 from pathlib import Path
@@ -139,11 +140,15 @@ class ComponentParser:
                     logger.info(f"ComponentParser ✓ [{step.name}]")
                 except DocGeneratorError as exc:
                     if step.is_critical:
-                        logger.error(f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}")
+                        logger.error(
+                            f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}"
+                        )
                         raise ParsingError(
                             f"Критический шаг {step.name!r} завершился с ошибкой: {exc}"
                         ) from exc
-                    logger.warning(f"ComponentParser ⚠ [{step.name}] — некритическая ошибка (продолжаем): {exc}")
+                    logger.warning(
+                        f"ComponentParser ⚠ [{step.name}] — некритическая ошибка (продолжаем): {exc}"
+                    )
 
                 if save_intermediate:
                     self._save_intermediate(ctx, step.name)

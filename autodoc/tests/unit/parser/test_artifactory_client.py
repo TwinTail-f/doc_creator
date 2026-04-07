@@ -5,6 +5,7 @@ Unit-тесты для ArtifactoryClient.
 - инициализацию (передача credentials, отключение SSL)
 - метод head() и подавление InsecureRequestWarning
 """
+
 import pytest
 import requests
 import urllib3
@@ -20,6 +21,7 @@ _ART_SESSION_PATH = "autodoc.parser.clients.artifactory_client.create_retryable_
 # Вспомогательные утилиты
 # ---------------------------------------------------------------------------
 
+
 def _make_mock_session() -> MagicMock:
     session = MagicMock()
     session.verify = True  # будет переопределено в __init__
@@ -30,6 +32,7 @@ def _make_mock_session() -> MagicMock:
 # Инициализация
 # ---------------------------------------------------------------------------
 
+
 class TestArtifactoryClientInit:
     """Тесты инициализации ArtifactoryClient."""
 
@@ -38,7 +41,10 @@ class TestArtifactoryClientInit:
     ) -> None:
         """create_retryable_session вызывается с артифактори-кредами из конфига."""
         config_with_creds = minimal_config.model_copy(
-            update={"artifactory_username": "art_user", "artifactory_password": "art_pass"}
+            update={
+                "artifactory_username": "art_user",
+                "artifactory_password": "art_pass",
+            }
         )
         mock_session = _make_mock_session()
 
@@ -52,7 +58,9 @@ class TestArtifactoryClientInit:
             timeout=_HEAD_TIMEOUT,
         )
 
-    def test_ssl_verification_disabled(self, minimal_config: ParserConfigSchema) -> None:
+    def test_ssl_verification_disabled(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
         """session.verify устанавливается в False при инициализации."""
         mock_session = _make_mock_session()
         with patch(_ART_SESSION_PATH, return_value=mock_session):
@@ -105,6 +113,7 @@ class TestArtifactoryClientInit:
 # head()
 # ---------------------------------------------------------------------------
 
+
 class TestArtifactoryClientHead:
     """Тесты метода ArtifactoryClient.head."""
 
@@ -142,12 +151,14 @@ class TestArtifactoryClientHead:
         client.session.head.return_value = MagicMock(spec=requests.Response)
 
         import warnings
+
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             client.head("https://artifactory.example.com/pkg")
 
         insecure_warnings = [
-            w for w in caught
+            w
+            for w in caught
             if issubclass(w.category, urllib3.exceptions.InsecureRequestWarning)
         ]
         assert len(insecure_warnings) == 0

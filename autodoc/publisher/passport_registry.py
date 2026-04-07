@@ -5,6 +5,7 @@
 между стратегиями публикации. ``PassportsStrategy`` записывает карту ID,
 ``ReleasePageStrategy`` и ``ProfileCentricStrategy`` её читают.
 """
+
 import json
 from pathlib import Path
 from typing import Any

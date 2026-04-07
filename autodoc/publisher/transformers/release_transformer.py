@@ -1,4 +1,5 @@
 """Трансформеры для документации релизов: полный вид."""
+
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
@@ -63,9 +64,11 @@ class FullReleaseTransformer(BaseReleaseTransformer):
                     "description": comp.description,
                     "git_project": comp.git_project,
                     "git_repo": comp.git_repo,
-                    "passport_link": self._passport_link(
-                        comp.name, comp.releases[0].version
-                    ) if comp.releases else None,
+                    "passport_link": (
+                        self._passport_link(comp.name, comp.releases[0].version)
+                        if comp.releases
+                        else None
+                    ),
                     "releases": [
                         {
                             "version": rel.version,
@@ -75,8 +78,12 @@ class FullReleaseTransformer(BaseReleaseTransformer):
                             "conan_reference": rel.conan_reference,
                             "artifactory_url": rel.artifactory_url,
                             "is_header_only": rel.is_header_only,
-                            "build_option_sets": [bos.model_dump() for bos in rel.build_option_sets],
-                            "default_options": [o.model_dump() for o in rel.default_options],
+                            "build_option_sets": [
+                                bos.model_dump() for bos in rel.build_option_sets
+                            ],
+                            "default_options": [
+                                o.model_dump() for o in rel.default_options
+                            ],
                             "patches": rel.patches,
                             "dependencies": rel.dependencies,
                             "profile_builds": [

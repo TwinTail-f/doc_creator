@@ -2,6 +2,7 @@
 Фетчер манифестов компонентов: скачивание .properties-файлов из TFS.
 Разбор в доменные модели делегируется ManifestParser.
 """
+
 from pathlib import Path
 
 from autodoc.exceptions import ParsingError

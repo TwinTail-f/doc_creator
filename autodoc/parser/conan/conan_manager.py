@@ -1,6 +1,7 @@
 """
 Менеджер Conan: параллельное выполнение задач и возврат результата для обогащения.
 """
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -20,6 +21,7 @@ from autodoc.models.conan_result import (
 
 _DEFAULT_MAX_WORKERS: int = 8
 
+
 class ConanManager:
     """
     Управляет выполнением ``conan graph info`` и возвращает ``ConanEnrichmentResult``.
@@ -33,7 +35,9 @@ class ConanManager:
             config: Валидированная конфигурация парсера. Используется для
                     настройки таймаута команды Conan.
         """
-        self._runner: BaseConanRunner = Conan2Runner(timeout=config.conan_command_timeout)
+        self._runner: BaseConanRunner = Conan2Runner(
+            timeout=config.conan_command_timeout
+        )
         self._task_builder = ConanTaskBuilder()
         self._result_parser = ConanResultParser()
 
@@ -60,19 +64,26 @@ class ConanManager:
         Returns:
             ``ConanEnrichmentResult`` с данными для обогащения.
         """
-        tasks = self._task_builder.build(components, target_platform, artifactory_base_url)
+        tasks = self._task_builder.build(
+            components, target_platform, artifactory_base_url
+        )
 
         if not tasks:
             logger.info("нет задач для выполнения.")
             return ConanEnrichmentResult()
 
-        logger.info(f"сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…")
+        logger.info(
+            f"сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…"
+        )
 
         raw_results = self._run_tasks_parallel(tasks)
-        return self._build_enrichment_result(tasks, raw_results, artifactory_base_url, target_platform)
+        return self._build_enrichment_result(
+            tasks, raw_results, artifactory_base_url, target_platform
+        )
 
-
-    def _run_tasks_parallel(self, tasks: list[ConanTask]) -> list[ConanRawResult | None]:
+    def _run_tasks_parallel(
+        self, tasks: list[ConanTask]
+    ) -> list[ConanRawResult | None]:
         """
         Выполняет задачи Conan параллельно через ``ThreadPoolExecutor``.
 
@@ -140,7 +151,11 @@ class ConanManager:
             visited_pbs.add(pb_id)
 
             agg = pb_agg[pb_id]
-            release_key: tuple[str, str, str] = (task.comp_name, task.version, task.channel)
+            release_key: tuple[str, str, str] = (
+                task.comp_name,
+                task.version,
+                task.channel,
+            )
 
             if agg.first_enrich and release_key not in result.release_data:
                 fe = agg.first_enrich
@@ -175,7 +190,13 @@ class ConanManager:
 class _PbAgg:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
-    __slots__ = ("any_success", "unique_variants", "first_enrich", "conan_settings", "errors")
+    __slots__ = (
+        "any_success",
+        "unique_variants",
+        "first_enrich",
+        "conan_settings",
+        "errors",
+    )
 
     def __init__(self) -> None:
         self.any_success = False
@@ -207,6 +228,7 @@ class _PbAgg:
                 "build_date": enrich.build_date,
                 "conan_options": enrich.conan_options,
             }
+
 
 def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: list[dict]) -> None:
     """

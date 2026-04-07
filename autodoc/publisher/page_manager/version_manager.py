@@ -1,4 +1,5 @@
 """Вспомогательные утилиты для работы с версиями страниц Confluence."""
+
 from typing import Any
 
 from autodoc.infrastructure.logger import logger

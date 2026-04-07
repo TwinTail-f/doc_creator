@@ -1,4 +1,5 @@
 """Тесты ConfigManager и схем конфигурации."""
+
 import json
 import tempfile
 from pathlib import Path
@@ -20,6 +21,7 @@ VALID_PARSER_CONFIG = {
     "artifactory_password": "art_pass",
 }
 
+
 class TestConfigManagerInit:
     def test_raises_if_dir_not_exists(self, tmp_path: Path) -> None:
         with pytest.raises(ConfigError, match="не найдена"):
@@ -28,6 +30,7 @@ class TestConfigManagerInit:
     def test_initializes_with_valid_dir(self, tmp_path: Path) -> None:
         manager = ConfigManager(str(tmp_path))
         assert manager.configs_dir == tmp_path
+
 
 class TestLoadParserConfig:
     def test_loads_valid_json(self, tmp_path: Path) -> None:
@@ -58,31 +61,40 @@ class TestLoadParserConfig:
         assert config.tfs_request_timeout == 15
         assert config.excluded_components == []
 
+
 class TestParserConfigSchemaMissingRequiredFields:
-    @pytest.mark.parametrize("missing_field", [
-        "platform_version",
-        "platform_branch_name",
-        "tfs_token",
-        "tfs_dep_components_url",
-        "manifests_remotes_path",
-    ])
+    @pytest.mark.parametrize(
+        "missing_field",
+        [
+            "platform_version",
+            "platform_branch_name",
+            "tfs_token",
+            "tfs_dep_components_url",
+            "manifests_remotes_path",
+        ],
+    )
     def test_missing_required_field_raises_config_error(
         self, missing_field: str, tmp_path: Path
     ) -> None:
-        config_data = {k: v for k, v in VALID_PARSER_CONFIG.items() if k != missing_field}
+        config_data = {
+            k: v for k, v in VALID_PARSER_CONFIG.items() if k != missing_field
+        }
         (tmp_path / "parser_config.json").write_text(json.dumps(config_data))
         with pytest.raises(ConfigError):
             ConfigManager(str(tmp_path)).load_parser_config()
 
+
 class TestAutoDiscovery:
     def test_finds_yaml_when_no_json(self, tmp_path: Path) -> None:
         import yaml
+
         (tmp_path / "parser_config.yaml").write_text(yaml.dump(VALID_PARSER_CONFIG))
         config = ConfigManager(str(tmp_path)).load_parser_config()
         assert config.platform_version == "2.0"
 
     def test_prefers_json_over_yaml(self, tmp_path: Path) -> None:
         import yaml
+
         json_data = {**VALID_PARSER_CONFIG, "platform_version": "from_json"}
         yaml_data = {**VALID_PARSER_CONFIG, "platform_version": "from_yaml"}
         (tmp_path / "parser_config.json").write_text(json.dumps(json_data))
@@ -90,11 +102,16 @@ class TestAutoDiscovery:
         config = ConfigManager(str(tmp_path)).load_parser_config()
         assert config.platform_version == "from_json"
 
+
 class TestArtifactoryCredentials:
     """4.1 Тест заполнения credentials из env / конфига."""
 
     def test_credentials_from_config(self, tmp_path: Path) -> None:
-        config_data = {**VALID_PARSER_CONFIG, "artifactory_username": "art_user", "artifactory_password": "art_pass"}
+        config_data = {
+            **VALID_PARSER_CONFIG,
+            "artifactory_username": "art_user",
+            "artifactory_password": "art_pass",
+        }
         (tmp_path / "parser_config.json").write_text(json.dumps(config_data))
         config = ConfigManager(str(tmp_path)).load_parser_config()
         assert config.artifactory_username == "art_user"
@@ -103,11 +120,13 @@ class TestArtifactoryCredentials:
     def test_credentials_default_empty(self, tmp_path: Path) -> None:
         """Если credentials не заданы ни в конфиге, ни в env — должна быть ошибка валидации."""
         config_without_creds = {
-            k: v for k, v in VALID_PARSER_CONFIG.items()
+            k: v
+            for k, v in VALID_PARSER_CONFIG.items()
             if k not in ("artifactory_username", "artifactory_password")
         }
         (tmp_path / "parser_config.json").write_text(json.dumps(config_without_creds))
         import os
+
         os.environ.pop("GET_USR", None)
         os.environ.pop("GET_PWD", None)
         with pytest.raises(ConfigError, match="GET_USR"):

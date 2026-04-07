@@ -2,6 +2,7 @@
 Pydantic-схемы для валидации конфигурационных файлов проекта.
 Совместимо с Pydantic v2.
 """
+
 import os
 
 from typing import Any

@@ -15,15 +15,18 @@
     - чтение тела страницы (``get_page_body``)
     - публикация (создание или обновление) с единым интерфейсом (``publish_page``)
 """
+
 from typing import Any
 
 import requests
 
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
-from autodoc.infrastructure.http_client import RetryableSession, create_retryable_session
+from autodoc.infrastructure.http_client import (
+    RetryableSession,
+    create_retryable_session,
+)
 from autodoc.infrastructure.logger import logger
-
 
 _RETRY_COUNT: int = 3
 _BACKOFF_FACTOR: float = 1.0
@@ -78,7 +81,6 @@ class ConfluenceClient:
         self._session: RetryableSession = self._build_session(config)
 
         logger.debug(f"инициализирован: {self._base_url} (space={self._space})")
-
 
     def publish_page(
         self,
@@ -144,9 +146,7 @@ class ConfluenceClient:
             return str(existing["id"])
 
         if not parent_id:
-            raise PublishError(
-                f"не указан parent_id для создания страницы {title!r}"
-            )
+            raise PublishError(f"не указан parent_id для создания страницы {title!r}")
 
         placeholder = body or (f"<p>Автоматически созданная страница: {title}</p>")
         result = self._create_page(space, parent_id, title, placeholder)
@@ -243,7 +243,6 @@ class ConfluenceClient:
         except requests.exceptions.RequestException as e:
             raise PublishError(f"сетевая ошибка для ID {page_id}: {e}") from e
 
-
     def _create_page(
         self,
         space: str,
@@ -321,7 +320,9 @@ class ConfluenceClient:
         current_version = self._extract_version(existing_page)
         next_version = current_version + 1
 
-        logger.info(f"обновление {title!r}: v{current_version} → v{next_version} (ID: {page_id})")
+        logger.info(
+            f"обновление {title!r}: v{current_version} → v{next_version} (ID: {page_id})"
+        )
 
         payload = self._build_page_payload(
             title=title,

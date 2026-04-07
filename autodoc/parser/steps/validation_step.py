@@ -1,6 +1,7 @@
 """
 Шаг пайплайна: HTTP HEAD-проверка доступности сборок в Artifactory.
 """
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -113,7 +114,9 @@ class ArtifactoryValidationStep(BaseParseStep):
         completed = 0
         total = len(variants_to_check)
         with ThreadPoolExecutor(max_workers=_VALIDATION_MAX_WORKERS) as executor:
-            future_map = {executor.submit(check_one, item): item for item in variants_to_check}
+            future_map = {
+                executor.submit(check_one, item): item for item in variants_to_check
+            }
             for future in as_completed(future_map):
                 pb, variant, is_valid = future.result()
                 completed += 1

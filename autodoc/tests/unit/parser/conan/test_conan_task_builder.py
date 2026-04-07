@@ -5,6 +5,7 @@ import pytest
 from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
 
+
 def _make_release(version="1.0.0", channel="stable", profiles=None, options=None):
     release = Release(
         version=version,
@@ -17,8 +18,10 @@ def _make_release(version="1.0.0", channel="stable", profiles=None, options=None
     release._build_option_sets_internal = options or {"1": ""}
     return release
 
+
 def _make_component(name, releases):
     return Component(name=name, releases=releases)
+
 
 class TestConanTaskBuilder:
     def setup_method(self):
@@ -32,7 +35,9 @@ class TestConanTaskBuilder:
         assert {t.profile_name for t in tasks} == {"linux_x86_64", "linux_aarch64"}
 
     def test_two_option_sets_generate_two_tasks_per_profile(self) -> None:
-        release = _make_release(profiles=["linux_x86_64"], options={"1": "shared=True", "2": "shared=False"})
+        release = _make_release(
+            profiles=["linux_x86_64"], options={"1": "shared=True", "2": "shared=False"}
+        )
         comp = _make_component("my_lib", [release])
         tasks = self.builder.build([comp], "2.0", "https://art.example.com")
         assert len(tasks) == 2

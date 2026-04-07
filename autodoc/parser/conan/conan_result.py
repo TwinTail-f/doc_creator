@@ -4,6 +4,7 @@
 Намеренно отделён от ``conan_runner`` — дата-класс без зависимостей,
 используется как ``ConanRunner``-ами, так и ``ConanManager``-ом.
 """
+
 from dataclasses import dataclass
 from typing import Any
 

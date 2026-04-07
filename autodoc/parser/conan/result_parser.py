@@ -1,12 +1,14 @@
 """
 Парсер JSON-ответа команды ``conan graph info``.
 """
+
 import datetime
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from autodoc.parser.conan.task_builder import ConanTask
+
 
 @dataclass
 class ConanEnrichData:
@@ -28,6 +30,7 @@ class ConanEnrichData:
     build_url: str
     build_date: str
     conan_options: dict[str, Any]
+
 
 class ConanResultParser:
     """
@@ -65,9 +68,13 @@ class ConanResultParser:
         dependencies = self._extract_dependencies(target_node, task.comp_name)
 
         info_dict: dict = target_node.get("info", {})
-        conan_settings: dict = info_dict.get("settings", target_node.get("settings", {}))
+        conan_settings: dict = info_dict.get(
+            "settings", target_node.get("settings", {})
+        )
         package_id = target_node.get("package_id", "")
-        build_url = self._build_artifactory_url(task, full_version, rrev) if package_id else ""
+        build_url = (
+            self._build_artifactory_url(task, full_version, rrev) if package_id else ""
+        )
         build_date = self._extract_build_date(target_node)
         conan_options: dict = info_dict.get("options", target_node.get("options", {}))
 
@@ -117,11 +124,15 @@ class ConanResultParser:
             if isinstance(definition, list) and len(definition) >= 2:
                 if "ANY" in definition:
                     opt_type = "ANY"
-                elif set(definition).issubset({"True", "False", True, False, "None", None}):
+                elif set(definition).issubset(
+                    {"True", "False", True, False, "None", None}
+                ):
                     opt_type = "bool"
                 else:
                     opt_type = "enum"
-            result.append({"name": opt_name, "type": opt_type, "default_value": opt_val})
+            result.append(
+                {"name": opt_name, "type": opt_type, "default_value": opt_val}
+            )
 
         return result
 

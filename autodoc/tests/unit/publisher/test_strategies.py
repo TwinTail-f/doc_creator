@@ -1,4 +1,5 @@
 """Тесты Registry стратегий публикации."""
+
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -17,25 +18,34 @@ class TestRegistry:
     def test_release_creates_release_page_strategy(self) -> None:
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Релиз 2.0", template_name="release_doc.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Релиз 2.0",
+            template_name="release_doc.jinja2",
         )
         assert isinstance(strategy, ReleasePageStrategy)
 
     def test_passports_creates_passports_strategy(self) -> None:
         strategy = BasePublishStrategy.create(
             "passports",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", root_page_id="12345",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            root_page_id="12345",
         )
         assert isinstance(strategy, PassportsStrategy)
 
     def test_profile_centric_creates_profile_strategy(self) -> None:
         strategy = BasePublishStrategy.create(
             "profile_centric",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", page_title="Profile",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Profile",
         )
         assert isinstance(strategy, ProfileCentricStrategy)
 
@@ -43,8 +53,10 @@ class TestRegistry:
         with pytest.raises(ValueError, match="Неизвестная стратегия"):
             BasePublishStrategy.create(
                 "nonexistent",
-                confluence_client=MagicMock(), document_builder=MagicMock(),
-                parsed_data=MagicMock(), space="DOC",
+                confluence_client=MagicMock(),
+                document_builder=MagicMock(),
+                parsed_data=MagicMock(),
+                space="DOC",
             )
 
     def test_available_strategies_includes_expected_types(self) -> None:
@@ -52,7 +64,9 @@ class TestRegistry:
         for expected in ("release", "passports", "profile_centric"):
             assert expected in available, "Стратегия %r не найдена в реестре" % expected
         for removed in ("full_release", "minimal_release", "full_combined"):
-            assert removed not in available, "Удалённая стратегия %r всё ещё в реестре" % removed
+            assert removed not in available, (
+                "Удалённая стратегия %r всё ещё в реестре" % removed
+            )
 
     def test_custom_strategy_auto_registered(self) -> None:
         class _TestStrategy(BasePublishStrategy, strategy_type="_test_only"):
@@ -65,6 +79,7 @@ class TestRegistry:
     def test_no_transformer_cls_on_base(self) -> None:
         """После рефакторинга __init_subclass__ не принимает transformer_cls."""
         import inspect
+
         sig = inspect.signature(BasePublishStrategy.__init_subclass__)
         assert "transformer_cls" not in sig.parameters
 
@@ -81,9 +96,12 @@ class TestBugFixes:
         """
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
             include_passport_links=False,
         )
         assert strategy._include_passport_links is False
@@ -92,9 +110,12 @@ class TestBugFixes:
         """Значение True тоже сохраняется корректно."""
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
             include_passport_links=True,
         )
         assert strategy._include_passport_links is True
@@ -103,9 +124,12 @@ class TestBugFixes:
         """Трансформер и стратегия должны использовать одно значение флага."""
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
             include_passport_links=False,
         )
         assert strategy._transformer._include_passport_links is False
@@ -119,8 +143,11 @@ class TestBugFixes:
         """
         strategy = BasePublishStrategy.create(
             "profile_centric",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", page_title="Profile",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Profile",
             include_passport_links=False,
         )
         assert strategy._transformer._include_passport_links is False
@@ -130,8 +157,11 @@ class TestBugFixes:
         custom_pattern = "https://wiki.example.com/{component_name}"
         strategy = BasePublishStrategy.create(
             "profile_centric",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", page_title="Profile",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Profile",
             passport_page_pattern=custom_pattern,
         )
         assert strategy._transformer._pattern == custom_pattern
@@ -144,9 +174,12 @@ class TestBugFixes:
         # Не должен падать с TypeError о неожиданном аргументе
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
             passport_page_pattern="https://wiki.example.com/{component_name}",
         )
         assert isinstance(strategy, ReleasePageStrategy)
@@ -159,9 +192,12 @@ class TestPublishReport:
         """execute() возвращает PublishReport, а не dict."""
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
         )
         strategy._transformer = MagicMock()
         strategy._transformer.transform.return_value = {"components": []}
@@ -169,7 +205,9 @@ class TestPublishReport:
         strategy._builder.build.return_value = "<p>html</p>"
         strategy._client = MagicMock()
         strategy._client.publish_page.return_value = {
-            "id": "1", "version": 1, "status": "created"
+            "id": "1",
+            "version": 1,
+            "status": "created",
         }
 
         result = strategy.execute()
@@ -183,9 +221,12 @@ class TestPublishReport:
     def test_publish_report_failure_on_exception(self) -> None:
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
         )
         strategy._transformer = MagicMock()
         strategy._transformer.transform.side_effect = RuntimeError("boom")
@@ -199,9 +240,12 @@ class TestPublishReport:
         """Пустой результат трансформера записывается в errors."""
         strategy = BasePublishStrategy.create(
             "release",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC",
-            page_title="Test", template_name="tpl.jinja2",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
         )
         strategy._transformer = MagicMock()
         strategy._transformer.transform.return_value = {}
@@ -219,8 +263,12 @@ class TestCommonInit:
         builder = MagicMock()
         data = MagicMock()
         strategy = ReleasePageStrategy(
-            confluence_client=client, document_builder=builder, parsed_data=data,
-            space="DOC", page_title="T", template_name="t.jinja2",
+            confluence_client=client,
+            document_builder=builder,
+            parsed_data=data,
+            space="DOC",
+            page_title="T",
+            template_name="t.jinja2",
             transformer=MagicMock(),
         )
         assert strategy._client is client
@@ -233,21 +281,30 @@ class TestPassportsStrategyInit:
     def test_missing_root_page_id_raises_value_error(self) -> None:
         with pytest.raises(ValueError):
             PassportsStrategy(
-                confluence_client=MagicMock(), document_builder=MagicMock(),
-                parsed_data=MagicMock(), space="DOC", root_page_id="",
+                confluence_client=MagicMock(),
+                document_builder=MagicMock(),
+                parsed_data=MagicMock(),
+                space="DOC",
+                root_page_id="",
             )
 
     def test_missing_space_raises_value_error(self) -> None:
         with pytest.raises(ValueError):
             PassportsStrategy(
-                confluence_client=MagicMock(), document_builder=MagicMock(),
-                parsed_data=MagicMock(), space="", root_page_id="123",
+                confluence_client=MagicMock(),
+                document_builder=MagicMock(),
+                parsed_data=MagicMock(),
+                space="",
+                root_page_id="123",
             )
 
     def test_default_template_name_applied(self) -> None:
         strategy = PassportsStrategy(
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", root_page_id="99999",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            root_page_id="99999",
         )
         assert strategy._template_name == "component_passport.jinja2"
 
@@ -282,8 +339,11 @@ class TestPassportsStrategyInit:
         client = MagicMock()
         client.get_page_body.side_effect = RuntimeError("connection error")
         strategy = PassportsStrategy(
-            confluence_client=client, document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", root_page_id="99",
+            confluence_client=client,
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            root_page_id="99",
         )
         result = strategy._fetch_existing_body("Some Page")
         assert result == ""
@@ -292,8 +352,11 @@ class TestPassportsStrategyInit:
         client = MagicMock()
         client.get_page_body.return_value = "<p>old</p>"
         strategy = PassportsStrategy(
-            confluence_client=client, document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", root_page_id="99",
+            confluence_client=client,
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            root_page_id="99",
         )
         result = strategy._fetch_existing_body("Some Page")
         assert result == "<p>old</p>"
@@ -302,13 +365,18 @@ class TestPassportsStrategyInit:
         """Task 4.4: PassportsStrategy не имеет _make_transformer, kwargs проходит без изменений."""
         strategy = BasePublishStrategy.create(
             "passports",
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", root_page_id="123",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            root_page_id="123",
         )
         assert isinstance(strategy, PassportsStrategy)
-        assert not hasattr(PassportsStrategy, "_make_transformer") or \
-            PassportsStrategy._make_transformer is None or \
-            getattr(PassportsStrategy, "_make_transformer", None) is None
+        assert (
+            not hasattr(PassportsStrategy, "_make_transformer")
+            or PassportsStrategy._make_transformer is None
+            or getattr(PassportsStrategy, "_make_transformer", None) is None
+        )
 
 
 class TestProfileCentricStrategyInit:
@@ -318,8 +386,11 @@ class TestProfileCentricStrategyInit:
         """transformer=... должен использоваться напрямую без создания нового."""
         custom_transformer = ProfileCentricTransformer(include_passport_links=False)
         strategy = ProfileCentricStrategy(
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", page_title="P",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="P",
             transformer=custom_transformer,
         )
         assert strategy._transformer is custom_transformer
@@ -327,8 +398,11 @@ class TestProfileCentricStrategyInit:
     def test_transformer_built_from_kwargs_when_not_provided(self) -> None:
         """Если transformer не передан — создаётся из include_passport_links."""
         strategy = ProfileCentricStrategy(
-            confluence_client=MagicMock(), document_builder=MagicMock(),
-            parsed_data=MagicMock(), space="DOC", page_title="P",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="P",
             include_passport_links=False,
         )
         assert strategy._transformer._include_passport_links is False
@@ -386,25 +460,35 @@ class TestPassportLinkMixin:
     """Тесты миксина — устранение дублирования."""
 
     def test_mixin_in_base_release_transformer_mro(self) -> None:
-        from autodoc.publisher.transformers.release_transformer import BaseReleaseTransformer
+        from autodoc.publisher.transformers.release_transformer import (
+            BaseReleaseTransformer,
+        )
         from autodoc.publisher.transformers.base_transformer import PassportLinkMixin
+
         assert PassportLinkMixin in BaseReleaseTransformer.__mro__
 
     def test_mixin_in_profile_centric_transformer_mro(self) -> None:
         from autodoc.publisher.transformers.base_transformer import PassportLinkMixin
+
         assert PassportLinkMixin in ProfileCentricTransformer.__mro__
 
     def test_default_pattern_defined_once(self) -> None:
         """_DEFAULT_PASSPORT_PATTERN должен быть только в base_transformer, не в дочерних."""
         import autodoc.publisher.transformers.release_transformer as rt
         import autodoc.publisher.transformers.profile_transformer as pt
-        from autodoc.publisher.transformers.base_transformer import _DEFAULT_PASSPORT_PATTERN
+        from autodoc.publisher.transformers.base_transformer import (
+            _DEFAULT_PASSPORT_PATTERN,
+        )
 
         # В дочерних модулях не должно быть своих копий константы
-        assert not hasattr(rt, "_DEFAULT_PASSPORT_PATTERN") or \
-            getattr(rt, "_DEFAULT_PASSPORT_PATTERN") is _DEFAULT_PASSPORT_PATTERN
-        assert not hasattr(pt, "_DEFAULT_PASSPORT_PATTERN") or \
-            getattr(pt, "_DEFAULT_PASSPORT_PATTERN") is _DEFAULT_PASSPORT_PATTERN
+        assert (
+            not hasattr(rt, "_DEFAULT_PASSPORT_PATTERN")
+            or getattr(rt, "_DEFAULT_PASSPORT_PATTERN") is _DEFAULT_PASSPORT_PATTERN
+        )
+        assert (
+            not hasattr(pt, "_DEFAULT_PASSPORT_PATTERN")
+            or getattr(pt, "_DEFAULT_PASSPORT_PATTERN") is _DEFAULT_PASSPORT_PATTERN
+        )
 
     def test_passport_link_returns_none_when_disabled(self) -> None:
         from autodoc.publisher.transformers.base_transformer import PassportLinkMixin
@@ -431,7 +515,9 @@ class TestPassportTransformerSerialization:
     """Проверяем что PassportTransformer сериализует build_option_sets в dict."""
 
     def test_build_option_sets_are_plain_dicts(self) -> None:
-        from autodoc.publisher.transformers.passport_transformer import PassportTransformer
+        from autodoc.publisher.transformers.passport_transformer import (
+            PassportTransformer,
+        )
         from autodoc.models.parsed_result import ParsedResult
 
         data_file = Path("data/parsed_data.json")
@@ -449,7 +535,9 @@ class TestPassportTransformerSerialization:
             assert "options" in bos
 
     def test_default_options_are_plain_dicts(self) -> None:
-        from autodoc.publisher.transformers.passport_transformer import PassportTransformer
+        from autodoc.publisher.transformers.passport_transformer import (
+            PassportTransformer,
+        )
         from autodoc.models.parsed_result import ParsedResult
 
         data_file = Path("data/parsed_data.json")
@@ -473,6 +561,7 @@ class TestTemplateRendering:
 
     def _get_builder(self):
         from autodoc.publisher.rendering.document_builder import DocumentBuilder
+
         tpl_dir = Path("autodoc/publisher/rendering/templates")
         if not tpl_dir.exists():
             pytest.skip("Директория шаблонов не найдена: %s" % tpl_dir)
@@ -480,13 +569,16 @@ class TestTemplateRendering:
 
     def _get_data(self):
         from autodoc.models.parsed_result import ParsedResult
+
         data_file = Path("data/parsed_data.json")
         if not data_file.exists():
             pytest.skip("parsed_data.json не найден")
         return ParsedResult.model_validate_json(data_file.read_text())
 
     def test_passport_template_renders_without_error(self) -> None:
-        from autodoc.publisher.transformers.passport_transformer import PassportTransformer
+        from autodoc.publisher.transformers.passport_transformer import (
+            PassportTransformer,
+        )
 
         builder = self._get_builder()
         data = self._get_data()
@@ -505,7 +597,9 @@ class TestTemplateRendering:
         assert "option_set_id" not in html
 
     def test_release_template_renders_without_error(self) -> None:
-        from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
+        from autodoc.publisher.transformers.release_transformer import (
+            FullReleaseTransformer,
+        )
 
         builder = self._get_builder()
         data = self._get_data()

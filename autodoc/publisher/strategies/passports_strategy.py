@@ -1,4 +1,5 @@
 """Стратегия публикации коллекции паспортов компонентов в Confluence."""
+
 from pathlib import Path
 from typing import Any
 
@@ -94,14 +95,18 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
                         comp.name, release.version
                     )
                     pages_published += 1
-                    details.append({
-                        "component_name": comp.name,
-                        "release_version": release.version,
-                        "page_title": self._make_page_title(comp.name, release.version),
-                        "page_id": page_id,
-                        "version": version,
-                        "status": status,
-                    })
+                    details.append(
+                        {
+                            "component_name": comp.name,
+                            "release_version": release.version,
+                            "page_title": self._make_page_title(
+                                comp.name, release.version
+                            ),
+                            "page_id": page_id,
+                            "version": version,
+                            "status": status,
+                        }
+                    )
                 except Exception as e:
                     msg = f"Ошибка паспорта {comp.name} v{release.version}: {e}"
                     errors.append(msg)

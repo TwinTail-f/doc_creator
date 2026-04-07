@@ -1,4 +1,5 @@
 """Рендеринг Jinja2-шаблонов в HTML Confluence Storage Format."""
+
 from pathlib import Path
 from typing import Any
 
@@ -24,9 +25,7 @@ class DocumentBuilder:
             FileNotFoundError: Если директория шаблонов не существует.
         """
         if not templates_dir.exists():
-            raise FileNotFoundError(
-                f"Директория шаблонов не найдена: {templates_dir}"
-            )
+            raise FileNotFoundError(f"Директория шаблонов не найдена: {templates_dir}")
 
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(templates_dir))

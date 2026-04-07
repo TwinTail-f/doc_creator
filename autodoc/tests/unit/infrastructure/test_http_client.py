@@ -6,6 +6,7 @@ Unit-тесты для infrastructure/http_client.py.
 - create_retryable_session: Basic-аутентификация, предупреждения при неполных кредах
 - Настройка retry-стратегии (статус-коды, методы)
 """
+
 import logging
 import pytest
 import requests
@@ -18,10 +19,10 @@ from autodoc.infrastructure.http_client import (
     create_retryable_session,
 )
 
-
 # ---------------------------------------------------------------------------
 # RetryableSession
 # ---------------------------------------------------------------------------
+
 
 class TestRetryableSessionInit:
     """Тесты инициализации RetryableSession."""
@@ -40,19 +41,20 @@ class TestRetryableSessionInit:
         """max_retries сохраняется в атрибуте."""
         session = RetryableSession(max_retries=5)
         # max_retries теперь приватный параметр Retry, доступен через адаптер
-        adapter = session.get_adapter('https://example.com')
+        adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.total == 5
 
     def test_backoff_factor_stored(self) -> None:
         """backoff_factor сохраняется в атрибуте."""
         session = RetryableSession(backoff_factor=3.0)
         # backoff_factor задаётся в Retry; прямой атрибут убран
-        adapter = session.get_adapter('https://example.com')
+        adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.backoff_factor == 3.0
 
     def test_https_adapter_mounted(self) -> None:
         """Retry-адаптер примонтирован только для https://."""
         from urllib3.util.retry import Retry
+
         session = RetryableSession()
         https_adapter = session.get_adapter("https://example.com")
         assert isinstance(https_adapter.max_retries, Retry)
@@ -79,7 +81,9 @@ class TestRetryableSessionMethods:
         _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
-    def test_get_does_not_override_explicit_timeout(self, session: RetryableSession) -> None:
+    def test_get_does_not_override_explicit_timeout(
+        self, session: RetryableSession
+    ) -> None:
         """get() не перезаписывает явно переданный таймаут."""
         with patch("requests.Session.request", return_value=MagicMock()) as mock_req:
             session.get("https://example.com", timeout=5)
@@ -111,6 +115,7 @@ class TestRetryableSessionMethods:
 # ---------------------------------------------------------------------------
 # Retry-стратегия
 # ---------------------------------------------------------------------------
+
 
 class TestRetryStatusCodes:
     """Тесты конфигурации retry-статусов."""
@@ -162,6 +167,7 @@ class TestRetryMethods:
 # create_retryable_session
 # ---------------------------------------------------------------------------
 
+
 class TestCreateRetryableSession:
     """Тесты фабричной функции create_retryable_session."""
 
@@ -200,12 +206,12 @@ class TestCreateRetryableSession:
         """max_retries передаётся в RetryableSession."""
         session = create_retryable_session(max_retries=5)
         # max_retries теперь приватный параметр Retry, доступен через адаптер
-        adapter = session.get_adapter('https://example.com')
+        adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.total == 5
 
     def test_custom_backoff_factor_forwarded(self) -> None:
         """backoff_factor передаётся в RetryableSession."""
         session = create_retryable_session(backoff_factor=3.0)
         # backoff_factor задаётся в Retry; прямой атрибут убран
-        adapter = session.get_adapter('https://example.com')
+        adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.backoff_factor == 3.0

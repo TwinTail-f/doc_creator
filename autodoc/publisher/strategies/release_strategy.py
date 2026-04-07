@@ -1,4 +1,5 @@
 """Стратегия публикации релизной документации на одной странице Confluence."""
+
 from pathlib import Path
 from typing import Any
 
@@ -130,13 +131,15 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
                 body_html=html_body,
             )
 
-            details.append({
-                "page_title": self._page_title,
-                "page_id": result["id"],
-                "version": result["version"],
-                "status": result["status"],
-                "template": self._template_name,
-            })
+            details.append(
+                {
+                    "page_title": self._page_title,
+                    "page_id": result["id"],
+                    "version": result["version"],
+                    "status": result["status"],
+                    "template": self._template_name,
+                }
+            )
             logger.info(f"{self._page_title!r} {result["status"]} (ID: {result["id"]})")
             return PublishReport(success=True, pages_published=1, details=details)
 

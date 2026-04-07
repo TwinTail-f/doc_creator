@@ -1,4 +1,5 @@
 """Менеджер иерархии страниц Confluence."""
+
 from autodoc.infrastructure.logger import logger
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 

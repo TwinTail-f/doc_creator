@@ -1,4 +1,5 @@
 """Слияние legacy-контента платформ с новым сгенерированным контентом."""
+
 import re
 from typing import Dict
 
@@ -94,7 +95,9 @@ class LegacyContentMerger:
                 curr_idx = start_idx + _PARSE_SKIP_STEP
                 continue
 
-            platform_name = html[name_start + len(_TAG_PARAM_NAME_OPEN):name_end].strip()
+            platform_name = html[
+                name_start + len(_TAG_PARAM_NAME_OPEN) : name_end
+            ].strip()
 
             body_start = html.find(_TAG_BODY_OPEN, name_end)
             if body_start == -1:
@@ -108,7 +111,9 @@ class LegacyContentMerger:
             if content and platform_name:
                 sections[platform_name] = content
 
-            curr_idx = search_idx if search_idx > body_start else body_start + _PARSE_SKIP_STEP
+            curr_idx = (
+                search_idx if search_idx > body_start else body_start + _PARSE_SKIP_STEP
+            )
 
         if sections:
             logger.debug(f"разобрано {len(sections)} секций из вкладок")
@@ -150,7 +155,9 @@ class LegacyContentMerger:
                 depth -= 1
                 search_idx = next_close + len(_TAG_BODY_CLOSE)
                 if depth == 0:
-                    content = html[body_start + len(_TAG_BODY_OPEN):next_close].strip()
+                    content = html[
+                        body_start + len(_TAG_BODY_OPEN) : next_close
+                    ].strip()
                     return content, search_idx
 
         return "", search_idx
@@ -190,7 +197,10 @@ class LegacyContentMerger:
         if current_content:
             sections[current_version] = "\n".join(current_content).strip()
 
-        if _UNKNOWN_SECTION_KEY in sections and not sections[_UNKNOWN_SECTION_KEY].strip():
+        if (
+            _UNKNOWN_SECTION_KEY in sections
+            and not sections[_UNKNOWN_SECTION_KEY].strip()
+        ):
             del sections[_UNKNOWN_SECTION_KEY]
 
         logger.debug(f"разобрано {len(sections)} секций из заголовков")
@@ -238,7 +248,9 @@ class LegacyContentMerger:
                 tabs_html += LegacyContentMerger._render_tab(version_name, content)
 
         tabs_html += "</ac:structured-macro>"
-        logger.info(f"объединено {len(legacy_contents)} legacy-секций с новым контентом")
+        logger.info(
+            f"объединено {len(legacy_contents)} legacy-секций с новым контентом"
+        )
         return tabs_html
 
     @staticmethod

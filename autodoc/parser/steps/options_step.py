@@ -1,4 +1,5 @@
 """Шаг пайплайна: сбор опций Conan для компонентов."""
+
 from autodoc.infrastructure.logger import logger
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher

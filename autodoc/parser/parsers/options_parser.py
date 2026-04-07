@@ -2,6 +2,7 @@
 Парсер опций Conan: разбор JSON-файлов options.json.
 Не имеет доступа к TFS и не выполняет сетевых вызовов.
 """
+
 import json
 
 from autodoc.infrastructure.logger import logger
