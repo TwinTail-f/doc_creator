@@ -49,7 +49,7 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
         Returns:
             Словарь с профилями как верхним уровнем иерархии.
         """
-        logger.debug("трансформация в профиль-центричный вид")
+        logger.debug("Трансформация в профиль-центричный вид")
 
         # Собираем агрегированные настройки и docker URL по профилям
         profile_meta: dict[str, dict[str, Any]] = {}

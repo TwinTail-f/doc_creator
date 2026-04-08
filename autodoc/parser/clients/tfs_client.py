@@ -90,7 +90,7 @@ class TFSClient:
             "recursionLevel": RecursionLevel.ONE_LEVEL.value,
         }
 
-        logger.info(f"запрос списка файлов из {items_url} (ветка: {branch})")
+        logger.info(f"Запрос списка файлов из {items_url} (ветка: {branch})")
 
         try:
             response = self.session.get(items_url, params=params)
@@ -99,7 +99,7 @@ class TFSClient:
             raise NetworkError(f"ошибка при получении списка файлов: {e}") from e
 
         items = response.json().get("value", [])
-        logger.info(f"найдено {len(items)} элементов, начинаем скачивание…")
+        logger.info(f"Найдено {len(items)} элементов, начинаем скачивание…")
 
         out_dir = Path(output_dir)
         downloaded_count = 0
@@ -116,9 +116,9 @@ class TFSClient:
                 (out_dir / file_name).write_text(file_response.text, encoding="utf-8")
                 downloaded_count += 1
             except (requests.exceptions.RequestException, NetworkError) as e:
-                logger.warning(f"не удалось скачать {file_name}: {e}. Пропускаем.")
+                logger.warning(f"Не удалось скачать {file_name}: {e}. Пропускаем.")
 
-        logger.info(f"успешно скачано {downloaded_count} файлов.")
+        logger.info(f"Успешно скачано {downloaded_count} файлов.")
 
     def get_file_content(
         self,

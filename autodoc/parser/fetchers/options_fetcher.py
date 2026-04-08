@@ -43,7 +43,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         Returns:
             ``FetchResult`` с маппингом ``(comp_name, version, channel) → options``.
         """
-        logger.info("начинаем сбор options.json…")
+        logger.info("Начинаем сбор options.json…")
 
         options_cache: dict[str, dict] = {}
         result: OptionsMap = {}
@@ -69,7 +69,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 )
                 result[(comp.name, release.version, release.channel)] = chosen
 
-        logger.info(f"завершён. Собрано опций для {len(result)} релизов.")
+        logger.info(f"Завершён. Собрано опций для {len(result)} релизов.")
         return FetchResult(value=result, warnings=fetch_warnings)
 
     def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
@@ -89,7 +89,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         try:
             items = self._tfs.get_items(items_url, branch)
         except NetworkError as e:
-            logger.warning(f"пропуск репо {repo_name!r} (ветка {branch!r}): {e}")
+            logger.warning(f"Пропуск репо {repo_name!r} (ветка {branch!r}): {e}")
             return repo_data
 
         options_paths = [
@@ -136,7 +136,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             if response.status_code != 200:
                 return
         except (NetworkError, OSError) as e:
-            logger.warning(f"ошибка скачивания {opt_path}: {e}")
+            logger.warning(f"Ошибка скачивания {opt_path}: {e}")
             return
 
         channel_name, cleaned = OptionsParser.parse_file(

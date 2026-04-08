@@ -111,14 +111,14 @@ def create_retryable_session(
 
     if username and token:
         session.auth = (username, token)
-        logger.debug(f"настроена Basic-аутентификация для {username!r}")
+        logger.debug(f"Настроена Basic-аутентификация для {username!r}")
     elif token:
         # PAT-аутентификация: username не требуется (Azure DevOps / TFS, Confluence DC и др.)
         session.auth = (_PAT_DEFAULT_USERNAME, token)
-        logger.debug("настроена PAT-аутентификация (username не задан)")
+        logger.debug("Настроена PAT-аутентификация (username не задан)")
     elif username:
         logger.warning(
-            f"передан только username {username!r} без token — аутентификация не настроена"
+            f"Передан только username {username!r} без token — аутентификация не настроена"
         )
 
     return session

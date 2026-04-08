@@ -1,12 +1,27 @@
 """
 Типы данных результата выполнения Conan graph info.
 
-Живут в ``models/`` — разделяются между слоями парсера и энричера
-без привязки к внутренностям пакета ``conan/``.
+``ConanRawResult`` — сырой результат одного вызова ``conan graph info``, живёт только
+внутри пакета ``conan/``.
+Остальные типы переехали в ``autodoc/models/conan_result.py`` и разделяются
+между слоями парсера и энричера без привязки к внутренностям пакета.
 """
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from autodoc.parser.conan.task_builder import ConanTask
+
+
+@dataclass
+class ConanRawResult:
+    """Сырой результат одного вызова ``conan graph info``."""
+
+    task: "ConanTask"
+    success: bool
+    data: dict[str, Any] | None
+    error: str = ""
 
 
 @dataclass

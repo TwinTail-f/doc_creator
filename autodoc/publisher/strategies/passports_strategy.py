@@ -79,7 +79,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
             ``PublishReport`` с итоговым статусом, числом опубликованных
             страниц, списком ошибок и детальными записями по каждой странице.
         """
-        logger.info("старт публикации паспортов")
+        logger.info("Старт публикации паспортов")
         errors: list[str] = []
         details: list[dict[str, Any]] = []
         pages_published: int = 0
@@ -115,7 +115,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         pages_map = self._build_pages_map(details)
         self._registry.save(pages_map)
 
-        logger.info(f"завершено — {pages_published} опубликовано, {len(errors)} ошибок")
+        logger.info(f"Завершено — {pages_published} опубликовано, {len(errors)} ошибок")
         return PublishReport(
             success=len(errors) == 0,
             pages_published=pages_published,

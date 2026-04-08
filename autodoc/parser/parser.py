@@ -134,20 +134,20 @@ class ComponentParser:
 
         try:
             for step in self._steps:
-                logger.info(f"ComponentParser → [{step.name}]…")
+                logger.info(f"Запуск шага [{step.name}]…")
                 try:
                     step.execute(ctx)
-                    logger.info(f"ComponentParser ✓ [{step.name}]")
+                    logger.info(f"Шаг [{step.name}] выполнен успешно")
                 except DocGeneratorError as exc:
                     if step.is_critical:
                         logger.error(
-                            f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}"
+                            f"Шаг [{step.name}] завершился с критической ошибкой: {exc}"
                         )
                         raise ParsingError(
                             f"Критический шаг {step.name!r} завершился с ошибкой: {exc}"
                         ) from exc
                     logger.warning(
-                        f"ComponentParser ⚠ [{step.name}] — некритическая ошибка (продолжаем): {exc}"
+                        f"Шаг [{step.name}] завершился с некритической ошибкой, продолжаем: {exc}"
                     )
 
                 if save_intermediate:
@@ -155,7 +155,7 @@ class ComponentParser:
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
-            logger.debug("временная директория очищена.")
+            logger.debug("Временная директория очищена.")
 
         if ctx.result is None:
             raise ParsingError("ComponentParser: FinalizeStep не заполнил ctx.result.")
@@ -169,7 +169,7 @@ class ComponentParser:
         )
         if step_idx == -1:
             logger.warning(
-                f"шаг {step_name!r} не найден в списке шагов, снимок пропущен"
+                f"Шаг {step_name!r} не найден в списке шагов, снимок пропущен"
             )
             return
 
@@ -192,6 +192,6 @@ class ComponentParser:
                 json.dumps(snapshot, indent=2, ensure_ascii=False, default=str),
                 encoding="utf-8",
             )
-            logger.debug(f"сохранён снимок → {filepath.name}")
+            logger.debug(f"Сохранён снимок → {filepath.name}")
         except OSError as e:
-            logger.warning(f"не удалось сохранить снимок {filepath}: {e}")
+            logger.warning(f"Не удалось сохранить снимок {filepath}: {e}")

@@ -49,7 +49,7 @@ class LegacyContentMerger:
         Returns:
             Словарь ``{имя_версии: html_контент}``.
         """
-        logger.debug("разбор страницы на секции версий")
+        logger.debug("Разбор страницы на секции версий")
         sections: Dict[str, str] = {}
 
         if _TAG_TAB_PANE in html or _TAG_TAB in html:
@@ -74,7 +74,7 @@ class LegacyContentMerger:
             Словарь ``{имя_вкладки: html_контент}`` или пустой словарь,
             если вкладки не удалось распознать.
         """
-        logger.debug("обнаружены вкладки, разбор по вкладкам")
+        logger.debug("Обнаружены вкладки, разбор по вкладкам")
         sections: Dict[str, str] = {}
         curr_idx = 0
 
@@ -116,7 +116,7 @@ class LegacyContentMerger:
             )
 
         if sections:
-            logger.debug(f"разобрано {len(sections)} секций из вкладок")
+            logger.debug(f"Разобрано {len(sections)} секций из вкладок")
         return sections
 
     @staticmethod
@@ -180,7 +180,7 @@ class LegacyContentMerger:
         Returns:
             Словарь ``{версия: html_контент}``.
         """
-        logger.debug("вкладки не найдены, разбор по заголовкам h2/h3")
+        logger.debug("Вкладки не найдены, разбор по заголовкам h2/h3")
         sections: Dict[str, str] = {}
         current_version = _UNKNOWN_SECTION_KEY
         current_content: list[str] = []
@@ -203,7 +203,7 @@ class LegacyContentMerger:
         ):
             del sections[_UNKNOWN_SECTION_KEY]
 
-        logger.debug(f"разобрано {len(sections)} секций из заголовков")
+        logger.debug(f"Разобрано {len(sections)} секций из заголовков")
         return sections
 
     @staticmethod
@@ -233,11 +233,11 @@ class LegacyContentMerger:
             или ``new_html`` без изменений если вкладки уже есть в шаблоне.
         """
         if not legacy_contents:
-            logger.debug("нет legacy-контента, возврат нового HTML")
+            logger.debug("Нет legacy-контента, возврат нового HTML")
             return new_html
 
         if _TAG_TABS_GROUP in new_html:
-            logger.info("шаблон уже содержит tabs-group, пропуск оборачивания")
+            logger.info("Шаблон уже содержит tabs-group, пропуск оборачивания")
             return new_html
 
         tabs_html = _TAG_TABS_GROUP + "\n"

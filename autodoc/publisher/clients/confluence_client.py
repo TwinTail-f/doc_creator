@@ -80,7 +80,7 @@ class ConfluenceClient:
         self._timeout: int = config.confluence_request_timeout
         self._session: RetryableSession = self._build_session(config)
 
-        logger.debug(f"инициализирован: {self._base_url} (space={self._space})")
+        logger.debug(f"Инициализирован: {self._base_url} (space={self._space})")
 
     def publish_page(
         self,
@@ -108,7 +108,7 @@ class ConfluenceClient:
         Raises:
             PublishError: Если создание или обновление не удалось.
         """
-        logger.info(f"publish_page: {title!r} (space={space})")
+        logger.info(f"Публикация страницы {title!r} (space={space})")
 
         existing = self.find_page(space, title, expand=_EXPAND_VERSION)
         if existing:
@@ -150,7 +150,7 @@ class ConfluenceClient:
 
         placeholder = body or (f"<p>Автоматически созданная страница: {title}</p>")
         result = self._create_page(space, parent_id, title, placeholder)
-        logger.info(f"создана страница {title!r} (ID: {result['id']})")
+        logger.info(f"Создана страница {title!r} (ID: {result['id']})")
         return str(result["id"])
 
     def get_page_body(self, space: str, title: str) -> str:
@@ -282,7 +282,7 @@ class ConfluenceClient:
             raise PublishError(f"сетевая ошибка при создании {title!r}: {e}") from e
 
         page_id = str(response.json().get("id", ""))
-        logger.info(f"создана страница {title!r} (ID: {page_id})")
+        logger.info(f"Создана страница {title!r} (ID: {page_id})")
         return {
             "id": page_id,
             "version": _INITIAL_VERSION,
@@ -404,7 +404,7 @@ class ConfluenceClient:
         try:
             return int(page.get("version", {}).get("number", _FALLBACK_VERSION))
         except (ValueError, TypeError, AttributeError):
-            logger.warning(f"не удалось извлечь версию из: {page!r}")
+            logger.warning(f"Не удалось извлечь версию из: {page!r}")
             return _FALLBACK_VERSION
 
     def _api_url(self, *parts: str) -> str:

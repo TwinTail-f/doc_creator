@@ -40,7 +40,7 @@ class DocumentPublisher:
         self._client: ConfluenceClient = ConfluenceClient(confluence_config)
         self._builder: DocumentBuilder = DocumentBuilder(templates_dir)
         self._data_dir: Path = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
-        logger.info("инициализирован")
+        logger.info("Инициализирован")
 
     def publish(
         self,
@@ -64,7 +64,7 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатами публикации.
         """
-        logger.info(f"публикация стратегии {strategy_type!r}")
+        logger.info(f"Публикация стратегии {strategy_type!r}")
         strategy = BasePublishStrategy.create(
             strategy_type,
             confluence_client=self._client,
@@ -109,7 +109,7 @@ class DocumentPublisher:
             Агрегированный ``PublishReport``: поля ``success``, ``pages_published``,
             ``errors`` и ``details`` объединяются из обоих отчётов.
         """
-        logger.info("публикация паспортов + релиза")
+        logger.info("Публикация паспортов + релиза")
 
         passports_report = self.publish(
             strategy_type="passports",

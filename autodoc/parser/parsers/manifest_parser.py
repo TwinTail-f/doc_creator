@@ -51,11 +51,11 @@ class ManifestParser:
 
             name = props.get("name", "")
             if not name:
-                logger.debug(f'пропуск {filepath.name} — отсутствует поле "name"')
+                logger.debug(f'Пропуск {filepath.name} — отсутствует поле "name"')
                 continue
 
             if name in excluded:
-                logger.debug(f"компонент {name!r} исключён")
+                logger.debug(f"Компонент {name!r} исключён")
                 excluded_count += 1
                 continue
 

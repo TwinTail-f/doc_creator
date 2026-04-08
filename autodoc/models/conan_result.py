@@ -10,6 +10,35 @@ from typing import Any
 
 
 @dataclass
+class ConanCommandRecord:
+    """Запись об одном выполненном вызове ``conan graph info``."""
+
+    command: str
+    status: str  # "SUCCESS" | "FAILED"
+    error: str = ""
+
+
+@dataclass
+class ConanProfileReport:
+    """Все вызовы conan graph info для одного профиля."""
+
+    profile_name: str
+    commands: list[ConanCommandRecord] = field(default_factory=list)
+
+
+@dataclass
+class ConanComponentReport:
+    """Диагностический отчёт по всем вызовам одного компонента/версии/канала."""
+
+    component: str
+    version: str
+    channel: str
+    # profile_name → отчёт профиля
+    profiles: dict[str, ConanProfileReport] = field(default_factory=dict)
+
+
+
+@dataclass
 class ReleaseConanData:
     """Данные Conan для обогащения одного Release."""
 

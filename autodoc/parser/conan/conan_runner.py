@@ -142,7 +142,7 @@ class Conan2Runner(BaseConanRunner):
         Raises:
             RuntimeError: Если утилита ``conan`` не найдена в PATH.
         """
-        logger.info("очищаем локальный кэш Conan 2…")
+        logger.info("Очищаем локальный кэш Conan 2…")
         try:
             result = subprocess.run(
                 self._CLEAN_CACHE_CMD,
@@ -151,13 +151,13 @@ class Conan2Runner(BaseConanRunner):
                 timeout=self._CLEAN_CACHE_TIMEOUT,
             )
             if result.returncode == 0:
-                logger.info("кэш Conan 2 очищен.")
+                logger.info("Кэш Conan 2 очищен.")
             else:
                 logger.debug(
                     f"кэш пуст или некритичная ошибка: {result.stderr.strip()}"
                 )
         except subprocess.TimeoutExpired:
-            logger.warning("таймаут при очистке кэша.")
+            logger.warning("Таймаут при очистке кэша.")
         except FileNotFoundError:
             raise RuntimeError(self._CONAN_NOT_FOUND_MSG)
 

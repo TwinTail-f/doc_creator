@@ -36,7 +36,7 @@ class OptionsParser:
         try:
             parsed: dict = json.loads(text)
         except json.JSONDecodeError as e:
-            logger.warning(f"ошибка чтения {opt_path}: {e}")
+            logger.warning(f"Ошибка чтения {opt_path}: {e}")
             return None, {}
 
         cleaned: dict[str, str] = {

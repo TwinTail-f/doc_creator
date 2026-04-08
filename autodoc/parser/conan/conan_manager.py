@@ -72,7 +72,7 @@ class ConanManager:
         )
 
         if not tasks:
-            logger.info("нет задач для выполнения.")
+            logger.info("Нет задач для выполнения.")
             return ConanEnrichmentResult()
 
         logger.info(
@@ -114,7 +114,7 @@ class ConanManager:
             for future in as_completed(future_to_idx):
                 completed += 1
                 if completed % 50 == 0 or completed == total:
-                    logger.info(f"прогресс {completed}/{total} задач…")
+                    logger.info(f"Прогресс {completed}/{total} задач…")
 
                 idx = future_to_idx[future]
                 results[idx] = future.result()

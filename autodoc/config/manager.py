@@ -40,7 +40,7 @@ class ConfigManager:
         self.configs_dir = Path(configs_dir)
         if not self.configs_dir.is_dir():
             raise ConfigError(f"Директория с конфигами не найдена: {configs_dir}")
-        logger.info(f"инициализирован: {configs_dir}")
+        logger.info(f"Инициализирован: {configs_dir}")
 
     def load_parser_config(self, config_file: str | None = None) -> ParserConfigSchema:
         """
@@ -133,7 +133,7 @@ class ConfigManager:
                 elif entry.suffix in (".yaml", ".yml"):
                     configs["yaml"].append(entry.name)
         except OSError as e:
-            logger.warning(f"ошибка при чтении директории конфигов: {e}")
+            logger.warning(f"Ошибка при чтении директории конфигов: {e}")
         return configs
 
     def _find_config_file(self, basename: str) -> str:

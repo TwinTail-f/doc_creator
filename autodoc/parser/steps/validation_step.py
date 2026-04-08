@@ -43,16 +43,16 @@ class ArtifactoryValidationStep(BaseParseStep):
         variants_to_check = self._collect_variants(ctx.components)
 
         if not variants_to_check:
-            logger.info("нет ссылок для проверки.")
+            logger.info("Нет ссылок для проверки.")
             return
 
-        logger.info(f"проверяем {len(variants_to_check)} ссылок…")
+        logger.info(f"Проверяем {len(variants_to_check)} ссылок…")
 
         client = ctx.artifactory_client
         dead_variants = self._check_urls_parallel(variants_to_check, client)
         self._remove_dead_variants(dead_variants)
 
-        logger.info(f"удалено {len(dead_variants)} недоступных вариантов (HTTP 404).")
+        logger.info(f"Удалено {len(dead_variants)} недоступных вариантов (HTTP 404).")
 
     @staticmethod
     def _collect_variants(
@@ -121,7 +121,7 @@ class ArtifactoryValidationStep(BaseParseStep):
                 pb, variant, is_valid = future.result()
                 completed += 1
                 if completed % _LOG_PROGRESS_INTERVAL == 0 or completed == total:
-                    logger.debug(f"проверено {completed}/{total} ссылок…")
+                    logger.debug(f"Проверено {completed}/{total} ссылок…")
                 if not is_valid:
                     dead.append((pb, variant))
 

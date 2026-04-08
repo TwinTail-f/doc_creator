@@ -53,7 +53,7 @@ class FullReleaseTransformer(BaseReleaseTransformer):
         Returns:
             Словарь view-model для шаблона полного релиза.
         """
-        logger.debug("трансформация в полный вид")
+        logger.debug("Трансформация в полный вид")
         return {
             "platform_version": data.platform_version,
             "generated_at": data.generated_at,

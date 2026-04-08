@@ -94,7 +94,7 @@ class BasePublishStrategy(ABC):
         super().__init_subclass__(**kwargs)
         if strategy_type:
             BasePublishStrategy._registry[strategy_type] = cls
-            logger.debug(f"зарегистрирована {strategy_type!r} → {cls.__name__}")
+            logger.debug(f"Зарегистрирована {strategy_type!r} → {cls.__name__}")
 
     @classmethod
     def create(cls, strategy_type: str, **kwargs: Any) -> "BasePublishStrategy":
@@ -130,7 +130,7 @@ class BasePublishStrategy(ABC):
         if make_transformer is not None and "transformer" not in kwargs:
             kwargs["transformer"] = make_transformer(kwargs)
 
-        logger.debug(f"создаём {strategy_cls.__name__} для типа {strategy_type!r}")
+        logger.debug(f"Создаём {strategy_cls.__name__} для типа {strategy_type!r}")
         return strategy_cls(**kwargs)
 
     @classmethod
