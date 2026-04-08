@@ -197,6 +197,18 @@ class TestCreateRetryableSession:
         session = create_retryable_session(token="secret")
         assert session.auth == ("", "secret")
 
+    def test_bearer_auth_sets_header_not_session_auth(self) -> None:
+        """bearer=True устанавливает заголовок Authorization вместо session.auth."""
+        session = create_retryable_session(token="my-pat", bearer=True)
+        assert session.auth is None
+        assert session.headers["Authorization"] == "Bearer my-pat"
+
+    def test_bearer_without_token_sets_nothing(self) -> None:
+        """bearer=True без token — аутентификация не настраивается."""
+        session = create_retryable_session(bearer=True)
+        assert session.auth is None
+        assert "Authorization" not in session.headers
+
     def test_custom_timeout_forwarded(self) -> None:
         """timeout передаётся в RetryableSession."""
         session = create_retryable_session(timeout=30)

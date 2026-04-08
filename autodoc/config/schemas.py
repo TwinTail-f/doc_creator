@@ -95,20 +95,20 @@ class ParserConfigSchema(BaseModel):
     @classmethod
     def fill_artifactory_token_from_env(
         cls, v: str | None, info: Any
-    ) -> str: 
+    ) -> str:  # type: ignore[override]
         """
-        Заполняет artifactory_token из env GET_PWD если не задан явно.
+        Заполняет artifactory_token из env ART_TOKEN если не задан явно.
 
         Raises:
             ValueError: Если ни конфигурация, ни переменная окружения не содержат значение.
         """
         if v:
             return v
-        env_val = os.getenv("GET_PWD", "")
+        env_val = os.getenv("ART_TOKEN", "")
         if not env_val:
             raise ValueError(
                 "Поле 'artifactory_token' не задано в конфигурации "
-                "и переменная окружения 'GET_PWD' не установлена. "
+                "и переменная окружения 'ART_TOKEN' не установлена. "
                 "Укажите токен явно или задайте переменную окружения ART_TOKEN."
             )
         return env_val

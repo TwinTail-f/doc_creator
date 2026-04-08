@@ -79,23 +79,28 @@ class RetryableSession(requests.Session):
 def create_retryable_session(
     username: str | None = None,
     token: str | None = None,
+    bearer: bool = False,
     max_retries: int = 3,
     backoff_factor: float = 1.0,
     timeout: int = 15,
 ) -> RetryableSession:
     """
-    Создаёт ``RetryableSession`` с опциональной Basic-аутентификацией.
+    Создаёт ``RetryableSession`` с опциональной аутентификацией.
 
-    Поддерживает два режима:
+    Поддерживает три режима:
 
+    * **Bearer** — передать ``token`` и ``bearer=True``; токен подставляется
+      в заголовок ``Authorization: Bearer <token>``. Используется для
+      Confluence Data Center PAT-аутентификации.
     * **Basic auth** — передать ``username`` и ``token``.
     * **PAT-only** — передать только ``token``; username подставляется
-      как пустая строка, что корректно для Azure DevOps / TFS
-      и Confluence Data Center, где PAT не привязан к конкретному пользователю.
+      как пустая строка, что корректно для Azure DevOps / TFS,
+      где PAT не привязан к конкретному пользователю.
 
     Args:
         username: Имя пользователя для Basic auth. Опционально при PAT-auth.
-        token: Токен / пароль / PAT для Basic auth.
+        token: Токен / пароль / PAT.
+        bearer: Если ``True`` — использовать Bearer-аутентификацию вместо Basic.
         max_retries: Максимальное количество retry-попыток.
         backoff_factor: Множитель для exponential backoff.
         timeout: Таймаут запроса в секундах.
@@ -109,11 +114,14 @@ def create_retryable_session(
         timeout=timeout,
     )
 
-    if username and token:
+    if bearer and token:
+        session.headers["Authorization"] = f"Bearer {token}"
+        logger.debug("Настроена Bearer-аутентификация")
+    elif username and token:
         session.auth = (username, token)
         logger.debug(f"Настроена Basic-аутентификация для {username!r}")
     elif token:
-        # PAT-аутентификация: username не требуется (Azure DevOps / TFS, Confluence DC и др.)
+        # PAT-аутентификация: username не требуется (Azure DevOps / TFS и др.)
         session.auth = (_PAT_DEFAULT_USERNAME, token)
         logger.debug("Настроена PAT-аутентификация (username не задан)")
     elif username:

@@ -435,11 +435,12 @@ class ConfluenceClient:
             Настроенная ``RetryableSession``.
         """
         session = create_retryable_session(
+            token=config.token,
+            bearer=True,
             max_retries=_RETRY_COUNT,
             backoff_factor=_BACKOFF_FACTOR,
             timeout=config.confluence_request_timeout,
         )
-        session.headers["Authorization"] = f"Bearer {config.token}"
         session.verify = config.verify_ssl
         session.headers.update({"Content-Type": "application/json"})
         return session
