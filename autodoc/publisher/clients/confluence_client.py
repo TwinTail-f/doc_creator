@@ -425,8 +425,8 @@ class ConfluenceClient:
         """
         Создаёт HTTP-сессию с аутентификацией и retry-логикой.
 
-        Confluence Data Center: PAT-аутентификация — только токен,
-        username не требуется.
+        Confluence Data Center: Bearer-аутентификация через PAT —
+        токен передаётся в заголовке ``Authorization``, username не используется.
 
         Args:
             config: Конфигурация Confluence.
@@ -435,11 +435,11 @@ class ConfluenceClient:
             Настроенная ``RetryableSession``.
         """
         session = create_retryable_session(
-            token=config.token,
             max_retries=_RETRY_COUNT,
             backoff_factor=_BACKOFF_FACTOR,
             timeout=config.confluence_request_timeout,
         )
+        session.headers["Authorization"] = f"Bearer {config.token}"
         session.verify = config.verify_ssl
         session.headers.update({"Content-Type": "application/json"})
         return session

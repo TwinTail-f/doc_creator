@@ -1,7 +1,7 @@
 """Тесты ConfigManager и схем конфигурации."""
 
 import json
-import tempfile
+import os
 from pathlib import Path
 
 import pytest
@@ -9,17 +9,7 @@ import pytest
 from autodoc.config.manager import ConfigManager
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import ConfigError
-
-VALID_PARSER_CONFIG = {
-    "platform_version": "2.0",
-    "platform_branch_name": "develop",
-    "tfs_username": "robot",
-    "tfs_token": "secret-pat",
-    "tfs_dep_components_url": "https://tfs.example.com/DEP_Components",
-    "manifests_remotes_path": "/remotes/manifests",
-    "artifactory_username": "art_user",
-    "artifactory_password": "art_pass",
-}
+from autodoc.tests.unit.conftest import VALID_PARSER_CONFIG
 
 
 class TestConfigManagerInit:
@@ -103,31 +93,29 @@ class TestAutoDiscovery:
         assert config.platform_version == "from_json"
 
 
-class TestArtifactoryCredentials:
-    """4.1 Тест заполнения credentials из env / конфига."""
+class TestArtifactoryToken:
+    """Тесты заполнения artifactory_token из конфига или env ART_TOKEN."""
 
-    def test_credentials_from_config(self, tmp_path: Path) -> None:
-        config_data = {
-            **VALID_PARSER_CONFIG,
-            "artifactory_username": "art_user",
-            "artifactory_password": "art_pass",
-        }
+    def test_token_from_config(self, tmp_path: Path) -> None:
+        config_data = {**VALID_PARSER_CONFIG, "artifactory_token": "my-art-pat"}
         (tmp_path / "parser_config.json").write_text(json.dumps(config_data))
         config = ConfigManager(str(tmp_path)).load_parser_config()
-        assert config.artifactory_username == "art_user"
-        assert config.artifactory_password == "art_pass"
+        assert config.artifactory_token == "my-art-pat"
 
-    def test_credentials_default_empty(self, tmp_path: Path) -> None:
-        """Если credentials не заданы ни в конфиге, ни в env — должна быть ошибка валидации."""
-        config_without_creds = {
-            k: v
-            for k, v in VALID_PARSER_CONFIG.items()
-            if k not in ("artifactory_username", "artifactory_password")
+    def test_token_from_env_when_not_in_config(self, tmp_path: Path, monkeypatch) -> None:
+        config_without_token = {
+            k: v for k, v in VALID_PARSER_CONFIG.items() if k != "artifactory_token"
         }
-        (tmp_path / "parser_config.json").write_text(json.dumps(config_without_creds))
-        import os
+        (tmp_path / "parser_config.json").write_text(json.dumps(config_without_token))
+        monkeypatch.setenv("ART_TOKEN", "env-art-token")
+        config = ConfigManager(str(tmp_path)).load_parser_config()
+        assert config.artifactory_token == "env-art-token"
 
-        os.environ.pop("GET_USR", None)
-        os.environ.pop("GET_PWD", None)
-        with pytest.raises(ConfigError, match="GET_USR"):
+    def test_raises_when_token_missing_and_no_env(self, tmp_path: Path) -> None:
+        config_without_token = {
+            k: v for k, v in VALID_PARSER_CONFIG.items() if k != "artifactory_token"
+        }
+        (tmp_path / "parser_config.json").write_text(json.dumps(config_without_token))
+        os.environ.pop("ART_TOKEN", None)
+        with pytest.raises(ConfigError, match="ART_TOKEN"):
             ConfigManager(str(tmp_path)).load_parser_config()

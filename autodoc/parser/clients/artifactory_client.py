@@ -39,11 +39,10 @@ class ArtifactoryClient:
         Инициализирует Artifactory-клиент из конфигурации парсера.
 
         Args:
-            config: Валидированная конфигурация парсера с учётными данными Artifactory.
+            config: Валидированная конфигурация парсера с PAT-токеном Artifactory.
         """
         self.session = create_retryable_session(
-            username=config.artifactory_username,
-            token=config.artifactory_password,
+            token=config.artifactory_token,
             max_retries=_MAX_RETRIES,
             timeout=_HEAD_TIMEOUT,
         )

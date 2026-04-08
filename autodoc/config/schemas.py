@@ -56,16 +56,11 @@ class ParserConfigSchema(BaseModel):
         description="Список компонентов для исключения из обработки",
     )
 
-    # Credentials Artifactory — из конфига с fallback на env-переменные.
-    artifactory_username: str | None = Field(
+    # Credentials Artifactory — из конфига с fallback на env-переменную.
+    artifactory_token: str | None = Field(
         default=None,
         validate_default=True,
-        description="Пользователь Artifactory (из env GET_USR если не задан явно)",
-    )
-    artifactory_password: str | None = Field(
-        default=None,
-        validate_default=True,
-        description="Пароль Artifactory (из env GET_PWD если не задан явно)",
+        description="PAT-токен Artifactory (из env ART_TOKEN если не задан явно)",
     )
 
     # Тайм-ауты
@@ -96,32 +91,25 @@ class ParserConfigSchema(BaseModel):
         description="Множитель для exponential backoff (1 с, затем 2, 4, 8…)",
     )
 
-    _ENV_MAP: dict[str, str] = {
-        "artifactory_username": "GET_USR",
-        "artifactory_password": "GET_PWD",
-    }
-
-    @field_validator("artifactory_username", "artifactory_password", mode="before")
+    @field_validator("artifactory_token", mode="before")
     @classmethod
-    def fill_artifactory_credentials_from_env(
+    def fill_artifactory_token_from_env(
         cls, v: str | None, info: Any
-    ) -> str:  # type: ignore[override]
+    ) -> str: 
         """
-        Заполняет Artifactory-credentials из env GET_USR / GET_PWD если не заданы явно.
+        Заполняет artifactory_token из env GET_PWD если не задан явно.
 
         Raises:
             ValueError: Если ни конфигурация, ни переменная окружения не содержат значение.
         """
         if v:
             return v
-        env_map = {"artifactory_username": "GET_USR", "artifactory_password": "GET_PWD"}
-        env_key = env_map[info.field_name]
-        env_val = os.getenv(env_key, "")
+        env_val = os.getenv("GET_PWD", "")
         if not env_val:
             raise ValueError(
-                f"Поле {info.field_name!r} не задано в конфигурации "
-                f"и переменная окружения {env_key!r} не установлена. "
-                "Укажите credentials явно или задайте соответствующую переменную окружения."
+                "Поле 'artifactory_token' не задано в конфигурации "
+                "и переменная окружения 'GET_PWD' не установлена. "
+                "Укажите токен явно или задайте переменную окружения ART_TOKEN."
             )
         return env_val
 

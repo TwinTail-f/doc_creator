@@ -2,7 +2,7 @@
 Unit-тесты для ArtifactoryClient.
 
 Покрывают:
-- инициализацию (передача credentials, отключение SSL)
+- инициализацию (передача токена, отключение SSL)
 - метод head() и подавление InsecureRequestWarning
 """
 
@@ -36,24 +36,20 @@ def _make_mock_session() -> MagicMock:
 class TestArtifactoryClientInit:
     """Тесты инициализации ArtifactoryClient."""
 
-    def test_session_created_with_artifactory_credentials(
+    def test_session_created_with_artifactory_token(
         self, minimal_config: ParserConfigSchema
     ) -> None:
-        """create_retryable_session вызывается с артифактори-кредами из конфига."""
-        config_with_creds = minimal_config.model_copy(
-            update={
-                "artifactory_username": "art_user",
-                "artifactory_password": "art_pass",
-            }
+        """create_retryable_session вызывается только с токеном (без username)."""
+        config_with_token = minimal_config.model_copy(
+            update={"artifactory_token": "my-art-pat"}
         )
         mock_session = _make_mock_session()
 
         with patch(_ART_SESSION_PATH, return_value=mock_session) as mock_factory:
-            ArtifactoryClient(config_with_creds)
+            ArtifactoryClient(config_with_token)
 
         mock_factory.assert_called_once_with(
-            username="art_user",
-            token="art_pass",
+            token="my-art-pat",
             max_retries=1,
             timeout=_HEAD_TIMEOUT,
         )
@@ -67,19 +63,6 @@ class TestArtifactoryClientInit:
             ArtifactoryClient(minimal_config)
 
         assert mock_session.verify is False
-
-    def test_created_without_credentials_does_not_raise(
-        self, minimal_config: ParserConfigSchema
-    ) -> None:
-        """ArtifactoryClient создаётся без ошибок даже при пустых кредах."""
-        config_no_creds = minimal_config.model_copy(
-            update={"artifactory_username": "", "artifactory_password": ""}
-        )
-        mock_session = _make_mock_session()
-        with patch(_ART_SESSION_PATH, return_value=mock_session):
-            client = ArtifactoryClient(config_no_creds)
-
-        assert client.session is mock_session
 
     def test_each_call_creates_independent_instance(
         self, minimal_config: ParserConfigSchema

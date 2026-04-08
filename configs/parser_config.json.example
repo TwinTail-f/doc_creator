@@ -17,9 +17,8 @@
 
   "excluded_components": [],
 
-  "_comment_artifactory_credentials": "Можно задать здесь или через env GET_USR / GET_PWD",
-  "artifactory_username": "",
-  "artifactory_password": "",
+  "_comment_artifactory_token": "PAT-токен Artifactory. Можно задать здесь или через env ART_TOKEN",
+  "artifactory_token": "",
 
   "tfs_request_timeout": 15,
   "conan_command_timeout": 300,

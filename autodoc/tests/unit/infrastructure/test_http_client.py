@@ -75,7 +75,7 @@ class TestRetryableSessionMethods:
         return patch(f"requests.Session.{method}")
 
     def test_get_injects_default_timeout(self, session: RetryableSession) -> None:
-        """get() добавляет таймаут если он не задан явно."""
+        """get() передаёт таймаут напрямую, не перезаписывая kwargs."""
         with patch("requests.Session.request", return_value=MagicMock()) as mock_req:
             session.get("https://example.com")
         _, kwargs = mock_req.call_args
