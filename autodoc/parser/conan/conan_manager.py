@@ -165,10 +165,20 @@ class ConanManager:
                     error="Результат не получен (внутренняя ошибка).",
                 )
             elif raw.success:
-                record = ConanCommandRecord(
-                    command=" ".join(task.cmd),
-                    status="SUCCESS",
-                )
+                # Check whether the binary was actually found — conan exits 0 even
+                # when the binary is Missing, so we need to inspect the JSON.
+                binary_status = self._extract_binary_status(raw.data, task.comp_name)
+                if binary_status == "Missing":
+                    record = ConanCommandRecord(
+                        command=" ".join(task.cmd),
+                        status="BINARY_MISSING",
+                        error="Binary not found (Missing) for this profile.",
+                    )
+                else:
+                    record = ConanCommandRecord(
+                        command=" ".join(task.cmd),
+                        status="SUCCESS",
+                    )
             else:
                 record = ConanCommandRecord(
                     command=" ".join(task.cmd),
@@ -200,6 +210,12 @@ class ConanManager:
                 enrich = self._result_parser.parse(raw.data, task)
                 if enrich:
                     agg.apply_enrich(enrich)
+                else:
+                    # Command exited 0 but the binary is Missing for this profile —
+                    # treat as a failed lookup so the profile is excluded.
+                    agg.errors.append(
+                        {" ".join(task.cmd): "Binary not found (Missing) for this profile."}
+                    )
             else:
                 agg.errors.append({" ".join(task.cmd): raw.error})
 
@@ -251,6 +267,33 @@ class ConanManager:
                 _record_error(result.errors, task, agg.errors)
 
         return result
+
+
+    @staticmethod
+    def _extract_binary_status(data: dict | None, comp_name: str) -> str:
+        """
+        Извлекает поле ``binary`` целевого узла из JSON-ответа ``conan graph info``.
+
+        Conan завершается с кодом 0 даже когда бинарный пакет отсутствует,
+        помечая узел полем ``"binary": "Missing"``. Этот метод используется
+        для диагностического отчёта, чтобы правильно пометить такие вызовы
+        статусом ``BINARY_MISSING`` вместо ``SUCCESS``.
+
+        Args:
+            data: Разобранный JSON-ответ ``conan graph info``. Может быть ``None``.
+            comp_name: Имя компонента — используется для поиска нужного узла.
+
+        Returns:
+            Строка статуса (например ``"Missing"``, ``"Download"``, ``"Cache"``)
+            или пустая строка, если узел не найден или данные недоступны.
+        """
+        if not data:
+            return ""
+        nodes = data.get("graph", {}).get("nodes", {})
+        target = next(
+            (n for n in nodes.values() if n.get("name") == comp_name), None
+        )
+        return target.get("binary", "") if target else ""
 
 
 class _ProfileBuildAggregator:

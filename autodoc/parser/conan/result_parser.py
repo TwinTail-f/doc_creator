@@ -62,6 +62,13 @@ class ConanResultParser:
         if target_node is None:
             return None
 
+        # Conan returns exit code 0 even when the binary is absent — check the binary
+        # status field explicitly. "Missing" means no prebuilt binary exists for this
+        # profile; treat it the same as a failed lookup so the profile is excluded.
+        binary_status: str = target_node.get("binary", "")
+        if binary_status == "Missing":
+            return None
+
         base_ref, rrev, full_version = self._extract_ref_info(target_node, task.version)
         default_options = self._extract_default_options(target_node)
         patches = self._extract_patches(target_node, task.version)
@@ -73,7 +80,7 @@ class ConanResultParser:
         )
         package_id = target_node.get("package_id", "")
         build_url = (
-            self._build_artifactory_url(task, full_version, rrev) if package_id else ""
+            self._build_artifactory_url(task, full_version, rrev, package_id) if package_id else ""
         )
         build_date = self._extract_build_date(target_node)
         conan_options: dict = info_dict.get("options", target_node.get("options", {}))
@@ -167,13 +174,16 @@ class ConanResultParser:
         return sorted(set(deps))
 
     @staticmethod
-    def _build_artifactory_url(task: ConanTask, full_version: str, rrev: str) -> str:
+    def _build_artifactory_url(task: ConanTask, full_version: str, rrev: str, package_id: str = "") -> str:
         if not task.artifactory_base_url or not rrev:
             return ""
-        return (
+        url = (
             f"{task.artifactory_base_url}/platform-{task.target_platform}"
             f"/{task.comp_name}/{full_version}/{task.channel}/{rrev}"
         )
+        if package_id:
+            url += f"/package/{package_id}"
+        return url
 
     @staticmethod
     def _extract_build_date(node: dict[str, Any]) -> str:
