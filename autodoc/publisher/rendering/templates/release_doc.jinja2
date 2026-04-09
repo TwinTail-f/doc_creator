@@ -15,7 +15,15 @@
                 <!-- Заголовок компонента -->
                 <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 26px; font-weight: 700; color: var(--ds-text, #111827);">{{ comp.name }}</h1>
                 <p style="color: var(--ds-text-subtle, #6b7280); font-size: 14px; margin-top: 0; line-height: 1.5; max-width: 700px;">{{ comp.description }}</p>
-                
+
+                {% if comp.get('passport_link') %}
+                <div style="margin-bottom: 16px;">
+                    <a href="{{ comp.passport_link }}" style="font-size: 13px; color: var(--ds-link, #2563eb); text-decoration: none; font-weight: 600;">
+                        📋 Просмотреть полный паспорт компонента
+                    </a>
+                </div>
+                {% endif %}
+
                 {% set total_profiles = namespace(value=0) %}
                 {% for rel in comp.releases %}
                     {% set total_profiles.value = total_profiles.value + rel.profile_builds|length %}
@@ -60,6 +68,22 @@
                                         </div>
                                         <div style="clear: both;"></div>
                                     </div>
+
+                                    <!-- Ссылки на паспорта компонента -->
+                                    {% if comp.passport_versions %}
+                                    <div style="padding: 12px 16px; background: var(--ds-background, #FFFFFF); border: 1px solid var(--ds-border, #DFE1E6); border-radius: 8px; margin-bottom: 16px;">
+                                        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ds-text-subtle, #6B778C); margin-bottom: 10px;">Документация компонента</div>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                            {% for version, page_info in comp.passport_versions.items() %}
+                                            {% if version == release.version %}
+                                            <a href="/wiki/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" style="display: inline-block; padding: 6px 12px; background: var(--ds-background-information, #DEEBFF); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 12px; font-weight: 500; border: 1px solid var(--ds-border-information, #85B8FF);">
+                                                {{ comp.name }} v{{ version }}
+                                            </a>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
 
                                     {% if release.is_header_only %}
                                         <!-- Плашка для Header-Only компонентов -->

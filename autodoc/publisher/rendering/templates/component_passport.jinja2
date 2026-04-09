@@ -1,160 +1,300 @@
-<!-- Шапка компонента (без макроса вертикальных вкладок) -->
-<div style="padding-bottom: 20px; border-bottom: 2px solid var(--ds-border, #e5e7eb); margin-bottom: 20px;">
-    <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 32px; font-weight: 700; color: var(--ds-text, #111827);">{{ data.component.name }}</h1>
-    <p style="color: var(--ds-text-subtle, #6b7280); font-size: 14px; margin-top: 0; line-height: 1.5; max-width: 700px;">{{ data.component.description }}</p>
-    
+<!-- ШАПКА КОМПОНЕНТА (Адаптивная под Dark/Light Mode) -->
+<div style="padding-bottom: 20px; border-bottom: 2px solid var(--ds-border, #DFE1E6); margin-bottom: 20px;">
+    <p style="color: var(--ds-text-subtle, #6B778C); font-size: 14px; margin-bottom: 8px;">Документация компонента в рамках релиза <strong>{{ data.target_platform }}</strong></p>
+    <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 32px; font-weight: 700; color: var(--ds-text, #172B4D);">{{ data.component.name }} {{ data.release.version }}</h1>
+    <p style="color: var(--ds-text-subtle, #6B778C); font-size: 14px; margin-top: 0; line-height: 1.5; max-width: 700px;">{{ data.component.description }}</p>
     <div style="margin-top: 12px;">
-        <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block;">
-            Git: <strong style="color: var(--ds-text, #374151);">{{ data.component.git_project }} / {{ data.component.git_repo }}</strong>
-        </span>
-        <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block;">
-            Платформа: <strong style="color: var(--ds-text, #374151);">{{ data.platform_version }}</strong>
+        <span style="font-size: 12px; color: var(--ds-text, #172B4D); background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; padding: 4px 8px; margin-right: 12px; display: inline-block;">
+            Git: <strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong>
         </span>
     </div>
 </div>
 
-<!-- ГОРИЗОНТАЛЬНЫЕ ВКЛАДКИ КАНАЛОВ -->
+<!-- ВЕРСИИ ПЛАТФОРМ (ГОРИЗОНТАЛЬНЫЕ ВКЛАДКИ) -->
 <ac:structured-macro ac:name="tabs-group">
     <ac:parameter ac:name="outline">true</ac:parameter>
     <ac:parameter ac:name="disposition">horizontal</ac:parameter>
     <ac:rich-text-body>
-        
-        {% set releases_by_channel = data.component.releases | groupby('channel') %}
-        {% for channel_group in releases_by_channel %}
-        {% set channel_name = channel_group.grouper %}
-        {% set releases_in_channel = channel_group.list %}
-        
+
+        <!-- ВКЛАДКА ТЕКУЩЕЙ ПЛАТФОРМЫ (добавляется первой) -->
         <ac:structured-macro ac:name="tab-pane">
-            <ac:parameter ac:name="name">{{ channel_name | capitalize }}</ac:parameter>
+            <ac:parameter ac:name="name">{{ data.target_platform }}</ac:parameter>
             <ac:parameter ac:name="outline">true</ac:parameter>
-            
             <ac:rich-text-body>
-                {% for release in releases_in_channel %}
+
                 <div style="margin-top: 24px; margin-bottom: 40px;">
-                    
-                    <!-- Reference Card (ОБНОВЛЕН ФОН ДЛЯ СВЕТЛОЙ ТЕМЫ) -->
-                    <div style="padding: 14px 18px; background: var(--ds-background-neutral, #F4F5F7); border-radius: 8px; margin-bottom: 12px;">
-                        <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6b7280); margin-bottom: 6px;">Conan Reference</div>
-                        <a href="{{ release.artifactory_url }}" style="font-size: 14px; font-weight: 600; font-family: monospace; color: var(--ds-link, #2563eb); text-decoration: none;">
-                            {{ release.conan_reference }} &#8599;
+
+                    <!-- CONAN REFERENCE CARD -->
+                    <div style="padding: 14px 18px; background: var(--ds-surface-sunken, #F4F5F7); border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--ds-border, #DFE1E6);">
+                        <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6B778C); margin-bottom: 6px;">Conan Reference</div>
+                        <a href="{{ data.release.artifactory_url }}" style="font-size: 14px; font-weight: 600; font-family: monospace; color: var(--ds-link, #0052CC); text-decoration: none;">
+                            {{ data.release.conan_reference }}
                         </a>
-                        <div style="float: right; font-size: 12px; color: var(--ds-text-subtle, #6b7280); margin-top: 2px;">
-                            Версия: <strong style="color: var(--ds-text, #374151);">{{ release.version }}</strong>
-                            {% if not release.is_header_only %}
-                             &nbsp;&bull;&nbsp; Профилей сборки: <strong style="color: var(--ds-text, #374151);">{{ release.profile_builds | length }}</strong>
-                            {% endif %}
-                        </div>
-                        <div style="clear: both;"></div>
                     </div>
 
-                    {% if release.is_header_only %}
+                    <!-- ОПЦИИ КОМПОНЕНТА -->
+                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Опции компонента</h3>
+                    {% if data.release.is_header_only %}
                         <ac:structured-macro ac:name="info">
                             <ac:rich-text-body>
-                                <p>
-                                    <strong style="color: var(--ds-text, #111827);">Header-Only компонент</strong>
-                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." style="cursor: help; margin-left: 4px; color: var(--ds-icon-information, #0052cc); vertical-align: middle;">
-                                        <ac:emoticon ac:name="information" />
-                                    </span>
-                                </p>
-                                <p style="color: var(--ds-text, #111827);">Таблицы вариантов сборок для данного компонента отсутствуют, так как он собирается одинаково для всех архитектур.</p>
+                                <p style="color: var(--ds-text, #172B4D);">Библиотека header-only, собирается без опций</p>
                             </ac:rich-text-body>
                         </ac:structured-macro>
                     {% else %}
-                        <h4 style="font-size: 13px; font-weight: 600; color: var(--ds-text, #374151); margin-bottom: 10px; text-transform: uppercase;">Профили сборки и варианты (Options)</h4>
-                        
-                        <table class="aui" style="border: 1px solid var(--ds-border, #e5e7eb); border-radius: 8px; margin-bottom: 0; width: 100%;">
-                            <thead style="background: var(--ds-surface-sunken, #f9fafb);">
-                                <tr>
-                                    <th style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6b7280);">Профиль</th>
-                                    <th style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6b7280);">OS</th>
-                                    <th style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6b7280);">Архитектура</th>
-                                    <th style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6b7280);">Компилятор</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for build in release.profile_builds %}
-                                <tr>
-                                    <td style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb);">
-                                        <code style="font-family: monospace; font-size: 12px; color: var(--ds-text, #374151); border: none; background: transparent;">{{ build.profile_name }}</code>
-                                    </td>
-                                    <td style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb);">
-                                        {% set os = build.conan_settings.get('os', 'Unknown') %}
-                                        {% set os_lower = os | lower %}
-                                        {% if 'linux' in os_lower %}
-                                            {% set os_bg = 'var(--ds-background-information, #dbeafe)' %}{% set os_color = 'var(--ds-text-information, #1d4ed8)' %}
-                                        {% elif 'android' in os_lower %}
-                                            {% set os_bg = 'var(--ds-background-success, #dcfce7)' %}{% set os_color = 'var(--ds-text-success, #15803d)' %}
-                                        {% elif 'windows' in os_lower %}
-                                            {% set os_bg = 'var(--ds-background-discovery, #ede9fe)' %}{% set os_color = 'var(--ds-text-discovery, #7c3aed)' %}
-                                        {% elif 'apple' in os_lower or 'macos' in os_lower or 'ios' in os_lower %}
-                                            {% set os_bg = 'var(--ds-background-danger, #fce7f3)' %}{% set os_color = 'var(--ds-text-danger, #be185d)' %}
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Раскрыть опции компонента ({{ data.release.default_options | length }})</ac:parameter>
+                            <ac:rich-text-body>
+                                <table class="aui" style="width: 100%;">
+                                    <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                        <tr>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Опция</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Тип</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Значение по умолчанию</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Пояснение</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if data.release.default_options %}
+                                            {% for opt in data.release.default_options %}
+                                            <tr>
+                                                <td style="color: var(--ds-text, #172B4D);"><strong>{{ opt.name }}</strong></td>
+                                                <td style="color: var(--ds-text, #172B4D);">{{ opt.type }}</td>
+                                                <td style="color: var(--ds-text, #172B4D);"><code>{{ opt.default_value }}</code></td>
+                                                <td style="color: var(--ds-text, #172B4D);">—</td>
+                                            </tr>
+                                            {% endfor %}
                                         {% else %}
-                                            {% set os_bg = 'var(--ds-background-neutral, #f3f4f6)' %}{% set os_color = 'var(--ds-text, #4b5563)' %}
+                                            <tr><td colspan="4" style="color: var(--ds-text, #172B4D);">Опции по умолчанию отсутствуют.</td></tr>
                                         {% endif %}
-                                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; background: {{ os_bg }}; color: {{ os_color }};">{{ os }}</span>
-                                    </td>
-                                    <td style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb);">
-                                        <span style="font-size: 12px; font-weight: 700; color: var(--ds-text, #374151);">{{ build.conan_settings.get('arch', '—') }}</span>
-                                    </td>
-                                    <td style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); font-size: 12px; color: var(--ds-text-subtle, #6b7280);">
-                                        {{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}
-                                    </td>
-                                </tr>
-                                
-                                <!-- Скрывающаяся плашка (Expand) с вариантами опций -->
-                                <tr>
-                                    <td colspan="4" style="padding: 0 14px 14px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); background: var(--ds-surface-sunken, #f8faff);">
-                                        <ac:structured-macro ac:name="expand">
-                                            <ac:parameter ac:name="title">Раскрыть варианты сборок ({{ build.variants | length }})</ac:parameter>
-                                            <ac:rich-text-body>
-                                                
-                                                <div style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); margin-bottom: 12px; margin-top: 8px;">
-                                                    {% if build.conan_settings.get('compiler.libcxx') %}libcxx: <strong style="color: var(--ds-text, #374151);">{{ build.conan_settings.get('compiler.libcxx') }}</strong> &nbsp;&bull;&nbsp; {% endif %}
-                                                    build_type: <strong style="color: var(--ds-text, #374151);">{{ build.conan_settings.get('build_type', 'Release') }}</strong>
-                                                </div>
+                                    </tbody>
+                                </table>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
 
-                                                {% for var in build.variants %}
-                                                <div style="padding: 10px 14px; background: var(--ds-surface-raised, #ffffff); border: 1px solid var(--ds-border, #e5e7eb); border-radius: 6px; margin-bottom: 8px;">
-                                                    <div style="margin-bottom: 8px;">
-                                                        <span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: var(--ds-background-neutral, #f3f4f6); text-align: center; line-height: 20px; font-size: 10px; font-weight: 700; color: var(--ds-text-subtle, #6b7280); margin-right: 8px; vertical-align: middle;">{{ loop.index }}</span>
-                                                        
-                                                        <code style="font-family: monospace; font-size: 11px; color: var(--ds-text-subtle, #6b7280); background: transparent; border: none; padding: 0; vertical-align: middle;">{{ var.package_id }}</code>
-                                                        <span style="float: right; font-size: 11px; color: var(--ds-text-subtlest, #9ca3af); line-height: 20px;">
-                                                            {{ var.build_date[:16] | replace('T', ' ') }}
-                                                            <a href="{{ var.build_url }}" style="color: var(--ds-link, #2563eb); text-decoration: none; font-weight: 500; margin-left: 12px;">Сборка &#8599;</a>
-                                                        </span>
-                                                        <div style="clear: both;"></div>
-                                                    </div>
-
-                                                    <div style="margin-left: 28px;">
-                                                        {% for k, v in var.conan_options.items() %}
-                                                            {% if v == True %}
-                                                                {% set v_display = 'true' %}{% set val_bg = 'var(--ds-background-success, #dcfce7)' %}{% set val_color = 'var(--ds-text-success, #15803d)' %}
-                                                            {% elif v == False %}
-                                                                {% set v_display = 'false' %}{% set val_bg = 'var(--ds-background-danger, #fee2e2)' %}{% set val_color = 'var(--ds-text-danger, #dc2626)' %}
-                                                            {% else %}
-                                                                {% set v_display = v %}{% set val_bg = 'var(--ds-background-warning, #fef9c3)' %}{% set val_color = 'var(--ds-text-warning, #854d0e)' %}
-                                                            {% endif %}
-                                                            
-                                                            <span style="display: inline-block; font-size: 11px; border-radius: 3px; border: 1px solid var(--ds-border, #e5e7eb); margin-right: 6px; margin-bottom: 4px; white-space: nowrap; vertical-align: middle; overflow: hidden;">
-                                                                <span style="display: table-cell; padding: 2px 6px; background: var(--ds-background-neutral, #f9fafb); color: var(--ds-text-subtle, #6b7280); border-right: 1px solid var(--ds-border, #e5e7eb);">{{ k }}</span>
-                                                                <span style="display: table-cell; padding: 2px 6px; background: {{ val_bg }}; color: {{ val_color }}; font-weight: 600;">{{ v_display }}</span>
-                                                            </span>
-                                                        {% endfor %}
-                                                    </div>
-                                                </div>
-                                                {% endfor %}
-
-                                            </ac:rich-text-body>
-                                        </ac:structured-macro>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        <!-- КОНФИГУРАЦИИ КОМПОНЕНТА -->
+                        <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Конфигурации компонента</h3>
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Раскрыть уникальные конфигурации сборок ({{ data.release.build_option_sets | length }})</ac:parameter>
+                            <ac:rich-text-body>
+                                <table class="aui" style="width: 100%;">
+                                    <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                        <tr>
+                                            <th style="width: 10%; color: var(--ds-text-subtle, #6B778C);">Номер</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Конфигурация (conan_options)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if data.release.build_option_sets %}
+                                            {% for bos in data.release.build_option_sets %}
+                                            <tr>
+                                                <td style="color: var(--ds-text, #172B4D);"><strong>{{ bos.id }}</strong></td>
+                                                <td style="color: var(--ds-text, #111827);">{% if bos.options %}{{ bos.options }}{% else %}default{% endif %}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr><td colspan="2" style="color: var(--ds-text, #172B4D);">Конфигурации отсутствуют.</td></tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
                     {% endif %}
+
+                    <!-- ПОДДЕРЖИВАЕМЫЕ ПРОФИЛИ И СБОРКИ -->
+                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Собранные профили</h3>
+                    {% if data.release.is_header_only %}
+                        <ac:structured-macro ac:name="info">
+                            <ac:rich-text-body>
+                                <p>
+                                    <strong style="color: var(--ds-text, #172B4D);">Header-Only компонент (информация)</strong>
+                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." style="cursor: help; margin-left: 4px; color: var(--ds-icon-information, #0052CC); vertical-align: middle;">
+                                        <ac:emoticon ac:name="information" />
+                                    </span>
+                                </p>
+                                <p style="color: var(--ds-text, #172B4D);">Таблицы профилей для данного компонента отсутствуют, так как он собирается одинаково для всех архитектур и ОС.</p>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+
+                        <p style="margin-top: 16px; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: var(--ds-text, #172B4D);">Команда для установки:</p>
+                        <ac:structured-macro ac:name="code">
+                            <ac:parameter ac:name="language">bash</ac:parameter>
+                            <ac:parameter ac:name="theme">Confluence</ac:parameter>
+                            <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }}]]></ac:plain-text-body>
+                        </ac:structured-macro>
+                    {% else %}
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Раскрыть таблицу профилей ({{ data.release.profile_builds | length }})</ac:parameter>
+                            <ac:rich-text-body>
+                                <table class="aui" style="border: 1px solid var(--ds-border, #DFE1E6); width: 100%; border-collapse: collapse;">
+                                    <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                        <tr>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Профиль</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">OS</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Архитектура</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Компилятор</th>
+                                            <th style="color: var(--ds-text-subtle, #6B778C);">Docker Image</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for build in data.release.profile_builds %}
+                                        <!-- Строка профиля -->
+                                        <tr style="border-top: 1px solid var(--ds-border, #DFE1E6);">
+                                            <td style="vertical-align: middle; color: var(--ds-text, #172B4D);"><strong>{{ build.profile_name }}</strong></td>
+                                            <td style="vertical-align: middle;">
+                                                {% set os = build.conan_settings.get('os', 'Unknown') %}
+                                                <span class="aui-lozenge {% if os=='Linux' %}aui-lozenge-complete{% elif os=='Windows' %}aui-lozenge-moved{% elif os=='Android' %}aui-lozenge-success{% endif %}">{{ os }}</span>
+                                            </td>
+                                            <td style="vertical-align: middle; color: var(--ds-text, #172B4D);">{{ build.conan_settings.get('arch', '—') }}</td>
+                                            <td style="vertical-align: middle; color: var(--ds-text-subtle, #6B778C);">{{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}</td>
+                                            <td style="vertical-align: middle;">
+                                                {% if build.docker_image %}
+                                                    {{ build.docker_image }}
+                                                {% else %} <span style="color: var(--ds-text-subtle, #6B778C);">—</span> {% endif %}
+                                            </td>
+                                        </tr>
+
+                                        <!-- Под-строка со сборками (Variants) скрытая в Expand -->
+                                        <tr style="border-bottom: 2px solid var(--ds-border, #DFE1E6);">
+                                            <td colspan="5" style="padding: 0; background: var(--ds-surface-sunken, #F4F5F7);">
+                                                <ac:structured-macro ac:name="expand">
+                                                    <ac:parameter ac:name="title">Подробнее о профиле {{ build.profile_name }}. Варианты сборок ({{ build.variants | length }})</ac:parameter>
+                                                    <ac:rich-text-body>
+                                                        <div style="padding: 16px;">
+
+                                                            <!-- Настройки профиля -->
+                                                            <div style="margin-bottom: 16px;">
+                                                                <div style="font-size: 12px; color: var(--ds-text-subtle, #6B778C);">
+                                                                    {% for k, v in build.conan_settings.items() %}
+                                                                        <span style="margin-right: 12px;"><strong>{{ k }}</strong>: <span style="color: var(--ds-text, #172B4D);">{{ v }}</span></span>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Варианты сборки -->
+                                                            {% for var in build.variants %}
+                                                            <div style="padding: 12px; background: var(--ds-surface, #FFFFFF); border: 1px solid var(--ds-border, #DFE1E6); border-radius: 6px; margin-bottom: 12px;">
+
+                                                                <!-- Шапка сборки -->
+                                                                <div style="margin-bottom: 10px;">
+                                                                    <code style="font-size: 11px; color: var(--ds-text, #172B4D);">{{ var.package_id }}</code>
+                                                                    <span style="float: right; font-size: 11px; color: var(--ds-text-subtle, #6B778C); line-height: 20px;">
+                                                                        {{ var.build_date[:10] }} {{ var.build_date[11:16] }}
+                                                                        <a href="{{ var.build_url }}" style="color: var(--ds-link, #0052CC); font-weight: bold; margin-left: 12px;">Сборка &#8599;</a>
+                                                                    </span>
+                                                                    <div style="clear: both;"></div>
+                                                                </div>
+
+                                                                <!-- Номер варианта и бейджи опций -->
+                                                                <div style="margin-bottom: 12px;">
+                                                                    <span style="font-size: 12px; font-weight: bold; color: var(--ds-text, #172B4D); display: block; margin-bottom: 4px;">Вариант {{ loop.index }}</span>
+                                                                    {% if var.conan_options %}
+                                                                        {% for k, v in var.conan_options.items() %}
+                                                                            <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;">
+                                                                                <span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text, #172B4D);">{{ k }}</span>
+                                                                                <span style="padding: 2px 6px; background: {% if v==True or v=='True' %}var(--ds-background-success, #E3FCEF){% elif v==False or v=='False' %}var(--ds-background-danger, #FFEBE6){% else %}var(--ds-background-warning, #FFFAE6){% endif %}; color: var(--ds-text, #172B4D); font-weight: 600;">{{ v }}</span>
+                                                                            </span>
+                                                                        {% endfor %}
+                                                                    {% else %}
+                                                                        <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); border-radius: 3px; overflow: hidden;">
+                                                                            <span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text, #172B4D);">options</span>
+                                                                            <span style="padding: 2px 6px; background: var(--ds-background-neutral, #DFE1E6); color: var(--ds-text, #172B4D); font-weight: 600;">default</span>
+                                                                        </span>
+                                                                    {% endif %}
+                                                                </div>
+
+                                                                <!-- Conan Install (Копируемый макрос) -->
+                                                                <ac:structured-macro ac:name="expand">
+                                                                    <ac:parameter ac:name="title">Команда для установки (conan install)</ac:parameter>
+                                                                    <ac:rich-text-body>
+                                                                        <ac:structured-macro ac:name="code">
+                                                                            <ac:parameter ac:name="language">bash</ac:parameter>
+                                                                            <ac:parameter ac:name="theme">Confluence</ac:parameter>
+                                                                            <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }} -pr {{ build.profile_name }}{% if var.conan_options %} {% for k, v in var.conan_options.items() %}-o {{ k }}={{ v }} {% endfor %}{% endif %}]]></ac:plain-text-body>
+                                                                        </ac:structured-macro>
+                                                                    </ac:rich-text-body>
+                                                                </ac:structured-macro>
+
+                                                            </div>
+                                                            {% endfor %}
+
+                                                        </div>
+                                                    </ac:rich-text-body>
+                                                </ac:structured-macro>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                    {% endif %}
+
+                    <!-- ЗАВИСИМОСТИ КОМПОНЕНТА -->
+                    {% if data.release.dependencies %}
+                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Зависимости компонента</h3>
+                    <ac:structured-macro ac:name="expand">
+                        <ac:parameter ac:name="title">Раскрыть зависимости ({{ data.release.dependencies | length }})</ac:parameter>
+                        <ac:rich-text-body>
+                            <table class="aui" style="width: 100%;">
+                                <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                    <tr>
+                                        <th style="color: var(--ds-text-subtle, #6B778C);">Зависимость</th>
+                                        <th style="color: var(--ds-text-subtle, #6B778C);">Тип</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for dep in data.release.dependencies %}
+                                    <tr>
+                                        <td style="color: var(--ds-text, #172B4D);"><strong>{{ dep }}</strong></td>
+                                        <td style="color: var(--ds-text, #172B4D);">—</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </ac:rich-text-body>
+                    </ac:structured-macro>
+                    {% endif %}
+
+                    <!-- ИСПОЛЬЗУЕМЫЕ ПАТЧИ -->
+                    {% if data.release.patches %}
+                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Используемые патчи</h3>
+                    <ac:structured-macro ac:name="expand">
+                        <ac:parameter ac:name="title">Раскрыть используемые патчи ({{ data.release.patches | length }})</ac:parameter>
+                        <ac:rich-text-body>
+                            <table class="aui" style="width: 100%;">
+                                <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                    <tr>
+                                        <th style="color: var(--ds-text-subtle, #6B778C);">Патч</th>
+                                        <th style="color: var(--ds-text-subtle, #6B778C);">Назначение</th>
+                                        <th style="color: var(--ds-text-subtle, #6B778C);">Примечание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for patch in data.release.patches %}
+                                    <tr>
+                                        <td style="color: var(--ds-text, #172B4D);"><strong>{{ patch }}</strong></td>
+                                        <td style="color: var(--ds-text, #172B4D);">—</td>
+                                        <td style="color: var(--ds-text, #172B4D);">—</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </ac:rich-text-body>
+                    </ac:structured-macro>
+                    {% endif %}
+
                 </div>
-                {% endfor %}
+
+            </ac:rich-text-body>
+        </ac:structured-macro>
+
+        <!-- ВСТАВКА СТАРЫХ СПАРСЕННЫХ ПЛАТФОРМ -->
+        {% for legacy_plat, legacy_html in data.legacy_contents.items() %}
+        <ac:structured-macro ac:name="tab-pane">
+            <ac:parameter ac:name="name">{{ legacy_plat }}</ac:parameter>
+            <ac:parameter ac:name="outline">true</ac:parameter>
+            <ac:rich-text-body>
+                {{ legacy_html }}
             </ac:rich-text-body>
         </ac:structured-macro>
         {% endfor %}
