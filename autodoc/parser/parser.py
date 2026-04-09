@@ -41,6 +41,27 @@ def default_pipeline() -> list[BaseParseStep]:
     ]
 
 
+def _serialize_intermediate(intermediate: dict) -> dict:
+    """Конвертирует intermediate-данные в JSON-совместимый вид.
+
+    Tuple-ключи (например в options_map) преобразуются в строки вида
+    "comp::version::channel", чтобы json.dumps не падал с TypeError.
+    docker_links пропускается — он большой и не нужен в снимке.
+    """
+    result = {}
+    for k, v in intermediate.items():
+        if k == "docker_links":
+            continue
+        if isinstance(v, dict):
+            result[k] = {
+                "::".join(ik) if isinstance(ik, tuple) else ik: iv
+                for ik, iv in v.items()
+            }
+        else:
+            result[k] = v
+    return result
+
+
 class ComponentParser:
     """
     Верхний уровень бизнес-логики парсера компонентов платформы.
@@ -134,20 +155,20 @@ class ComponentParser:
 
         try:
             for step in self._steps:
-                logger.info(f"Запуск шага [{step.name}]…")
+                logger.info(f"ComponentParser → [{step.name}]…")
                 try:
                     step.execute(ctx)
-                    logger.info(f"Шаг [{step.name}] выполнен успешно")
+                    logger.info(f"ComponentParser ✓ [{step.name}]")
                 except DocGeneratorError as exc:
                     if step.is_critical:
                         logger.error(
-                            f"Шаг [{step.name}] завершился с критической ошибкой: {exc}"
+                            f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}"
                         )
                         raise ParsingError(
                             f"Критический шаг {step.name!r} завершился с ошибкой: {exc}"
                         ) from exc
                     logger.warning(
-                        f"Шаг [{step.name}] завершился с некритической ошибкой, продолжаем: {exc}"
+                        f"ComponentParser ⚠ [{step.name}] — некритическая ошибка (продолжаем): {exc}"
                     )
 
                 if save_intermediate:
@@ -155,7 +176,7 @@ class ComponentParser:
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
-            logger.debug("Временная директория очищена.")
+            logger.debug("временная директория очищена.")
 
         if ctx.result is None:
             raise ParsingError("ComponentParser: FinalizeStep не заполнил ctx.result.")
@@ -169,7 +190,7 @@ class ComponentParser:
         )
         if step_idx == -1:
             logger.warning(
-                f"Шаг {step_name!r} не найден в списке шагов, снимок пропущен"
+                f"шаг {step_name!r} не найден в списке шагов, снимок пропущен"
             )
             return
 
@@ -181,9 +202,7 @@ class ComponentParser:
             "components_count": len(ctx.components),
             "intermediate_keys": list(ctx.intermediate.keys()),
             "components": [c.model_dump() for c in ctx.components],
-            "intermediate": {
-                k: v for k, v in ctx.intermediate.items() if k != "docker_links"
-            },
+            "intermediate": _serialize_intermediate(ctx.intermediate),
             "docker_links_count": len(ctx.intermediate.get("docker_links", {})),
         }
 
@@ -192,6 +211,6 @@ class ComponentParser:
                 json.dumps(snapshot, indent=2, ensure_ascii=False, default=str),
                 encoding="utf-8",
             )
-            logger.debug(f"Сохранён снимок → {filepath.name}")
+            logger.debug(f"сохранён снимок → {filepath.name}")
         except OSError as e:
-            logger.warning(f"Не удалось сохранить снимок {filepath}: {e}")
+            logger.warning(f"не удалось сохранить снимок {filepath}: {e}")

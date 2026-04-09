@@ -22,7 +22,7 @@ from autodoc.models.conan_result import (
     _ErrorLog,
 )
 
-_DEFAULT_MAX_WORKERS: int = 8
+_DEFAULT_MAX_WORKERS: int = 64
 
 
 class ConanManager:
@@ -172,7 +172,7 @@ class ConanManager:
                     record = ConanCommandRecord(
                         command=" ".join(task.cmd),
                         status="BINARY_MISSING",
-                        error="Binary not found (Missing) for this profile.",
+                        error="WARNING: Binary not found (Missing) for this profile.",
                     )
                 else:
                     record = ConanCommandRecord(

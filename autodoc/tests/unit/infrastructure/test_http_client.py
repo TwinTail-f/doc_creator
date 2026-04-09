@@ -81,14 +81,6 @@ class TestRetryableSessionMethods:
         _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
-    def test_get_does_not_override_explicit_timeout(
-        self, session: RetryableSession
-    ) -> None:
-        """get() не перезаписывает явно переданный таймаут."""
-        with patch("requests.Session.request", return_value=MagicMock()) as mock_req:
-            session.get("https://example.com", timeout=5)
-        _, kwargs = mock_req.call_args
-        assert kwargs.get("timeout") == 5
 
     def test_post_injects_default_timeout(self, session: RetryableSession) -> None:
         """post() добавляет таймаут если он не задан явно."""

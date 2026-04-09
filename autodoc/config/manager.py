@@ -5,6 +5,7 @@
 import json
 from pathlib import Path
 from typing import Any
+from pydantic import ValidationError
 
 import yaml
 
@@ -64,7 +65,7 @@ class ConfigManager:
             validated = ParserConfigSchema(**raw)
             logger.info(f"{filename} успешно загружен и провалидирован")
             return validated
-        except Exception as e:
+        except ValidationError as e:
             raise ConfigError(f"Ошибка валидации {filename}: {e}") from e
 
     def load_confluence_config(
@@ -88,7 +89,7 @@ class ConfigManager:
             validated = ConfluenceConfigSchema(**raw)
             logger.info(f"{filename} успешно загружен и провалидирован")
             return validated
-        except Exception as e:
+        except ValidationError as e:
             raise ConfigError(f"Ошибка валидации {filename}: {e}") from e
 
     def validate_config_file(self, filepath: str) -> tuple[bool, str | None]:
@@ -192,7 +193,7 @@ class ConfigManager:
                 )
         except ConfigError:
             raise
-        except Exception as e:
+        except ValidationError as e:
             raise ConfigError(f"Ошибка при загрузке {filename}: {e}") from e
 
     def _load_json(self, filepath: Path) -> dict[str, Any]:
