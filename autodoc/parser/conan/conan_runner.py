@@ -42,7 +42,7 @@ class Conan2Runner(BaseConanRunner):
     """
     Запускает команды Conan 2.x через ``subprocess``.
 
-    Обрабатывает таймауты, ненулевые коды возврата и ошибки JSON-декодирования.
+    Обрабатывает таймауты и ненулевые коды возврата.
     Каждый вызов ``run()`` независим — безопасен для использования из нескольких потоков.
     """
 
@@ -76,10 +76,10 @@ class Conan2Runner(BaseConanRunner):
         """
         Выполняет ``conan graph info`` и возвращает сырой результат.
 
+        Проверяет наличие ``conan`` в PATH до запуска subprocess.
         Для каждого вызова создаётся изолированный временный ``CONAN_HOME``
         с скопированными профилями из реального окружения пользователя.
-        Это устраняет race condition в кэше Conan 2.x при параллельных вызовах:
-        каждый поток работает со своим независимым кэшем.
+        Это устраняет race condition в кэше Conan 2.x при параллельных вызовах.
 
         При таймауте или отсутствии утилиты возвращает ``success=False``
         с описанием ошибки — не бросает исключений.
@@ -90,6 +90,14 @@ class Conan2Runner(BaseConanRunner):
         Returns:
             ``ConanRawResult`` с данными или описанием ошибки.
         """
+        if not shutil.which("conan"):
+            return ConanRawResult(
+                task=task,
+                success=False,
+                data=None,
+                error=self._CONAN_NOT_FOUND_MSG,
+            )
+
         with tempfile.TemporaryDirectory(prefix="conan_home_") as tmp_home:
             self._setup_isolated_conan_home(self._real_conan_home(), Path(tmp_home))
             env = {**os.environ, "CONAN_HOME": tmp_home}
@@ -107,13 +115,6 @@ class Conan2Runner(BaseConanRunner):
                     success=False,
                     data=None,
                     error=f"Таймаут выполнения команды ({self._timeout} с).",
-                )
-            except FileNotFoundError:
-                return ConanRawResult(
-                    task=task,
-                    success=False,
-                    data=None,
-                    error=self._CONAN_NOT_FOUND_MSG,
                 )
 
             if result.returncode != 0:
@@ -142,6 +143,9 @@ class Conan2Runner(BaseConanRunner):
         Raises:
             RuntimeError: Если утилита ``conan`` не найдена в PATH.
         """
+        if not shutil.which("conan"):
+            raise RuntimeError(self._CONAN_NOT_FOUND_MSG)
+
         logger.info("Очищаем локальный кэш Conan 2…")
         try:
             result = subprocess.run(
@@ -158,8 +162,6 @@ class Conan2Runner(BaseConanRunner):
                 )
         except subprocess.TimeoutExpired:
             logger.warning("Таймаут при очистке кэша.")
-        except FileNotFoundError:
-            raise RuntimeError(self._CONAN_NOT_FOUND_MSG)
 
     @staticmethod
     def _extract_error_message(stderr: str) -> str:

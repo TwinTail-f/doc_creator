@@ -133,10 +133,12 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         try:
             response = self._tfs.get_file_content(items_url, opt_path, branch)
-            if response.status_code != 200:
-                return
-        except (NetworkError, OSError) as e:
+        except NetworkError as e:
             logger.warning(f"Ошибка скачивания {opt_path}: {e}")
+            return
+
+        if response.status_code != 200:
+            logger.debug(f"HTTP {response.status_code} для {opt_path}, пропуск")
             return
 
         channel_name, cleaned = OptionsParser.parse_file(

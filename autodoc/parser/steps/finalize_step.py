@@ -4,6 +4,8 @@
 
 import datetime
 
+from pydantic import ValidationError as PydanticValidationError
+
 from autodoc.exceptions import ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
@@ -94,8 +96,8 @@ class FinalizeStep(BaseParseStep):
         Собирает финальный ``ParsedResult`` из контекста пайплайна.
 
         Создаёт объект результата с временной меткой, версией платформы
-        и списком компонентов. При ошибке валидации Pydantic бросает
-        ``ParsingError``.
+        и списком компонентов. При ошибке Pydantic-валидации бросает
+        ``ParsingError`` с понятным описанием — без стектрейса.
 
         Args:
             ctx: Контекст пайплайна с финализированными компонентами.
@@ -114,5 +116,5 @@ class FinalizeStep(BaseParseStep):
             )
             logger.info(f"Данные валидированы. {len(result.components)} компонентов.")
             return result
-        except Exception as e:
+        except PydanticValidationError as e:
             raise ParsingError(f"FinalizeStep: валидация данных не прошла: {e}") from e

@@ -92,6 +92,24 @@ class ConfigManager:
         except ValidationError as e:
             raise ConfigError(f"Ошибка валидации {filename}: {e}") from e
 
+    def load_raw(self, filename: str) -> dict[str, Any]:
+        """
+        Загружает конфиг-файл без схемной валидации.
+
+        Используется там, где нужно проверить содержимое файла до того,
+        как станет известно, какой схеме он соответствует.
+
+        Args:
+            filename: Имя файла (с расширением).
+
+        Returns:
+            Загруженные данные в виде словаря.
+
+        Raises:
+            ConfigError: Если файл не найден, формат неподдерживаемый или содержимое невалидно.
+        """
+        return self._load_config(filename)
+
     def validate_config_file(self, filepath: str) -> tuple[bool, str | None]:
         """
         Проверяет синтаксическую корректность файла конфигурации.
@@ -181,20 +199,15 @@ class ConfigManager:
             raise ConfigError(f"Конфиг-файл не найден: {filepath}")
 
         suffix = filepath.suffix.lower()
-        try:
-            if suffix == ".json":
-                return self._load_json(filepath)
-            elif suffix in (".yaml", ".yml"):
-                return self._load_yaml(filepath)
-            else:
-                raise ConfigError(
-                    f"Неподдерживаемый формат: {suffix}. "
-                    f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
-                )
-        except ConfigError:
-            raise
-        except ValidationError as e:
-            raise ConfigError(f"Ошибка при загрузке {filename}: {e}") from e
+        if suffix == ".json":
+            return self._load_json(filepath)
+        elif suffix in (".yaml", ".yml"):
+            return self._load_yaml(filepath)
+        else:
+            raise ConfigError(
+                f"Неподдерживаемый формат: {suffix}. "
+                f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
+            )
 
     def _load_json(self, filepath: Path) -> dict[str, Any]:
         """

@@ -148,28 +148,28 @@ class TestConfluenceClientInit:
 
 
 # ---------------------------------------------------------------------------
-# _build_url
+# _api_url
 # ---------------------------------------------------------------------------
 
 
 class TestBuildUrl:
-    """Тесты вспомогательного метода _build_url."""
+    """Тесты вспомогательного метода _api_url."""
 
     @pytest.fixture
     def client(self) -> ConfluenceClient:
         return ConfluenceClient(_make_config())
 
     def test_single_segment(self, client: ConfluenceClient) -> None:
-        assert client._build_url("content") == "https://confluence.example.com/rest/api/content"
+        assert client._api_url("content") == "https://confluence.example.com/rest/api/content"
 
     def test_multiple_segments(self, client: ConfluenceClient) -> None:
         assert (
-            client._build_url("content", "123", "child", "page")
+            client._api_url("content", "123", "child", "page")
             == "https://confluence.example.com/rest/api/content/123/child/page"
         )
 
     def test_no_double_slashes(self, client: ConfluenceClient) -> None:
-        url = client._build_url("content")
+        url = client._api_url("content")
         assert "//" not in url.replace("https://", "")
 
 

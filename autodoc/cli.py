@@ -466,42 +466,57 @@ def config_list(ctx: click.Context) -> None:
 @click.pass_context
 def config_validate(ctx: click.Context, config_file: str) -> None:
     """Валидировать синтаксис конфигурационного файла."""
+    from pydantic import ValidationError as PydanticValidationError
+    from autodoc.config.schemas import ParserConfigSchema, ConfluenceConfigSchema
+
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     filepath = cli_ctx.configs_dir / config_file
     is_valid, error = cli_ctx.config_manager.validate_config_file(str(filepath))
 
-    if is_valid:
-        console.print(f"✅ Файл валиден: {config_file}", style="green bold")
-        schema_loaded = False
+    if not is_valid:
+        console.print(f"❌ Файл невалиден: {error}", style="red bold")
+        sys.exit(1)
+
+    console.print(f"✅ Синтаксис файла корректен: {config_file}", style="green bold")
+
+    # Загружаем сырые данные один раз, до любой схемной валидации.
+    try:
+        raw = cli_ctx.config_manager.load_raw(config_file)
+    except ConfigError as e:
+        console.print(f"❌ Не удалось загрузить файл: {e}", style="red bold")
+        sys.exit(1)
+
+    # Определяем схему по наличию ключевых полей — не через перебор исключений.
+    is_parser = "tfs_token" in raw and "platform_version" in raw
+    is_confluence = "url" in raw and "token" in raw and "space" in raw
+
+    if is_parser:
         try:
-            cli_ctx.config_manager.load_parser_config(config_file)
+            ParserConfigSchema(**raw)
+            console.print("✅ Pydantic валидация пройдена (схема: parser)", style="green")
+        except PydanticValidationError as e:
             console.print(
-                "✅ Pydantic валидация пройдена (схема: parser)", style="green"
+                f"⚠️  Схема parser: файл загружается, но содержит ошибки валидации:\n{e}",
+                style="yellow",
             )
-            schema_loaded = True
-        except ConfigError:
-            pass
-
-        if not schema_loaded:
-            try:
-                cli_ctx.config_manager.load_confluence_config(config_file)
-                console.print(
-                    "✅ Pydantic валидация пройдена (схема: confluence)", style="green"
-                )
-                schema_loaded = True
-            except ConfigError:
-                pass
-
-        if not schema_loaded:
+    elif is_confluence:
+        try:
+            ConfluenceConfigSchema(**raw)
             console.print(
-                "⚠️  JSON/YAML синтаксически корректен, но не соответствует "
-                "ни одной известной схеме.",
+                "✅ Pydantic валидация пройдена (схема: confluence)", style="green"
+            )
+        except PydanticValidationError as e:
+            console.print(
+                f"⚠️  Схема confluence: файл загружается, но содержит ошибки валидации:\n{e}",
                 style="yellow",
             )
     else:
-        console.print(f"❌ Файл невалиден: {error}", style="red bold")
-        sys.exit(1)
+        console.print(
+            "⚠️  JSON/YAML синтаксически корректен, но не соответствует "
+            "ни одной известной схеме.",
+            style="yellow",
+        )
 
 
 # ---------------------------------------------------------------------------

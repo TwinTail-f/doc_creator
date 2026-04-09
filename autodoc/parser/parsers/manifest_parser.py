@@ -41,6 +41,13 @@ class ManifestParser:
         excluded_count = 0
 
         for filepath in files:
+            # Проверяем доступность файла до обращения к нему.
+            if not filepath.is_file():
+                msg = f"файл не найден или недоступен: {filepath.name}"
+                logger.warning(msg)
+                warnings.append(msg)
+                continue
+
             try:
                 props = read_properties(filepath)
             except OSError as e:

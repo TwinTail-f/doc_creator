@@ -18,8 +18,7 @@ MINIMAL_CONFIG_DATA = {
     "tfs_token": "secret",
     "tfs_dep_components_url": "https://tfs.example.com/DEP",
     "manifests_remotes_path": "/remotes/manifests",
-    "artifactory_username": "art_user",
-    "artifactory_password": "art_pass",
+    "artifactory_token": "art-token",
 }
 
 
