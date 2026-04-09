@@ -70,7 +70,7 @@ class Conan2Runner(BaseConanRunner):
         Без этого Conan не находит ни пользовательские профили (-pr=...),
         ни дефолтный профиль, и завершается с ошибкой.
         """
-        shutil.copytree(src_home, dst_home)
+        shutil.copytree(src_home, dst_home, dirs_exist_ok=True)
 
     def run(self, task: ConanTask) -> ConanRawResult:
         """
