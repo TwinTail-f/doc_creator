@@ -61,7 +61,7 @@
                                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                                             {% for version, page_info in comp.passport_versions.items() %}
                                             {% if version == release.version %}
-                                            <a href="/wiki/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" style="display: inline-block; padding: 6px 12px; background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 12px; font-weight: 500; border: 1px solid var(--ds-border, #C1C7D0);">
+                                            <a href="/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" style="display: inline-block; padding: 6px 12px; background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 12px; font-weight: 500; border: 1px solid var(--ds-border, #C1C7D0);">
                                                 {{ comp.name }} v{{ version }}
                                             </a>
                                             {% endif %}

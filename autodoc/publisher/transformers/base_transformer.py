@@ -6,7 +6,7 @@ from typing import Any
 from autodoc.models.parsed_result import ParsedResult
 
 _DEFAULT_PASSPORT_PATTERN: str = (
-    "/wiki/spaces/DOC/pages/{component_name}+{release_version}"
+    "/spaces/DOC/pages/{component_name}+{release_version}"
 )
 
 
