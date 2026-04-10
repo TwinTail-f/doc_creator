@@ -47,7 +47,7 @@ class PageVersionManager:
         try:
             return int(response.get("version", {}).get("number", _FALLBACK_VERSION))
         except (ValueError, TypeError, AttributeError):
-            logger.warning(f"Не удалось извлечь версию из ответа: {response!r}")
+            logger.warning(f"Не удалось извлечь версию из ответа: {response}")
             return _FALLBACK_VERSION
 
     @staticmethod

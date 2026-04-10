@@ -80,7 +80,9 @@ class ConanResultParser:
         )
         package_id = target_node.get("package_id", "")
         build_url = (
-            self._build_artifactory_url(task, full_version, rrev, package_id) if package_id else ""
+            self._build_artifactory_url(task, full_version, rrev, package_id)
+            if package_id
+            else ""
         )
         build_date = self._extract_build_date(target_node)
         conan_options: dict = info_dict.get("options", target_node.get("options", {}))
@@ -174,7 +176,9 @@ class ConanResultParser:
         return sorted(set(deps))
 
     @staticmethod
-    def _build_artifactory_url(task: ConanTask, full_version: str, rrev: str, package_id: str = "") -> str:
+    def _build_artifactory_url(
+        task: ConanTask, full_version: str, rrev: str, package_id: str = ""
+    ) -> str:
         if not task.artifactory_base_url or not rrev:
             return ""
         url = (

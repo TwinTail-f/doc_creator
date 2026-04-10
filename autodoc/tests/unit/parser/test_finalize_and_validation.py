@@ -48,7 +48,10 @@ _MINIMAL_CONFIG = ParserConfigSchema(
 
 def _make_release(version="1.0.0", channel="stable") -> Release:
     return Release(
-        version=version, platform="2.0", channel=channel, git_url="https://tfs.example.com"
+        version=version,
+        platform="2.0",
+        channel=channel,
+        git_url="https://tfs.example.com",
     )
 
 
@@ -89,7 +92,9 @@ class TestComputeHeaderOnlyFlags:
         assert r.is_header_only is False
 
     def test_all_empty_settings_and_empty_options_is_header_only(self) -> None:
-        variant = ConanVariant(package_id="x", build_url="", build_date="", conan_options={})
+        variant = ConanVariant(
+            package_id="x", build_url="", build_date="", conan_options={}
+        )
         pb = ProfileBuild(profile_name="p", conan_settings={}, variants=[variant])
         r = _make_release()
         r.profile_builds = [pb]
@@ -100,7 +105,9 @@ class TestComputeHeaderOnlyFlags:
         assert r.is_header_only is True
 
     def test_non_empty_settings_not_header_only(self) -> None:
-        variant = ConanVariant(package_id="x", build_url="", build_date="", conan_options={})
+        variant = ConanVariant(
+            package_id="x", build_url="", build_date="", conan_options={}
+        )
         pb = ProfileBuild(
             profile_name="p",
             conan_settings={"os": "Linux"},
@@ -116,7 +123,10 @@ class TestComputeHeaderOnlyFlags:
 
     def test_non_empty_conan_options_not_header_only(self) -> None:
         variant = ConanVariant(
-            package_id="x", build_url="", build_date="", conan_options={"shared": "True"}
+            package_id="x",
+            build_url="",
+            build_date="",
+            conan_options={"shared": "True"},
         )
         pb = ProfileBuild(profile_name="p", conan_settings={}, variants=[variant])
         r = _make_release()
@@ -286,7 +296,9 @@ class TestRemoveDeadVariants:
 
 
 class TestArtifactoryValidationStepExecute:
-    def _make_ctx_with_variant(self, url="https://art.example.com/ui/repos/tree/General/pkg"):
+    def _make_ctx_with_variant(
+        self, url="https://art.example.com/ui/repos/tree/General/pkg"
+    ):
         variant = _make_variant(url)
         pb = _make_pb()
         pb.variants = [variant]

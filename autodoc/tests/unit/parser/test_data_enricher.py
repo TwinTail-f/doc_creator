@@ -24,7 +24,6 @@ from autodoc.models.conan_result import (
 )
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 
-
 # ---------------------------------------------------------------------------
 # Фабрики тестовых объектов
 # ---------------------------------------------------------------------------
@@ -189,7 +188,9 @@ class TestApplyConanResults:
             base_ref="my_lib/1.0.0@platform-2.0/stable",
             rrev="rev001",
             full_version="1.0.0",
-            default_options=[{"name": "shared", "type": "bool", "default_value": False}],
+            default_options=[
+                {"name": "shared", "type": "bool", "default_value": False}
+            ],
             patches=["fix.patch"],
             dependencies=["zlib"],
             artifactory_url="https://art.example.com/pkg",
@@ -267,9 +268,7 @@ class TestApplyConanResults:
 
         pd1 = ProfileConanData(conan_settings={}, exists=True, variants=[])
         pd2 = ProfileConanData(conan_settings={}, exists=False, variants=[])
-        conan_result = _make_conan_result(
-            profile_data={id(pb1): pd1, id(pb2): pd2}
-        )
+        conan_result = _make_conan_result(profile_data={id(pb1): pd1, id(pb2): pd2})
 
         DataEnricher.apply_conan_results([c1, c2], conan_result)
 

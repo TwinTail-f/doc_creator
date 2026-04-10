@@ -52,7 +52,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         for comp in components:
             repo_name = comp.git_repo
             if not repo_name:
-                fetch_warnings.append(f"{comp.name!r} без git_repo, пропуск")
+                fetch_warnings.append(f"{comp.name} без git_repo, пропуск")
                 continue
 
             for release in comp.releases:
@@ -89,7 +89,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         try:
             items = self._tfs.get_items(items_url, branch)
         except NetworkError as e:
-            logger.warning(f"Пропуск репо {repo_name!r} (ветка {branch!r}): {e}")
+            logger.warning(f"Пропуск репо {repo_name} (ветка {branch}): {e}")
             return repo_data
 
         options_paths = [

@@ -81,7 +81,6 @@ class TestRetryableSessionMethods:
         _, kwargs = mock_req.call_args
         assert kwargs.get("timeout") == 20
 
-
     def test_post_injects_default_timeout(self, session: RetryableSession) -> None:
         """post() добавляет таймаут если он не задан явно."""
         with patch("requests.Session.request", return_value=MagicMock()) as mock_req:

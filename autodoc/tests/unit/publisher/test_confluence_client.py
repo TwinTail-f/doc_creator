@@ -21,7 +21,9 @@ from autodoc.publisher.clients.confluence_client import (
     _INITIAL_VERSION,
 )
 
-_SESSION_FACTORY_PATH = "autodoc.publisher.clients.confluence_client.create_retryable_session"
+_SESSION_FACTORY_PATH = (
+    "autodoc.publisher.clients.confluence_client.create_retryable_session"
+)
 
 # ---------------------------------------------------------------------------
 # Вспомогательные утилиты
@@ -46,7 +48,9 @@ def _make_mock_session() -> MagicMock:
     return session
 
 
-def _make_page_response(page_id: str = "123", title: str = "Test Page", version: int = 1):
+def _make_page_response(
+    page_id: str = "123", title: str = "Test Page", version: int = 1
+):
     """Формирует типичный ответ Confluence REST API для одной страницы."""
     mock = MagicMock(spec=requests.Response)
     mock.status_code = 200
@@ -96,7 +100,9 @@ class TestConfluenceClientInit:
         client = ConfluenceClient(config)
 
         assert client._session.auth is None
-        assert "Bearer test-pat-token" in client._session.headers.get("Authorization", "")
+        assert "Bearer test-pat-token" in client._session.headers.get(
+            "Authorization", ""
+        )
 
     def test_bearer_header_set_correctly(self) -> None:
         """Authorization-заголовок содержит корректный Bearer-токен."""
@@ -160,7 +166,10 @@ class TestBuildUrl:
         return ConfluenceClient(_make_config())
 
     def test_single_segment(self, client: ConfluenceClient) -> None:
-        assert client._api_url("content") == "https://confluence.example.com/rest/api/content"
+        assert (
+            client._api_url("content")
+            == "https://confluence.example.com/rest/api/content"
+        )
 
     def test_multiple_segments(self, client: ConfluenceClient) -> None:
         assert (
@@ -238,7 +247,9 @@ class TestGetPage:
 
     def test_raises_publish_error_on_http_error(self, client: ConfluenceClient) -> None:
         mock_response = MagicMock(spec=requests.Response)
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404")
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404"
+        )
         client._session.get.return_value = mock_response
 
         with pytest.raises(PublishError):
@@ -278,7 +289,9 @@ class TestCreatePage:
 
     def test_raises_publish_error_on_failure(self, client: ConfluenceClient) -> None:
         mock_response = MagicMock(spec=requests.Response)
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("500")
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "500"
+        )
         client._session.post.return_value = mock_response
 
         with pytest.raises(PublishError):
@@ -307,10 +320,14 @@ class TestUpdatePage:
         _, kwargs = client._session.put.call_args
         assert kwargs["json"]["version"]["number"] == 4
 
-    def test_raises_publish_error_on_put_failure(self, client: ConfluenceClient) -> None:
+    def test_raises_publish_error_on_put_failure(
+        self, client: ConfluenceClient
+    ) -> None:
         client._session.get.return_value = _make_page_response(version=1)
         mock_response = MagicMock(spec=requests.Response)
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("409")
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "409"
+        )
         client._session.put.return_value = mock_response
 
         with pytest.raises(PublishError):

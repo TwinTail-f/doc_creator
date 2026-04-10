@@ -86,7 +86,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
 
         for comp in self._data.components:
             if not comp.releases:
-                errors.append(f"Нет релизов для компонента {comp.name!r}")
+                errors.append(f"Нет релизов для компонента {comp.name}")
                 continue
 
             for release in comp.releases:
@@ -192,7 +192,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         try:
             return self._client.get_page_body(space=self._space, title=page_title)
         except Exception as e:
-            logger.warning(f"Не удалось получить тело страницы {page_title!r}: {e}")
+            logger.warning(f"Не удалось получить тело страницы {page_title}: {e}")
             return ""
 
     @staticmethod

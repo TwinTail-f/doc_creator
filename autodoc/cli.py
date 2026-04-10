@@ -494,7 +494,9 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
     if is_parser:
         try:
             ParserConfigSchema(**raw)
-            console.print("✅ Pydantic валидация пройдена (схема: parser)", style="green")
+            console.print(
+                "✅ Pydantic валидация пройдена (схема: parser)", style="green"
+            )
         except PydanticValidationError as e:
             console.print(
                 f"⚠️  Схема parser: файл загружается, но содержит ошибки валидации:\n{e}",

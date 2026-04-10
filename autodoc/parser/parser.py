@@ -165,7 +165,7 @@ class ComponentParser:
                             f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}"
                         )
                         raise ParsingError(
-                            f"Критический шаг {step.name!r} завершился с ошибкой: {exc}"
+                            f"Критический шаг {step.name} завершился с ошибкой: {exc}"
                         ) from exc
                     logger.warning(
                         f"ComponentParser ⚠ [{step.name}] — некритическая ошибка (продолжаем): {exc}"
@@ -189,9 +189,7 @@ class ComponentParser:
             (i for i, s in enumerate(self._steps) if s.name == step_name), -1
         )
         if step_idx == -1:
-            logger.warning(
-                f"шаг {step_name!r} не найден в списке шагов, снимок пропущен"
-            )
+            logger.warning(f"шаг {step_name} не найден в списке шагов, снимок пропущен")
             return
 
         safe_name = step_name.lower().replace(" ", "_").replace("/", "_")

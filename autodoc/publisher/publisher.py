@@ -64,7 +64,7 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатами публикации.
         """
-        logger.info(f"Публикация стратегии {strategy_type!r}")
+        logger.info(f"Публикация стратегии {strategy_type}")
         strategy = BasePublishStrategy.create(
             strategy_type,
             confluence_client=self._client,

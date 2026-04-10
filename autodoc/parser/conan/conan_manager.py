@@ -214,7 +214,11 @@ class ConanManager:
                     # Command exited 0 but the binary is Missing for this profile —
                     # treat as a failed lookup so the profile is excluded.
                     agg.errors.append(
-                        {" ".join(task.cmd): "Binary not found (Missing) for this profile."}
+                        {
+                            " ".join(
+                                task.cmd
+                            ): "Binary not found (Missing) for this profile."
+                        }
                     )
             else:
                 agg.errors.append({" ".join(task.cmd): raw.error})
@@ -268,7 +272,6 @@ class ConanManager:
 
         return result
 
-
     @staticmethod
     def _extract_binary_status(data: dict | None, comp_name: str) -> str:
         """
@@ -290,9 +293,7 @@ class ConanManager:
         if not data:
             return ""
         nodes = data.get("graph", {}).get("nodes", {})
-        target = next(
-            (n for n in nodes.values() if n.get("name") == comp_name), None
-        )
+        target = next((n for n in nodes.values() if n.get("name") == comp_name), None)
         return target.get("binary", "") if target else ""
 
 

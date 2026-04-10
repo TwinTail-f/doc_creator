@@ -16,22 +16,10 @@
                 <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 26px; font-weight: 700; color: var(--ds-text, #111827);">{{ comp.name }}</h1>
                 <p style="color: var(--ds-text-subtle, #6b7280); font-size: 14px; margin-top: 0; line-height: 1.5; max-width: 700px;">{{ comp.description }}</p>
 
-                {% if comp.get('passport_link') %}
-                <div style="margin-bottom: 16px;">
-                    <a href="{{ comp.passport_link }}" style="font-size: 13px; color: var(--ds-link, #2563eb); text-decoration: none; font-weight: 600;">
-                        📋 Просмотреть полный паспорт компонента
-                    </a>
-                </div>
-                {% endif %}
-
-                {% set total_profiles = namespace(value=0) %}
-                {% for rel in comp.releases %}
-                    {% set total_profiles.value = total_profiles.value + rel.profile_builds|length %}
-                {% endfor %}
+                <!-- УБРАНО: ссылка "Просмотреть полный паспорт компонента" -->
 
                 <div style="margin-top: 12px; margin-bottom: 24px;">
                     <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px;">Платформа: <strong style="color: var(--ds-text, #374151);">{{ data.get('platform_version', '2.0') }}</strong></span>
-                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px;">Всего профилей: <strong style="color: var(--ds-text, #374151);">{{ total_profiles.value }}</strong></span>
                 </div>
 
                 <!-- ГОРИЗОНТАЛЬНЫЕ ВКЛАДКИ КАНАЛОВ -->
@@ -54,7 +42,7 @@
                                 {% for release in releases_in_channel %}
                                 <div style="margin-top: 24px; margin-bottom: 40px;">
                                     
-                                    <!-- Reference Card (ОБНОВЛЕН ФОН ДЛЯ СВЕТЛОЙ ТЕМЫ) -->
+                                    <!-- Reference Card -->
                                     <div style="padding: 14px 18px; background: var(--ds-background-neutral, #F4F5F7); border-radius: 8px; margin-bottom: 16px;">
                                         <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ds-text-subtle, #6b7280); margin-bottom: 6px;">Conan Reference</div>
                                         <a href="{{ release.artifactory_url }}" style="font-size: 14px; font-weight: 600; font-family: monospace; color: var(--ds-link, #2563eb); text-decoration: none;">
@@ -62,21 +50,18 @@
                                         </a>
                                         <div style="float: right; font-size: 12px; color: var(--ds-text-subtle, #6b7280); margin-top: 2px;">
                                             Версия: <strong style="color: var(--ds-text, #374151);">{{ release.version }}</strong>
-                                            {% if not release.is_header_only %}
-                                             &nbsp;&bull;&nbsp; Профилей сборки: <strong style="color: var(--ds-text, #374151);">{{ release.profile_builds | length }}</strong>
-                                            {% endif %}
                                         </div>
                                         <div style="clear: both;"></div>
                                     </div>
 
-                                    <!-- Ссылки на паспорта компонента -->
+                                    <!-- Плашка «Документация Компонента» — адаптивная под тему -->
                                     {% if comp.passport_versions %}
-                                    <div style="padding: 12px 16px; background: var(--ds-background, #FFFFFF); border: 1px solid var(--ds-border, #DFE1E6); border-radius: 8px; margin-bottom: 16px;">
+                                    <div style="padding: 12px 16px; background: var(--ds-surface-sunken, #F4F5F7); border: 1px solid var(--ds-border, #DFE1E6); border-radius: 8px; margin-bottom: 16px;">
                                         <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ds-text-subtle, #6B778C); margin-bottom: 10px;">Документация компонента</div>
                                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                                             {% for version, page_info in comp.passport_versions.items() %}
                                             {% if version == release.version %}
-                                            <a href="/wiki/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" style="display: inline-block; padding: 6px 12px; background: var(--ds-background-information, #DEEBFF); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 12px; font-weight: 500; border: 1px solid var(--ds-border-information, #85B8FF);">
+                                            <a href="/wiki/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" style="display: inline-block; padding: 6px 12px; background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 12px; font-weight: 500; border: 1px solid var(--ds-border, #C1C7D0);">
                                                 {{ comp.name }} v{{ version }}
                                             </a>
                                             {% endif %}
@@ -149,9 +134,17 @@
                                                             </td>
                                                             <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle; font-size: 12px;">
                                                                 {% if build.docker_image %}
-                                                                    <a href="https://{{ build.docker_image }}" style="color: var(--ds-link, #2563eb); font-weight: 500; text-decoration: none;">{{ build.docker_image.split('/')[-1] }} &#8599;</a>
+                                                                    <span style="color: var(--ds-text, #374151);">{{ build.docker_image }}</span>
                                                                 {% else %}
-                                                                    <span style="color: var(--ds-text-subtlest, #9ca3af);">—</span>
+                                                                    {% set os_for_docker = build.conan_settings.get('os', '') %}
+                                                                    {% set os_lower_d = os_for_docker | lower %}
+                                                                    {% if 'windows' in os_lower_d %}
+                                                                        <span style="color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity "SrvMskCiw"</span>
+                                                                    {% elif 'macos' in os_lower_d or 'ios' in os_lower_d or 'apple' in os_lower_d %}
+                                                                        <span style="color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity "Mac OS X Agent"</span>
+                                                                    {% else %}
+                                                                        <span style="color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity</span>
+                                                                    {% endif %}
                                                                 {% endif %}
                                                             </td>
                                                         </tr>

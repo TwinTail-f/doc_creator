@@ -19,6 +19,7 @@
 from typing import Any
 
 import requests
+import urllib3
 
 from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
@@ -92,9 +93,10 @@ class ConfluenceClient:
         """
         Создаёт или обновляет страницу Confluence.
 
-        Если страница с таким заголовком уже существует в указанном Space —
-        обновляет её тело с автоинкрементом номера версии. Если не существует —
-        создаёт новую.
+        Если страница с таким заголовком уже существует в указанном Space
+        **и является дочерней для ``parent_id``** — обновляет её тело с
+        автоинкрементом номера версии. Если не существует или принадлежит
+        другому дереву — создаёт новую под ``parent_id``.
 
         Args:
             space:     Ключ Space в Confluence.
@@ -108,10 +110,17 @@ class ConfluenceClient:
         Raises:
             PublishError: Если создание или обновление не удалось.
         """
-        logger.info(f"Публикация страницы {title!r} (space={space})")
+        logger.info(f"Публикация страницы {title} (space={space})")
 
-        existing = self.find_page(space, title, expand=_EXPAND_VERSION)
+        existing = self.find_page(space, title, expand=f"{_EXPAND_VERSION},ancestors")
         if existing:
+            if not self._is_child_of(existing, parent_id):
+                logger.warning(
+                    f"Страница {title} найдена в другом дереве "
+                    f"(parent_id страницы не совпадает с {parent_id}). "
+                    f"Будет создана новая страница под указанным родителем."
+                )
+                return self._create_page(space, parent_id, title, body_html)
             return self._update_page(existing, parent_id, title, body_html)
         return self._create_page(space, parent_id, title, body_html)
 
@@ -128,6 +137,11 @@ class ConfluenceClient:
         Используется ``PageHierarchyManager`` для идемпотентного создания
         промежуточных страниц иерархии (компонент, версия).
 
+        Страница считается «той же» только если она является прямым потомком
+        ``parent_id``. Если в Space существует страница с таким же заголовком,
+        но под другим родителем, она игнорируется и создаётся новая —
+        это предотвращает случайную запись в дерево другого корня.
+
         Args:
             space:     Ключ Space.
             title:     Заголовок страницы.
@@ -141,16 +155,23 @@ class ConfluenceClient:
             PublishError: Если страница не найдена и ``parent_id`` не указан,
                           либо если запрос к API завершился ошибкой.
         """
-        existing = self.find_page(space, title)
+        existing = self.find_page(space, title, expand="ancestors")
         if existing:
-            return str(existing["id"])
+            if parent_id and not self._is_child_of(existing, parent_id):
+                logger.warning(
+                    f"Страница {title} найдена в другом дереве "
+                    f"(ожидаемый parent_id={parent_id}). "
+                    f"Будет создана новая страница под указанным родителем."
+                )
+            else:
+                return str(existing["id"])
 
         if not parent_id:
-            raise PublishError(f"не указан parent_id для создания страницы {title!r}")
+            raise PublishError(f"не указан parent_id для создания страницы {title}")
 
         placeholder = body or (f"<p>Автоматически созданная страница: {title}</p>")
         result = self._create_page(space, parent_id, title, placeholder)
-        logger.info(f"Создана страница {title!r} (ID: {result['id']})")
+        logger.info(f"Создана страница {title} (ID: {result['id']})")
         return str(result["id"])
 
     def get_page_body(self, space: str, title: str) -> str:
@@ -206,9 +227,9 @@ class ConfluenceClient:
             response = self._session.get(url, params=params, timeout=self._timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка при поиске {title!r}: {e}") from e
+            raise PublishError(f"HTTP-ошибка при поиске {title}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка при поиске {title!r}: {e}") from e
+            raise PublishError(f"сетевая ошибка при поиске {title}: {e}") from e
 
         results: list[dict[str, Any]] = response.json().get("results", [])
         return results[0] if results else None
@@ -277,12 +298,12 @@ class ConfluenceClient:
             response = self._session.post(url, json=payload, timeout=self._timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка при создании {title!r}: {e}") from e
+            raise PublishError(f"HTTP-ошибка при создании {title}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка при создании {title!r}: {e}") from e
+            raise PublishError(f"сетевая ошибка при создании {title}: {e}") from e
 
         page_id = str(response.json().get("id", ""))
-        logger.info(f"Создана страница {title!r} (ID: {page_id})")
+        logger.info(f"Создана страница {title} (ID: {page_id})")
         return {
             "id": page_id,
             "version": _INITIAL_VERSION,
@@ -321,7 +342,7 @@ class ConfluenceClient:
         next_version = current_version + 1
 
         logger.info(
-            f"обновление {title!r}: v{current_version} → v{next_version} (ID: {page_id})"
+            f"обновление {title}: v{current_version} → v{next_version} (ID: {page_id})"
         )
 
         payload = self._build_page_payload(
@@ -336,9 +357,9 @@ class ConfluenceClient:
             response = self._session.put(url, json=payload, timeout=self._timeout)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка при обновлении {title!r}: {e}") from e
+            raise PublishError(f"HTTP-ошибка при обновлении {title}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка при обновлении {title!r}: {e}") from e
+            raise PublishError(f"сетевая ошибка при обновлении {title}: {e}") from e
 
         return {
             "id": page_id,
@@ -404,7 +425,7 @@ class ConfluenceClient:
         try:
             return int(page.get("version", {}).get("number", _FALLBACK_VERSION))
         except (ValueError, TypeError, AttributeError):
-            logger.warning(f"Не удалось извлечь версию из: {page!r}")
+            logger.warning(f"Не удалось извлечь версию из: {page}")
             return _FALLBACK_VERSION
 
     def _api_url(self, *parts: str) -> str:
@@ -419,6 +440,27 @@ class ConfluenceClient:
             Полный URL вида ``https://confluence.example.com/rest/api/content/12345``.
         """
         return f"{self._base_url}/rest/api/{'/'.join(parts)}"
+
+    @staticmethod
+    def _is_child_of(page: dict[str, Any], parent_id: str) -> bool:
+        """
+        Проверяет, является ли страница прямым потомком указанного родителя.
+
+        Confluence возвращает список предков в поле ``ancestors`` при запросе
+        с ``expand=ancestors``. Метод проверяет, присутствует ли ``parent_id``
+        среди предков страницы — это покрывает как прямых, так и косвенных
+        потомков, что достаточно для защиты от записи в чужое дерево.
+
+        Args:
+            page:      Словарь страницы с полем ``ancestors`` (из ``find_page``
+                       с ``expand='ancestors'``).
+            parent_id: ID ожидаемого родителя.
+
+        Returns:
+            ``True`` если ``parent_id`` найден среди предков, иначе ``False``.
+        """
+        ancestors = page.get("ancestors", [])
+        return any(str(a.get("id")) == str(parent_id) for a in ancestors)
 
     @staticmethod
     def _build_session(config: ConfluenceConfigSchema) -> RetryableSession:
@@ -442,5 +484,10 @@ class ConfluenceClient:
             timeout=config.confluence_request_timeout,
         )
         session.verify = config.verify_ssl
+        if not config.verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            logger.debug(
+                "Проверка SSL-сертификата отключена, предупреждения urllib3 подавлены"
+            )
         session.headers.update({"Content-Type": "application/json"})
         return session

@@ -161,11 +161,12 @@
                                                     <ac:rich-text-body>
                                                         <div style="padding: 16px;">
 
-                                                            <!-- Настройки профиля -->
+                                                            <!-- Настройки профиля (плашки) -->
                                                             <div style="margin-bottom: 16px;">
-                                                                <div style="font-size: 12px; color: var(--ds-text-subtle, #6B778C);">
+                                                                <div style="font-size: 11px; color: var(--ds-text-subtle, #6B778C); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Настройки профиля</div>
+                                                                <div>
                                                                     {% for k, v in build.conan_settings.items() %}
-                                                                        <span style="margin-right: 12px;"><strong>{{ k }}</strong>: <span style="color: var(--ds-text, #172B4D);">{{ v }}</span></span>
+                                                                        <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">{{ k }}</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ v }}</span></span>
                                                                     {% endfor %}
                                                                 </div>
                                                             </div>

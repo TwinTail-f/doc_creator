@@ -37,7 +37,6 @@ class ConanComponentReport:
     profiles: dict[str, ConanProfileReport] = field(default_factory=dict)
 
 
-
 @dataclass
 class ReleaseConanData:
     """Данные Conan для обогащения одного Release."""

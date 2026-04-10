@@ -102,7 +102,9 @@ class TestArtifactoryToken:
         config = ConfigManager(str(tmp_path)).load_parser_config()
         assert config.artifactory_token == "my-art-pat"
 
-    def test_token_from_env_when_not_in_config(self, tmp_path: Path, monkeypatch) -> None:
+    def test_token_from_env_when_not_in_config(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         config_without_token = {
             k: v for k, v in VALID_PARSER_CONFIG.items() if k != "artifactory_token"
         }

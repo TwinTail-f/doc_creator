@@ -62,7 +62,7 @@ class ManifestParser:
                 continue
 
             if name in excluded:
-                logger.debug(f"Компонент {name!r} исключён")
+                logger.debug(f"Компонент {name} исключён")
                 excluded_count += 1
                 continue
 
