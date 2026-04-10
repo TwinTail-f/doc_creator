@@ -112,7 +112,7 @@ class ConfluenceClient:
         """
         logger.info(f"Публикация страницы {title} (space={space})")
 
-        existing = self.find_page(space, title, expand=f"{_EXPAND_VERSION},ancestors")
+        existing = self.find_page(title, space=space, expand=f"{_EXPAND_VERSION},ancestors")
         if existing:
             if not self._is_child_of(existing, parent_id):
                 logger.warning(
@@ -155,7 +155,7 @@ class ConfluenceClient:
             PublishError: Если страница не найдена и ``parent_id`` не указан,
                           либо если запрос к API завершился ошибкой.
         """
-        existing = self.find_page(space, title, expand="ancestors")
+        existing = self.find_page(title, space=space, expand="ancestors")
         if existing:
             if parent_id and not self._is_child_of(existing, parent_id):
                 logger.warning(
@@ -188,23 +188,23 @@ class ConfluenceClient:
         Returns:
             HTML-тело страницы или пустая строка.
         """
-        existing = self.find_page(space, title, expand=_EXPAND_BODY)
+        existing = self.find_page(title, space=space, expand=_EXPAND_BODY)
         if not existing:
             return ""
         return existing.get("body", {}).get("storage", {}).get("value", "")
 
     def find_page(
         self,
-        space: str,
         title: str,
+        space: str | None = None,
         expand: str = "",
     ) -> dict[str, Any] | None:
         """
         Ищет страницу по заголовку в указанном Space.
 
         Args:
-            space:  Ключ Space.
             title:  Заголовок страницы.
+            space:  Ключ Space. Если не указан — используется ``self._space``.
             expand: Опциональный параметр ``expand`` для Confluence API
                     (например ``'version'`` или ``'body.storage'``).
 
@@ -214,6 +214,7 @@ class ConfluenceClient:
         Raises:
             PublishError: Если запрос к API завершился ошибкой.
         """
+        space = space or self._space
         params: dict[str, str] = {
             "spaceKey": space,
             "title": title,
@@ -263,6 +264,58 @@ class ConfluenceClient:
             raise PublishError(f"HTTP-ошибка для ID {page_id}: {e}") from e
         except requests.exceptions.RequestException as e:
             raise PublishError(f"сетевая ошибка для ID {page_id}: {e}") from e
+
+    def create_page(
+        self,
+        title: str,
+        body: str,
+        parent_id: str,
+        space: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Публичный метод создания страницы с использованием Space по умолчанию.
+
+        Args:
+            title:     Заголовок страницы.
+            body:      Тело страницы в Storage Format.
+            parent_id: ID родительской страницы.
+            space:     Ключ Space. Если не указан — используется ``self._space``.
+
+        Returns:
+            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+
+        Raises:
+            PublishError: Если API вернул ошибку.
+        """
+        return self._create_page(space or self._space, parent_id, title, body)
+
+    def update_page(
+        self,
+        page_id: str,
+        title: str,
+        body: str,
+        parent_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Публичный метод обновления страницы с автоинкрементом версии.
+
+        Загружает текущую версию страницы по ``page_id``, затем выполняет
+        обновление с увеличенным номером версии.
+
+        Args:
+            page_id:   ID страницы для обновления.
+            title:     Новый заголовок страницы.
+            body:      Новое тело страницы в Storage Format.
+            parent_id: ID родителя. Если не указан — используется ``page_id``.
+
+        Returns:
+            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+
+        Raises:
+            PublishError: Если API вернул ошибку.
+        """
+        existing = self.get_page(page_id, expand=_EXPAND_VERSION)
+        return self._update_page(existing, parent_id or page_id, title, body)
 
     def _create_page(
         self,

@@ -192,7 +192,9 @@ class TestFindPage:
 
     @pytest.fixture
     def client(self) -> ConfluenceClient:
-        return ConfluenceClient(_make_config())
+        c = ConfluenceClient(_make_config())
+        c._session = _make_mock_session()
+        return c
 
     def test_returns_page_when_found(self, client: ConfluenceClient) -> None:
         page = {"id": "42", "title": "My Page"}
@@ -236,7 +238,9 @@ class TestGetPage:
 
     @pytest.fixture
     def client(self) -> ConfluenceClient:
-        return ConfluenceClient(_make_config())
+        c = ConfluenceClient(_make_config())
+        c._session = _make_mock_session()
+        return c
 
     def test_returns_page_dict_on_success(self, client: ConfluenceClient) -> None:
         client._session.get.return_value = _make_page_response(page_id="99")
@@ -266,7 +270,9 @@ class TestCreatePage:
 
     @pytest.fixture
     def client(self) -> ConfluenceClient:
-        return ConfluenceClient(_make_config())
+        c = ConfluenceClient(_make_config())
+        c._session = _make_mock_session()
+        return c
 
     def test_returns_created_page_dict(self, client: ConfluenceClient) -> None:
         client._session.post.return_value = _make_page_response(page_id="200")
@@ -308,7 +314,9 @@ class TestUpdatePage:
 
     @pytest.fixture
     def client(self) -> ConfluenceClient:
-        return ConfluenceClient(_make_config())
+        c = ConfluenceClient(_make_config())
+        c._session = _make_mock_session()
+        return c
 
     def test_version_is_incremented(self, client: ConfluenceClient) -> None:
         """update_page автоинкрементирует версию страницы."""
