@@ -4,13 +4,23 @@ import re
 
 from autodoc.infrastructure.logger import logger
 
+_H1_OPEN_RE = re.compile(r"<h1\b[^>]*>")
+_INNER_TAG_RE = re.compile(r"<[^>]+>")
+_PLATFORM_VERSION_RE = re.compile(r"Platform\s+[\d.]+")
+
 
 class LegacyContentExtractor:
     """
     Извлекает legacy-контент из HTML Confluence Storage Format.
 
-    Поддерживает формат вкладок (``ac:tab``, ``ac:tab-pane``)
-    и заголовочный формат (``h2``/``h3``).
+    Поддерживает два формата:
+    - Формат вкладок (``ac:tab``, ``ac:tab-pane``) — страницы, сгенерированные
+      текущим инструментом.
+    - Формат заголовков ``<h1>Platform X.Y</h1>`` — устаревшие страницы,
+      написанные вручную. Контент каждой платформы определяется как всё,
+      что находится между закрывающим тегом ``</h1>`` заголовка платформы
+      и открывающим тегом следующего ``<h1>`` (включая «Уязвимости»
+      как естественную границу секции).
     Все методы статические.
     """
 
@@ -72,12 +82,16 @@ class LegacyContentExtractor:
         """
         Автоматически определяет все платформенные версии в HTML и извлекает их контент.
 
-        Находит все имена вкладок через регулярное выражение по тегу
-        ``<ac:parameter ac:name="name|title">``, затем для каждого имени
-        вызывает ``extract_by_platform_tab``.
+        Сначала пробует формат вкладок: ищет имена через тег
+        ``<ac:parameter ac:name="name|title">`` и вызывает
+        ``extract_by_platform_tab`` для каждого найденного имени.
+
+        Если вкладочный формат не даёт результата — переходит к fallback:
+        ``_find_platform_h1_sections``, который разбирает устаревшие страницы
+        по заголовкам ``<h1>Platform X.Y</h1>``.
 
         Args:
-            html: HTML страницы Confluence с вкладками.
+            html: HTML страницы Confluence с вкладками или заголовками h1.
 
         Returns:
             Словарь ``{имя_платформы: контент}``. Платформы без контента
@@ -101,4 +115,67 @@ class LegacyContentExtractor:
             if content:
                 result[name] = content
 
-        return result
+        if result:
+            return result
+
+        # Fallback: устаревший формат с заголовками <h1>Platform X.Y</h1>
+        return LegacyContentExtractor._find_platform_h1_sections(html)
+
+    @staticmethod
+    def _find_platform_h1_sections(html: str) -> dict[str, str]:
+        """
+        Извлекает секции платформ из страниц с заголовками ``<h1>Platform X.Y</h1>``.
+
+        Находит все теги ``<h1>`` в документе, определяет их текстовое
+        содержимое (вложенные теги удаляются), проверяет совпадение
+        с паттерном ``Platform X.Y``. Контент каждой платформенной секции —
+        всё от закрывающего ``</h1>`` заголовка до открывающего ``<h1>``
+        следующего раздела (раздел «Уязвимости» служит естественной границей).
+
+        Пример входного формата::
+
+            <h1>Platform 1.6<ac:structured-macro .../></h1>
+            <h2>Бинарная совместимость</h2>
+            ...
+            <h1>Уязвимости</h1>
+            ...
+            <h1>Platform 2.0<ac:structured-macro .../></h1>
+            ...
+
+        Args:
+            html: HTML страницы в Confluence Storage Format.
+
+        Returns:
+            Словарь ``{имя_платформы: html_контент}``, например
+            ``{'Platform 1.6': '...', 'Platform 2.0': '...'}``.
+        """
+        # Собираем позиции всех h1: (начало тега, конец закрывающего </h1>, текст)
+        h1_positions: list[tuple[int, int, str]] = []
+        for m in _H1_OPEN_RE.finditer(html):
+            close_pos = html.find("</h1>", m.end())
+            if close_pos == -1:
+                continue
+            inner = html[m.end() : close_pos]
+            text = _INNER_TAG_RE.sub("", inner).strip()
+            h1_positions.append((m.start(), close_pos + len("</h1>"), text))
+
+        sections: dict[str, str] = {}
+        for i, (_, h1_after, text) in enumerate(h1_positions):
+            platform_match = _PLATFORM_VERSION_RE.search(text)
+            if not platform_match:
+                continue
+            platform_name = platform_match.group(0)  # e.g. "Platform 1.6"
+
+            # Контент: от конца этого h1 до начала следующего h1
+            content_end = (
+                h1_positions[i + 1][0] if i + 1 < len(h1_positions) else len(html)
+            )
+            content = html[h1_after:content_end].strip()
+            if content:
+                sections[platform_name] = content
+
+        if sections:
+            logger.debug(
+                f"Извлечено {len(sections)} секций из заголовков h1 Platform"
+            )
+        return sections

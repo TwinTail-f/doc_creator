@@ -87,6 +87,53 @@ class PassportPageRegistry:
         except (OSError, json.JSONDecodeError) as e:
             logger.debug(f"Не удалось загрузить файл: {e}")
             return {}
+        
+    @staticmethod
+    def inject_links_for_profiles(
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
+    ) -> None:
+        """
+        Вставляет ссылки на страницы паспортов в view-model профиль-центричного вида.
+
+        Мутирует ``view_model`` на месте. Для каждого компонента во всех
+        профилях и каналах устанавливает поле ``passport_link`` в виде
+        ``/spaces/{space}/pages/{page_id}`` — идентичный формат ссылки,
+        который использует ``release_doc.jinja2`` для стандартного вида релиза.
+        Если компонент отсутствует в реестре, поле остаётся ``None``,
+        и шаблон отображает «—».
+
+        Если ``view_model`` не содержит ключ ``'profiles'`` или реестр пуст —
+        ничего не делает.
+
+        Args:
+            view_model: Словарь, созданный ``ProfileCentricTransformer``.
+                        Изменяется на месте. Должен содержать ключ ``'space'``.
+            passport_pages: Карта, загруженная через ``PassportPageRegistry.load()``.
+        """
+        if not passport_pages or "profiles" not in view_model:
+            return
+        
+        space = view_model.get("space", "")
+
+
+        for profile in view_model.get("profiles", []):
+            for channel_comps in profile.get("channels", {}).values():
+                for comp in channel_comps:
+                    comp_name = comp.get("name")
+                    version = str(comp.get("version", ""))
+                    if not comp_name or comp_name not in passport_pages:
+                        comp["passport_link"] = None
+                        continue
+                    info = passport_pages[comp_name].get(version)
+                    if not info:
+                        comp["passport_link"] = None
+                        continue
+                    page_id = info.get("page_id")
+                    comp["passport_link"] = (
+                        f"/spaces/{space}/pages/{page_id}" if page_id else None
+                    )
+
 
     @staticmethod
     def inject_links(

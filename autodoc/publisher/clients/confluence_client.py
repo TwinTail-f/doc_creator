@@ -118,9 +118,8 @@ class ConfluenceClient:
                 logger.warning(
                     f"Страница {title} найдена в другом дереве "
                     f"(parent_id страницы не совпадает с {parent_id}). "
-                    f"Будет создана новая страница под указанным родителем."
+                     f"Страница будет обновлена и перемещена под указанного родителя."
                 )
-                return self._create_page(space, parent_id, title, body_html)
             return self._update_page(existing, parent_id, title, body_html)
         return self._create_page(space, parent_id, title, body_html)
 
@@ -161,10 +160,10 @@ class ConfluenceClient:
                 logger.warning(
                     f"Страница {title} найдена в другом дереве "
                     f"(ожидаемый parent_id={parent_id}). "
-                    f"Будет создана новая страница под указанным родителем."
+                    f"Возвращается ID существующей страницы — "
+                    f"создать новую с тем же заголовком в Space невозможно."
                 )
-            else:
-                return str(existing["id"])
+            return str(existing["id"])
 
         if not parent_id:
             raise PublishError(f"не указан parent_id для создания страницы {title}")
@@ -225,7 +224,7 @@ class ConfluenceClient:
 
         url = self._api_url("content")
         try:
-            response = self._session.get(url, params=params, timeout=self._timeout)
+            response = self._session.get(url, params=params)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise PublishError(f"HTTP-ошибка при поиске {title}: {e}") from e
@@ -256,7 +255,7 @@ class ConfluenceClient:
         url = self._api_url("content", page_id)
         try:
             response = self._session.get(
-                url, params={"expand": expand}, timeout=self._timeout
+                url, params={"expand": expand}
             )
             response.raise_for_status()
             return response.json()
@@ -348,7 +347,7 @@ class ConfluenceClient:
         )
         url = self._api_url("content")
         try:
-            response = self._session.post(url, json=payload, timeout=self._timeout)
+            response = self._session.post(url, json=payload)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise PublishError(f"HTTP-ошибка при создании {title}: {e}") from e
@@ -407,7 +406,7 @@ class ConfluenceClient:
         )
         url = self._api_url("content", page_id)
         try:
-            response = self._session.put(url, json=payload, timeout=self._timeout)
+            response = self._session.put(url, json=payload)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise PublishError(f"HTTP-ошибка при обновлении {title}: {e}") from e
@@ -534,7 +533,6 @@ class ConfluenceClient:
             bearer=True,
             max_retries=_RETRY_COUNT,
             backoff_factor=_BACKOFF_FACTOR,
-            timeout=config.confluence_request_timeout,
         )
         session.verify = config.verify_ssl
         if not config.verify_ssl:
