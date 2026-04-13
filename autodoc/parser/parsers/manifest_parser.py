@@ -3,11 +3,25 @@
 Не имеет доступа к TFS и не выполняет сетевых вызовов.
 """
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
+from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component, ProfileBuild, Release
-from autodoc.parser.fetchers.properties_reader import read_properties
+from autodoc.parser.utils.properties_reader import read_properties
+
+_MANIFEST_MAX_WORKERS: int = 8
+_MANIFEST_LOG_INTERVAL: int = 50
+
+
+@dataclass(slots=True)
+class _FileParseResult:
+    """Результат разбора одного .properties-файла."""
+
+    component: Component | None = None
+    warnings: list[str] = field(default_factory=list)
+    is_excluded: bool = False
 
 
 class ManifestParser:
@@ -22,6 +36,10 @@ class ManifestParser:
                              для фильтрации релизов манифестов.
         """
         self._target_platform = target_platform
+        self._executor = ParallelExecutor(
+            max_workers=_MANIFEST_MAX_WORKERS,
+            log_progress_interval=_MANIFEST_LOG_INTERVAL,
+        )
 
     def parse(
         self,
@@ -29,62 +47,92 @@ class ManifestParser:
         excluded: list[str],
     ) -> tuple[list[Component], list[str]]:
         """
-        Разбирает список файлов манифестов.
+        Разбирает список файлов манифестов в многопоточном режиме.
+
+        Файлы обрабатываются параллельно через ``ParallelExecutor``.
+        Порядок компонентов в результате не гарантирован —
+        ``FinalizeStep`` сортирует их по имени.
 
         Returns:
             (components, warnings) — список компонентов и список предупреждений.
         """
-        target_platform = self._target_platform
+        file_results = self._executor.execute(
+            lambda filepath: self._parse_single_file(filepath, excluded),
+            files,
+            task_label="манифестов",
+        )
+
         components: list[Component] = []
         warnings: list[str] = []
         parsed_count = 0
         excluded_count = 0
 
-        for filepath in files:
-            # Проверяем доступность файла до обращения к нему.
-            if not filepath.is_file():
-                msg = f"файл не найден или недоступен: {filepath.name}"
-                logger.warning(msg)
-                warnings.append(msg)
+        for result in file_results:
+            if result is None:
                 continue
-
-            try:
-                props = read_properties(filepath)
-            except OSError as e:
-                msg = f"не удалось прочитать {filepath.name}: {e}"
-                logger.warning(msg)
-                warnings.append(msg)
-                continue
-
-            name = props.get("name", "")
-            if not name:
-                logger.debug(f'Пропуск {filepath.name} — отсутствует поле "name"')
-                continue
-
-            if name in excluded:
-                logger.debug(f"Компонент {name} исключён")
+            warnings.extend(result.warnings)
+            if result.is_excluded:
                 excluded_count += 1
-                continue
-
-            releases = self._build_releases(props)
-            if not releases:
-                continue
-
-            components.append(
-                Component(
-                    name=name,
-                    description=props.get("description", ""),
-                    git_project=props.get("tfs_git_project", ""),
-                    git_repo=props.get("git_repo_name", ""),
-                    releases=releases,
-                )
-            )
-            parsed_count += 1
+            elif result.component is not None:
+                components.append(result.component)
+                parsed_count += 1
 
         logger.info(
             f"обработано {parsed_count} компонентов, исключено {excluded_count}"
         )
         return components, warnings
+
+    def _parse_single_file(
+        self,
+        filepath: Path,
+        excluded: list[str],
+    ) -> _FileParseResult:
+        """
+        Разбирает один .properties-файл.
+
+        Обрабатывает ошибки чтения и валидации внутри метода, чтобы
+        одна неудача не прерывала обработку остальных файлов.
+
+        Args:
+            filepath: Путь к .properties-файлу.
+            excluded: Список имён компонентов, которые нужно исключить.
+
+        Returns:
+            ``_FileParseResult`` с компонентом, предупреждениями или флагом исключения.
+        """
+        if not filepath.is_file():
+            msg = f"файл не найден или недоступен: {filepath.name}"
+            logger.warning(msg)
+            return _FileParseResult(warnings=[msg])
+
+        try:
+            props = read_properties(filepath)
+        except OSError as e:
+            msg = f"не удалось прочитать {filepath.name}: {e}"
+            logger.warning(msg)
+            return _FileParseResult(warnings=[msg])
+
+        name = props.get("name", "")
+        if not name:
+            logger.debug(f'Пропуск {filepath.name} — отсутствует поле "name"')
+            return _FileParseResult()
+
+        if name in excluded:
+            logger.debug(f"Компонент {name} исключён")
+            return _FileParseResult(is_excluded=True)
+
+        releases = self._build_releases(props)
+        if not releases:
+            return _FileParseResult()
+
+        component = Component(
+            name=name,
+            description=props.get("description", ""),
+            git_project=props.get("tfs_git_project", ""),
+            git_repo=props.get("git_repo_name", ""),
+            releases=releases,
+        )
+        return _FileParseResult(component=component)
 
     def _build_releases(self, props: dict) -> list[Release]:
         """Строит список Release из словаря свойств манифеста."""

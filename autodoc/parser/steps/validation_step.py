@@ -2,11 +2,10 @@
 Шаг пайплайна: HTTP HEAD-проверка доступности сборок в Artifactory.
 """
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import requests
 
 from autodoc.infrastructure.logger import logger
+from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
@@ -87,7 +86,7 @@ class ArtifactoryValidationStep(BaseParseStep):
         client: ArtifactoryClient,
     ) -> list[tuple[ProfileBuild, ConanVariant]]:
         """
-        Проверяет доступность URL параллельно через ``ThreadPoolExecutor``.
+        Проверяет доступность URL параллельно через ``ParallelExecutor``.
 
         При HTTP 404 вариант добавляется в список мёртвых.
         При сетевых ошибках вариант считается живым.
@@ -99,9 +98,10 @@ class ArtifactoryValidationStep(BaseParseStep):
         Returns:
             Список кортежей ``(ProfileBuild, ConanVariant)`` с недоступными вариантами.
         """
-        dead: list[tuple[ProfileBuild, ConanVariant]] = []
 
-        def check_one(item: tuple[ProfileBuild, ConanVariant, str]):
+        def check_one(
+            item: tuple[ProfileBuild, ConanVariant, str],
+        ) -> tuple[ProfileBuild, ConanVariant, bool]:
             pb, variant, url = item
             try:
                 resp = client.head(url)
@@ -111,19 +111,24 @@ class ArtifactoryValidationStep(BaseParseStep):
                 pass  # при сетевом сбое считаем вариант живым
             return pb, variant, True
 
-        completed = 0
-        total = len(variants_to_check)
-        with ThreadPoolExecutor(max_workers=_VALIDATION_MAX_WORKERS) as executor:
-            future_map = {
-                executor.submit(check_one, item): item for item in variants_to_check
-            }
-            for future in as_completed(future_map):
-                pb, variant, is_valid = future.result()
-                completed += 1
-                if completed % _LOG_PROGRESS_INTERVAL == 0 or completed == total:
-                    logger.debug(f"Проверено {completed}/{total} ссылок…")
-                if not is_valid:
-                    dead.append((pb, variant))
+        executor = ParallelExecutor(
+            max_workers=_VALIDATION_MAX_WORKERS,
+            log_progress_interval=_LOG_PROGRESS_INTERVAL,
+            log_level="debug",
+        )
+        raw_results = executor.execute(
+            check_one,
+            variants_to_check,
+            task_label="ссылок Artifactory",
+        )
+
+        dead: list[tuple[ProfileBuild, ConanVariant]] = []
+        for result in raw_results:
+            if result is None:
+                continue
+            pb, variant, is_valid = result
+            if not is_valid:
+                dead.append((pb, variant))
 
         return dead
 

@@ -2,11 +2,11 @@
 Менеджер Conan: параллельное выполнение задач и возврат результата для обогащения.
 """
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
+from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.parser.conan.conan_result import ConanRawResult
 from autodoc.parser.conan.conan_runner import BaseConanRunner, Conan2Runner
@@ -23,6 +23,7 @@ from autodoc.models.conan_result import (
 )
 
 _DEFAULT_MAX_WORKERS: int = 64
+_LOG_PROGRESS_INTERVAL: int = 50
 
 
 class ConanManager:
@@ -43,6 +44,10 @@ class ConanManager:
         )
         self._task_builder = ConanTaskBuilder()
         self._result_parser = ConanResultParser()
+        self._executor = ParallelExecutor(
+            max_workers=_DEFAULT_MAX_WORKERS,
+            log_progress_interval=_LOG_PROGRESS_INTERVAL,
+        )
 
     def clean_cache(self) -> None:
         """Очищает локальный кэш Conan."""
@@ -90,9 +95,7 @@ class ConanManager:
         self, tasks: list[ConanTask]
     ) -> list[ConanRawResult | None]:
         """
-        Выполняет задачи Conan параллельно через ``ThreadPoolExecutor``.
-
-        Логирует прогресс каждые 50 задач и по завершении.
+        Выполняет задачи Conan параллельно через ``ParallelExecutor``.
 
         Args:
             tasks: Список задач для выполнения.
@@ -101,25 +104,14 @@ class ConanManager:
             Список сырых результатов ``ConanRawResult`` в том же порядке,
             что и входные задачи.
         """
-        results: list[ConanRawResult | None] = [None] * len(tasks)
-
-        with ThreadPoolExecutor(max_workers=_DEFAULT_MAX_WORKERS) as executor:
-            future_to_idx = {
-                executor.submit(self._runner.run, task): idx
-                for idx, task in enumerate(tasks)
-            }
-
-            completed = 0
-            total = len(tasks)
-            for future in as_completed(future_to_idx):
-                completed += 1
-                if completed % 50 == 0 or completed == total:
-                    logger.info(f"Прогресс {completed}/{total} задач…")
-
-                idx = future_to_idx[future]
-                results[idx] = future.result()
-
-        return results
+        logger.info(
+            f"сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…"
+        )
+        return self._executor.execute(
+            self._runner.run,
+            tasks,
+            task_label="задач Conan",
+        )
 
     def _build_execution_report(
         self,

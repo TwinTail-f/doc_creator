@@ -7,7 +7,7 @@ import pytest
 
 from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
-from autodoc.parser.fetchers.properties_reader import read_properties
+from autodoc.parser.utils.properties_reader import read_properties
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 
 # 4.2 Используем новое имя поля
