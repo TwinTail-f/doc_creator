@@ -132,7 +132,9 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
 
             if self._include_passport_links:
                 passport_pages = self._registry.load()
-                PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
+                PassportPageRegistry.inject_links_for_profiles(
+                    view_model, passport_pages
+                )
 
             html_body = self._builder.build(self._template_name, view_model)
             result = self._client.publish_page(

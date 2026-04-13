@@ -175,7 +175,5 @@ class LegacyContentExtractor:
                 sections[platform_name] = content
 
         if sections:
-            logger.debug(
-                f"Извлечено {len(sections)} секций из заголовков h1 Platform"
-            )
+            logger.debug(f"Извлечено {len(sections)} секций из заголовков h1 Platform")
         return sections

@@ -5,9 +5,7 @@ from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
 
-_DEFAULT_PASSPORT_PATTERN: str = (
-    "/spaces/DOC/pages/{component_name}+{release_version}"
-)
+_DEFAULT_PASSPORT_PATTERN: str = "/spaces/DOC/pages/{component_name}+{release_version}"
 
 
 class PassportLinkMixin:

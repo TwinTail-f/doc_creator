@@ -112,13 +112,15 @@ class ConfluenceClient:
         """
         logger.info(f"Публикация страницы {title} (space={space})")
 
-        existing = self.find_page(title, space=space, expand=f"{_EXPAND_VERSION},ancestors")
+        existing = self.find_page(
+            title, space=space, expand=f"{_EXPAND_VERSION},ancestors"
+        )
         if existing:
             if not self._is_child_of(existing, parent_id):
                 logger.warning(
                     f"Страница {title} найдена в другом дереве "
                     f"(parent_id страницы не совпадает с {parent_id}). "
-                     f"Страница будет обновлена и перемещена под указанного родителя."
+                    f"Страница будет обновлена и перемещена под указанного родителя."
                 )
             return self._update_page(existing, parent_id, title, body_html)
         return self._create_page(space, parent_id, title, body_html)
@@ -254,9 +256,7 @@ class ConfluenceClient:
         """
         url = self._api_url("content", page_id)
         try:
-            response = self._session.get(
-                url, params={"expand": expand}
-            )
+            response = self._session.get(url, params={"expand": expand})
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:

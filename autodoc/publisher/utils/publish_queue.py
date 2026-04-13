@@ -86,17 +86,13 @@ class PublishQueue:
             range(0, total, self._batch_size), start=1
         ):
             batch = items[batch_start : batch_start + self._batch_size]
-            logger.debug(
-                f"Пакет {batch_idx}/{total_batches}: {len(batch)} страниц"
-            )
+            logger.debug(f"Пакет {batch_idx}/{total_batches}: {len(batch)} страниц")
             for item in batch:
                 results.append(fn(item))
 
             is_last_batch = batch_start + self._batch_size >= total
             if self._batch_delay > 0 and not is_last_batch:
-                logger.debug(
-                    f"Пауза {self._batch_delay}с перед следующим пакетом"
-                )
+                logger.debug(f"Пауза {self._batch_delay}с перед следующим пакетом")
                 time.sleep(self._batch_delay)
 
         return results

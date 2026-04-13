@@ -85,8 +85,7 @@ class ParallelExecutor:
 
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
             future_to_idx = {
-                executor.submit(fn, item): idx
-                for idx, item in enumerate(items)
+                executor.submit(fn, item): idx for idx, item in enumerate(items)
             }
 
             completed = 0

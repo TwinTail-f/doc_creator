@@ -221,9 +221,7 @@ class LegacyContentMerger:
             return platform_sections
 
         # Попытка 2: h2/h3 с маркером vX.Y (исторический fallback)
-        logger.debug(
-            "h1 Platform-заголовки не найдены, разбор по h2/h3 с версией vX.Y"
-        )
+        logger.debug("h1 Platform-заголовки не найдены, разбор по h2/h3 с версией vX.Y")
         sections: Dict[str, str] = {}
         current_version = _UNKNOWN_SECTION_KEY
         current_content: list[str] = []

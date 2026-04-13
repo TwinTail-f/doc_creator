@@ -87,7 +87,7 @@ class PassportPageRegistry:
         except (OSError, json.JSONDecodeError) as e:
             logger.debug(f"Не удалось загрузить файл: {e}")
             return {}
-        
+
     @staticmethod
     def inject_links_for_profiles(
         view_model: dict[str, Any],
@@ -113,9 +113,8 @@ class PassportPageRegistry:
         """
         if not passport_pages or "profiles" not in view_model:
             return
-        
-        space = view_model.get("space", "")
 
+        space = view_model.get("space", "")
 
         for profile in view_model.get("profiles", []):
             for channel_comps in profile.get("channels", {}).values():
@@ -133,7 +132,6 @@ class PassportPageRegistry:
                     comp["passport_link"] = (
                         f"/spaces/{space}/pages/{page_id}" if page_id else None
                     )
-
 
     @staticmethod
     def inject_links(
