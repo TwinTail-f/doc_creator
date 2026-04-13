@@ -9,8 +9,8 @@ from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.legacy_content.legacy_service import LegacyContentService
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
-from autodoc.publisher.passport_registry import PassportPageRegistry
-from autodoc.publisher.publish_queue import PublishQueue
+from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
+from autodoc.publisher.utils.publish_queue import PublishQueue
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer

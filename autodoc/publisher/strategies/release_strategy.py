@@ -6,7 +6,7 @@ from typing import Any
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
-from autodoc.publisher.passport_registry import PassportPageRegistry
+from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
