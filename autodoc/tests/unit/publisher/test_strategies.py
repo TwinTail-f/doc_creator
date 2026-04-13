@@ -852,7 +852,9 @@ class TestPublishQueue:
 
         q = PublishQueue(batch_size=2, batch_delay_seconds=0.5)
         items = [1, 2, 3, 4, 5]  # 3 пакета: [1,2], [3,4], [5]
-        with mock.patch("autodoc.publisher.utils.publish_queue.time.sleep") as mock_sleep:
+        with mock.patch(
+            "autodoc.publisher.utils.publish_queue.time.sleep"
+        ) as mock_sleep:
             q.process(items, lambda x: x)
         # Задержка между пакетами 1→2 и 2→3, но не после последнего
         assert mock_sleep.call_count == 2
@@ -863,7 +865,9 @@ class TestPublishQueue:
         import unittest.mock as mock
 
         q = PublishQueue(batch_size=10, batch_delay_seconds=1.0)
-        with mock.patch("autodoc.publisher.utils.publish_queue.time.sleep") as mock_sleep:
+        with mock.patch(
+            "autodoc.publisher.utils.publish_queue.time.sleep"
+        ) as mock_sleep:
             q.process([1, 2, 3], lambda x: x)
         mock_sleep.assert_not_called()
 

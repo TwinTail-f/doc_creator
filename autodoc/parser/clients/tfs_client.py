@@ -15,7 +15,7 @@ from typing import Any
 import requests
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.exceptions import ConfigError, NetworkError
+from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
 
@@ -47,15 +47,21 @@ class TFSClient:
         """
         Инициализирует TFS-клиент из конфигурации парсера.
 
+        Если ``tfs_token`` не задан — клиент помечается как неработоспособный
+        и все последующие запросы вернут ``NetworkError`` с понятным сообщением.
+
         Args:
             config: Валидированная конфигурация парсера с учётными данными TFS.
-
-        Raises:
-            ConfigError: Если ``tfs_token`` не задан.
         """
         if not config.tfs_token:
-            raise ConfigError("TFSClient: tfs_token не задан в конфигурации.")
+            logger.error(
+                "TFSClient: tfs_token не задан в конфигурации — клиент нефункционален"
+            )
+            self._configured = False
+            self.session = None
+            return
 
+        self._configured = True
         self.session = create_retryable_session(
             username=config.tfs_username or None,
             token=config.tfs_token,
@@ -89,6 +95,9 @@ class TFSClient:
             "versionDescriptor.version": branch,
             "recursionLevel": RecursionLevel.ONE_LEVEL.value,
         }
+
+        if not self._configured:
+            raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
 
         logger.info(f"Запрос списка файлов из {items_url} (ветка: {branch})")
 
@@ -140,6 +149,9 @@ class TFSClient:
         Raises:
             NetworkError: Если запрос не удался.
         """
+        if not self._configured:
+            raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
+
         params = {
             "path": path,
             "versionDescriptor.version": branch,
@@ -169,6 +181,9 @@ class TFSClient:
         Raises:
             NetworkError: Если запрос не удался.
         """
+        if not self._configured:
+            raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
+
         params = {
             "recursionLevel": recursion.value,
             "versionDescriptor.version": branch,
