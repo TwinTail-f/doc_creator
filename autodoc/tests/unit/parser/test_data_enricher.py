@@ -189,7 +189,7 @@ class TestApplyConanResults:
             rrev="rev001",
             full_version="1.0.0",
             default_options=[
-                {"name": "shared", "type": "bool", "default_value": False}
+                OptionDefinition(name="shared", type="bool", default_value=False)
             ],
             patches=["fix.patch"],
             dependencies=["zlib"],
@@ -217,12 +217,12 @@ class TestApplyConanResults:
             conan_settings={"os": "Linux", "arch": "x86_64"},
             exists=True,
             variants=[
-                {
-                    "package_id": "abc123",
-                    "build_url": "https://art.example.com/build",
-                    "build_date": "2026-01-01T00:00:00+00:00",
-                    "conan_options": {"shared": "True"},
-                }
+                ConanVariant(
+                    package_id="abc123",
+                    build_url="https://art.example.com/build",
+                    build_date="2026-01-01T00:00:00+00:00",
+                    conan_options={"shared": "True"},
+                )
             ],
         )
         conan_result = _make_conan_result(profile_data={id(pb): pb_data})

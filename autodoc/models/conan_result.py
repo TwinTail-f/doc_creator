@@ -3,13 +3,20 @@
 
 Живут в ``models/`` — разделяются между слоями парсера и энричера
 без привязки к внутренностям пакета ``conan/``.
+
+``ReleaseConanData`` и ``ProfileConanData`` используют типизированные поля
+из ``component.py`` (``OptionDefinition``, ``ConanVariant``), устраняя
+дублирование промежуточных словарей и необходимость конверсии в ``DataEnricher``.
 """
 
 from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
+from autodoc.models.component import ConanVariant, OptionDefinition
+
 if TYPE_CHECKING:
     from autodoc.parser.conan.task_builder import ConanTask
+
 
 @dataclass
 class ConanRawResult:
@@ -19,6 +26,7 @@ class ConanRawResult:
     success: bool
     data: dict[str, Any] | None
     error: str = ""
+
 
 @dataclass
 class ConanCommandRecord:
@@ -50,12 +58,17 @@ class ConanComponentReport:
 
 @dataclass
 class ReleaseConanData:
-    """Данные Conan для обогащения одного Release."""
+    """
+    Данные Conan для обогащения одного Release.
+
+    Поле ``default_options`` хранит уже типизированные объекты ``OptionDefinition``
+    (а не сырые словари), что исключает дополнительную конверсию в ``DataEnricher``.
+    """
 
     base_ref: str
     rrev: str
     full_version: str
-    default_options: list[dict[str, Any]]
+    default_options: list[OptionDefinition]
     patches: list[str]
     dependencies: list[str]
     artifactory_url: str
@@ -63,11 +76,16 @@ class ReleaseConanData:
 
 @dataclass
 class ProfileConanData:
-    """Данные Conan для обогащения одного ProfileBuild."""
+    """
+    Данные Conan для обогащения одного ProfileBuild.
+
+    Поле ``variants`` хранит уже типизированные объекты ``ConanVariant``
+    (а не сырые словари), что исключает дополнительную конверсию в ``DataEnricher``.
+    """
 
     conan_settings: dict[str, Any]
     exists: bool
-    variants: list[dict[str, Any]]
+    variants: list[ConanVariant]
 
 
 # Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}

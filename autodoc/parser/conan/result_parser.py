@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from autodoc.models.component import OptionDefinition
 from autodoc.parser.conan.task_builder import ConanTask
 
 
@@ -17,12 +18,15 @@ class ConanEnrichData:
 
     Заполняется из JSON-ответа ``conan graph info`` для одной задачи.
     Внутренний датакласс — не попадает в доменные модели напрямую.
+
+    Поле ``default_options`` хранит уже типизированные объекты ``OptionDefinition``
+    — конверсия из сырых словарей выполняется в момент парсинга, а не при обогащении.
     """
 
     base_ref: str
     rrev: str
     full_version: str
-    default_options: list[dict[str, Any]]
+    default_options: list[OptionDefinition]
     patches: list[str]
     dependencies: list[str]
     conan_settings: dict[str, Any]
@@ -122,10 +126,10 @@ class ConanResultParser:
         return base_ref, rrev, full_version
 
     @staticmethod
-    def _extract_default_options(node: dict[str, Any]) -> list[dict[str, Any]]:
+    def _extract_default_options(node: dict[str, Any]) -> list[OptionDefinition]:
         opt_defs: dict = node.get("options_definitions", {}) or {}
         def_opts: dict = node.get("default_options", {}) or {}
-        result: list[dict[str, Any]] = []
+        result: list[OptionDefinition] = []
 
         for opt_name, opt_val in def_opts.items():
             opt_type = "string"
@@ -140,7 +144,7 @@ class ConanResultParser:
                 else:
                     opt_type = "enum"
             result.append(
-                {"name": opt_name, "type": opt_type, "default_value": opt_val}
+                OptionDefinition(name=opt_name, type=opt_type, default_value=opt_val)
             )
 
         return result

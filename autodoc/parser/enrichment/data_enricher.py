@@ -5,7 +5,6 @@
 from autodoc.models.component import (
     BuildOptionSet,
     Component,
-    ConanVariant,
     OptionDefinition,
 )
 from autodoc.models.conan_result import ConanEnrichmentResult
@@ -71,9 +70,13 @@ class DataEnricher:
         """
         Применяет результаты Conan graph info к моделям ``Release`` и ``ProfileBuild``.
 
+        ``ReleaseConanData.default_options`` и ``ProfileConanData.variants`` уже
+        хранят типизированные объекты (``OptionDefinition``, ``ConanVariant``),
+        поэтому прямое присваивание не требует дополнительной конверсии.
+
         Args:
             components: Список компонентов для обогащения.
-            result: ``ConanEnrichmentResult`` из ``ConanManager.enrich_components()``.
+            result: ``ConanEnrichmentResult`` из ``ConanFetcher.fetch()``.
         """
         for comp in components:
             for release in comp.releases:
@@ -82,9 +85,7 @@ class DataEnricher:
                 if rel_data:
                     release.conan_reference = rel_data.base_ref
                     release.artifactory_url = rel_data.artifactory_url
-                    release.default_options = [
-                        OptionDefinition(**opt) for opt in rel_data.default_options
-                    ]
+                    release.default_options = rel_data.default_options
                     release.patches = rel_data.patches
                     release.dependencies = rel_data.dependencies
 
@@ -93,4 +94,4 @@ class DataEnricher:
                     if pb_data:
                         pb.conan_settings = pb_data.conan_settings
                         pb.exists = pb_data.exists
-                        pb.variants = [ConanVariant(**v) for v in pb_data.variants]
+                        pb.variants = pb_data.variants

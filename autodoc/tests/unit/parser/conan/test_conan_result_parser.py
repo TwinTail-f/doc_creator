@@ -115,7 +115,7 @@ class TestConanResultParser:
     def test_default_options_type_detection(self) -> None:
         result = self.parser.parse(_make_conan_graph(), _make_task())
         shared_opt = next(
-            (o for o in result.default_options if o["name"] == "shared"), None
+            (o for o in result.default_options if o.name == "shared"), None
         )
         assert shared_opt is not None
-        assert shared_opt["type"] == "bool"
+        assert shared_opt.type == "bool"

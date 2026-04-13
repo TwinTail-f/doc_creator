@@ -1,34 +1,58 @@
 """Шаг пайплайна: обогащение компонентов данными Conan graph info."""
 
-from autodoc.parser.conan.conan_manager import ConanManager
+from autodoc.infrastructure.logger import logger
+from autodoc.models.conan_result import ConanEnrichmentResult
 from autodoc.parser.enrichment.data_enricher import DataEnricher
+from autodoc.parser.fetchers.base import IFetcher
+from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 
 class ConanEnrichStep(BaseParseStep):
     """
     Шаг 3: Запускает conan graph info и применяет результаты к моделям.
+
+    Следует тому же двухфазовому протоколу, что и остальные шаги пайплайна:
+
+        fetcher.configure(ctx)
+        result = fetcher.fetch(ctx.components)
+        DataEnricher.apply_conan_results(ctx.components, result.value)
+
+    Зависимость от ``ConanFetcher`` внедряется через конструктор — шаг
+    легко тестируется с подставным фетчером без запуска Conan.
     """
 
     name = "Обогащение данными Conan graph info"
     is_critical = False
 
+    def __init__(
+        self,
+        fetcher: "IFetcher[ConanEnrichmentResult] | None" = None,
+    ) -> None:
+        """
+        Args:
+            fetcher: Фетчер данных Conan. Если не передан — используется
+                     ``ConanFetcher`` по умолчанию.
+        """
+        self._fetcher = fetcher or ConanFetcher()
+
     def execute(self, ctx: PipelineContext) -> None:
         """
-        Запускает conan graph info и применяет результаты к компонентам.
+        Собирает данные Conan и применяет их к компонентам.
 
-        Делегирует выполнение ConanManager, затем передаёт
-        ConanEnrichmentResult в DataEnricher для мутации моделей.
+        Конфигурирует фетчер из контекста, запускает сбор данных,
+        передаёт результат в ``DataEnricher`` и сохраняет лог ошибок
+        в ``ctx.intermediate`` для диагностики.
 
         Args:
             ctx: Контекст пайплайна с заполненными компонентами и конфигурацией.
         """
-        manager = ConanManager(ctx.config)
-        manager.clean_cache()
-        conan_result = manager.enrich_components(
-            components=ctx.components,
-            target_platform=ctx.config.platform_version,
-            artifactory_base_url=ctx.config.artifactory_components_conan2_url or "",
-        )
-        DataEnricher.apply_conan_results(ctx.components, conan_result)
-        ctx.intermediate["conan_report"] = conan_result.errors
+        self._fetcher.configure(ctx)
+        result = self._fetcher.fetch(ctx.components)
+
+        if result.warnings:
+            for w in result.warnings:
+                logger.warning(w)
+
+        DataEnricher.apply_conan_results(ctx.components, result.value)
+        ctx.intermediate["conan_report"] = result.value.errors
