@@ -797,21 +797,21 @@ class TestPublishQueue:
     """Тесты PublishQueue — пакетная обработка задач публикации."""
 
     def test_process_empty_list_returns_empty(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         q = PublishQueue(batch_size=5)
         results = q.process([], lambda x: x)
         assert results == []
 
     def test_process_single_batch(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         q = PublishQueue(batch_size=10)
         results = q.process([1, 2, 3], lambda x: x * 2)
         assert results == [2, 4, 6]
 
     def test_process_multiple_batches(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         q = PublishQueue(batch_size=2)
         items = list(range(5))
@@ -819,7 +819,7 @@ class TestPublishQueue:
         assert results == [10, 11, 12, 13, 14]
 
     def test_process_preserves_order(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         q = PublishQueue(batch_size=3)
         items = ["a", "b", "c", "d", "e"]
@@ -827,43 +827,43 @@ class TestPublishQueue:
         assert results == ["A", "B", "C", "D", "E"]
 
     def test_batch_size_one_processes_all(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         q = PublishQueue(batch_size=1)
         results = q.process([10, 20, 30], lambda x: x)
         assert results == [10, 20, 30]
 
     def test_invalid_batch_size_raises(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         with pytest.raises(ValueError, match="batch_size"):
             PublishQueue(batch_size=0)
 
     def test_negative_delay_raises(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
 
         with pytest.raises(ValueError, match="batch_delay_seconds"):
             PublishQueue(batch_size=5, batch_delay_seconds=-1.0)
 
     def test_delay_called_between_batches(self) -> None:
         """Задержка вызывается между пакетами, но не после последнего."""
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
         import unittest.mock as mock
 
         q = PublishQueue(batch_size=2, batch_delay_seconds=0.5)
         items = [1, 2, 3, 4, 5]  # 3 пакета: [1,2], [3,4], [5]
-        with mock.patch("autodoc.publisher.publish_queue.time.sleep") as mock_sleep:
+        with mock.patch("autodoc.publisher.utils.publish_queue.time.sleep") as mock_sleep:
             q.process(items, lambda x: x)
         # Задержка между пакетами 1→2 и 2→3, но не после последнего
         assert mock_sleep.call_count == 2
         mock_sleep.assert_called_with(0.5)
 
     def test_no_delay_when_single_batch(self) -> None:
-        from autodoc.publisher.publish_queue import PublishQueue
+        from autodoc.publisher.utils.publish_queue import PublishQueue
         import unittest.mock as mock
 
         q = PublishQueue(batch_size=10, batch_delay_seconds=1.0)
-        with mock.patch("autodoc.publisher.publish_queue.time.sleep") as mock_sleep:
+        with mock.patch("autodoc.publisher.utils.publish_queue.time.sleep") as mock_sleep:
             q.process([1, 2, 3], lambda x: x)
         mock_sleep.assert_not_called()
 
