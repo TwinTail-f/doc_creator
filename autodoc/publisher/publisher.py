@@ -21,6 +21,8 @@ class DocumentPublisher:
     Создаёт ``ConfluenceClient`` и ``DocumentBuilder``, выбирает стратегию
     через Registry и запускает публикацию. Все стратегии получают одни и те же
     инфраструктурные зависимости — клиент, рендерер и директорию данных.
+    Параметры пакетной публикации читаются из конфигурации и автоматически
+    передаются стратегии ``passports``.
     """
 
     def __init__(
@@ -93,6 +95,10 @@ class DocumentPublisher:
         ``passport_pages.json``), затем релиз (читает этот файл для вставки
         ссылок). Это гарантирует актуальность ссылок на паспорта.
 
+        Параметры пакетной публикации (``publish_batch_size`` и
+        ``publish_batch_delay_seconds``) берутся из конфигурации Confluence
+        и автоматически передаются стратегии ``passports``.
+
         Args:
             parsed_data: Данные парсера.
             passports_root_page_id: ID корневой страницы иерархии паспортов.
@@ -107,7 +113,8 @@ class DocumentPublisher:
 
         Returns:
             Агрегированный ``PublishReport``: поля ``success``, ``pages_published``,
-            ``errors`` и ``details`` объединяются из обоих отчётов.
+            ``pages_failed``, ``errors``, ``failed_pages`` и ``details``
+            объединяются из обоих отчётов.
         """
         logger.info("Публикация паспортов + релиза")
 
@@ -116,6 +123,8 @@ class DocumentPublisher:
             parsed_data=parsed_data,
             root_page_id=passports_root_page_id,
             template_name=passport_template_name,
+            batch_size=self._config.publish_batch_size,
+            batch_delay_seconds=self._config.publish_batch_delay_seconds,
         )
 
         release_report = self.publish(
@@ -131,6 +140,8 @@ class DocumentPublisher:
             success=passports_report.success and release_report.success,
             pages_published=passports_report.pages_published
             + release_report.pages_published,
+            pages_failed=passports_report.pages_failed + release_report.pages_failed,
             errors=passports_report.errors + release_report.errors,
+            failed_pages=passports_report.failed_pages + release_report.failed_pages,
             details=passports_report.details + release_report.details,
         )

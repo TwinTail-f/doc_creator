@@ -12,6 +12,8 @@ from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
 
+_DEFAULT_TEMPLATE: str = "release_doc.jinja2"
+
 
 class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
     """
@@ -31,11 +33,11 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         self,
         confluence_client: ConfluenceClient,
         document_builder: DocumentBuilder,
-        transformer: BaseDataTransformer,
         parsed_data: ParsedResult,
         space: str,
         page_title: str,
-        template_name: str,
+        transformer: BaseDataTransformer | None = None,
+        template_name: str = _DEFAULT_TEMPLATE,
         parent_id: str | None = None,
         include_passport_links: bool = True,
         data_dir: Path | None = None,
@@ -44,11 +46,14 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         Args:
             confluence_client: Клиент Confluence API.
             document_builder: Рендерер Jinja2-шаблонов.
-            transformer: Экземпляр трансформера данных (обычно ``FullReleaseTransformer``).
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
             page_title: Заголовок страницы релиза.
-            template_name: Имя Jinja2-шаблона.
+            transformer: Экземпляр трансформера данных. Если ``None`` —
+                         создаётся автоматически как ``FullReleaseTransformer``
+                         с учётом ``include_passport_links``.
+                         Передача готового экземпляра упрощает тестирование.
+            template_name: Имя Jinja2-шаблона. По умолчанию ``release_doc.jinja2``.
             parent_id: ID родительской страницы. Если ``None`` — страница
                        создаётся без родителя.
             include_passport_links: Если ``True``, вставляет ссылки на паспорта
@@ -58,22 +63,22 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
             data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
 
         Raises:
-            ValueError: Если ``space``, ``page_title`` или ``template_name`` пустые.
+            ValueError: Если ``space`` или ``page_title`` пустые.
         """
         if not space:
             raise ValueError("space cannot be empty")
         if not page_title:
             raise ValueError("page_title cannot be empty")
-        if not template_name:
-            raise ValueError("template_name cannot be empty")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
-        self._transformer: BaseDataTransformer = transformer
         self._page_title: str = page_title
         self._template_name: str = template_name
         self._parent_id: str | None = parent_id
         self._include_passport_links: bool = include_passport_links
         self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
+        self._transformer: BaseDataTransformer = transformer or FullReleaseTransformer(
+            include_passport_links=include_passport_links,
+        )
 
     @classmethod
     def _make_transformer(cls, kwargs: dict) -> BaseDataTransformer:
@@ -140,12 +145,18 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
                     "template": self._template_name,
                 }
             )
-            logger.info(f"{self._page_title} {result["status"]} (ID: {result["id"]})")
+            logger.info(f"{self._page_title} {result['status']} (ID: {result['id']})")
             return PublishReport(success=True, pages_published=1, details=details)
 
         except Exception as e:
-            errors.append(str(e))
-            logger.error(f"Ошибка публикации {self._page_title}: {e}")
+            reason = str(e)
+            errors.append(reason)
+            logger.error(f"Ошибка публикации {self._page_title}: {reason}")
             return PublishReport(
-                success=False, pages_published=0, errors=errors, details=details
+                success=False,
+                pages_published=0,
+                pages_failed=1,
+                errors=errors,
+                failed_pages=[{"page_title": self._page_title, "reason": reason}],
+                details=details,
             )

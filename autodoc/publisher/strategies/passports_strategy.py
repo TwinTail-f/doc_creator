@@ -1,5 +1,6 @@
 """Стратегия публикации коллекции паспортов компонентов в Confluence."""
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -9,11 +10,27 @@ from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.legacy_content.legacy_service import LegacyContentService
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.passport_registry import PassportPageRegistry
+from autodoc.publisher.publish_queue import PublishQueue
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer
 
 _DEFAULT_TEMPLATE: str = "component_passport.jinja2"
+_DEFAULT_BATCH_SIZE: int = 10
+_DEFAULT_BATCH_DELAY: float = 0.0
+
+
+@dataclass
+class _PagePublishResult:
+    """Внутренний результат попытки публикации одной страницы паспорта."""
+
+    detail: dict[str, Any] | None = None
+    error: str | None = None
+    failed_page: dict[str, str] | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.detail is not None
 
 
 class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
@@ -27,9 +44,10 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
       4. Рендерит Jinja2-шаблон (legacy-секции передаются в view-model).
       5. Публикует страницу.
 
-    После обработки всех компонентов сохраняет карту ID страниц через
-    ``PassportPageRegistry``, чтобы ``ReleasePageStrategy`` смогла вставить
-    ссылки на паспорта в отдельном запуске.
+    Публикация выполняется пакетами через ``PublishQueue`` для предотвращения
+    перегрузки сервера Confluence. После обработки всех компонентов сохраняет
+    карту ID страниц через ``PassportPageRegistry``, чтобы ``ReleasePageStrategy``
+    смогла вставить ссылки на паспорта в отдельном запуске.
     """
 
     def __init__(
@@ -41,6 +59,8 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         root_page_id: str,
         template_name: str = _DEFAULT_TEMPLATE,
         data_dir: Path | None = None,
+        batch_size: int = _DEFAULT_BATCH_SIZE,
+        batch_delay_seconds: float = _DEFAULT_BATCH_DELAY,
     ) -> None:
         """
         Args:
@@ -51,6 +71,10 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
             root_page_id: ID корневой страницы иерархии паспортов.
             template_name: Имя Jinja2-шаблона. По умолчанию ``component_passport.jinja2``.
             data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
+            batch_size: Количество страниц, публикуемых в одном пакете.
+                        По умолчанию ``10``.
+            batch_delay_seconds: Задержка в секундах между пакетами.
+                                 По умолчанию ``0`` (без задержки).
 
         Raises:
             ValueError: Если ``space`` или ``root_page_id`` пустые.
@@ -66,62 +90,94 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         self._hierarchy: PageHierarchyManager = PageHierarchyManager(confluence_client)
         self._legacy_svc: LegacyContentService = LegacyContentService()
         self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
+        self._queue: PublishQueue = PublishQueue(
+            batch_size=batch_size,
+            batch_delay_seconds=batch_delay_seconds,
+        )
 
     def execute(self) -> PublishReport:
         """
         Публикует паспорта для всех компонентов и всех релизов.
 
         Итерирует по всем компонентам из ``ParsedResult``. Компоненты без
-        релизов пропускаются с записью в список ошибок. Ошибки отдельных
-        страниц логируются, но не прерывают обработку остальных.
+        релизов пропускаются с записью в список ошибок. Публикация выполняется
+        пакетами через ``PublishQueue``. Ошибки отдельных страниц логируются,
+        фиксируются в ``failed_pages`` и не прерывают обработку остальных.
 
         Returns:
             ``PublishReport`` с итоговым статусом, числом опубликованных
-            страниц, списком ошибок и детальными записями по каждой странице.
+            и неудавшихся страниц, списком ошибок и детальными записями
+            по каждой странице.
         """
         logger.info("Старт публикации паспортов")
         errors: list[str] = []
-        details: list[dict[str, Any]] = []
-        pages_published: int = 0
 
+        work_items: list[tuple[str, str]] = []
         for comp in self._data.components:
             if not comp.releases:
                 errors.append(f"Нет релизов для компонента {comp.name}")
                 continue
-
             for release in comp.releases:
-                try:
-                    page_id, version, status = self._publish_one(
-                        comp.name, release.version
-                    )
-                    pages_published += 1
-                    details.append(
-                        {
-                            "component_name": comp.name,
-                            "release_version": release.version,
-                            "page_title": self._make_page_title(
-                                comp.name, release.version
-                            ),
-                            "page_id": page_id,
-                            "version": version,
-                            "status": status,
-                        }
-                    )
-                except Exception as e:
-                    msg = f"Ошибка паспорта {comp.name} v{release.version}: {e}"
-                    errors.append(msg)
-                    logger.error(msg)
+                work_items.append((comp.name, release.version))
+
+        results = self._queue.process(work_items, self._try_publish_item)
+
+        details = [r.detail for r in results if r.success]
+        failed_pages = [r.failed_page for r in results if not r.success]
+        page_errors = [r.error for r in results if r.error is not None]
+        errors.extend(page_errors)
+
+        pages_published = len(details)
+        pages_failed = len(failed_pages)
 
         pages_map = self._build_pages_map(details)
         self._registry.save(pages_map)
 
-        logger.info(f"Завершено — {pages_published} опубликовано, {len(errors)} ошибок")
+        logger.info(
+            f"Завершено — {pages_published} опубликовано, "
+            f"{pages_failed} не опубликовано, {len(errors)} ошибок"
+        )
         return PublishReport(
             success=len(errors) == 0,
             pages_published=pages_published,
+            pages_failed=pages_failed,
             errors=errors,
+            failed_pages=failed_pages,
             details=details,
         )
+
+    def _try_publish_item(self, item: tuple[str, str]) -> _PagePublishResult:
+        """
+        Пытается опубликовать одну страницу паспорта, перехватывая ошибки.
+
+        Args:
+            item: Кортеж ``(comp_name, release_version)``.
+
+        Returns:
+            ``_PagePublishResult`` с деталями публикации или информацией об ошибке.
+        """
+        comp_name, release_version = item
+        page_title = self._make_page_title(comp_name, release_version)
+        try:
+            page_id, version, status = self._publish_one(comp_name, release_version)
+            return _PagePublishResult(
+                detail={
+                    "component_name": comp_name,
+                    "release_version": release_version,
+                    "page_title": page_title,
+                    "page_id": page_id,
+                    "version": version,
+                    "status": status,
+                }
+            )
+        except Exception as e:
+            reason = str(e)
+            msg = f"Ошибка паспорта {comp_name} v{release_version}: {reason}"
+            logger.error(msg)
+            return _PagePublishResult(
+                error=msg,
+                failed_page={"page_title": page_title, "reason": reason},
+            )
 
     def _publish_one(
         self,

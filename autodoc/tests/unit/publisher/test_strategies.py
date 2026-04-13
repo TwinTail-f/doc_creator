@@ -642,3 +642,345 @@ class TestTemplateRendering:
             if path.exists():
                 content = path.read_text(encoding="utf-8").strip()
                 assert len(content) < 50, "Устаревший шаблон %s существует" % removed
+
+
+# ---------------------------------------------------------------------------
+# New tests for features added in v1.1
+# ---------------------------------------------------------------------------
+
+
+class TestPublishReportFailedPages:
+    """Тесты полей pages_failed и failed_pages в PublishReport."""
+
+    def test_pages_failed_default_zero(self) -> None:
+        report = PublishReport(success=True, pages_published=5)
+        assert report.pages_failed == 0
+        assert report.failed_pages == []
+
+    def test_release_strategy_failure_populates_pages_failed(self) -> None:
+        strategy = BasePublishStrategy.create(
+            "release",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test Page",
+            template_name="tpl.jinja2",
+        )
+        strategy._transformer = MagicMock()
+        strategy._transformer.transform.side_effect = RuntimeError("server error")
+
+        result = strategy.execute()
+
+        assert result.success is False
+        assert result.pages_published == 0
+        assert result.pages_failed == 1
+        assert len(result.failed_pages) == 1
+        assert result.failed_pages[0]["page_title"] == "Test Page"
+        assert "server error" in result.failed_pages[0]["reason"]
+
+    def test_profile_strategy_failure_populates_pages_failed(self) -> None:
+        from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
+
+        strategy = ProfileCentricStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Profile Page",
+        )
+        strategy._transformer = MagicMock()
+        strategy._transformer.transform.side_effect = RuntimeError("timeout")
+
+        result = strategy.execute()
+
+        assert result.pages_failed == 1
+        assert result.failed_pages[0]["page_title"] == "Profile Page"
+        assert "timeout" in result.failed_pages[0]["reason"]
+
+    def test_passports_strategy_counts_failed_pages(self) -> None:
+        from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
+        from unittest.mock import MagicMock, patch
+
+        client = MagicMock()
+        comp_ok = MagicMock()
+        comp_ok.name = "CompA"
+        comp_ok.releases = [MagicMock(version="1.0")]
+
+        comp_fail = MagicMock()
+        comp_fail.name = "CompB"
+        comp_fail.releases = [MagicMock(version="2.0")]
+
+        parsed_data = MagicMock()
+        parsed_data.components = [comp_ok, comp_fail]
+
+        strategy = PassportsStrategy(
+            confluence_client=client,
+            document_builder=MagicMock(),
+            parsed_data=parsed_data,
+            space="DOC",
+            root_page_id="99",
+        )
+
+        call_count = 0
+
+        def fake_publish_one(comp_name: str, release_version: str):
+            nonlocal call_count
+            call_count += 1
+            if comp_name == "CompB":
+                raise RuntimeError("already exists in another tree")
+            return "page-id-1", 1, "created"
+
+        strategy._publish_one = fake_publish_one
+
+        result = strategy.execute()
+
+        assert result.pages_published == 1
+        assert result.pages_failed == 1
+        assert len(result.failed_pages) == 1
+        assert result.failed_pages[0]["page_title"] == "Документация CompB 2.0"
+        assert "already exists" in result.failed_pages[0]["reason"]
+
+    def test_passports_strategy_no_releases_in_errors_not_failed_pages(self) -> None:
+        """Компонент без релизов попадает в errors, а не в failed_pages."""
+        from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
+
+        comp = MagicMock()
+        comp.name = "CompNoReleases"
+        comp.releases = []
+
+        parsed_data = MagicMock()
+        parsed_data.components = [comp]
+
+        strategy = PassportsStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=parsed_data,
+            space="DOC",
+            root_page_id="99",
+        )
+
+        result = strategy.execute()
+
+        assert result.pages_failed == 0
+        assert result.failed_pages == []
+        assert any("CompNoReleases" in e for e in result.errors)
+
+    def test_success_report_has_no_failed_pages(self) -> None:
+        strategy = BasePublishStrategy.create(
+            "release",
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Test",
+            template_name="tpl.jinja2",
+        )
+        strategy._transformer = MagicMock()
+        strategy._transformer.transform.return_value = {"components": []}
+        strategy._builder = MagicMock()
+        strategy._builder.build.return_value = "<p>html</p>"
+        strategy._client = MagicMock()
+        strategy._client.publish_page.return_value = {
+            "id": "1",
+            "version": 1,
+            "status": "created",
+        }
+
+        result = strategy.execute()
+
+        assert result.pages_failed == 0
+        assert result.failed_pages == []
+
+
+class TestPublishQueue:
+    """Тесты PublishQueue — пакетная обработка задач публикации."""
+
+    def test_process_empty_list_returns_empty(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        q = PublishQueue(batch_size=5)
+        results = q.process([], lambda x: x)
+        assert results == []
+
+    def test_process_single_batch(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        q = PublishQueue(batch_size=10)
+        results = q.process([1, 2, 3], lambda x: x * 2)
+        assert results == [2, 4, 6]
+
+    def test_process_multiple_batches(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        q = PublishQueue(batch_size=2)
+        items = list(range(5))
+        results = q.process(items, lambda x: x + 10)
+        assert results == [10, 11, 12, 13, 14]
+
+    def test_process_preserves_order(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        q = PublishQueue(batch_size=3)
+        items = ["a", "b", "c", "d", "e"]
+        results = q.process(items, lambda x: x.upper())
+        assert results == ["A", "B", "C", "D", "E"]
+
+    def test_batch_size_one_processes_all(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        q = PublishQueue(batch_size=1)
+        results = q.process([10, 20, 30], lambda x: x)
+        assert results == [10, 20, 30]
+
+    def test_invalid_batch_size_raises(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        with pytest.raises(ValueError, match="batch_size"):
+            PublishQueue(batch_size=0)
+
+    def test_negative_delay_raises(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+
+        with pytest.raises(ValueError, match="batch_delay_seconds"):
+            PublishQueue(batch_size=5, batch_delay_seconds=-1.0)
+
+    def test_delay_called_between_batches(self) -> None:
+        """Задержка вызывается между пакетами, но не после последнего."""
+        from autodoc.publisher.publish_queue import PublishQueue
+        import unittest.mock as mock
+
+        q = PublishQueue(batch_size=2, batch_delay_seconds=0.5)
+        items = [1, 2, 3, 4, 5]  # 3 пакета: [1,2], [3,4], [5]
+        with mock.patch("autodoc.publisher.publish_queue.time.sleep") as mock_sleep:
+            q.process(items, lambda x: x)
+        # Задержка между пакетами 1→2 и 2→3, но не после последнего
+        assert mock_sleep.call_count == 2
+        mock_sleep.assert_called_with(0.5)
+
+    def test_no_delay_when_single_batch(self) -> None:
+        from autodoc.publisher.publish_queue import PublishQueue
+        import unittest.mock as mock
+
+        q = PublishQueue(batch_size=10, batch_delay_seconds=1.0)
+        with mock.patch("autodoc.publisher.publish_queue.time.sleep") as mock_sleep:
+            q.process([1, 2, 3], lambda x: x)
+        mock_sleep.assert_not_called()
+
+    def test_passports_strategy_uses_queue_with_batch_size(self) -> None:
+        """batch_size пробрасывается в PassportsStrategy и используется в очереди."""
+        from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
+
+        strategy = PassportsStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            root_page_id="99",
+            batch_size=5,
+            batch_delay_seconds=1.0,
+        )
+        assert strategy._queue.batch_size == 5
+        assert strategy._queue.batch_delay_seconds == 1.0
+
+
+class TestProfileCentricTransformerMixin:
+    """Тесты обновлённого ProfileCentricTransformer с PassportLinkMixin."""
+
+    def test_default_init_sets_include_links_true(self) -> None:
+        from autodoc.publisher.transformers.profile_transformer import (
+            ProfileCentricTransformer,
+        )
+
+        t = ProfileCentricTransformer()
+        assert t._include_passport_links is True
+
+    def test_include_passport_links_false_stored(self) -> None:
+        from autodoc.publisher.transformers.profile_transformer import (
+            ProfileCentricTransformer,
+        )
+
+        t = ProfileCentricTransformer(include_passport_links=False)
+        assert t._include_passport_links is False
+
+    def test_custom_pattern_stored(self) -> None:
+        from autodoc.publisher.transformers.profile_transformer import (
+            ProfileCentricTransformer,
+        )
+
+        t = ProfileCentricTransformer(
+            passport_page_pattern="https://wiki/{component_name}"
+        )
+        assert t._pattern == "https://wiki/{component_name}"
+
+    def test_default_pattern_used_when_none(self) -> None:
+        from autodoc.publisher.transformers.profile_transformer import (
+            ProfileCentricTransformer,
+        )
+        from autodoc.publisher.transformers.base_transformer import (
+            _DEFAULT_PASSPORT_PATTERN,
+        )
+
+        t = ProfileCentricTransformer()
+        assert t._pattern == _DEFAULT_PASSPORT_PATTERN
+
+
+class TestReleaseStrategyConsistency:
+    """Тесты унификации ReleasePageStrategy с ProfileCentricStrategy."""
+
+    def test_release_strategy_default_template(self) -> None:
+        """template_name имеет значение по умолчанию — создание без явного шаблона."""
+        from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
+
+        strategy = ReleasePageStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Release",
+        )
+        assert strategy._template_name == "release_doc.jinja2"
+
+    def test_release_strategy_optional_transformer_auto_created(self) -> None:
+        """Если transformer не передан — создаётся автоматически."""
+        from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
+        from autodoc.publisher.transformers.release_transformer import (
+            FullReleaseTransformer,
+        )
+
+        strategy = ReleasePageStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Release",
+        )
+        assert isinstance(strategy._transformer, FullReleaseTransformer)
+
+    def test_release_strategy_explicit_transformer_used(self) -> None:
+        """Явно переданный transformer используется без замены."""
+        from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
+
+        custom = MagicMock()
+        strategy = ReleasePageStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Release",
+            transformer=custom,
+        )
+        assert strategy._transformer is custom
+
+    def test_profile_strategy_default_template(self) -> None:
+        """template_name имеет значение по умолчанию у ProfileCentricStrategy."""
+        from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
+
+        strategy = ProfileCentricStrategy(
+            confluence_client=MagicMock(),
+            document_builder=MagicMock(),
+            parsed_data=MagicMock(),
+            space="DOC",
+            page_title="Profile",
+        )
+        assert strategy._template_name == "profile_centric.jinja2"

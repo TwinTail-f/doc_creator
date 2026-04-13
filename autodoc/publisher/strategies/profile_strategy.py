@@ -19,13 +19,13 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
     Публикует профиль-центричную документацию релиза на одной странице Confluence.
 
     Реорганизует данные по схеме Профиль → Канал → Компонент.
-     Ссылки на паспорта компонентов инжектируются в ``execute()`` через
+    Ссылки на паспорта компонентов инжектируются в ``execute()`` через
     ``PassportPageRegistry.inject_links_for_profiles()`` — идентично тому,
     как ``ReleasePageStrategy`` делает это для стандартного вида через
     ``PassportPageRegistry.inject_links()``.
-    ``ProfileCentricTransformer`` устанавливает ``passport_link=None``;
-    реальное значение ``/spaces/{space}/pages/{page_id}`` появляется
-    только после шага инжекции.
+    ``ProfileCentricTransformer`` генерирует ``passport_link`` через
+    ``PassportLinkMixin._passport_link()``; реальное значение
+    ``/spaces/{space}/pages/{page_id}`` подставляется после шага инжекции.
     """
 
     def __init__(
@@ -50,13 +50,17 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
             space: Ключ Space в Confluence.
             page_title: Заголовок страницы.
             transformer: Готовый экземпляр ``ProfileCentricTransformer``.
-                         Если ``None`` — создаётся автоматически.
+                         Если ``None`` — создаётся автоматически из
+                         ``include_passport_links`` и ``passport_page_pattern``.
                          Передача готового экземпляра упрощает тестирование.
             template_name: Имя Jinja2-шаблона. По умолчанию ``profile_centric.jinja2``.
             parent_id: ID родительской страницы. Если ``None`` — без родителя.
             include_passport_links: Если ``True``, ссылки на паспорта
                                     инжектируются из ``passport_pages.json``
                                     после трансформации.
+            passport_page_pattern: Шаблон URL паспорта для трансформера.
+                                   Используется только при автоматическом
+                                   создании трансформера.
             data_dir: Директория для ``passport_pages.json``.
                       По умолчанию ``Path('data')``.
 
@@ -74,8 +78,11 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         self._parent_id: str | None = parent_id
         self._include_passport_links: bool = include_passport_links
         self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
-        self._transformer: ProfileCentricTransformer = (
-            transformer or ProfileCentricTransformer()
+        self._transformer: ProfileCentricTransformer = transformer or (
+            ProfileCentricTransformer(
+                include_passport_links=include_passport_links,
+                passport_page_pattern=passport_page_pattern,
+            )
         )
 
     @classmethod
@@ -83,9 +90,12 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         """
         Строит ``ProfileCentricTransformer`` из kwargs перед вызовом ``__init__``.
 
-        Трансформер не принимает параметров — ссылки на паспорта инжектируются
-        отдельным шагом в ``execute()``, идентично ``ReleasePageStrategy``.
-        ``passport_page_pattern`` извлекается (pop) — стратегия его не принимает.
+        Оба ключа читаются через ``.get()`` и остаются в ``kwargs``, чтобы
+        стратегия и трансформер использовали одни и те же значения:
+        ``include_passport_links`` управляет как генерацией ссылок в трансформере,
+        так и шагом инжекции в ``execute()``;
+        ``passport_page_pattern`` остаётся доступным конструктору стратегии
+        для передачи трансформеру при прямом инстанцировании.
 
         Args:
             kwargs: Прямая ссылка на словарь аргументов из ``create()``.
@@ -93,8 +103,10 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         Returns:
             Готовый ``ProfileCentricTransformer``.
         """
-        kwargs.pop("passport_page_pattern", None)
-        return ProfileCentricTransformer()
+        return ProfileCentricTransformer(
+            include_passport_links=kwargs.get("include_passport_links", True),
+            passport_page_pattern=kwargs.get("passport_page_pattern", None),
+        )
 
     def execute(self) -> PublishReport:
         """
@@ -121,7 +133,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
             if self._include_passport_links:
                 passport_pages = self._registry.load()
                 PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
-            
+
             html_body = self._builder.build(self._template_name, view_model)
             result = self._client.publish_page(
                 space=self._space,
@@ -139,12 +151,18 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
                     "template": self._template_name,
                 }
             )
-            logger.info(f"{self._page_title} {result["status"]} (ID: {result["id"]})")
+            logger.info(f"{self._page_title} {result['status']} (ID: {result['id']})")
             return PublishReport(success=True, pages_published=1, details=details)
 
         except Exception as e:
-            errors.append(str(e))
-            logger.error(f"Ошибка публикации {self._page_title}: {e}")
+            reason = str(e)
+            errors.append(reason)
+            logger.error(f"Ошибка публикации {self._page_title}: {reason}")
             return PublishReport(
-                success=False, pages_published=0, errors=errors, details=details
+                success=False,
+                pages_published=0,
+                pages_failed=1,
+                errors=errors,
+                failed_pages=[{"page_title": self._page_title, "reason": reason}],
+                details=details,
             )

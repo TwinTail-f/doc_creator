@@ -160,6 +160,24 @@ class ConfluenceConfigSchema(BaseModel):
         le=300,
         description="Тайм-аут HTTP-запросов к Confluence (секунды)",
     )
+    publish_batch_size: int = Field(
+        default=10,
+        ge=1,
+        le=200,
+        description=(
+            "Количество страниц паспортов, публикуемых в одном пакете. "
+            "Уменьшите при перегрузках сервера Confluence."
+        ),
+    )
+    publish_batch_delay_seconds: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=60.0,
+        description=(
+            "Задержка в секундах между пакетами при публикации паспортов. "
+            "0 — без задержки."
+        ),
+    )
     target_platform_version: str = Field(
         default="Platform 2.2",
         description='Имя текущей платформы (например "Platform 2.2")',

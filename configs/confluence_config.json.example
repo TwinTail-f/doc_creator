@@ -15,5 +15,10 @@
   "passports_root_parent_id": "987654321",
 
   "confluence_request_timeout": 30,
+
+  "_comment_batch": "Настройки пакетной публикации паспортов",
+  "publish_batch_size": 10,
+  "publish_batch_delay_seconds": 0.5,
+
   "target_platform_version": "Platform 2.0"
 }

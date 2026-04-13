@@ -4,23 +4,41 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
+from autodoc.publisher.transformers.base_transformer import (
+    BaseDataTransformer,
+    PassportLinkMixin,
+    _DEFAULT_PASSPORT_PATTERN,
+)
 
 
-class ProfileCentricTransformer(BaseDataTransformer):
+class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
     """
     Трансформер для профиль-центричного вида.
 
     Перестраивает иерархию ``Компонент → Релиз → Профиль``
     в ``Профиль → Канал → Компонент`` для удобного анализа по профилям.
-    Поле ``passport_link`` каждого компонента устанавливается в ``None``
-    и заполняется реальной ссылкой позже — в ``ProfileCentricStrategy``
-    через ``PassportPageRegistry.inject_links_for_profiles()``, аналогично
-    тому, как это делает ``ReleasePageStrategy`` для стандартного вида.
+    Поле ``passport_link`` каждого компонента устанавливается через
+    ``PassportLinkMixin._passport_link()`` и может быть заменено реальной
+    ссылкой в ``ProfileCentricStrategy`` через
+    ``PassportPageRegistry.inject_links_for_profiles()`` — идентично тому,
+    как ``ReleasePageStrategy`` делает это для стандартного вида через
+    ``PassportPageRegistry.inject_links()``.
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(
+        self,
+        include_passport_links: bool = True,
+        passport_page_pattern: str | None = None,
+    ) -> None:
+        """
+        Args:
+            include_passport_links: Добавлять ли ссылки на паспорта компонентов.
+            passport_page_pattern: Шаблон URL паспорта с плейсхолдерами
+                ``{component_name}`` и ``{release_version}``.
+                По умолчанию используется ``_DEFAULT_PASSPORT_PATTERN``.
+        """
+        self._include_passport_links: bool = include_passport_links
+        self._pattern: str = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
     def transform(self, data: ParsedResult) -> dict[str, Any]:
         """
@@ -81,7 +99,9 @@ class ProfileCentricTransformer(BaseDataTransformer):
                         {
                             "name": comp.name,
                             "version": rel.version,
-                            "passport_link": None,
+                            "passport_link": self._passport_link(
+                                comp.name, rel.version
+                            ),
                             "git": f"{comp.git_project}/{comp.git_repo}",
                             "reference": rel.conan_reference or "—",
                             "url": rel.artifactory_url or "—",
