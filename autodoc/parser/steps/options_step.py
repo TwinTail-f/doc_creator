@@ -14,6 +14,11 @@ class OptionsResolveStep(BaseParseStep):
     is_critical = False
 
     def __init__(self, fetcher: "IFetcher[OptionsMap] | None" = None) -> None:
+        """
+        Args:
+            fetcher: Фетчер опций Conan. Если не передан — используется
+                     ``OptionsFetcher`` по умолчанию.
+        """
         self._fetcher = fetcher or OptionsFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:

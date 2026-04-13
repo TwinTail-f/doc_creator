@@ -1,7 +1,6 @@
 """Стратегия публикации релизной документации на одной странице Confluence."""
 
 from pathlib import Path
-from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -106,57 +105,20 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         """
         Трансформирует данные, опционально вставляет ссылки на паспорта, рендерит и публикует.
 
-        Если трансформер вернул пустой результат — публикация прерывается
-        и возвращается отчёт с ошибкой. Любое другое исключение также
-        перехватывается, логируется и отражается в ``PublishReport``.
-
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
         """
         logger.info(f"Публикация {self._page_title}")
-        errors: list[str] = []
-        details: list[dict[str, Any]] = []
 
-        try:
-            view_model = self._transformer.transform(self._data)
-            if not view_model:
-                raise ValueError("трансформер вернул пустой результат")
+        inject_fn = None
+        if self._include_passport_links:
+            passport_pages = self._registry.load()
+            inject_fn = lambda vm: PassportPageRegistry.inject_links(vm, passport_pages)
 
-            view_model["space"] = self._space
-
-            if self._include_passport_links:
-                passport_pages = self._registry.load()
-                PassportPageRegistry.inject_links(view_model, passport_pages)
-
-            html_body = self._builder.build(self._template_name, view_model)
-            result = self._client.publish_page(
-                space=self._space,
-                parent_id=self._parent_id or "",
-                title=self._page_title,
-                body_html=html_body,
-            )
-
-            details.append(
-                {
-                    "page_title": self._page_title,
-                    "page_id": result["id"],
-                    "version": result["version"],
-                    "status": result["status"],
-                    "template": self._template_name,
-                }
-            )
-            logger.info(f"{self._page_title} {result['status']} (ID: {result['id']})")
-            return PublishReport(success=True, pages_published=1, details=details)
-
-        except Exception as e:
-            reason = str(e)
-            errors.append(reason)
-            logger.error(f"Ошибка публикации {self._page_title}: {reason}")
-            return PublishReport(
-                success=False,
-                pages_published=0,
-                pages_failed=1,
-                errors=errors,
-                failed_pages=[{"page_title": self._page_title, "reason": reason}],
-                details=details,
-            )
+        return self._publish_single_page(
+            page_title=self._page_title,
+            template_name=self._template_name,
+            transform_fn=lambda: self._transformer.transform(self._data),
+            parent_id=self._parent_id or "",
+            inject_links=inject_fn,
+        )

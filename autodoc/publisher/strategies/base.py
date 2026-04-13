@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar
 
 if TYPE_CHECKING:
     from autodoc.models.parsed_result import ParsedResult
@@ -148,6 +148,93 @@ class BasePublishStrategy(ABC):
     def available_strategies(cls) -> list[str]:
         """Возвращает отсортированный список зарегистрированных типов стратегий."""
         return sorted(cls._registry)
+
+    def _publish_single_page(
+        self,
+        page_title: str,
+        template_name: str,
+        transform_fn: Callable[[], dict[str, Any]],
+        parent_id: str,
+        inject_links: Callable[[dict[str, Any]], None] | None = None,
+    ) -> PublishReport:
+        """
+        Encapsulates the common single-page publish flow used by release and
+        profile-centric strategies.
+
+        Steps:
+        1. Call ``transform_fn`` to produce the view-model.
+        2. Validate that the view-model is non-empty.
+        3. Inject the Space key into the view-model.
+        4. Optionally call ``inject_links`` to insert passport URLs.
+        5. Render the Jinja2 template.
+        6. Publish the page via ``ConfluenceClient``.
+        7. Return a ``PublishReport``.
+
+        Any exception raised during steps 1–6 is caught, logged, and returned
+        as a failed ``PublishReport``.
+
+        Args:
+            page_title: Title of the Confluence page to create or update.
+            template_name: Name of the Jinja2 template file.
+            transform_fn: Zero-argument callable that produces the view-model
+                          dict (typically ``lambda: transformer.transform(data)``).
+                          Called inside the try block so transformer errors are
+                          captured in the returned ``PublishReport``.
+            parent_id: ID of the parent Confluence page (empty string = no parent).
+            inject_links: Optional callable that mutates the view-model in-place
+                          to add passport page links. Receives the view-model dict.
+
+        Returns:
+            ``PublishReport`` reflecting the outcome of the publish attempt.
+        """
+        errors: list[str] = []
+        details: list[dict[str, Any]] = []
+
+        try:
+            view_model = transform_fn()
+            if not view_model:
+                raise ValueError("трансформер вернул пустой результат")
+
+            view_model["space"] = self._space
+
+            if inject_links is not None:
+                inject_links(view_model)
+
+            html_body = self._builder.build(template_name, view_model)
+            result = self._client.publish_page(
+                space=self._space,
+                parent_id=parent_id,
+                title=page_title,
+                body_html=html_body,
+            )
+
+            details.append(
+                {
+                    "page_title": page_title,
+                    "page_id": result["id"],
+                    "version": result["version"],
+                    "status": result["status"],
+                    "template": template_name,
+                }
+            )
+            logger.info(f"{page_title} {result['status']} (ID: {result['id']})")
+            return PublishReport(success=True, pages_published=1, details=details)
+
+        # Broad catch is intentional: any error (network, rendering, API) during
+        # single-page publication must be isolated and reported without crashing
+        # the entire publish workflow.
+        except Exception as e:
+            reason = str(e)
+            errors.append(reason)
+            logger.error(f"Ошибка публикации {page_title}: {reason}")
+            return PublishReport(
+                success=False,
+                pages_published=0,
+                pages_failed=1,
+                errors=errors,
+                failed_pages=[{"page_title": page_title, "reason": reason}],
+                details=details,
+            )
 
     @abstractmethod
     def execute(self) -> PublishReport:

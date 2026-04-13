@@ -242,7 +242,7 @@ class _ProfileBuildAggregator:
     )
 
     def __init__(self) -> None:
-        self.any_success = False
+        self.any_success: bool = False
         self.conan_settings: dict[str, Any] = {}
         self.unique_variants: dict[str, ConanVariant] = {}
         self.first_enrich: ConanEnrichData | None = None

@@ -20,6 +20,11 @@ class PassportTransformer(BaseDataTransformer):
     """
 
     def __init__(self, component_name: str, release_version: str) -> None:
+        """
+        Args:
+            component_name: Имя компонента, для которого формируется паспорт.
+            release_version: Версия релиза компонента.
+        """
         self._component_name = component_name
         self._release_version = release_version
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Базовые абстракции для фетчеров пайплайна парсера.
 
@@ -8,11 +6,15 @@ from __future__ import annotations
 - ``IFetcher`` — интерфейс двухфазового фетчера;
 - ``BaseTFSFetcher`` — базовый класс с доступом к ``TFSClient``-синглтону.
 """
+
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
+    from autodoc.parser.clients.tfs_client import TFSClient
     from autodoc.parser.steps.base import PipelineContext
 
 _T = TypeVar("_T")
@@ -77,7 +79,8 @@ class BaseTFSFetcher(IFetcher[_T]):
     """
 
     def __init__(self) -> None:
-        self._tfs = None  # инициализируется в configure()
+        """Initialises the fetcher; ``_tfs`` is populated by ``configure()``."""
+        self._tfs: TFSClient | None = None
 
     @abstractmethod
     def configure(self, ctx: "PipelineContext") -> None: ...

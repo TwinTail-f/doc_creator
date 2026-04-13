@@ -21,6 +21,14 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
     Двухфазовый: сначала ``configure(ctx)``, потом ``fetch(tmp_dir, excluded)``.
     """
 
+    def __init__(self) -> None:
+        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        super().__init__()
+        self._base_url: str = ""
+        self._manifests_remotes_path: str = ""
+        self._platform_branch_name: str = ""
+        self._platform_version: str = ""
+
     def configure(self, ctx: PipelineContext) -> None:
         """
         Инициализирует фетчер из контекста пайплайна.

@@ -1,15 +1,14 @@
 """Слияние legacy-контента платформ с новым сгенерированным контентом."""
 
 import re
-from typing import Dict
 
 from autodoc.infrastructure.logger import logger
+from autodoc.publisher.legacy_content._html_utils import (
+    extract_platform_h1_sections,
+)
 
 _VERSION_HEADER_PATTERN: str = r"<h[2-3]>.*?([vV][\d.]+).*?</h[2-3]>"
 _UNKNOWN_SECTION_KEY: str = "unknown"
-_H1_OPEN_RE = re.compile(r"<h1\b[^>]*>")
-_INNER_TAG_RE = re.compile(r"<[^>]+>")
-_PLATFORM_VERSION_RE = re.compile(r"Platform\s+[\d.]+")
 
 _TAG_TAB: str = '<ac:structured-macro ac:name="tab">'
 _TAG_TAB_PANE: str = '<ac:structured-macro ac:name="tab-pane">'
@@ -34,17 +33,13 @@ class LegacyContentMerger:
     """
 
     @staticmethod
-    def parse_page_content_into_sections(html: str) -> Dict[str, str]:
+    def parse_page_content_into_sections(html: str) -> dict[str, str]:
         """
         Разбирает HTML существующей страницы на секции по версиям платформы.
 
         Сначала пробует формат вкладок (``ac:structured-macro ac:name="tab"``
         или ``"tab-pane"``). Если вкладки не найдены — fallback на заголовки
         h2/h3 с версионным маркером вида ``v1.2`` или ``V1.2``.
-
-        Балансировка вложенных тегов ``<ac:rich-text-body>`` выполняется
-        счётчиком глубины ``depth``, что позволяет корректно извлекать
-        контент вкладок, содержащих вложенные макросы.
 
         Args:
             html: HTML страницы Confluence (Confluence Storage Format).
@@ -53,7 +48,7 @@ class LegacyContentMerger:
             Словарь ``{имя_версии: html_контент}``.
         """
         logger.debug("Разбор страницы на секции версий")
-        sections: Dict[str, str] = {}
+        sections: dict[str, str] = {}
 
         if _TAG_TAB_PANE in html or _TAG_TAB in html:
             sections = LegacyContentMerger._parse_tab_sections(html)
@@ -63,7 +58,7 @@ class LegacyContentMerger:
         return LegacyContentMerger._parse_header_sections(html)
 
     @staticmethod
-    def _parse_tab_sections(html: str) -> Dict[str, str]:
+    def _parse_tab_sections(html: str) -> dict[str, str]:
         """
         Разбирает HTML на секции по вкладкам Confluence.
 
@@ -78,7 +73,7 @@ class LegacyContentMerger:
             если вкладки не удалось распознать.
         """
         logger.debug("Обнаружены вкладки, разбор по вкладкам")
-        sections: Dict[str, str] = {}
+        sections: dict[str, str] = {}
         curr_idx = 0
 
         while curr_idx < len(html):
@@ -166,22 +161,16 @@ class LegacyContentMerger:
         return "", search_idx
 
     @staticmethod
-    def _parse_header_sections(html: str) -> Dict[str, str]:
+    def _parse_header_sections(html: str) -> dict[str, str]:
         """
         Разбирает HTML на секции по заголовкам.
 
         Пробует два формата в порядке приоритета:
 
-        1. **Заголовки ``<h1>Platform X.Y</h1>``** — устаревший ручной формат.
-           Контент каждой секции — всё от закрывающего ``</h1>`` до открывающего
-           тега следующего ``<h1>``. Разделы «Уязвимости» и прочие
-           не-платформенные h1 служат естественными границами и в результат
-           не включаются.
+        1. **Заголовки ``<h1>Platform X.Y</h1>``** — делегирует в
+           ``_html_utils.extract_platform_h1_sections``.
 
         2. **Заголовки h2/h3 с маркером ``vX.Y``** — исторический fallback.
-           Определяет секции по строкам вида ``<h2>... v1.2 ...</h2>``.
-
-        Пустая секция ``'unknown'`` удаляется из результата при fallback-разборе.
 
         Args:
             html: HTML страницы в Confluence Storage Format.
@@ -191,29 +180,8 @@ class LegacyContentMerger:
         """
         logger.debug("Вкладки не найдены, разбор по заголовкам")
 
-        # Попытка 1: <h1>Platform X.Y</h1>
-        h1_positions: list[tuple[int, int, str]] = []
-        for m in _H1_OPEN_RE.finditer(html):
-            close_pos = html.find("</h1>", m.end())
-            if close_pos == -1:
-                continue
-            inner = html[m.end() : close_pos]
-            text = _INNER_TAG_RE.sub("", inner).strip()
-            h1_positions.append((m.start(), close_pos + len("</h1>"), text))
-
-        platform_sections: Dict[str, str] = {}
-        for i, (_, h1_after, text) in enumerate(h1_positions):
-            platform_match = _PLATFORM_VERSION_RE.search(text)
-            if not platform_match:
-                continue
-            platform_name = platform_match.group(0)
-            content_end = (
-                h1_positions[i + 1][0] if i + 1 < len(h1_positions) else len(html)
-            )
-            content = html[h1_after:content_end].strip()
-            if content:
-                platform_sections[platform_name] = content
-
+        # Попытка 1: <h1>Platform X.Y</h1> — делегируем в общую утилиту
+        platform_sections = extract_platform_h1_sections(html)
         if platform_sections:
             logger.debug(
                 f"Разобрано {len(platform_sections)} секций из заголовков h1 Platform"
@@ -222,7 +190,7 @@ class LegacyContentMerger:
 
         # Попытка 2: h2/h3 с маркером vX.Y (исторический fallback)
         logger.debug("h1 Platform-заголовки не найдены, разбор по h2/h3 с версией vX.Y")
-        sections: Dict[str, str] = {}
+        sections: dict[str, str] = {}
         current_version = _UNKNOWN_SECTION_KEY
         current_content: list[str] = []
 
@@ -250,7 +218,7 @@ class LegacyContentMerger:
     @staticmethod
     def merge_by_tabs(
         new_html: str,
-        legacy_contents: Dict[str, str],
+        legacy_contents: dict[str, str],
         current_platform: str,
     ) -> str:
         """

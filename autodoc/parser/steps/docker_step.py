@@ -18,6 +18,11 @@ class DockerResolveStep(BaseParseStep):
     is_critical = False
 
     def __init__(self, fetcher: "IFetcher[DockerLinksMap] | None" = None) -> None:
+        """
+        Args:
+            fetcher: Фетчер Docker-ссылок. Если не передан — используется
+                     ``DockerFetcher`` по умолчанию.
+        """
         self._fetcher = fetcher or DockerFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:

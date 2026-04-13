@@ -25,7 +25,9 @@ from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTaskBuilder
 from autodoc.parser.fetchers.base import FetchResult, IFetcher
 
-if False:  # TYPE_CHECKING — только для подсказок IDE
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
     from autodoc.parser.steps.base import PipelineContext
 
 _DEFAULT_MAX_WORKERS: int = 64
@@ -44,6 +46,12 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
        параллельно и агрегирует результаты в ``ConanEnrichmentResult``.
     """
 
+    def __init__(self) -> None:
+        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        self._timeout: int = 0
+        self._platform_version: str = ""
+        self._artifactory_base_url: str = ""
+
     def configure(self, ctx: "PipelineContext") -> None:
         """
         Инициализирует фетчер из контекста пайплайна.
@@ -51,9 +59,9 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
         Args:
             ctx: Контекст пайплайна с валидированной конфигурацией.
         """
-        self._timeout: int = ctx.config.conan_command_timeout
-        self._platform_version: str = ctx.config.platform_version
-        self._artifactory_base_url: str = (
+        self._timeout = ctx.config.conan_command_timeout
+        self._platform_version = ctx.config.platform_version
+        self._artifactory_base_url = (
             ctx.config.artifactory_components_conan2_url or ""
         ).rstrip("/")
 

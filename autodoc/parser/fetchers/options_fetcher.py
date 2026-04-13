@@ -3,6 +3,7 @@
 Разбор JSON делегируется OptionsParser.
 """
 
+import requests
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
@@ -20,6 +21,11 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
     Двухфазовый: сначала ``configure(ctx)``, потом ``fetch(components)``.
     Не мутирует входные модели — возвращает OptionsMap.
     """
+
+    def __init__(self) -> None:
+        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        super().__init__()
+        self._base_url: str = ""
 
     def configure(self, ctx: PipelineContext) -> None:
         """
@@ -137,7 +143,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             logger.warning(f"Ошибка скачивания {opt_path}: {e}")
             return
 
-        if response.status_code != 200:
+        if response.status_code != requests.codes.ok:
             logger.debug(f"HTTP {response.status_code} для {opt_path}, пропуск")
             return
 

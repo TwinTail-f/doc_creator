@@ -170,6 +170,9 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
                     "status": status,
                 }
             )
+        # Broad catch is intentional: any error for one passport (network, API,
+        # template rendering, missing data) must be isolated so the remaining
+        # passports still publish successfully.
         except Exception as e:
             reason = str(e)
             msg = f"Ошибка паспорта {comp_name} v{release_version}: {reason}"
@@ -247,6 +250,9 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         """
         try:
             return self._client.get_page_body(space=self._space, title=page_title)
+        # Broad catch is intentional: failure to retrieve the existing page body
+        # is non-fatal — the passport will be published without legacy-content
+        # preservation, which is acceptable.
         except Exception as e:
             logger.warning(f"Не удалось получить тело страницы {page_title}: {e}")
             return ""

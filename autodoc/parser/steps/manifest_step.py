@@ -14,6 +14,11 @@ class ManifestStep(BaseParseStep):
     is_critical = True
 
     def __init__(self, fetcher: "IFetcher[list[Component]] | None" = None) -> None:
+        """
+        Args:
+            fetcher: Фетчер манифестов. Если не передан — используется
+                     ``ManifestFetcher`` по умолчанию.
+        """
         self._fetcher = fetcher or ManifestFetcher()
 
     def execute(self, ctx: PipelineContext) -> None:

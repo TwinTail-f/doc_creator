@@ -40,9 +40,6 @@ _EXPAND_BODY: str = "body.storage"
 _EXPAND_VERSION_AND_BODY: str = "version,body.storage"
 
 _INITIAL_VERSION: int = 1
-_FALLBACK_VERSION: int = 0
-
-_PLACEHOLDER_BODY_TEMPLATE: str = "<p>Автоматически созданная страница: %s</p>"
 
 
 class ConfluenceClient:
@@ -542,3 +539,9 @@ class ConfluenceClient:
             )
         session.headers.update({"Content-Type": "application/json"})
         return session
+
+
+# Deferred import to avoid circular dependency via page_manager.__init__
+from autodoc.publisher.page_manager.version_manager import (
+    _FALLBACK_VERSION,
+)  # noqa: E402

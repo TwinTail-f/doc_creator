@@ -38,6 +38,8 @@ _VERSION = "2.0.0"
 _RELEASE_TEMPLATE = "release_doc.jinja2"
 _PROFILE_TEMPLATE = "profile_centric.jinja2"
 _PASSPORT_TEMPLATE = "component_passport.jinja2"
+_DEFAULT_RELEASE_PAGE_TITLE: str = "Release Documentation"
+_DEFAULT_PROFILE_PAGE_TITLE: str = "Profile Documentation"
 
 
 class _CliCtx:
@@ -146,6 +148,11 @@ def parse(
 
         console.print("📋 Загрузка конфигурации…", style="cyan")
         parser_config = cli_ctx.config_manager.load_parser_config(config)
+        if parser_config is None:
+            raise ConfigError(
+                f"Не удалось загрузить конфигурацию парсера: "
+                f"файл не найден или содержит ошибки валидации."
+            )
         console.print(
             f"✅ Конфигурация загружена (платформа: {parser_config.platform_version})",
             style="green",
@@ -257,7 +264,9 @@ def publish_release(
         )
 
         publisher, conf_config = _make_publisher(cli_ctx)
-        final_title = page_title or conf_config.page_title or "Release Documentation"
+        final_title = (
+            page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
+        )
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish(
@@ -302,7 +311,9 @@ def publish_profile(
         )
 
         publisher, conf_config = _make_publisher(cli_ctx)
-        final_title = page_title or conf_config.page_title or "Profile Documentation"
+        final_title = (
+            page_title or conf_config.page_title or _DEFAULT_PROFILE_PAGE_TITLE
+        )
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish(
@@ -406,7 +417,9 @@ def publish_all(
             sys.exit(1)
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
-        final_title = page_title or conf_config.page_title or "Release Documentation"
+        final_title = (
+            page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
+        )
 
         console.print("🔄 Публикация…", style="cyan")
         result = publisher.publish_all(

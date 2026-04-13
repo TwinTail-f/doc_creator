@@ -22,6 +22,12 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
     Двухфазовый: сначала ``configure(ctx)``, потом ``fetch(urls, target_platform)``.
     """
 
+    def __init__(self) -> None:
+        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        super().__init__()
+        self._profiles_urls: list[str] = []
+        self._platform_version: str = ""
+
     def configure(self, ctx: PipelineContext) -> None:
         """
         Инициализирует фетчер из контекста пайплайна.
