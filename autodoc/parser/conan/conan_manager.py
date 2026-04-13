@@ -8,13 +8,13 @@ from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
-from autodoc.parser.conan.conan_result import ConanRawResult
 from autodoc.parser.conan.conan_runner import BaseConanRunner, Conan2Runner
 from autodoc.parser.conan.result_parser import ConanEnrichData, ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
 from autodoc.models.conan_result import (
     ConanEnrichmentResult,
     ConanCommandRecord,
+    ConanRawResult,
     ConanComponentReport,
     ConanProfileReport,
     ProfileConanData,
@@ -104,9 +104,6 @@ class ConanManager:
             Список сырых результатов ``ConanRawResult`` в том же порядке,
             что и входные задачи.
         """
-        logger.info(
-            f"сформировано {len(tasks)} задач, запуск в {_DEFAULT_MAX_WORKERS} потоках…"
-        )
         return self._executor.execute(
             self._runner.run,
             tasks,

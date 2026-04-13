@@ -14,7 +14,7 @@ import tempfile
 from abc import ABC, abstractmethod
 
 from autodoc.infrastructure.logger import logger
-from autodoc.parser.conan.conan_result import ConanRawResult
+from autodoc.models.conan_result import ConanRawResult
 from autodoc.parser.conan.task_builder import ConanTask
 
 
@@ -183,3 +183,4 @@ class Conan2Runner(BaseConanRunner):
             if idx != -1:
                 return stderr[idx:]
         return stderr.strip()
+

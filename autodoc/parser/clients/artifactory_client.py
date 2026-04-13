@@ -15,7 +15,6 @@ from autodoc.config.schemas import ParserConfigSchema
 from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
 
-_HEAD_TIMEOUT: int = 10
 _MAX_RETRIES: int = 1
 
 
@@ -44,7 +43,6 @@ class ArtifactoryClient:
         self.session = create_retryable_session(
             token=config.artifactory_token,
             max_retries=_MAX_RETRIES,
-            timeout=_HEAD_TIMEOUT,
         )
         self.session.verify = False
 
@@ -63,4 +61,4 @@ class ArtifactoryClient:
         """
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-            return self.session.head(url, allow_redirects=True, timeout=_HEAD_TIMEOUT)
+            return self.session.head(url, allow_redirects=True)

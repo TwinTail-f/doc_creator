@@ -6,8 +6,19 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from autodoc.parser.conan.task_builder import ConanTask
+
+@dataclass
+class ConanRawResult:
+    """Сырой результат одного вызова ``conan graph info``."""
+
+    task: "ConanTask"
+    success: bool
+    data: dict[str, Any] | None
+    error: str = ""
 
 @dataclass
 class ConanCommandRecord:
@@ -71,14 +82,12 @@ class ConanEnrichmentResult:
     Не мутирует модели — передаётся в ``DataEnricher.apply_conan_results()``.
     """
 
-    # Данные для обогащения Release: (comp_name, version, channel) → данные
     release_data: dict[tuple[str, str, str], ReleaseConanData] = field(
         default_factory=dict
     )
-    # Данные для обогащения ProfileBuild: id(pb) → данные
     profile_data: dict[int, ProfileConanData] = field(default_factory=dict)
-    # Лог ошибок
     errors: _ErrorLog = field(default_factory=dict)
     total_tasks: int = 0
     succeeded: int = 0
     failed: int = 0
+    execution_report: list[ConanComponentReport] = field(default_factory=list)

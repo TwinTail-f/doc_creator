@@ -159,7 +159,7 @@ class TFSClient:
         try:
             return self.session.get(items_url, params=params)
         except requests.exceptions.RequestException as e:
-            raise NetworkError(f"ошибка запроса файла {path}: {e}") from e
+            raise NetworkError(f"Ошибка запроса файла {path}: {e}") from e
 
     def get_items(
         self,
@@ -194,5 +194,5 @@ class TFSClient:
             return response.json().get("value", [])
         except requests.exceptions.RequestException as e:
             raise NetworkError(
-                f"ошибка запроса структуры репозитория (url={items_url}, branch={branch}): {e}"
+                f"Ошибка запроса структуры репозитория (url={items_url}, branch={branch}): {e}"
             ) from e
