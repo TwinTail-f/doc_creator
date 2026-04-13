@@ -91,7 +91,10 @@ class FullReleaseTransformer(BaseReleaseTransformer):
                                     "profile_name": pb.profile_name,
                                     "conan_settings": pb.conan_settings,
                                     "docker_image": pb.docker_image,
-                                    "variants": [v.model_dump() for v in pb.variants],
+                                    "variants": [
+                                        self._build_variant_view(v, comp.name)
+                                        for v in pb.variants
+                                    ],
                                 }
                                 for pb in rel.profile_builds
                             ],

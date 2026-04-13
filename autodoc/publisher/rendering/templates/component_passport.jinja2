@@ -210,7 +210,7 @@
                                                                         <ac:structured-macro ac:name="code">
                                                                             <ac:parameter ac:name="language">bash</ac:parameter>
                                                                             <ac:parameter ac:name="theme">Confluence</ac:parameter>
-                                                                            <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }} -pr {{ build.profile_name }}{% if var.conan_options %} {% for k, v in var.conan_options.items() %}-o {{ k }}={{ v }} {% endfor %}{% endif %}]]></ac:plain-text-body>
+                                                                            <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }} -pr {{ build.profile_name }}{% if var.install_options %} {{ var.install_options }}{% endif %}]]></ac:plain-text-body>
                                                                         </ac:structured-macro>
                                                                     </ac:rich-text-body>
                                                                 </ac:structured-macro>

@@ -76,7 +76,10 @@ class PassportTransformer(BaseDataTransformer):
                     "conan_settings": settings,
                     "exists": pb.exists,
                     "docker_image": pb.docker_image,  # новое имя
-                    "variants": [v.model_dump() for v in (pb.variants or [])],
+                    "variants": [
+                        self._build_variant_view(v, target_comp.name)
+                        for v in (pb.variants or [])
+                    ],
                 }
             )
 

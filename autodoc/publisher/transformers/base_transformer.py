@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.publisher.view_models import ConanVariantView
 
 _DEFAULT_PASSPORT_PATTERN: str = "/spaces/DOC/pages/{component_name}+{release_version}"
 
@@ -50,6 +51,55 @@ class BaseDataTransformer(ABC):
     Преобразует ``ParsedResult`` в view-model, пригодный для рендеринга
     конкретного шаблона. Следует паттерну Стратегия.
     """
+
+    @staticmethod
+    def _build_install_options(conan_options: dict[str, Any], component_name: str) -> str:
+        """
+        Форматирует опции варианта сборки для команды ``conan install``.
+
+        Ключи без разделителя ``':'`` квалифицируются именем компонента
+        (``opt`` → ``component_name:opt``). Ключи, уже содержащие ``':'``
+        (зависимостные опции вроде ``icu:shared``), остаются без изменений.
+
+        Args:
+            conan_options: Словарь опций варианта ``{key: value}``.
+            component_name: Имя пакета-владельца для квалификации ключей.
+
+        Returns:
+            Строка флагов ``-o pkg:opt=val``, разделённых пробелами,
+            или пустая строка, если опций нет.
+        """
+        if not conan_options:
+            return ""
+        return " ".join(
+            f"-o {k if ':' in k else f'{component_name}:{k}'}={v}"
+            for k, v in conan_options.items()
+        )
+
+    @staticmethod
+    def _build_variant_view(variant: Any, component_name: str) -> ConanVariantView:
+        """
+        Преобразует доменный ``ConanVariant`` в ``ConanVariantView`` паблишера.
+
+        Заполняет поле ``install_options`` через ``_build_install_options``,
+        квалифицируя ключи именем компонента.
+
+        Args:
+            variant: Доменный объект ``ConanVariant``.
+            component_name: Имя компонента для квалификации ключей опций.
+
+        Returns:
+            Готовый ``ConanVariantView`` с предформатированными опциями.
+        """
+        return ConanVariantView(
+            package_id=variant.package_id,
+            build_url=variant.build_url,
+            build_date=variant.build_date,
+            conan_options=dict(variant.conan_options),
+            install_options=BaseDataTransformer._build_install_options(
+                variant.conan_options, component_name
+            ),
+        )
 
     @abstractmethod
     def transform(self, data: ParsedResult) -> dict[str, Any]:
