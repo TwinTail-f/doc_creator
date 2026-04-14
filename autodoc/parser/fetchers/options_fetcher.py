@@ -6,6 +6,7 @@
 import requests
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
+from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.parser.parsers.options_parser import OptionsParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
@@ -13,12 +14,18 @@ from autodoc.parser.steps.base import PipelineContext
 
 OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
+_OPTIONS_MAX_WORKERS: int = 32
+_OPTIONS_LOG_INTERVAL: int = 50
+
 
 class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
     """
     Скачивает options.json из TFS и делегирует разбор OptionsParser.
 
     Двухфазовый: сначала ``configure(ctx)``, потом ``fetch(components)``.
+    Уникальные комбинации репозиторий/ветка скачиваются параллельно через
+    ``ParallelExecutor``; итоговый маппинг собирается в один проход после
+    завершения всех задач.
     Не мутирует входные модели — возвращает OptionsMap.
     """
 
@@ -26,6 +33,10 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
         super().__init__()
         self._base_url: str = ""
+        self._executor = ParallelExecutor(
+            max_workers=_OPTIONS_MAX_WORKERS,
+            log_progress_interval=_OPTIONS_LOG_INTERVAL,
+        )
 
     def configure(self, ctx: PipelineContext) -> None:
         """
@@ -43,6 +54,11 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         Собирает опции Conan для всех релизов компонентов.
 
+        Уникальные пары ``(repo_name, branch)`` определяются за один проход,
+        затем скачиваются параллельно через ``ParallelExecutor``. Итоговый
+        маппинг строится последовательно из заполненного кэша — без повторных
+        сетевых запросов.
+
         Args:
             components: Список компонентов для обогащения.
 
@@ -51,25 +67,48 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         logger.info("Начинаем сбор options.json…")
 
-        options_cache: dict[str, dict] = {}
-        result: OptionsMap = {}
         fetch_warnings: list[str] = []
+
+        # Collect unique (repo_name, branch) pairs in encounter order,
+        # keyed by cache_key so the parallel results can be zipped back.
+        unique_keys: list[str] = []
+        unique_pairs: list[tuple[str, str]] = []
+        seen: set[str] = set()
 
         for comp in components:
             repo_name = comp.git_repo
             if not repo_name:
                 fetch_warnings.append(f"{comp.name} без git_repo, пропуск")
                 continue
-
             for release in comp.releases:
                 branch = f"release_{release.version}"
                 cache_key = f"{repo_name}_{branch}"
+                if cache_key not in seen:
+                    seen.add(cache_key)
+                    unique_keys.append(cache_key)
+                    unique_pairs.append((repo_name, branch))
 
-                if cache_key not in options_cache:
-                    options_cache[cache_key] = self._fetch_options_for_repo(
-                        repo_name, branch
-                    )
+        # Fetch all unique repo/branch combinations in parallel.
+        raw_results = self._executor.execute(
+            lambda pair: self._fetch_options_for_repo(pair[0], pair[1]),
+            unique_pairs,
+            task_label="репозиториев",
+        )
 
+        _empty: dict = {"global": {}, "channels": {}}
+        options_cache: dict[str, dict] = {
+            key: (repo_data if repo_data is not None else _empty)
+            for key, repo_data in zip(unique_keys, raw_results)
+        }
+
+        # Build the result map using the populated cache — no more network calls.
+        result: OptionsMap = {}
+        for comp in components:
+            if not comp.git_repo:
+                continue
+            for release in comp.releases:
+                branch = f"release_{release.version}"
+                cache_key = f"{comp.git_repo}_{branch}"
                 chosen = OptionsParser.pick_options(
                     options_cache[cache_key], release.channel
                 )

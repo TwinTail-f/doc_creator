@@ -11,7 +11,7 @@ from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.utils.properties_reader import read_properties
 
-_MANIFEST_MAX_WORKERS: int = 8
+_MANIFEST_MAX_WORKERS: int = 32
 _MANIFEST_LOG_INTERVAL: int = 50
 
 
