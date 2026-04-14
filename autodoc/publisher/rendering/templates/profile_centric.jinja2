@@ -1,144 +1,177 @@
+{% set PAGE_SIZE = 20 %}
+{% set all_profiles = data.profiles | list %}
+{% set total = all_profiles | length %}
+
 <ac:structured-macro ac:name="tabs-group">
-    <ac:parameter ac:name="disposition">vertical</ac:parameter>
+    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
     <ac:parameter ac:name="outline">true</ac:parameter>
-    
+
     <ac:rich-text-body>
-        
-        {% for profile in data.profiles %}
-        {% set prof_index = loop.index %}
+
+        {% for page_profiles in all_profiles | batch(PAGE_SIZE) %}
+        {% set page_idx = loop.index %}
+        {% set page_idx0 = loop.index0 %}
+        {% set page_start = page_idx0 * PAGE_SIZE + 1 %}
+        {% set page_end_raw = page_start + PAGE_SIZE - 1 %}
+        {% set page_end = page_end_raw if page_end_raw < total else total %}
+
         <ac:structured-macro ac:name="tab-pane">
-            
-            <ac:parameter ac:name="name">{{ profile.profile_name }}</ac:parameter>
-            <ac:parameter ac:name="anchor">prof-{{ prof_index }}</ac:parameter>
+            <ac:parameter ac:name="name">{{ page_start }}–{{ page_end }}</ac:parameter>
+            <ac:parameter ac:name="anchor">page-{{ page_idx }}</ac:parameter>
             <ac:parameter ac:name="outline">true</ac:parameter>
-            
+
             <ac:rich-text-body>
-                
-                <!-- Заголовок профиля -->
-                <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 24px; font-weight: 700; color: var(--ds-text, #111827); font-family: monospace;">{{ profile.profile_name }}</h1>
-                
-                <!-- Краткая информация об окружении (только OS, Архитектура, Компилятор) -->
-                <div style="margin-top: 12px; margin-bottom: 12px;">
-                    
-                    {% set os_lower = profile.os | lower %}
-                    {% if 'linux' in os_lower %}
-                        {% set os_bg = 'var(--ds-background-information, #dbeafe)' %}{% set os_color = 'var(--ds-text-information, #1d4ed8)' %}
-                    {% elif 'android' in os_lower %}
-                        {% set os_bg = 'var(--ds-background-success, #dcfce7)' %}{% set os_color = 'var(--ds-text-success, #15803d)' %}
-                    {% elif 'windows' in os_lower %}
-                        {% set os_bg = 'var(--ds-background-discovery, #ede9fe)' %}{% set os_color = 'var(--ds-text-discovery, #7c3aed)' %}
-                    {% elif 'apple' in os_lower or 'macos' in os_lower or 'ios' in os_lower %}
-                        {% set os_bg = 'var(--ds-background-danger, #fce7f3)' %}{% set os_color = 'var(--ds-text-danger, #be185d)' %}
-                    {% else %}
-                        {% set os_bg = 'var(--ds-background-neutral, #e5e7eb)' %}{% set os_color = 'var(--ds-text, #4b5563)' %}
-                    {% endif %}
-                    
-                    <span style="font-size: 12px; background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px; color: var(--ds-text-subtle, #6b7280);">
-                        OS: <strong style="background: {{ os_bg }}; color: {{ os_color }}; padding: 1px 6px; border-radius: 4px; margin-left: 4px;">{{ profile.os }}</strong>
-                    </span>
-                    
-                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px;">
-                        Архитектура: <strong style="color: var(--ds-text, #374151);">{{ profile.arch }}</strong>
-                    </span>
-                    
-                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px;">
-                        Компилятор: <strong style="color: var(--ds-text, #374151);">{{ profile.compiler }} {{ profile.compiler_version }}</strong>
-                    </span>
-                </div>
 
-                <!-- Подробное описание профиля (скрываемая плашка) -->
-                <ac:structured-macro ac:name="expand">
-                    <ac:parameter ac:name="title">Подробное описание профиля {{ profile.profile_name }}</ac:parameter>
-                    <ac:rich-text-body>
-                        <div style="padding: 14px 18px; background: var(--ds-surface-sunken, #F4F5F7); border-radius: 8px; border: 1px solid var(--ds-border, #DFE1E6);">
-                            <div style="font-size: 11px; color: var(--ds-text-subtle, #6B778C); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Полные настройки профиля</div>
-                            <div style="margin-bottom: 14px;">
-                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">os</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.os }}</span></span>
-                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">arch</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.arch }}</span></span>
-                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">compiler</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.compiler }}</span></span>
-                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">compiler.version</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.compiler_version }}</span></span>
-                            </div>
-                            <div style="font-size: 11px; color: var(--ds-text-subtle, #6B778C); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Docker</div>
-                            {% if profile.docker_url %}
-                                <span style="font-size: 12px; color: var(--ds-text, #374151); font-family: monospace;">{{ profile.docker_url }}</span>
-                            {% else %}
-                                {% set os_lower_d = profile.os | lower %}
-                                {% if 'windows' in os_lower_d %}
-                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity "SrvMskCiw"</span>
-                                {% elif 'macos' in os_lower_d or 'ios' in os_lower_d or 'apple' in os_lower_d %}
-                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity "Mac OS X Agent"</span>
-                                {% else %}
-                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity</span>
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                    </ac:rich-text-body>
-                </ac:structured-macro>
-
-                <!-- ГОРИЗОНТАЛЬНЫЕ ВКЛАДКИ КАНАЛОВ -->
                 <ac:structured-macro ac:name="tabs-group">
-                    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+                    <ac:parameter ac:name="disposition">vertical</ac:parameter>
                     <ac:parameter ac:name="outline">true</ac:parameter>
-                    
+
                     <ac:rich-text-body>
-                        
-                        {% for channel_name, components in profile.channels.items() %}
+
+                        {% for profile in page_profiles %}
+                        {% if profile is not none %}
+                        {% set prof_index = page_idx0 * PAGE_SIZE + loop.index %}
                         <ac:structured-macro ac:name="tab-pane">
-                            
-                            <ac:parameter ac:name="name">{{ channel_name | capitalize }} ({{ components | length }})</ac:parameter>
-                            <ac:parameter ac:name="anchor">prof-{{ prof_index }}-chan-{{ loop.index }}</ac:parameter>
+
+                            <ac:parameter ac:name="name">{{ profile.profile_name }}</ac:parameter>
+                            <ac:parameter ac:name="anchor">prof-{{ prof_index }}</ac:parameter>
                             <ac:parameter ac:name="outline">true</ac:parameter>
-                            
+
                             <ac:rich-text-body>
-                                
-                                <div style="margin-top: 16px; margin-bottom: 24px;">
-                                    <h4 style="font-size: 13px; font-weight: 600; color: var(--ds-text, #374151); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em;">Собранные компоненты</h4>
-                                    
-                                    <table class="confluenceTable" style="border: 1px solid var(--ds-border, #e5e7eb); border-radius: 8px; margin-bottom: 0; width: 100%;">
-                                        <thead style="background: var(--ds-surface-sunken, #f9fafb);">
-                                            <tr>
-                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Компонент</th>
-                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Версия</th>
-                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Conan Reference</th>
-                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Паспорт</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for comp in components %}
-                                            <tr>
-                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
-                                                    <strong style="color: var(--ds-text, #111827); font-size: 13px;">{{ comp.name }}</strong>
-                                                </td>
-                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
-                                                    <span style="font-size: 12px; color: var(--ds-text, #374151);">{{ comp.version }}</span>
-                                                </td>
-                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
-                                                    <a href="{{ comp.url }}" style="font-family: monospace; font-size: 12px; font-weight: 600; color: var(--ds-link, #2563eb); text-decoration: none;">
-                                                        {{ comp.reference }} &#8599;
-                                                    </a>
-                                                </td>
-                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
-                                                    {% if comp.passport_link %}
-                                                        <a href="{{ comp.passport_link }}" style="display: inline-block; padding: 4px 10px; background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 11px; font-weight: 500; border: 1px solid var(--ds-border, #C1C7D0); white-space: nowrap;">
-                                                            📋 Паспорт
-                                                        </a>
-                                                    {% else %}
-                                                        <span style="color: var(--ds-text-subtlest, #9ca3af); font-size: 12px;">—</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+
+                                <!-- Заголовок профиля -->
+                                <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 24px; font-weight: 700; color: var(--ds-text, #111827); font-family: monospace;">{{ profile.profile_name }}</h1>
+
+                                <!-- Краткая информация об окружении -->
+                                <div style="margin-top: 12px; margin-bottom: 12px;">
+
+                                    {% set os_lower = profile.os | lower %}
+                                    {% if 'linux' in os_lower %}
+                                        {% set os_bg = 'var(--ds-background-information, #dbeafe)' %}{% set os_color = 'var(--ds-text-information, #1d4ed8)' %}
+                                    {% elif 'android' in os_lower %}
+                                        {% set os_bg = 'var(--ds-background-success, #dcfce7)' %}{% set os_color = 'var(--ds-text-success, #15803d)' %}
+                                    {% elif 'windows' in os_lower %}
+                                        {% set os_bg = 'var(--ds-background-discovery, #ede9fe)' %}{% set os_color = 'var(--ds-text-discovery, #7c3aed)' %}
+                                    {% elif 'apple' in os_lower or 'macos' in os_lower or 'ios' in os_lower %}
+                                        {% set os_bg = 'var(--ds-background-danger, #fce7f3)' %}{% set os_color = 'var(--ds-text-danger, #be185d)' %}
+                                    {% else %}
+                                        {% set os_bg = 'var(--ds-background-neutral, #e5e7eb)' %}{% set os_color = 'var(--ds-text, #4b5563)' %}
+                                    {% endif %}
+
+                                    <span style="font-size: 12px; background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px; color: var(--ds-text-subtle, #6b7280);">
+                                        OS: <strong style="background: {{ os_bg }}; color: {{ os_color }}; padding: 1px 6px; border-radius: 4px; margin-left: 4px;">{{ profile.os }}</strong>
+                                    </span>
+
+                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px;">
+                                        Архитектура: <strong style="color: var(--ds-text, #374151);">{{ profile.arch }}</strong>
+                                    </span>
+
+                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); background: var(--ds-background-neutral, #f3f4f6); border-radius: 4px; padding: 2px 8px; margin-right: 12px; display: inline-block; margin-bottom: 8px;">
+                                        Компилятор: <strong style="color: var(--ds-text, #374151);">{{ profile.compiler }} {{ profile.compiler_version }}</strong>
+                                    </span>
                                 </div>
+
+                                <!-- Подробное описание профиля -->
+                                <ac:structured-macro ac:name="expand">
+                                    <ac:parameter ac:name="title">Подробное описание профиля {{ profile.profile_name }}</ac:parameter>
+                                    <ac:rich-text-body>
+                                        <div style="padding: 14px 18px; background: var(--ds-surface-sunken, #F4F5F7); border-radius: 8px; border: 1px solid var(--ds-border, #DFE1E6);">
+                                            <div style="font-size: 11px; color: var(--ds-text-subtle, #6B778C); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Полные настройки профиля</div>
+                                            <div style="margin-bottom: 14px;">
+                                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">os</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.os }}</span></span>
+                                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">arch</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.arch }}</span></span>
+                                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">compiler</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.compiler }}</span></span>
+                                                <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">compiler.version</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ profile.compiler_version }}</span></span>
+                                            </div>
+                                            <div style="font-size: 11px; color: var(--ds-text-subtle, #6B778C); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Docker</div>
+                                            {% if profile.docker_url %}
+                                                <span style="font-size: 12px; color: var(--ds-text, #374151); font-family: monospace;">{{ profile.docker_url }}</span>
+                                            {% else %}
+                                                {% set os_lower_d = profile.os | lower %}
+                                                {% if 'windows' in os_lower_d %}
+                                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity "SrvMskCiw"</span>
+                                                {% elif 'macos' in os_lower_d or 'ios' in os_lower_d or 'apple' in os_lower_d %}
+                                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity "Mac OS X Agent"</span>
+                                                {% else %}
+                                                    <span style="font-size: 12px; color: var(--ds-text-subtle, #6b7280); font-style: italic;">Докер не используется, собирается на агентах TeamCity</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </ac:rich-text-body>
+                                </ac:structured-macro>
+
+                                <!-- ГОРИЗОНТАЛЬНЫЕ ВКЛАДКИ КАНАЛОВ -->
+                                <ac:structured-macro ac:name="tabs-group">
+                                    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+                                    <ac:parameter ac:name="outline">true</ac:parameter>
+
+                                    <ac:rich-text-body>
+
+                                        {% for channel_name, components in profile.channels.items() %}
+                                        <ac:structured-macro ac:name="tab-pane">
+
+                                            <ac:parameter ac:name="name">{{ channel_name | capitalize }} ({{ components | length }})</ac:parameter>
+                                            <ac:parameter ac:name="anchor">prof-{{ prof_index }}-chan-{{ loop.index }}</ac:parameter>
+                                            <ac:parameter ac:name="outline">true</ac:parameter>
+
+                                            <ac:rich-text-body>
+
+                                                <div style="margin-top: 16px; margin-bottom: 24px;">
+                                                    <h4 style="font-size: 13px; font-weight: 600; color: var(--ds-text, #374151); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em;">Собранные компоненты</h4>
+
+                                                    <table class="confluenceTable" style="border: 1px solid var(--ds-border, #e5e7eb); border-radius: 8px; margin-bottom: 0; width: 100%;">
+                                                        <thead style="background: var(--ds-surface-sunken, #f9fafb);">
+                                                            <tr>
+                                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Компонент</th>
+                                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Версия</th>
+                                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Conan Reference</th>
+                                                                <th class="confluenceTh" style="padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--ds-text-subtle, #6b7280); border-bottom: 1px solid var(--ds-border, #e5e7eb);">Паспорт</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for comp in components %}
+                                                            <tr>
+                                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
+                                                                    <strong style="color: var(--ds-text, #111827); font-size: 13px;">{{ comp.name }}</strong>
+                                                                </td>
+                                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
+                                                                    <span style="font-size: 12px; color: var(--ds-text, #374151);">{{ comp.version }}</span>
+                                                                </td>
+                                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
+                                                                    <a href="{{ comp.url }}" style="font-family: monospace; font-size: 12px; font-weight: 600; color: var(--ds-link, #2563eb); text-decoration: none;">
+                                                                        {{ comp.reference }} &#8599;
+                                                                    </a>
+                                                                </td>
+                                                                <td class="confluenceTd" style="padding: 12px 14px; border-bottom: 1px solid var(--ds-border, #e5e7eb); vertical-align: middle;">
+                                                                    {% if comp.passport_link %}
+                                                                        <a href="{{ comp.passport_link }}" style="display: inline-block; padding: 4px 10px; background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; color: var(--ds-link, #0052CC); text-decoration: none; font-size: 11px; font-weight: 500; border: 1px solid var(--ds-border, #C1C7D0); white-space: nowrap;">
+                                                                            📋 Паспорт
+                                                                        </a>
+                                                                    {% else %}
+                                                                        <span style="color: var(--ds-text-subtlest, #9ca3af); font-size: 12px;">—</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                            </ac:rich-text-body>
+                                        </ac:structured-macro>
+                                        {% endfor %}
+
+                                    </ac:rich-text-body>
+                                </ac:structured-macro>
 
                             </ac:rich-text-body>
                         </ac:structured-macro>
+                        {% endif %}
                         {% endfor %}
 
                     </ac:rich-text-body>
                 </ac:structured-macro>
-                
+
             </ac:rich-text-body>
         </ac:structured-macro>
         {% endfor %}
