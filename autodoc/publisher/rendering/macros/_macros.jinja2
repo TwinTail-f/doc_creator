@@ -1,0 +1,59 @@
+{#
+  _macros.jinja2
+  Переиспользуемые макросы для всех шаблонов.
+
+  Подключение:
+    {%- from '../macros/_macros.jinja2' import os_style, docker_note -%}
+
+  Содержимое:
+    os_style(os)    — возвращает строку CSS (background + color) под конкретную ОС.
+                      Используется как значение атрибута style="…".
+    docker_note(os) — рендерит span с пояснением об агентах TeamCity,
+                      когда Docker-образ для профиля не указан.
+#}
+
+
+{# ----- OS color style --------------------------------------------------
+   Возвращает inline-CSS для фона и цвета текста в зависимости от ОС.
+
+   Пример использования:
+     <span class="ap-os-badge" style="{{ os_style(os) }}">{{ os }}</span>
+     <strong style="{{ os_style(profile.os) }};padding:1px 6px;border-radius:4px">{{ profile.os }}</strong>
+   ---------------------------------------------------------------------- #}
+{%- macro os_style(os) -%}
+  {%- set os_lower = os | lower -%}
+  {%- if 'linux' in os_lower -%}
+    background:var(--ds-background-information,#dbeafe);color:var(--ds-text-information,#1d4ed8)
+  {%- elif 'android' in os_lower -%}
+    background:var(--ds-background-success,#dcfce7);color:var(--ds-text-success,#15803d)
+  {%- elif 'windows' in os_lower -%}
+    background:var(--ds-background-discovery,#ede9fe);color:var(--ds-text-discovery,#7c3aed)
+  {%- elif 'apple' in os_lower or 'macos' in os_lower or 'ios' in os_lower -%}
+    background:var(--ds-background-danger,#fce7f3);color:var(--ds-text-danger,#be185d)
+  {%- else -%}
+    background:var(--ds-background-neutral,#e5e7eb);color:var(--ds-text,#4b5563)
+  {%- endif -%}
+{%- endmacro -%}
+
+
+{# ----- Docker note -----------------------------------------------------
+   Рендерит поясняющий span об агентах TeamCity, когда docker_image пустой.
+   Класс ap-italic-note определён в _styles_base.
+
+   Пример использования:
+     {%- if build.docker_image -%}
+         {{ build.docker_image }}
+     {%- else -%}
+         {{ docker_note(build.conan_settings.get('os', '')) }}
+     {%- endif -%}
+   ---------------------------------------------------------------------- #}
+{%- macro docker_note(os) -%}
+  {%- set os_lower = os | lower -%}
+  {%- if 'windows' in os_lower -%}
+    <span class="ap-italic-note">Докер не используется, собирается на агентах TeamCity "SrvMskCiw"</span>
+  {%- elif 'macos' in os_lower or 'ios' in os_lower or 'apple' in os_lower -%}
+    <span class="ap-italic-note">Докер не используется, собирается на агентах TeamCity "Mac OS X Agent"</span>
+  {%- else -%}
+    <span class="ap-italic-note">Докер не используется, собирается на агентах TeamCity</span>
+  {%- endif -%}
+{%- endmacro -%}
