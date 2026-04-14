@@ -110,7 +110,9 @@ class TFSClient:
         if not self._configured:
             raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
 
-        logger.info(f"Запрос списка файлов из {items_url} ({version_type.value}: {branch})")
+        logger.info(
+            f"Запрос списка файлов из {items_url} ({version_type.value}: {branch})"
+        )
 
         try:
             response = self.session.get(items_url, params=params)
@@ -131,7 +133,9 @@ class TFSClient:
 
             file_name = Path(path_str).name
             try:
-                file_response = self.get_file_content(items_url, path_str, branch, version_type)
+                file_response = self.get_file_content(
+                    items_url, path_str, branch, version_type
+                )
                 file_response.raise_for_status()
                 (out_dir / file_name).write_text(file_response.text, encoding="utf-8")
                 downloaded_count += 1

@@ -17,9 +17,9 @@ PLATFORM_VERSION_RE: re.Pattern[str] = re.compile(r"Platform\s+[\d.]+")
 class _H1Section(NamedTuple):
     """Internal record of one parsed h1 element."""
 
-    tag_start: int   # index of the opening <h1...> tag
-    tag_end: int     # index just after the closing </h1>
-    text: str        # inner text of the h1 (tags stripped)
+    tag_start: int  # index of the opening <h1...> tag
+    tag_end: int  # index just after the closing </h1>
+    text: str  # inner text of the h1 (tags stripped)
 
 
 def find_h1_sections(html: str) -> list[_H1Section]:

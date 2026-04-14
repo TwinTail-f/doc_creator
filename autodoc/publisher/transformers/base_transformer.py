@@ -53,7 +53,9 @@ class BaseDataTransformer(ABC):
     """
 
     @staticmethod
-    def _build_install_options(conan_options: dict[str, Any], component_name: str) -> str:
+    def _build_install_options(
+        conan_options: dict[str, Any], component_name: str
+    ) -> str:
         """
         Форматирует опции варианта сборки для команды ``conan install``.
 
