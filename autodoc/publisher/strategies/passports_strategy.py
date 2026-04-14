@@ -6,12 +6,11 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
 from autodoc.publisher.legacy_content.legacy_service import LegacyContentService
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.utils.publish_queue import PublishQueue
-from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer
 
@@ -52,8 +51,8 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
 
     def __init__(
         self,
-        confluence_client: ConfluenceClient,
-        document_builder: DocumentBuilder,
+        confluence_client: IConfluenceClient,
+        document_builder: IDocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
         root_page_id: str,

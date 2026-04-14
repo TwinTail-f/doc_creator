@@ -2,7 +2,6 @@
 
 from autodoc.infrastructure.logger import logger
 from autodoc.publisher.legacy_content.legacy_extractor import LegacyContentExtractor
-from autodoc.publisher.legacy_content.legacy_merger import LegacyContentMerger
 
 _PLATFORM_LABEL_PREFIX: str = "Платформа "
 
@@ -11,8 +10,7 @@ class LegacyContentService:
     """
     Координирует извлечение и фильтрацию legacy-контента из Confluence.
 
-    Стратегии обращаются к этому сервису вместо прямых вызовов
-    ``LegacyContentExtractor`` и ``LegacyContentMerger``.
+    Стратегии обращаются к этому сервису вместо прямых вызовов ``LegacyContentExtractor``.
     Все методы статические.
     """
 
@@ -53,27 +51,3 @@ class LegacyContentService:
             f"{len(all_sections)} секций всего, {len(filtered)} после фильтрации платформы {current_platform_version}"
         )
         return filtered
-
-    @staticmethod
-    def merge(
-        new_html: str,
-        legacy_contents: dict[str, str],
-        current_platform: str,
-    ) -> str:
-        """
-        Объединяет новый HTML с legacy-секциями платформ.
-
-        Делегирует в ``LegacyContentMerger.merge_by_tabs()``. Если шаблон
-        сам обрабатывает вкладки, ``new_html`` возвращается без изменений.
-
-        Args:
-            new_html: Свежеотрендеренный HTML.
-            legacy_contents: Секции старых платформ для сохранения.
-            current_platform: Отображаемое имя вкладки текущей платформы.
-
-        Returns:
-            Финальный HTML, готовый для публикации в Confluence.
-        """
-        return LegacyContentMerger.merge_by_tabs(
-            new_html, legacy_contents, current_platform
-        )

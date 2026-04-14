@@ -30,6 +30,9 @@ _RETRY_METHODS: tuple[str, ...] = (
 )
 
 _PAT_DEFAULT_USERNAME: str = ""
+_DEFAULT_TIMEOUT: int = 15
+_DEFAULT_MAX_RETRIES: int = 3
+_DEFAULT_BACKOFF_FACTOR: float = 1.0
 
 
 class RetryableSession(requests.Session):
@@ -47,9 +50,9 @@ class RetryableSession(requests.Session):
 
     def __init__(
         self,
-        max_retries: int = 3,
-        backoff_factor: float = 1.0,
-        timeout: int = 15,
+        max_retries: int = _DEFAULT_MAX_RETRIES,
+        backoff_factor: float = _DEFAULT_BACKOFF_FACTOR,
+        timeout: int = _DEFAULT_TIMEOUT,
     ) -> None:
         """
         Args:
@@ -79,9 +82,9 @@ def create_retryable_session(
     username: str | None = None,
     token: str | None = None,
     bearer: bool = False,
-    max_retries: int = 3,
-    backoff_factor: float = 1.0,
-    timeout: int = 15,
+    max_retries: int = _DEFAULT_MAX_RETRIES,
+    backoff_factor: float = _DEFAULT_BACKOFF_FACTOR,
+    timeout: int = _DEFAULT_TIMEOUT,
 ) -> RetryableSession:
     """
     Создаёт ``RetryableSession`` с опциональной аутентификацией.

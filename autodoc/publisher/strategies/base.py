@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, Callable, ClassVar
 
 if TYPE_CHECKING:
     from autodoc.models.parsed_result import ParsedResult
-    from autodoc.publisher.clients.confluence_client import ConfluenceClient
-    from autodoc.publisher.rendering.document_builder import DocumentBuilder
+
+from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
 
 from autodoc.infrastructure.logger import logger
 
@@ -70,8 +70,8 @@ class BasePublishStrategy(ABC):
 
     def __init__(
         self,
-        confluence_client: ConfluenceClient,
-        document_builder: DocumentBuilder,
+        confluence_client: IConfluenceClient,
+        document_builder: IDocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
     ) -> None:
@@ -79,8 +79,8 @@ class BasePublishStrategy(ABC):
         Инициализирует общие зависимости всех стратегий.
 
         Args:
-            confluence_client: Клиент Confluence API.
-            document_builder: Рендерер Jinja2-шаблонов.
+            confluence_client: Реализация ``IConfluenceClient`` (обычно ``ConfluenceClient``).
+            document_builder: Реализация ``IDocumentBuilder`` (обычно ``DocumentBuilder``).
             parsed_data: Данные парсера (ParsedResult).
             space: Ключ Space в Confluence.
         """

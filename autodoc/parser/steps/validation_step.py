@@ -7,7 +7,7 @@ import requests
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
-from autodoc.parser.clients.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.protocols import IArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
 _VALIDATION_MAX_WORKERS: int = 20
@@ -47,7 +47,10 @@ class ArtifactoryValidationStep(BaseParseStep):
 
         logger.info(f"Проверяем {len(variants_to_check)} ссылок…")
 
-        client = ctx.artifactory_client
+        client: IArtifactoryClient | None = ctx.artifactory_client
+        if client is None:
+            logger.warning("ArtifactoryClient не задан — валидация пропущена.")
+            return
         dead_variants = self._check_urls_parallel(variants_to_check, client)
         self._remove_dead_variants(dead_variants)
 
@@ -83,7 +86,7 @@ class ArtifactoryValidationStep(BaseParseStep):
     @staticmethod
     def _check_urls_parallel(
         variants_to_check: list[tuple[ProfileBuild, ConanVariant, str]],
-        client: ArtifactoryClient,
+        client: IArtifactoryClient,
     ) -> list[tuple[ProfileBuild, ConanVariant]]:
         """
         Проверяет доступность URL параллельно через ``ParallelExecutor``.

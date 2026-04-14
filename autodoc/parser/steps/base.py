@@ -10,16 +10,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher
 
-if TYPE_CHECKING:
-    from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-    from autodoc.parser.clients.tfs_client import TFSClient
+from autodoc.parser.clients.protocols import IArtifactoryClient, ITFSClient
 
 
 @dataclass
@@ -38,8 +36,8 @@ class PipelineContext:
     Attributes:
         config: Валидированная конфигурация парсера.
         tmp_dir: Временная директория для промежуточных файлов.
-        tfs_client: Клиент TFS, внедряется ``ComponentParser`` перед запуском пайплайна.
-        artifactory_client: Клиент Artifactory, внедряется ``ComponentParser``.
+        tfs_client: Реализация ``ITFSClient``, внедряется ``ComponentParser`` перед запуском пайплайна.
+        artifactory_client: Реализация ``IArtifactoryClient``, внедряется ``ComponentParser``.
         components: Список компонентов, накапливаемый шагами пайплайна.
         result: Финальный результат, заполняется ``FinalizeStep``.
         intermediate: Произвольные данные для диагностики и передачи между шагами.
@@ -47,8 +45,8 @@ class PipelineContext:
 
     config: ParserConfigSchema
     tmp_dir: Path
-    tfs_client: TFSClient | None = None
-    artifactory_client: ArtifactoryClient | None = None
+    tfs_client: ITFSClient | None = None
+    artifactory_client: IArtifactoryClient | None = None
     components: list[Component] = field(default_factory=list)
     result: ParsedResult | None = None
     intermediate: dict[str, Any] = field(default_factory=dict)

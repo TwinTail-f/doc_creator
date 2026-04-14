@@ -11,6 +11,7 @@ from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.protocols import IArtifactoryClient, ITFSClient
 from autodoc.parser.clients.tfs_client import TFSClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.conan_step import ConanEnrichStep
@@ -75,8 +76,8 @@ class ComponentParser:
         config: ParserConfigSchema,
         data_dir: Path,
         steps: list[BaseParseStep] | None = None,
-        tfs_client: TFSClient | None = None,
-        artifactory_client: ArtifactoryClient | None = None,
+        tfs_client: ITFSClient | None = None,
+        artifactory_client: IArtifactoryClient | None = None,
     ) -> None:
         """
         Args:
@@ -95,8 +96,8 @@ class ComponentParser:
         self._steps: list[BaseParseStep] = (
             steps if steps is not None else default_pipeline()
         )
-        self._tfs_client = tfs_client
-        self._artifactory_client = artifactory_client
+        self._tfs_client: ITFSClient | None = tfs_client
+        self._artifactory_client: IArtifactoryClient | None = artifactory_client
 
     @classmethod
     def with_steps_excluded(

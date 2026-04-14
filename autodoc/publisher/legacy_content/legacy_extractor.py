@@ -41,7 +41,7 @@ class LegacyContentExtractor:
         if not html:
             return ""
 
-        tab_marker = '<ac:parameter ac:name="name">%s</ac:parameter>' % platform_name
+        tab_marker = f'<ac:parameter ac:name="name">{platform_name}</ac:parameter>'
         start_idx = html.find(tab_marker)
         if start_idx == -1:
             return ""

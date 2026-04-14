@@ -1,12 +1,13 @@
 """Стратегия публикации релизной документации на одной странице Confluence."""
 
+from typing import Any
+
 from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
 from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
@@ -30,8 +31,8 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
 
     def __init__(
         self,
-        confluence_client: ConfluenceClient,
-        document_builder: DocumentBuilder,
+        confluence_client: IConfluenceClient,
+        document_builder: IDocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
         page_title: str,
@@ -101,6 +102,18 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
             passport_page_pattern=kwargs.pop("passport_page_pattern", None),
         )
 
+    def _build_view_model(self) -> dict[str, Any]:
+        """Transforms parsed data into a view-model for the release template."""
+        return self._transformer.transform(self._data)
+
+    def _inject_passport_links(
+        self,
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
+    ) -> None:
+        """Injects passport page links into the release view-model in place."""
+        PassportPageRegistry.inject_links(view_model, passport_pages)
+
     def execute(self) -> PublishReport:
         """
         Трансформирует данные, опционально вставляет ссылки на паспорта, рендерит и публикует.
@@ -113,12 +126,12 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         inject_fn = None
         if self._include_passport_links:
             passport_pages = self._registry.load()
-            inject_fn = lambda vm: PassportPageRegistry.inject_links(vm, passport_pages)
+            inject_fn = lambda vm: self._inject_passport_links(vm, passport_pages)
 
         return self._publish_single_page(
             page_title=self._page_title,
             template_name=self._template_name,
-            transform_fn=lambda: self._transformer.transform(self._data),
+            transform_fn=self._build_view_model,
             parent_id=self._parent_id or "",
             inject_links=inject_fn,
         )

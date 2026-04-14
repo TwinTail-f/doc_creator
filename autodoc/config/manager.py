@@ -5,6 +5,8 @@
 import json
 from pathlib import Path
 from typing import Any
+
+from autodoc.exceptions import ConfigError
 from pydantic import ValidationError
 
 import yaml
@@ -117,7 +119,7 @@ class ConfigManager:
             logger.error(f"Ошибка валидации {filename}: {e}")
             return None
 
-    def load_raw(self, filename: str) -> dict[str, Any] | None:
+    def load_raw(self, filename: str) -> dict[str, Any]:
         """
         Загружает конфиг-файл без схемной валидации.
 
@@ -125,12 +127,17 @@ class ConfigManager:
             filename: Имя файла (с расширением).
 
         Returns:
-            Загруженные данные в виде словаря или ``None`` при ошибке.
+            Загруженные данные в виде словаря.
+
+        Raises:
+            ConfigError: Если директория недоступна или файл не удалось загрузить.
         """
         if not self.configs_dir.is_dir():
-            logger.error(f"Директория с конфигами недоступна: {self.configs_dir}")
-            return None
-        return self._load_config(filename)
+            raise ConfigError(f"Директория с конфигами недоступна: {self.configs_dir}")
+        result = self._load_config(filename)
+        if result is None:
+            raise ConfigError(f"Не удалось загрузить файл конфигурации: {filename}")
+        return result
 
     def validate_config_file(self, filepath: str) -> tuple[bool, str | None]:
         """

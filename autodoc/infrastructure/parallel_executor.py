@@ -14,6 +14,7 @@ _T = TypeVar("_T")
 _R = TypeVar("_R")
 
 _SUPPORTED_LOG_LEVELS: frozenset[str] = frozenset({"debug", "info", "warning"})
+_DEFAULT_LOG_PROGRESS_INTERVAL: int = 50
 
 
 class ParallelExecutor:
@@ -36,7 +37,7 @@ class ParallelExecutor:
     def __init__(
         self,
         max_workers: int,
-        log_progress_interval: int = 50,
+        log_progress_interval: int = _DEFAULT_LOG_PROGRESS_INTERVAL,
         log_level: str = "info",
     ) -> None:
         """
@@ -99,6 +100,9 @@ class ParallelExecutor:
                 idx = future_to_idx[future]
                 try:
                     results[idx] = future.result()
+                # Broad catch is intentional: the executor accepts arbitrary
+                # user-provided callables; any exception from fn must be
+                # logged and skipped so that remaining tasks continue processing.
                 except Exception as exc:
                     logger.warning(f"Ошибка при выполнении задачи #{idx}: {exc}")
 

@@ -1,7 +1,7 @@
 """Менеджер иерархии страниц Confluence."""
 
 from autodoc.infrastructure.logger import logger
-from autodoc.publisher.clients.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.protocols import IConfluenceClient
 
 _COMPONENT_PAGE_BODY: str = "Автоматически созданная страница компонента"
 _VERSION_PAGE_BODY: str = "Автоматически созданная страница версии"
@@ -16,12 +16,12 @@ class PageHierarchyManager:
     Промежуточные страницы создаются автоматически при первом обращении.
     """
 
-    def __init__(self, confluence_client: ConfluenceClient) -> None:
+    def __init__(self, confluence_client: IConfluenceClient) -> None:
         """
         Args:
-            confluence_client: Экземпляр ``ConfluenceClient``.
+            confluence_client: Реализация ``IConfluenceClient``.
         """
-        self._client: ConfluenceClient = confluence_client
+        self._client: IConfluenceClient = confluence_client
         logger.debug("Инициализирован")
 
     def ensure_hierarchy_exists(
@@ -68,30 +68,3 @@ class PageHierarchyManager:
         )
 
         return version_page_id
-
-    @staticmethod
-    def build_hierarchy_path(
-        root_title: str,
-        component_name: str,
-        release_version: str,
-    ) -> tuple[str, str, str]:
-        """
-        Формирует заголовки страниц иерархии.
-
-        Используется для предварительного вычисления заголовков без
-        обращения к Confluence API, например в тестах или при валидации.
-
-        Args:
-            root_title: Заголовок корневой страницы (не используется
-                        в результате, зарезервирован для расширений).
-            component_name: Имя компонента.
-            release_version: Версия релиза.
-
-        Returns:
-            Кортеж ``(component_title, version_title, doc_title)``.
-        """
-        return (
-            component_name,
-            f"{component_name} {release_version}",
-            f"Documentation {component_name} {release_version}",
-        )

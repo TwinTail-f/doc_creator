@@ -12,7 +12,7 @@ import urllib3
 from unittest.mock import MagicMock, patch
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.parser.clients.artifactory_client import ArtifactoryClient, _HEAD_TIMEOUT
+from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 
 _ART_SESSION_PATH = "autodoc.parser.clients.artifactory_client.create_retryable_session"
 
@@ -51,7 +51,6 @@ class TestArtifactoryClientInit:
         mock_factory.assert_called_once_with(
             token="my-art-pat",
             max_retries=1,
-            timeout=_HEAD_TIMEOUT,
         )
 
     def test_ssl_verification_disabled(
@@ -124,7 +123,6 @@ class TestArtifactoryClientHead:
         client.session.head.assert_called_once_with(
             "https://artifactory.example.com/pkg/1.0.0",
             allow_redirects=True,
-            timeout=_HEAD_TIMEOUT,
         )
 
     def test_suppresses_insecure_request_warning(

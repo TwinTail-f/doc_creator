@@ -1,12 +1,13 @@
 """Стратегия публикации профиль-центричной документации в Confluence."""
 
+from typing import Any
+
 from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
 
@@ -29,8 +30,8 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
 
     def __init__(
         self,
-        confluence_client: ConfluenceClient,
-        document_builder: DocumentBuilder,
+        confluence_client: IConfluenceClient,
+        document_builder: IDocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
         page_title: str,
@@ -107,6 +108,18 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
             passport_page_pattern=kwargs.get("passport_page_pattern", None),
         )
 
+    def _build_view_model(self) -> dict[str, Any]:
+        """Transforms parsed data into a view-model for the profile-centric template."""
+        return self._transformer.transform(self._data)
+
+    def _inject_passport_links(
+        self,
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
+    ) -> None:
+        """Injects passport page links into the profile view-model in place."""
+        PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
+
     def execute(self) -> PublishReport:
         """
         Трансформирует данные, рендерит шаблон и публикует страницу.
@@ -119,14 +132,12 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         inject_fn = None
         if self._include_passport_links:
             passport_pages = self._registry.load()
-            inject_fn = lambda vm: PassportPageRegistry.inject_links_for_profiles(
-                vm, passport_pages
-            )
+            inject_fn = lambda vm: self._inject_passport_links(vm, passport_pages)
 
         return self._publish_single_page(
             page_title=self._page_title,
             template_name=self._template_name,
-            transform_fn=lambda: self._transformer.transform(self._data),
+            transform_fn=self._build_view_model,
             parent_id=self._parent_id or "",
             inject_links=inject_fn,
         )

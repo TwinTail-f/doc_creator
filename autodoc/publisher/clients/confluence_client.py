@@ -40,6 +40,9 @@ _EXPAND_BODY: str = "body.storage"
 _EXPAND_VERSION_AND_BODY: str = "version,body.storage"
 
 _INITIAL_VERSION: int = 1
+# Fallback when the version number cannot be extracted from a Confluence response.
+# Using 0 means get_next_version will produce 1 — the safe minimum for Confluence.
+_FALLBACK_VERSION: int = 0
 
 
 class ConfluenceClient:
@@ -539,9 +542,3 @@ class ConfluenceClient:
             )
         session.headers.update({"Content-Type": "application/json"})
         return session
-
-
-# Deferred import to avoid circular dependency via page_manager.__init__
-from autodoc.publisher.page_manager.version_manager import (
-    _FALLBACK_VERSION,
-)  # noqa: E402

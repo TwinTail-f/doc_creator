@@ -23,18 +23,6 @@ class ConanVariantView:
     install_options: str = ""
 
 
-@dataclass
-class ProfileBuildView:
-    """Вид одной сборки профиля для шаблонов паблишера."""
-
-    profile_name: str
-    conan_settings: dict[str, Any] = field(default_factory=dict)
-    exists: bool = False
-    docker_image: str = ""
-    variants: list[ConanVariantView] = field(default_factory=list)
-
-
 __all__ = [
     "ConanVariantView",
-    "ProfileBuildView",
 ]

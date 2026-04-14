@@ -40,7 +40,7 @@ def _make_conan_graph(
     include_patches=False,
     include_deps=False,
 ):
-    ref = "%s/%s@platform-2.0/%s#rev001" % (comp_name, version, channel)
+    ref = f"{comp_name}/{version}@platform-2.0/{channel}#rev001"
     node = {
         "name": comp_name,
         "ref": ref,
