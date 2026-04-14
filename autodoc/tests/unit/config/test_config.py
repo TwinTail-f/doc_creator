@@ -136,3 +136,37 @@ class TestArtifactoryToken:
         os.environ.pop("ART_TOKEN", None)
         config = ConfigManager(str(tmp_path)).load_parser_config()
         assert config is None
+
+
+class TestPlatformRefType:
+    """Тесты поля platform_ref_type схемы ParserConfigSchema."""
+
+    def test_defaults_to_branch(self, tmp_path: Path) -> None:
+        """platform_ref_type по умолчанию равен 'branch'."""
+        (tmp_path / "parser_config.json").write_text(json.dumps(VALID_PARSER_CONFIG))
+        config = ConfigManager(str(tmp_path)).load_parser_config()
+        assert config is not None
+        assert config.platform_ref_type == "branch"
+
+    def test_accepts_tag(self, tmp_path: Path) -> None:
+        """platform_ref_type принимает значение 'tag'."""
+        data = {**VALID_PARSER_CONFIG, "platform_ref_type": "tag"}
+        (tmp_path / "parser_config.json").write_text(json.dumps(data))
+        config = ConfigManager(str(tmp_path)).load_parser_config()
+        assert config is not None
+        assert config.platform_ref_type == "tag"
+
+    def test_accepts_commit(self, tmp_path: Path) -> None:
+        """platform_ref_type принимает значение 'commit'."""
+        data = {**VALID_PARSER_CONFIG, "platform_ref_type": "commit"}
+        (tmp_path / "parser_config.json").write_text(json.dumps(data))
+        config = ConfigManager(str(tmp_path)).load_parser_config()
+        assert config is not None
+        assert config.platform_ref_type == "commit"
+
+    def test_rejects_invalid_value(self, tmp_path: Path) -> None:
+        """Недопустимое значение platform_ref_type приводит к None (ошибка валидации)."""
+        data = {**VALID_PARSER_CONFIG, "platform_ref_type": "unknown"}
+        (tmp_path / "parser_config.json").write_text(json.dumps(data))
+        config = ConfigManager(str(tmp_path)).load_parser_config()
+        assert config is None
