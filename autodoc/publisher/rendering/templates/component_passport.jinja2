@@ -1,209 +1,192 @@
-<!-- ШАПКА КОМПОНЕНТА (Адаптивная под Dark/Light Mode) -->
-<div style="padding-bottom: 20px; border-bottom: 2px solid var(--ds-border, #DFE1E6); margin-bottom: 20px;">
-    <p style="color: var(--ds-text-subtle, #6B778C); font-size: 14px; margin-bottom: 8px;">Документация компонента в рамках релиза <strong>{{ data.target_platform }}</strong></p>
-    <h1 style="margin-top: 0; margin-bottom: 6px; font-size: 32px; font-weight: 700; color: var(--ds-text, #172B4D);">{{ data.component.name }} {{ data.release.version }}</h1>
-    <p style="color: var(--ds-text-subtle, #6B778C); font-size: 14px; margin-top: 0; line-height: 1.5; max-width: 700px;">{{ data.component.description }}</p>
-    <div style="margin-top: 12px;">
-        <span style="font-size: 12px; color: var(--ds-text, #172B4D); background: var(--ds-background-neutral, #EBECF0); border-radius: 4px; padding: 4px 8px; margin-right: 12px; display: inline-block;">
+{%- include '../styles/_styles_base.jinja2' -%}
+{%- include '../styles/_styles_passport.jinja2' -%}
+<div class="ap-page-header">
+    <p class="ap-page-sub">Документация компонента в рамках релиза <strong>{{ data.target_platform }}</strong></p>
+    <h1 class="ap-page-title">{{ data.component.name }} {{ data.release.version }}</h1>
+    <p class="ap-page-desc">{{ data.component.description }}</p>
+    <div style="margin-top:12px">
+        <span class="ap-git-chip">
             Git: <strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong>
         </span>
     </div>
 </div>
 
-<!-- ВЕРСИИ ПЛАТФОРМ (ГОРИЗОНТАЛЬНЫЕ ВКЛАДКИ) -->
 <ac:structured-macro ac:name="tabs-group">
     <ac:parameter ac:name="outline">true</ac:parameter>
     <ac:parameter ac:name="disposition">horizontal</ac:parameter>
     <ac:rich-text-body>
 
-        <!-- ВКЛАДКА ТЕКУЩЕЙ ПЛАТФОРМЫ (добавляется первой) -->
         <ac:structured-macro ac:name="tab-pane">
             <ac:parameter ac:name="name">{{ data.target_platform }}</ac:parameter>
             <ac:parameter ac:name="outline">true</ac:parameter>
             <ac:rich-text-body>
 
-                <div style="margin-top: 24px; margin-bottom: 40px;">
+                <div style="margin-top:24px;margin-bottom:40px">
 
-                    <!-- CONAN REFERENCE CARD -->
-                    <div style="padding: 14px 18px; background: var(--ds-surface-sunken, #F4F5F7); border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--ds-border, #DFE1E6);">
-                        <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--ds-text-subtle, #6B778C); margin-bottom: 6px;">Conan Reference</div>
-                        <a href="{{ data.release.artifactory_url }}" style="font-size: 14px; font-weight: 600; font-family: monospace; color: var(--ds-link, #0052CC); text-decoration: none;">
+                    <div class="ap-ref-card" style="margin-bottom:24px">
+                        <div class="ap-ref-label">Conan Reference</div>
+                        <a href="{{ data.release.artifactory_url }}" class="ap-ref-link">
                             {{ data.release.conan_reference }}
                         </a>
                     </div>
 
-                    <!-- ОПЦИИ КОМПОНЕНТА -->
-                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Опции компонента</h3>
-                    {% if data.release.is_header_only %}
+                    <h3 class="ap-h3">Опции компонента</h3>
+                    {%- if data.release.is_header_only -%}
                         <ac:structured-macro ac:name="info">
                             <ac:rich-text-body>
-                                <p style="color: var(--ds-text, #172B4D);">Библиотека header-only, собирается без опций</p>
+                                <p class="ap-cell">Библиотека header-only, собирается без опций</p>
                             </ac:rich-text-body>
                         </ac:structured-macro>
-                    {% else %}
+                    {%- else -%}
                         <ac:structured-macro ac:name="expand">
                             <ac:parameter ac:name="title">Раскрыть опции компонента ({{ data.release.default_options | length }})</ac:parameter>
                             <ac:rich-text-body>
-                                <table class="aui" style="width: 100%;">
-                                    <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                <table class="aui ap-table-full">
+                                    <thead class="ap-thead">
                                         <tr>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Опция</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Тип</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Значение по умолчанию</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Пояснение</th>
+                                            <th class="ap-th">Опция</th>
+                                            <th class="ap-th">Тип</th>
+                                            <th class="ap-th">Значение по умолчанию</th>
+                                            <th class="ap-th">Пояснение</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% if data.release.default_options %}
-                                            {% for opt in data.release.default_options %}
+                                        {%- if data.release.default_options -%}
+                                            {%- for opt in data.release.default_options -%}
                                             <tr>
-                                                <td style="color: var(--ds-text, #172B4D);"><strong>{{ opt.name }}</strong></td>
-                                                <td style="color: var(--ds-text, #172B4D);">{{ opt.type }}</td>
-                                                <td style="color: var(--ds-text, #172B4D);"><code>{{ opt.default_value }}</code></td>
-                                                <td style="color: var(--ds-text, #172B4D);">—</td>
+                                                <td class="ap-cell"><strong>{{ opt.name }}</strong></td>
+                                                <td class="ap-cell">{{ opt.type }}</td>
+                                                <td class="ap-cell"><code>{{ opt.default_value }}</code></td>
+                                                <td class="ap-cell">—</td>
                                             </tr>
-                                            {% endfor %}
-                                        {% else %}
-                                            <tr><td colspan="4" style="color: var(--ds-text, #172B4D);">Опции по умолчанию отсутствуют.</td></tr>
-                                        {% endif %}
+                                            {%- endfor -%}
+                                        {%- else -%}
+                                            <tr><td colspan="4" class="ap-cell">Опции по умолчанию отсутствуют.</td></tr>
+                                        {%- endif -%}
                                     </tbody>
                                 </table>
                             </ac:rich-text-body>
                         </ac:structured-macro>
 
-                        <!-- КОНФИГУРАЦИИ КОМПОНЕНТА -->
-                        <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Конфигурации компонента</h3>
+                        <h3 class="ap-h3">Конфигурации компонента</h3>
                         <ac:structured-macro ac:name="expand">
                             <ac:parameter ac:name="title">Раскрыть уникальные конфигурации сборок ({{ data.release.build_option_sets | length }})</ac:parameter>
                             <ac:rich-text-body>
-                                <table class="aui" style="width: 100%;">
-                                    <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                <table class="aui ap-table-full">
+                                    <thead class="ap-thead">
                                         <tr>
-                                            <th style="width: 10%; color: var(--ds-text-subtle, #6B778C);">Номер</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Конфигурация (conan_options)</th>
+                                            <th class="ap-th" style="width:10%">Номер</th>
+                                            <th class="ap-th">Конфигурация (conan_options)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% if data.release.build_option_sets %}
-                                            {% for bos in data.release.build_option_sets %}
+                                        {%- if data.release.build_option_sets -%}
+                                            {%- for bos in data.release.build_option_sets -%}
                                             <tr>
-                                                <td style="color: var(--ds-text, #172B4D);"><strong>{{ bos.id }}</strong></td>
-                                                <td style="color: var(--ds-text, #111827);">{% if bos.options %}{{ bos.options }}{% else %}default{% endif %}</td>
+                                                <td class="ap-cell"><strong>{{ bos.id }}</strong></td>
+                                                <td class="ap-cell">{%- if bos.options -%}{{ bos.options }}{%- else -%}default{%- endif -%}</td>
                                             </tr>
-                                            {% endfor %}
-                                        {% else %}
-                                            <tr><td colspan="2" style="color: var(--ds-text, #172B4D);">Конфигурации отсутствуют.</td></tr>
-                                        {% endif %}
+                                            {%- endfor -%}
+                                        {%- else -%}
+                                            <tr><td colspan="2" class="ap-cell">Конфигурации отсутствуют.</td></tr>
+                                        {%- endif -%}
                                     </tbody>
                                 </table>
                             </ac:rich-text-body>
                         </ac:structured-macro>
-                    {% endif %}
+                    {%- endif -%}
 
-                    <!-- ПОДДЕРЖИВАЕМЫЕ ПРОФИЛИ И СБОРКИ -->
-                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Собранные профили</h3>
-                    {% if data.release.is_header_only %}
+                    <h3 class="ap-h3">Собранные профили</h3>
+                    {%- if data.release.is_header_only -%}
                         <ac:structured-macro ac:name="info">
                             <ac:rich-text-body>
                                 <p>
-                                    <strong style="color: var(--ds-text, #172B4D);">Header-Only компонент (информация)</strong>
-                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." style="cursor: help; margin-left: 4px; color: var(--ds-icon-information, #0052CC); vertical-align: middle;">
+                                    <strong class="ap-cell">Header-Only компонент (информация)</strong>
+                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." class="ap-help-icon">
                                         <ac:emoticon ac:name="information" />
                                     </span>
                                 </p>
-                                <p style="color: var(--ds-text, #172B4D);">Таблицы профилей для данного компонента отсутствуют, так как он собирается одинаково для всех архитектур и ОС.</p>
+                                <p class="ap-cell">Таблицы профилей для данного компонента отсутствуют, так как он собирается одинаково для всех архитектур и ОС.</p>
                             </ac:rich-text-body>
                         </ac:structured-macro>
 
-                        <p style="margin-top: 16px; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: var(--ds-text, #172B4D);">Команда для установки:</p>
+                        <p class="ap-install-label">Команда для установки:</p>
                         <ac:structured-macro ac:name="code">
                             <ac:parameter ac:name="language">bash</ac:parameter>
                             <ac:parameter ac:name="theme">Confluence</ac:parameter>
                             <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }}]]></ac:plain-text-body>
                         </ac:structured-macro>
-                    {% else %}
+                    {%- else -%}
                         <ac:structured-macro ac:name="expand">
                             <ac:parameter ac:name="title">Раскрыть таблицу профилей ({{ data.release.profile_builds | length }})</ac:parameter>
                             <ac:rich-text-body>
-                                <table class="aui" style="border: 1px solid var(--ds-border, #DFE1E6); width: 100%; border-collapse: collapse;">
-                                    <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                                <table class="aui ap-table-full" style="border-collapse:collapse">
+                                    <thead class="ap-thead">
                                         <tr>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Профиль</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">OS</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Архитектура</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Компилятор</th>
-                                            <th style="color: var(--ds-text-subtle, #6B778C);">Docker Image</th>
+                                            <th class="ap-th">Профиль</th>
+                                            <th class="ap-th">OS</th>
+                                            <th class="ap-th">Архитектура</th>
+                                            <th class="ap-th">Компилятор</th>
+                                            <th class="ap-th">Docker Image</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for build in data.release.profile_builds %}
-                                        <!-- Строка профиля -->
-                                        <tr style="border-top: 1px solid var(--ds-border, #DFE1E6);">
-                                            <td style="vertical-align: middle; color: var(--ds-text, #172B4D);"><strong>{{ build.profile_name }}</strong></td>
-                                            <td style="vertical-align: middle;">
-                                                {% set os = build.conan_settings.get('os', 'Unknown') %}
-                                                <span class="aui-lozenge {% if os=='Linux' %}aui-lozenge-complete{% elif os=='Windows' %}aui-lozenge-moved{% elif os=='Android' %}aui-lozenge-success{% endif %}">{{ os }}</span>
+                                        {%- for build in data.release.profile_builds -%}
+                                        <tr class="ap-row-top">
+                                            <td class="ap-cell ap-vm"><strong>{{ build.profile_name }}</strong></td>
+                                            <td class="ap-vm">
+                                                {%- set os = build.conan_settings.get('os', 'Unknown') -%}
+                                                <span class="aui-lozenge {%- if os=='Linux' %} aui-lozenge-complete{%- elif os=='Windows' %} aui-lozenge-moved{%- elif os=='Android' %} aui-lozenge-success{%- endif %}">{{ os }}</span>
                                             </td>
-                                            <td style="vertical-align: middle; color: var(--ds-text, #172B4D);">{{ build.conan_settings.get('arch', '—') }}</td>
-                                            <td style="vertical-align: middle; color: var(--ds-text-subtle, #6B778C);">{{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}</td>
-                                            <td style="vertical-align: middle;">
-                                                {% if build.docker_image %}
+                                            <td class="ap-cell ap-vm">{{ build.conan_settings.get('arch', '—') }}</td>
+                                            <td class="ap-cell-s ap-vm">{{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}</td>
+                                            <td class="ap-vm">
+                                                {%- if build.docker_image -%}
                                                     {{ build.docker_image }}
-                                                {% else %} <span style="color: var(--ds-text-subtle, #6B778C);">—</span> {% endif %}
+                                                {%- else -%} <span class="ap-cell-s">—</span> {%- endif -%}
                                             </td>
                                         </tr>
 
-                                        <!-- Под-строка со сборками (Variants) скрытая в Expand -->
-                                        <tr style="border-bottom: 2px solid var(--ds-border, #DFE1E6);">
-                                            <td colspan="5" style="padding: 0; background: var(--ds-surface-sunken, #F4F5F7);">
+                                        <tr class="ap-row-bottom">
+                                            <td colspan="5" class="ap-subrow-bg">
                                                 <ac:structured-macro ac:name="expand">
                                                     <ac:parameter ac:name="title">Подробнее о профиле {{ build.profile_name }}. Варианты сборок ({{ build.variants | length }})</ac:parameter>
                                                     <ac:rich-text-body>
-                                                        <div style="padding: 16px;">
+                                                        <div class="ap-expand-pad">
 
-                                                            <!-- Настройки профиля (плашки) -->
-                                                            <div style="margin-bottom: 16px;">
-                                                                <div style="font-size: 11px; color: var(--ds-text-subtle, #6B778C); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">Настройки профиля</div>
+                                                            <div class="ap-badge-block">
+                                                                <div class="ap-section-label">Настройки профиля</div>
                                                                 <div>
-                                                                    {% for k, v in build.conan_settings.items() %}
-                                                                        <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;"><span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text-subtle, #6B778C);">{{ k }}</span><span style="padding: 2px 6px; background: var(--ds-surface, #FFFFFF); color: var(--ds-text, #172B4D); font-weight: 600;">{{ v }}</span></span>
-                                                                    {% endfor %}
+                                                                    {%- for k, v in build.conan_settings.items() -%}
+                                                                        <span class="ap-badge"><span class="ap-badge-k">{{ k }}</span><span class="ap-badge-v">{{ v }}</span></span>
+                                                                    {%- endfor -%}
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Варианты сборки -->
-                                                            {% for var in build.variants %}
-                                                            <div style="padding: 12px; background: var(--ds-surface, #FFFFFF); border: 1px solid var(--ds-border, #DFE1E6); border-radius: 6px; margin-bottom: 12px;">
+                                                            {%- for var in build.variants -%}
+                                                            <div class="ap-var-card">
 
-                                                                <!-- Шапка сборки -->
-                                                                <div style="margin-bottom: 10px;">
-                                                                    <code style="font-size: 11px; color: var(--ds-text, #172B4D);">{{ var.package_id }}</code>
-                                                                    <span style="float: right; font-size: 11px; color: var(--ds-text-subtle, #6B778C); line-height: 20px;">
+                                                                <div class="ap-var-header">
+                                                                    <code class="ap-pkg-id">{{ var.package_id }}</code>
+                                                                    <span class="ap-var-meta">
                                                                         {{ var.build_date[:10] }} {{ var.build_date[11:16] }}
-                                                                        <a href="{{ var.build_url }}" style="color: var(--ds-link, #0052CC); font-weight: bold; margin-left: 12px;">Сборка &#8599;</a>
+                                                                        <a href="{{ var.build_url }}" class="ap-var-link">Сборка &#8599;</a>
                                                                     </span>
-                                                                    <div style="clear: both;"></div>
+                                                                    <div style="clear:both"></div>
                                                                 </div>
 
-                                                                <!-- Номер варианта и бейджи опций -->
-                                                                <div style="margin-bottom: 12px;">
-                                                                    <span style="font-size: 12px; font-weight: bold; color: var(--ds-text, #172B4D); display: block; margin-bottom: 4px;">Вариант {{ loop.index }}</span>
-                                                                    {% if var.conan_options %}
-                                                                        {% for k, v in var.conan_options.items() %}
-                                                                            <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); margin: 2px 4px 2px 0; white-space: nowrap; overflow: hidden; border-radius: 3px;">
-                                                                                <span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text, #172B4D);">{{ k }}</span>
-                                                                                <span style="padding: 2px 6px; background: {% if v==True or v=='True' %}var(--ds-background-success, #E3FCEF){% elif v==False or v=='False' %}var(--ds-background-danger, #FFEBE6){% else %}var(--ds-background-warning, #FFFAE6){% endif %}; color: var(--ds-text, #172B4D); font-weight: 600;">{{ v }}</span>
-                                                                            </span>
-                                                                        {% endfor %}
-                                                                    {% else %}
-                                                                        <span style="display: inline-block; font-size: 11px; border: 1px solid var(--ds-border, #DFE1E6); border-radius: 3px; overflow: hidden;">
-                                                                            <span style="padding: 2px 6px; background: var(--ds-background-neutral, #EBECF0); color: var(--ds-text, #172B4D);">options</span>
-                                                                            <span style="padding: 2px 6px; background: var(--ds-background-neutral, #DFE1E6); color: var(--ds-text, #172B4D); font-weight: 600;">default</span>
-                                                                        </span>
-                                                                    {% endif %}
+                                                                <div class="ap-var-options">
+                                                                    <span class="ap-var-title">Вариант {{ loop.index }}</span>
+                                                                    {%- if var.conan_options -%}
+                                                                        {%- for k, v in var.conan_options.items() -%}
+                                                                            {%- set vc = 'ap-badge-t' if (v==True or v=='True') else ('ap-badge-f' if (v==False or v=='False') else 'ap-badge-n') -%}
+                                                                            <span class="ap-badge"><span class="ap-badge-k">{{ k }}</span><span class="{{ vc }}">{{ v }}</span></span>
+                                                                        {%- endfor -%}
+                                                                    {%- else -%}
+                                                                        <span class="ap-badge"><span class="ap-badge-k">options</span><span class="ap-badge-def">default</span></span>
+                                                                    {%- endif -%}
                                                                 </div>
 
-                                                                <!-- Conan Install (Копируемый макрос) -->
                                                                 <ac:structured-macro ac:name="expand">
                                                                     <ac:parameter ac:name="title">Команда для установки (conan install)</ac:parameter>
                                                                     <ac:rich-text-body>
@@ -216,81 +199,78 @@
                                                                 </ac:structured-macro>
 
                                                             </div>
-                                                            {% endfor %}
+                                                            {%- endfor -%}
 
                                                         </div>
                                                     </ac:rich-text-body>
                                                 </ac:structured-macro>
                                             </td>
                                         </tr>
-                                        {% endfor %}
+                                        {%- endfor -%}
                                     </tbody>
                                 </table>
                             </ac:rich-text-body>
                         </ac:structured-macro>
-                    {% endif %}
+                    {%- endif -%}
 
-                    <!-- ЗАВИСИМОСТИ КОМПОНЕНТА -->
-                    {% if data.release.dependencies %}
-                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Зависимости компонента</h3>
+                    {%- if data.release.dependencies -%}
+                    <h3 class="ap-h3">Зависимости компонента</h3>
                     <ac:structured-macro ac:name="expand">
                         <ac:parameter ac:name="title">Раскрыть зависимости ({{ data.release.dependencies | length }})</ac:parameter>
                         <ac:rich-text-body>
-                            <table class="aui" style="width: 100%;">
-                                <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                            <table class="aui ap-table-full">
+                                <thead class="ap-thead">
                                     <tr>
-                                        <th style="color: var(--ds-text-subtle, #6B778C);">Зависимость</th>
-                                        <th style="color: var(--ds-text-subtle, #6B778C);">Тип</th>
+                                        <th class="ap-th">Зависимость</th>
+                                        <th class="ap-th">Тип</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for dep in data.release.dependencies %}
+                                    {%- for dep in data.release.dependencies -%}
                                     <tr>
-                                        <td style="color: var(--ds-text, #172B4D);"><strong>{{ dep }}</strong></td>
-                                        <td style="color: var(--ds-text, #172B4D);">—</td>
+                                        <td class="ap-cell"><strong>{{ dep }}</strong></td>
+                                        <td class="ap-cell">—</td>
                                     </tr>
-                                    {% endfor %}
+                                    {%- endfor -%}
                                 </tbody>
                             </table>
                         </ac:rich-text-body>
                     </ac:structured-macro>
-                    {% endif %}
+                    {%- endif -%}
 
-                    <!-- ИСПОЛЬЗУЕМЫЕ ПАТЧИ -->
-                    {% if data.release.patches %}
-                    <h3 style="margin-top: 24px; color: var(--ds-text, #172B4D);">Используемые патчи</h3>
+                    {%- if data.release.patches -%}
+                    <h3 class="ap-h3">Используемые патчи</h3>
                     <ac:structured-macro ac:name="expand">
                         <ac:parameter ac:name="title">Раскрыть используемые патчи ({{ data.release.patches | length }})</ac:parameter>
                         <ac:rich-text-body>
-                            <table class="aui" style="width: 100%;">
-                                <thead style="background: var(--ds-surface-sunken, #F4F5F7);">
+                            <table class="aui ap-table-full">
+                                <thead class="ap-thead">
                                     <tr>
-                                        <th style="color: var(--ds-text-subtle, #6B778C);">Патч</th>
-                                        <th style="color: var(--ds-text-subtle, #6B778C);">Назначение</th>
-                                        <th style="color: var(--ds-text-subtle, #6B778C);">Примечание</th>
+                                        <th class="ap-th">Патч</th>
+                                        <th class="ap-th">Назначение</th>
+                                        <th class="ap-th">Примечание</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for patch in data.release.patches %}
+                                    {%- for patch in data.release.patches -%}
                                     <tr>
-                                        <td style="color: var(--ds-text, #172B4D);"><strong>{{ patch }}</strong></td>
-                                        <td style="color: var(--ds-text, #172B4D);">—</td>
-                                        <td style="color: var(--ds-text, #172B4D);">—</td>
+                                        <td class="ap-cell"><strong>{{ patch }}</strong></td>
+                                        <td class="ap-cell">—</td>
+                                        <td class="ap-cell">—</td>
                                     </tr>
-                                    {% endfor %}
+                                    {%- endfor -%}
                                 </tbody>
                             </table>
                         </ac:rich-text-body>
                     </ac:structured-macro>
-                    {% endif %}
+                    {%- endif -%}
 
                 </div>
 
             </ac:rich-text-body>
         </ac:structured-macro>
 
-        <!-- ВСТАВКА СТАРЫХ СПАРСЕННЫХ ПЛАТФОРМ -->
-        {% for legacy_plat, legacy_html in data.legacy_contents.items() %}
+        {%- for legacy_plat, legacy_html in data.legacy_contents.items() -%}
         <ac:structured-macro ac:name="tab-pane">
             <ac:parameter ac:name="name">{{ legacy_plat }}</ac:parameter>
             <ac:parameter ac:name="outline">true</ac:parameter>
@@ -298,7 +278,7 @@
                 {{ legacy_html }}
             </ac:rich-text-body>
         </ac:structured-macro>
-        {% endfor %}
+        {%- endfor -%}
 
     </ac:rich-text-body>
 </ac:structured-macro>
