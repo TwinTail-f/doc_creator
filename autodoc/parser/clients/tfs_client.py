@@ -62,9 +62,7 @@ class TFSClient:
             config: Валидированная конфигурация парсера с учётными данными TFS.
         """
         if not config.tfs_token:
-            raise ConfigError(
-                "TFSClient: tfs_token не задан в конфигурации"
-            )
+            raise ConfigError("TFSClient: tfs_token не задан в конфигурации")
 
         self._configured = True
         self.session = create_retryable_session(

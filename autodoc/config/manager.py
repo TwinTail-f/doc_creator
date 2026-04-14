@@ -76,7 +76,7 @@ class ConfigManager:
         except ValidationError as e:
             logger.error(f"Ошибка валидации {filename}: {e}")
             return None
-        
+
     def load_confluence_config(
         self, config_file: str | None = None
     ) -> ConfluenceConfigSchema | None:
@@ -160,7 +160,6 @@ class ConfigManager:
             return True, None
         except (json.JSONDecodeError, yaml.YAMLError, OSError) as e:
             return False, f"Ошибка валидации: {e}"
-
 
     def _find_config_file(self, basename: str) -> str | None:
         """

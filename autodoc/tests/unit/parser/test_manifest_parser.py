@@ -72,7 +72,9 @@ class TestReadProperties:
 
 class TestManifestFetcher:
     def _make_parser_with_mock(self, tmp_path: Path, content: str):
-        def fake_download(items_url, remote_path, branch, output_dir, version_type=None):
+        def fake_download(
+            items_url, remote_path, branch, output_dir, version_type=None
+        ):
             _write_properties(Path(output_dir), "comp.properties", content)
 
         parser = ManifestFetcher.__new__(ManifestFetcher)

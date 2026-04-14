@@ -74,7 +74,8 @@ class RetryableSession(requests.Session):
         return super().request(method, url, timeout=self._timeout, **kwargs)
 
 
-def create_retryable_session(    timeout: int = 15,
+def create_retryable_session(
+    timeout: int = 15,
     token: str | None = None,
     bearer: bool = False,
     max_retries: int = 3,

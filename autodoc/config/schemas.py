@@ -40,12 +40,6 @@ class ParserConfigSchema(BaseModel):
         description="Путь к директории с манифестами в TFS",
     )
 
-    # tfs_username опционален: Azure DevOps принимает любое (в т. ч. пустое) значение при PAT-auth
-    tfs_username: str = Field(
-        default="",
-        description="Имя пользователя TFS (опционально при PAT-аутентификации)",
-    )
-
     # Опциональные поля
     artifactory_components_conan2_url: str = Field(
         default="",
