@@ -216,7 +216,7 @@ class TestGetFileContent:
             "conn refused"
         )
 
-        with pytest.raises(NetworkError, match="ошибка запроса файла"):
+        with pytest.raises(NetworkError, match="Ошибка запроса файла"):
             client.get_file_content(
                 "https://tfs.example.com/items", "/file.yaml", "develop"
             )
@@ -298,7 +298,7 @@ class TestGetItems:
         """NetworkError возникает при requests.RequestException."""
         client.session.get.side_effect = requests.exceptions.Timeout("timed out")
 
-        with pytest.raises(NetworkError, match="ошибка запроса структуры репозитория"):
+        with pytest.raises(NetworkError, match="Ошибка запроса структуры репозитория"):
             client.get_items("https://tfs.example.com/items", "develop")
 
     def test_returns_empty_list_when_value_missing(self, client: TFSClient) -> None:
@@ -399,7 +399,7 @@ class TestDownloadProperties:
         """NetworkError если не удалось получить список файлов."""
         client.session.get.side_effect = requests.exceptions.ConnectionError("down")
 
-        with pytest.raises(NetworkError, match="ошибка при получении списка файлов"):
+        with pytest.raises(NetworkError, match="Ошибка при получении списка файлов"):
             client.download_properties(
                 "https://tfs.example.com/items", "/remotes", "develop", str(tmp_path)
             )

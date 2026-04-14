@@ -118,7 +118,7 @@ class TFSClient:
             response = self.session.get(items_url, params=params)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            raise NetworkError(f"ошибка при получении списка файлов: {e}") from e
+            raise NetworkError(f"Ошибка при получении списка файлов: {e}") from e
 
         items = response.json().get("value", [])
         logger.info(f"Найдено {len(items)} элементов, начинаем скачивание…")
