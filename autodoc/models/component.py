@@ -18,7 +18,7 @@ class BuildOptionSet(BaseModel):
     id: str = Field(..., description='Идентификатор набора опций (например "1", "2")')
     options: str = Field(
         default="",
-        description='Строка опций в нативном формате Conan (например "shared=False, fPIC=True")',
+        description='Строка опций (например "component:shared=False, component:fPIC=True")',
     )
 
 
@@ -26,7 +26,7 @@ class OptionDefinition(BaseModel):
     """Описание одной дефолтной опции Conan-пакета."""
 
     name: str = Field(..., description="Имя опции")
-    type: OptionType = Field(..., description="Тип значения опции")  # 1.6
+    type: OptionType = Field(..., description="Тип значения опции")
     default_value: Any = Field(..., description="Значение по умолчанию")
 
 
@@ -50,11 +50,11 @@ class ProfileBuild(BaseModel):
         default_factory=dict,
         description="Настройки Conan для профиля",
     )
-    exists: bool = Field(  # 1.2 было: pb_exist
+    exists: bool = Field(
         default=False,
         description="True — пакет для данного профиля найден в Artifactory",
     )
-    docker_image: str = Field(  # 1.2 было: profile_docker_url
+    docker_image: str = Field(
         default="",
         description="URL Docker-образа для сборки профиля",
     )
@@ -69,7 +69,7 @@ class Release(BaseModel):
 
     version: str = Field(..., description="Версия компонента")
     platform: str = Field(..., description="Целевая платформа")
-    channel: str = Field(..., description='Conan-канал (например "stable")')
+    channel: str = Field(..., description='Conan-канал (например "fast")')
     git_url: str = Field(..., description="URL репозитория в Git/TFS")
 
     conan_reference: str = Field(
@@ -91,7 +91,7 @@ class Release(BaseModel):
         default_factory=list, description="Список зависимостей"
     )
 
-    is_header_only: bool = Field(  # 1.5 было: is_header_only_component
+    is_header_only: bool = Field(
         default=False,
         description="True — header-only компонент (нет бинарных артефактов)",
     )

@@ -100,9 +100,10 @@ class ParallelExecutor:
                 idx = future_to_idx[future]
                 try:
                     results[idx] = future.result()
-                # Broad catch is intentional: the executor accepts arbitrary
-                # user-provided callables; any exception from fn must be
-                # logged and skipped so that remaining tasks continue processing.
+                # Сознательно ловим все исключения:
+                # исполнитель принимает произвольные вызываемые объекты от пользователя,
+                # поэтому любая ошибка в fn должна быть залогирована, но не прерывать
+                # обработку остальных элементов — чтобы остались результаты других задач.
                 except Exception as exc:
                     logger.warning(f"Ошибка при выполнении задачи #{idx}: {exc}")
 

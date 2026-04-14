@@ -82,7 +82,6 @@ class TestTFSClientInit:
             TFSClient(minimal_config)
 
         mock_factory.assert_called_once_with(
-            username=minimal_config.tfs_username or None,
             token=minimal_config.tfs_token,
             max_retries=minimal_config.max_retries,
             backoff_factor=minimal_config.retry_backoff_factor,

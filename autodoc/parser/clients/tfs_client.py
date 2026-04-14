@@ -68,7 +68,6 @@ class TFSClient:
 
         self._configured = True
         self.session = create_retryable_session(
-            username=config.tfs_username or None,
             token=config.tfs_token,
             max_retries=config.max_retries,
             backoff_factor=config.retry_backoff_factor,

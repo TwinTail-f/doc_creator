@@ -19,10 +19,6 @@ from autodoc.infrastructure.http_client import (
     create_retryable_session,
 )
 
-# ---------------------------------------------------------------------------
-# RetryableSession
-# ---------------------------------------------------------------------------
-
 
 class TestRetryableSessionInit:
     """Тесты инициализации RetryableSession."""
@@ -40,14 +36,12 @@ class TestRetryableSessionInit:
     def test_max_retries_stored(self) -> None:
         """max_retries сохраняется в атрибуте."""
         session = RetryableSession(max_retries=5)
-        # max_retries теперь приватный параметр Retry, доступен через адаптер
         adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.total == 5
 
     def test_backoff_factor_stored(self) -> None:
         """backoff_factor сохраняется в атрибуте."""
         session = RetryableSession(backoff_factor=3.0)
-        # backoff_factor задаётся в Retry; прямой атрибут убран
         adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.backoff_factor == 3.0
 
@@ -103,11 +97,6 @@ class TestRetryableSessionMethods:
         assert kwargs.get("timeout") == 20
 
 
-# ---------------------------------------------------------------------------
-# Retry-стратегия
-# ---------------------------------------------------------------------------
-
-
 class TestRetryStatusCodes:
     """Тесты конфигурации retry-статусов."""
 
@@ -154,11 +143,6 @@ class TestRetryMethods:
         assert isinstance(_RETRY_METHODS, tuple)
 
 
-# ---------------------------------------------------------------------------
-# create_retryable_session
-# ---------------------------------------------------------------------------
-
-
 class TestCreateRetryableSession:
     """Тесты фабричной функции create_retryable_session."""
 
@@ -167,20 +151,9 @@ class TestCreateRetryableSession:
         session = create_retryable_session()
         assert isinstance(session, RetryableSession)
 
-    def test_basic_auth_set_when_both_credentials_provided(self) -> None:
-        """session.auth устанавливается при наличии username и token."""
-        session = create_retryable_session(username="user", token="secret")
-        assert session.auth == ("user", "secret")
-
     def test_no_auth_when_credentials_not_provided(self) -> None:
         """session.auth не устанавливается при отсутствии кредов."""
         session = create_retryable_session()
-        assert session.auth is None
-
-    def test_no_auth_when_only_username_provided(self, caplog) -> None:
-        """При username без token — auth не выставляется, логируется предупреждение."""
-        with caplog.at_level(logging.WARNING, logger="doc_parser"):
-            session = create_retryable_session(username="user")
         assert session.auth is None
 
     def test_pat_auth_when_only_token_provided(self) -> None:
@@ -208,13 +181,11 @@ class TestCreateRetryableSession:
     def test_custom_max_retries_forwarded(self) -> None:
         """max_retries передаётся в RetryableSession."""
         session = create_retryable_session(max_retries=5)
-        # max_retries теперь приватный параметр Retry, доступен через адаптер
         adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.total == 5
 
     def test_custom_backoff_factor_forwarded(self) -> None:
         """backoff_factor передаётся в RetryableSession."""
         session = create_retryable_session(backoff_factor=3.0)
-        # backoff_factor задаётся в Retry; прямой атрибут убран
         adapter = session.get_adapter("https://example.com")
         assert adapter.max_retries.backoff_factor == 3.0

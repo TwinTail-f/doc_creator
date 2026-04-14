@@ -23,12 +23,6 @@ class ConfigManager:
     ищет именно его; если имя не указано — перебирает поддерживаемые
     расширения в порядке ``SUPPORTED_FORMATS``.
 
-    Ошибки логируются на месте и не пробрасываются наверх через исключения —
-    методы возвращают ``None`` при любой предсказуемой проблеме
-    (файл не найден, неподдерживаемый формат, невалидная схема).
-    Исключения сохраняются только там, где ошибку нельзя предвидеть заранее
-    (невалидный JSON/YAML).
-
     Attributes:
         configs_dir: Путь к директории с конфигурационными файлами.
     """
@@ -38,10 +32,6 @@ class ConfigManager:
     def __init__(self, configs_dir: str) -> None:
         """
         Инициализирует менеджер конфигураций.
-
-        Директория проверяется сразу. Если она не существует — об этом
-        сообщается в лог, но исключение не бросается: методы ``load_*``
-        вернут ``None`` при первом же обращении.
 
         Args:
             configs_dir: Абсолютный путь к папке ``configs/``.
@@ -86,7 +76,7 @@ class ConfigManager:
         except ValidationError as e:
             logger.error(f"Ошибка валидации {filename}: {e}")
             return None
-
+        
     def load_confluence_config(
         self, config_file: str | None = None
     ) -> ConfluenceConfigSchema | None:
@@ -171,29 +161,6 @@ class ConfigManager:
         except (json.JSONDecodeError, yaml.YAMLError, OSError) as e:
             return False, f"Ошибка валидации: {e}"
 
-    def list_available_configs(self) -> dict[str, list[str]]:
-        """
-        Возвращает список конфигурационных файлов в директории.
-
-        Returns:
-            Словарь вида ``{"json": [...], "yaml": [...]}`` или пустой при недоступной директории.
-        """
-        configs: dict[str, list[str]] = {"json": [], "yaml": []}
-
-        if not self.configs_dir.is_dir():
-            logger.warning(f"Директория конфигов недоступна: {self.configs_dir}")
-            return configs
-
-        try:
-            for entry in self.configs_dir.iterdir():
-                if entry.suffix == ".json":
-                    configs["json"].append(entry.name)
-                elif entry.suffix in (".yaml", ".yml"):
-                    configs["yaml"].append(entry.name)
-        except OSError as e:
-            logger.warning(f"Ошибка при чтении директории конфигов: {e}")
-
-        return configs
 
     def _find_config_file(self, basename: str) -> str | None:
         """

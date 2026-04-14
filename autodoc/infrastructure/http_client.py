@@ -10,7 +10,6 @@ from urllib3.util.retry import Retry
 
 from autodoc.infrastructure.logger import logger
 
-# Именованные статус-коды вместо магических чисел
 _RETRY_STATUS_CODES: tuple[int, ...] = (
     http.HTTPStatus.REQUEST_TIMEOUT.value,  # 408
     http.HTTPStatus.TOO_MANY_REQUESTS.value,  # 429
@@ -30,9 +29,6 @@ _RETRY_METHODS: tuple[str, ...] = (
 )
 
 _PAT_DEFAULT_USERNAME: str = ""
-_DEFAULT_TIMEOUT: int = 15
-_DEFAULT_MAX_RETRIES: int = 3
-_DEFAULT_BACKOFF_FACTOR: float = 1.0
 
 
 class RetryableSession(requests.Session):
@@ -50,9 +46,9 @@ class RetryableSession(requests.Session):
 
     def __init__(
         self,
-        max_retries: int = _DEFAULT_MAX_RETRIES,
-        backoff_factor: float = _DEFAULT_BACKOFF_FACTOR,
-        timeout: int = _DEFAULT_TIMEOUT,
+        max_retries: int = 3,
+        backoff_factor: float = 1.0,
+        timeout: int = 15,
     ) -> None:
         """
         Args:
@@ -78,30 +74,26 @@ class RetryableSession(requests.Session):
         return super().request(method, url, timeout=self._timeout, **kwargs)
 
 
-def create_retryable_session(
-    username: str | None = None,
+def create_retryable_session(    timeout: int = 15,
     token: str | None = None,
     bearer: bool = False,
-    max_retries: int = _DEFAULT_MAX_RETRIES,
-    backoff_factor: float = _DEFAULT_BACKOFF_FACTOR,
-    timeout: int = _DEFAULT_TIMEOUT,
+    max_retries: int = 3,
+    backoff_factor: float = 1.0,
 ) -> RetryableSession:
     """
     Создаёт ``RetryableSession`` с опциональной аутентификацией.
 
-    Поддерживает три режима:
+    Поддерживает два режима:
 
     * **Bearer** — передать ``token`` и ``bearer=True``; токен подставляется
       в заголовок ``Authorization: Bearer <token>``. Используется для
       Confluence Data Center PAT-аутентификации.
-    * **Basic auth** — передать ``username`` и ``token``.
     * **PAT-only** — передать только ``token``; username подставляется
       как пустая строка, что корректно для Azure DevOps / TFS,
       где PAT не привязан к конкретному пользователю.
 
     Args:
-        username: Имя пользователя для Basic auth. Опционально при PAT-auth.
-        token: Токен / пароль / PAT.
+        token: Токен / PAT.
         bearer: Если ``True`` — использовать Bearer-аутентификацию вместо Basic.
         max_retries: Максимальное количество retry-попыток.
         backoff_factor: Множитель для exponential backoff.
@@ -119,16 +111,9 @@ def create_retryable_session(
     if bearer and token:
         session.headers["Authorization"] = f"Bearer {token}"
         logger.debug("Настроена Bearer-аутентификация")
-    elif username and token:
-        session.auth = (username, token)
-        logger.debug(f"Настроена Basic-аутентификация для {username}")
     elif token:
-        # PAT-аутентификация: username не требуется (Azure DevOps / TFS и др.)
+        # PAT-аутентификация: username опционален (Azure DevOps / TFS и др.)
         session.auth = (_PAT_DEFAULT_USERNAME, token)
         logger.debug("Настроена PAT-аутентификация (username не задан)")
-    elif username:
-        logger.warning(
-            f"Передан только username {username} без token — аутентификация не настроена"
-        )
 
     return session

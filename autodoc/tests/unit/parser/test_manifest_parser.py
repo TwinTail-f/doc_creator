@@ -11,7 +11,6 @@ from autodoc.parser.utils.properties_reader import read_properties
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 from autodoc.parser.clients.tfs_client import VersionType
 
-# 4.2 Используем новое имя поля
 MINIMAL_CONFIG_DATA = {
     "platform_version": "2.0",
     "platform_branch_name": "develop",
@@ -106,10 +105,8 @@ class TestManifestFetcher:
         parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
         result = parser.fetch(tmp_path / "manifests", excluded=[])
         comp = result.value[0]
-        # На компоненте — есть
         assert comp.git_repo == "crypto_lib"
         assert comp.git_project == "DEP_Components"
-        # На релизе — нет таких атрибутов
         assert not hasattr(comp.releases[0], "git_repo")
 
     def test_profile_builds_populated(self, tmp_path: Path) -> None:
