@@ -118,5 +118,7 @@ class LegacyContentExtractor:
         # Fallback: устаревший формат с заголовками <h1>Platform X.Y</h1>
         sections = extract_platform_h1_sections(html)
         if sections:
-            logger.debug(f"Извлечено {len(sections)} секций из заголовков h1 Platform")
+            logger.debug(
+                f"Извлечено {len(sections)} секций из заголовков h1 Platform"
+            )
         return sections

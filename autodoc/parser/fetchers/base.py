@@ -6,7 +6,6 @@
 - ``IFetcher`` — интерфейс двухфазового фетчера;
 - ``BaseTFSFetcher`` — базовый класс с доступом к ``TFSClient``-синглтону.
 """
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

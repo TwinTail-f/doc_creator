@@ -183,3 +183,4 @@ class Conan2Runner(BaseConanRunner):
             if idx != -1:
                 return stderr[idx:]
         return stderr.strip()
+

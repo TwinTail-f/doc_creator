@@ -5,7 +5,7 @@ Pydantic-схемы для валидации конфигурационных �
 
 import os
 
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -21,7 +21,11 @@ class ParserConfigSchema(BaseModel):
     )
     platform_branch_name: str = Field(
         ...,
-        description='Ветка в репозитории (например "develop")',
+        description='Ветка или тег в репозитории (например "develop" или "0")',
+    )
+    platform_ref_type: Literal["branch", "tag", "commit"] = Field(
+        default="branch",
+        description='Тип версии: "branch" (по умолчанию), "tag" или "commit"',
     )
     tfs_token: str = Field(
         ...,

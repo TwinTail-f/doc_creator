@@ -540,8 +540,5 @@ class ConfluenceClient:
         session.headers.update({"Content-Type": "application/json"})
         return session
 
-
 # Deferred import to avoid circular dependency via page_manager.__init__
-from autodoc.publisher.page_manager.version_manager import (
-    _FALLBACK_VERSION,
-)  # noqa: E402
+from autodoc.publisher.page_manager.version_manager import _FALLBACK_VERSION  # noqa: E402

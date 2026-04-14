@@ -5,7 +5,6 @@
 вынесены в ``autodoc.parser.fetchers.base`` — они относятся к слою загрузки данных,
 а не к слою шагов.
 """
-
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

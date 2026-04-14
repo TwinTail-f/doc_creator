@@ -9,6 +9,7 @@ from autodoc.exceptions import ParsingError
 from autodoc.models.component import Component
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
+from autodoc.parser.clients.tfs_client import VersionType
 from autodoc.parser.steps.base import PipelineContext
 
 _MANIFESTS_REPO: str = "platform"
@@ -28,6 +29,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._manifests_remotes_path: str = ""
         self._platform_branch_name: str = ""
         self._platform_version: str = ""
+        self._platform_ref_type: VersionType = VersionType.BRANCH
 
     def configure(self, ctx: PipelineContext) -> None:
         """
@@ -43,6 +45,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
         self._platform_version = ctx.config.platform_version
+        self._platform_ref_type = VersionType(ctx.config.platform_ref_type)
 
     def fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
         """
@@ -66,6 +69,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             remote_path=self._manifests_remotes_path,
             branch=self._platform_branch_name,
             output_dir=str(tmp_dir),
+            version_type=self._platform_ref_type,
         )
 
         properties_files = list(tmp_dir.glob("*.properties"))

@@ -27,6 +27,14 @@ class RecursionLevel(str, Enum):
     FULL = "Full"
 
 
+class VersionType(str, Enum):
+    """Тип версии для versionDescriptor TFS Items API."""
+
+    BRANCH = "branch"
+    TAG = "tag"
+    COMMIT = "commit"
+
+
 class TFSClient:
     """
     Клиент для выполнения запросов к TFS с автоматической retry-логикой.
@@ -77,6 +85,7 @@ class TFSClient:
         remote_path: str,
         branch: str,
         output_dir: str,
+        version_type: VersionType = VersionType.BRANCH,
     ) -> None:
         """
         Скачивает все ``.properties``-файлы из директории TFS в локальную папку.
@@ -84,8 +93,9 @@ class TFSClient:
         Args:
             items_url: API URL для запроса элементов репозитория.
             remote_path: Путь к директории внутри репозитория (scopePath).
-            branch: Название ветки.
+            branch: Название ветки или тега.
             output_dir: Локальный путь для сохранения файлов.
+            version_type: Тип версии (branch, tag, commit). По умолчанию branch.
 
         Raises:
             NetworkError: Если не удалось получить список файлов.
@@ -93,13 +103,14 @@ class TFSClient:
         params = {
             "scopePath": remote_path,
             "versionDescriptor.version": branch,
+            "versionDescriptor.versionType": version_type.value,
             "recursionLevel": RecursionLevel.ONE_LEVEL.value,
         }
 
         if not self._configured:
             raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
 
-        logger.info(f"Запрос списка файлов из {items_url} (ветка: {branch})")
+        logger.info(f"Запрос списка файлов из {items_url} ({version_type.value}: {branch})")
 
         try:
             response = self.session.get(items_url, params=params)
@@ -134,6 +145,7 @@ class TFSClient:
         items_url: str,
         path: str,
         branch: str,
+        version_type: VersionType = VersionType.BRANCH,
     ) -> requests.Response:
         """
         Получает содержимое файла из TFS.
@@ -141,7 +153,8 @@ class TFSClient:
         Args:
             items_url: Базовый API URL для items репозитория.
             path: Полный путь к файлу в репозитории.
-            branch: Название ветки.
+            branch: Название ветки или тега.
+            version_type: Тип версии (branch, tag, commit). По умолчанию branch.
 
         Returns:
             Ответ сервера с содержимым файла.
@@ -155,6 +168,7 @@ class TFSClient:
         params = {
             "path": path,
             "versionDescriptor.version": branch,
+            "versionDescriptor.versionType": version_type.value,
         }
         try:
             return self.session.get(items_url, params=params)
@@ -166,14 +180,16 @@ class TFSClient:
         items_url: str,
         branch: str,
         recursion: RecursionLevel = RecursionLevel.FULL,
+        version_type: VersionType = VersionType.BRANCH,
     ) -> list[dict[str, Any]]:
         """
         Получает список элементов (файлов и папок) репозитория.
 
         Args:
             items_url: Базовый API URL для items.
-            branch: Название ветки.
+            branch: Название ветки или тега.
             recursion: Уровень рекурсии обхода репозитория.
+            version_type: Тип версии (branch, tag, commit). По умолчанию branch.
 
         Returns:
             Список словарей с описанием элементов репозитория.
@@ -187,6 +203,7 @@ class TFSClient:
         params = {
             "recursionLevel": recursion.value,
             "versionDescriptor.version": branch,
+            "versionDescriptor.versionType": version_type.value,
         }
         try:
             response = self.session.get(items_url, params=params)

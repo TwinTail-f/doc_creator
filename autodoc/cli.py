@@ -264,9 +264,7 @@ def publish_release(
         )
 
         publisher, conf_config = _make_publisher(cli_ctx)
-        final_title = (
-            page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
-        )
+        final_title = page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish(
@@ -311,9 +309,7 @@ def publish_profile(
         )
 
         publisher, conf_config = _make_publisher(cli_ctx)
-        final_title = (
-            page_title or conf_config.page_title or _DEFAULT_PROFILE_PAGE_TITLE
-        )
+        final_title = page_title or conf_config.page_title or _DEFAULT_PROFILE_PAGE_TITLE
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish(
@@ -417,9 +413,7 @@ def publish_all(
             sys.exit(1)
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
-        final_title = (
-            page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
-        )
+        final_title = page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
 
         console.print("🔄 Публикация…", style="cyan")
         result = publisher.publish_all(

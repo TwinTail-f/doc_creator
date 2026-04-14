@@ -3,6 +3,7 @@
 
   "platform_version": "2.0",
   "platform_branch_name": "develop",
+  "platform_ref_type": "branch",
 
   "tfs_username": "firstname.lastname@company.com",
   "tfs_token": "YOUR_TFS_PERSONAL_ACCESS_TOKEN",
