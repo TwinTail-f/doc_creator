@@ -226,10 +226,10 @@ def _make_publisher(
 ) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
     """Создаёт DocumentPublisher и возвращает его вместе с конфигом."""
     conf_config = cli_ctx.config_manager.load_confluence_config(config_file)
-    templates_dir = (
-        cli_ctx.base_dir / "autodoc" / "publisher" / "rendering" / "templates"
+    rendering_dir = (
+        cli_ctx.base_dir / "autodoc" / "publisher" / "rendering"
     )
-    return DocumentPublisher(conf_config, templates_dir), conf_config
+    return DocumentPublisher(conf_config, rendering_dir), conf_config
 
 
 @publish.command("release")

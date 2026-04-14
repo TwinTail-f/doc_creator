@@ -28,19 +28,20 @@ class DocumentPublisher:
     def __init__(
         self,
         confluence_config: ConfluenceConfigSchema,
-        templates_dir: Path,
+        rendering_dir: Path,
         data_dir: Path | None = None,
     ) -> None:
         """
         Args:
             confluence_config: Валидированная конфигурация Confluence.
-            templates_dir: Путь к директории с Jinja2-шаблонами.
+            rendering_dir: Путь к директории ``rendering/`` (содержит
+                ``templates/``, ``styles/``, ``macros/``).
             data_dir: Рабочая директория для ``passport_pages.json``.
                       По умолчанию ``Path('data')``.
         """
         self._config: ConfluenceConfigSchema = confluence_config
         self._client: ConfluenceClient = ConfluenceClient(confluence_config)
-        self._builder: DocumentBuilder = DocumentBuilder(templates_dir)
+        self._builder: DocumentBuilder = DocumentBuilder(rendering_dir)
         self._data_dir: Path = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
         logger.info("Инициализирован")
 

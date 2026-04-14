@@ -12,25 +12,30 @@ class DocumentBuilder:
     """
     Рендерит Jinja2-шаблоны в HTML для публикации в Confluence.
 
-    Инициализирует окружение Jinja2 из указанной директории шаблонов
-    и предоставляет единственный публичный метод ``build``.
+    Инициализирует окружение Jinja2 из директории ``rendering/`` и
+    предоставляет единственный публичный метод ``build``.
     """
 
-    def __init__(self, templates_dir: Path) -> None:
+    def __init__(self, rendering_dir: Path) -> None:
         """
         Args:
-            templates_dir: Путь к директории с ``.jinja2``-шаблонами.
+            rendering_dir: Путь к директории ``rendering/`` (содержит
+                ``templates/``, ``styles/``, ``macros/``). Корень
+                ``FileSystemLoader`` устанавливается именно сюда, чтобы
+                пути вида ``../styles/...`` и ``../macros/...`` внутри
+                шаблонов корректно разрешались без выхода за пределы
+                корня загрузчика.
 
         Raises:
-            FileNotFoundError: Если директория шаблонов не существует.
+            FileNotFoundError: Если директория не существует.
         """
-        if not templates_dir.exists():
-            raise FileNotFoundError(f"Директория шаблонов не найдена: {templates_dir}")
+        if not rendering_dir.exists():
+            raise FileNotFoundError(f"Директория рендеринга не найдена: {rendering_dir}")
 
         self._env: Environment = Environment(
-            loader=FileSystemLoader(str(templates_dir))
+            loader=FileSystemLoader(str(rendering_dir))
         )
-        logger.info(f"Инициализирован: {templates_dir}")
+        logger.info(f"Инициализирован: {rendering_dir}")
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:
         """
@@ -50,7 +55,7 @@ class DocumentBuilder:
         """
         logger.debug(f'Рендеринг шаблона "{template_name}"')
         try:
-            template = self._env.get_template(template_name)
+            template = self._env.get_template(f"templates/{template_name}")
             html = template.render(data=view_model)
             logger.info(f'Шаблон "{template_name}" отрендерен')
             return html
