@@ -9,6 +9,7 @@ from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.utils.properties_reader import read_properties
 from autodoc.parser.parsers.manifest_parser import ManifestParser
+from autodoc.parser.clients.tfs_client import VersionType
 
 # 4.2 Используем новое имя поля
 MINIMAL_CONFIG_DATA = {
@@ -72,7 +73,7 @@ class TestReadProperties:
 
 class TestManifestFetcher:
     def _make_parser_with_mock(self, tmp_path: Path, content: str):
-        def fake_download(items_url, remote_path, branch, output_dir):
+        def fake_download(items_url, remote_path, branch, output_dir, version_type=None):
             _write_properties(Path(output_dir), "comp.properties", content)
 
         parser = ManifestFetcher.__new__(ManifestFetcher)
@@ -82,6 +83,7 @@ class TestManifestFetcher:
         parser._manifests_remotes_path = "/remotes/manifests"
         parser._platform_branch_name = "develop"
         parser._platform_version = "2.0"
+        parser._platform_ref_type = VersionType.BRANCH
         parser._configured = True
         return parser
 
@@ -135,6 +137,7 @@ class TestManifestFetcher:
         parser._manifests_remotes_path = "/remotes/manifests"
         parser._platform_branch_name = "develop"
         parser._platform_version = "2.0"
+        parser._platform_ref_type = VersionType.BRANCH
         parser._configured = True
         with pytest.raises(ParsingError, match=".properties"):
             parser.fetch(tmp_path / "empty", excluded=[])

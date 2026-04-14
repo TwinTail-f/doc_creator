@@ -91,7 +91,6 @@ class TestConfluenceClientInit:
             bearer=True,
             max_retries=_RETRY_COUNT,
             backoff_factor=_BACKOFF_FACTOR,
-            timeout=30,
         )
 
     def test_no_basic_auth_on_session(self) -> None:

@@ -15,7 +15,7 @@ from typing import Any
 import requests
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.exceptions import NetworkError
+from autodoc.exceptions import ConfigError, NetworkError
 from autodoc.infrastructure.http_client import create_retryable_session
 from autodoc.infrastructure.logger import logger
 
@@ -62,12 +62,9 @@ class TFSClient:
             config: Валидированная конфигурация парсера с учётными данными TFS.
         """
         if not config.tfs_token:
-            logger.error(
-                "TFSClient: tfs_token не задан в конфигурации — клиент нефункционален"
+            raise ConfigError(
+                "TFSClient: tfs_token не задан в конфигурации"
             )
-            self._configured = False
-            self.session = None
-            return
 
         self._configured = True
         self.session = create_retryable_session(
