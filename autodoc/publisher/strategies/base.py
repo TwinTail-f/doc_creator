@@ -4,6 +4,7 @@ from __future__ import annotations
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar
@@ -200,7 +201,7 @@ class BasePublishStrategy(ABC):
             if inject_links is not None:
                 inject_links(view_model)
 
-            html_body = self._builder.build(template_name, view_model)
+            html_body = self._minify_html(self._builder.build(template_name, view_model))
             result = self._client.publish_page(
                 space=self._space,
                 parent_id=parent_id,
@@ -235,6 +236,26 @@ class BasePublishStrategy(ABC):
                 failed_pages=[{"page_title": page_title, "reason": reason}],
                 details=details,
             )
+
+    @staticmethod
+    def _minify_html(html: str) -> str:
+        """
+        Минимизирует HTML-разметку перед публикацией в Confluence.
+
+        Удаляет HTML-комментарии, схлопывает пробельные символы между тегами
+        и убирает лишние пробелы внутри текста. Применяется ко всем страницам,
+        публикуемым любой из стратегий.
+
+        Args:
+            html: Исходный HTML-текст шаблона.
+
+        Returns:
+            Минимизированный HTML без лишних пробелов и комментариев.
+        """
+        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)  # strip comments
+        html = re.sub(r">\s+<", "><", html)                      # whitespace between tags
+        html = re.sub(r"\s{2,}", " ", html)                      # collapse runs of spaces
+        return html.strip()
 
     @abstractmethod
     def execute(self) -> PublishReport:

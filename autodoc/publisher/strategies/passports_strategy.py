@@ -224,7 +224,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         view_model["target_platform"] = f"Платформа {platform_version}"
         view_model["legacy_contents"] = legacy_contents
 
-        html_body = self._builder.build(self._template_name, view_model)
+        html_body = self._minify_html(self._builder.build(self._template_name, view_model))
         result = self._client.publish_page(
             space=self._space,
             parent_id=version_page_id,

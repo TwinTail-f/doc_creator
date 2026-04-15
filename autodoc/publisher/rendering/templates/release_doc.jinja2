@@ -16,9 +16,17 @@
         {%- set page_start = page_idx0 * PAGE_SIZE + 1 -%}
         {%- set page_end_raw = page_start + PAGE_SIZE - 1 -%}
         {%- set page_end = page_end_raw if page_end_raw < total else total -%}
+        {%- set real_count = page_end - page_start + 1 -%}
+        {%- set first_letter = page_components[0].name[0] | lower -%}
+        {%- set last_letter = page_components[real_count - 1].name[0] | lower -%}
+        {%- if first_letter == last_letter -%}
+            {%- set tab_label = first_letter -%}
+        {%- else -%}
+            {%- set tab_label = first_letter ~ '–' ~ last_letter -%}
+        {%- endif -%}
 
         <ac:structured-macro ac:name="tab-pane">
-            <ac:parameter ac:name="name">{{ page_start }}–{{ page_end }}</ac:parameter>
+            <ac:parameter ac:name="name">{{ tab_label }}</ac:parameter>
             <ac:parameter ac:name="anchor">page-{{ page_idx }}</ac:parameter>
             <ac:parameter ac:name="outline">true</ac:parameter>
 

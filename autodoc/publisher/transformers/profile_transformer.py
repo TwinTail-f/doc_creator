@@ -56,10 +56,15 @@ class ProfileCentricTransformer(PassportLinkMixin, BaseDataTransformer):
         """
         logger.debug("Трансформация в профиль-центричный вид")
 
-        # Собираем агрегированные настройки и docker URL по профилям
+        # Собираем агрегированные настройки и docker URL по профилям.
+        # Header-only компоненты пропускаются намеренно: их profile_builds содержат
+        # пустые conan_settings, которые перезаписали бы корректные данные,
+        # ранее заполненные из обычных (не header-only) компонентов.
         profile_meta: dict[str, dict[str, Any]] = {}
         for comp in data.components:
             for rel in comp.releases:
+                if rel.is_header_only:
+                    continue
                 for pb in rel.profile_builds:
                     if pb.profile_name not in profile_meta:
                         profile_meta[pb.profile_name] = {
