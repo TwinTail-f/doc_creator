@@ -9,7 +9,10 @@ from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.utils.properties_reader import read_properties
 from autodoc.parser.parsers.manifest_parser import ManifestParser
-from autodoc.parser.clients.tfs_client import VersionType
+
+# Путь к тестовым данным в виде .properties-файла
+_RESOURCES = Path(__file__).parent / "resources"
+_SAMPLE_PROPERTIES_FILE = _RESOURCES / "crypto_lib.properties"
 
 MINIMAL_CONFIG_DATA = {
     "platform_version": "2.0",
@@ -24,7 +27,6 @@ MINIMAL_CONFIG_DATA = {
 
 def _make_config():
     from autodoc.config.schemas import ParserConfigSchema
-
     return ParserConfigSchema(**MINIMAL_CONFIG_DATA)
 
 
@@ -32,18 +34,6 @@ def _write_properties(tmp_path: Path, filename: str, content: str) -> Path:
     p = tmp_path / filename
     p.write_text(content, encoding="utf-8")
     return p
-
-
-SAMPLE_PROPERTIES = """\
-name=crypto_lib
-description=Crypto library
-tfs_git_project=DEP_Components
-git_repo_name=crypto_lib
-versions.component=1.2.3
-versions.platform=2.0-stable
-integration-profiles-develop-1.2.3-2.0-stable=linux_x86_64,linux_aarch64
-svace-profiles-1.2.3-2.0=linux_x86_64
-"""
 
 
 class TestReadProperties:
@@ -71,82 +61,100 @@ class TestReadProperties:
 
 
 class TestManifestFetcher:
-    def _make_parser_with_mock(self, tmp_path: Path, content: str):
-        def fake_download(
-            items_url, remote_path, branch, output_dir, version_type=None
-        ):
+    """Тесты ManifestFetcher через стандартную инициализацию configure() -> fetch()."""
+
+    def _make_fetcher(self, tmp_path: Path, content: str) -> ManifestFetcher:
+        """
+        Создаёт ManifestFetcher через штатный путь: сначала __init__, затем configure().
+
+        TFSClient заменяется моком, чтобы вместо сетевых запросов писать файл
+        напрямую во временную директорию.
+        """
+        from autodoc.parser.steps.base import PipelineContext
+
+        def fake_download(items_url, remote_path, branch, output_dir, version_type=None):
             _write_properties(Path(output_dir), "comp.properties", content)
 
-        parser = ManifestFetcher.__new__(ManifestFetcher)
-        parser._tfs = MagicMock()
-        parser._tfs.download_properties.side_effect = fake_download
-        parser._base_url = "https://tfs.example.com/DEP"
-        parser._manifests_remotes_path = "/remotes/manifests"
-        parser._platform_branch_name = "develop"
-        parser._platform_version = "2.0"
-        parser._platform_ref_type = VersionType.BRANCH
-        parser._configured = True
-        return parser
+        mock_tfs = MagicMock()
+        mock_tfs.download_properties.side_effect = fake_download
+
+        config = _make_config()
+        ctx = MagicMock(spec=PipelineContext)
+        ctx.tfs_client = mock_tfs
+        ctx.config = config
+
+        fetcher = ManifestFetcher()
+        fetcher.configure(ctx)
+        return fetcher
 
     def test_returns_component_list(self, tmp_path: Path) -> None:
-        parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
-        result = parser.fetch(tmp_path / "manifests", excluded=[])
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        fetcher = self._make_fetcher(tmp_path, content)
+        result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         assert len(result.value) == 1
         assert isinstance(result.value[0], Component)
         assert result.value[0].name == "crypto_lib"
 
     def test_release_fields_populated(self, tmp_path: Path) -> None:
-        parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
-        result = parser.fetch(tmp_path / "manifests", excluded=[])
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        fetcher = self._make_fetcher(tmp_path, content)
+        result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         release = result.value[0].releases[0]
         assert release.version == "1.2.3"
         assert release.channel == "stable"
 
     def test_git_repo_on_component_not_release(self, tmp_path: Path) -> None:
         """1.3 git_repo/git_project должны быть на Component, не на Release."""
-        parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
-        result = parser.fetch(tmp_path / "manifests", excluded=[])
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        fetcher = self._make_fetcher(tmp_path, content)
+        result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         comp = result.value[0]
         assert comp.git_repo == "crypto_lib"
         assert comp.git_project == "DEP_Components"
         assert not hasattr(comp.releases[0], "git_repo")
 
     def test_profile_builds_populated(self, tmp_path: Path) -> None:
-        parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
-        result = parser.fetch(tmp_path / "manifests", excluded=[])
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        fetcher = self._make_fetcher(tmp_path, content)
+        result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         profiles = result.value[0].releases[0].profile_builds
         assert len(profiles) == 2
         assert {p.profile_name for p in profiles} == {"linux_x86_64", "linux_aarch64"}
 
     def test_excluded_component_skipped(self, tmp_path: Path) -> None:
-        parser = self._make_parser_with_mock(tmp_path, SAMPLE_PROPERTIES)
-        assert parser.fetch(tmp_path / "manifests", excluded=["crypto_lib"]).value == []
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        fetcher = self._make_fetcher(tmp_path, content)
+        assert fetcher.fetch(tmp_path / "manifests", excluded=["crypto_lib"]).value == []
 
     def test_component_without_name_skipped(self, tmp_path: Path) -> None:
-        parser = self._make_parser_with_mock(tmp_path, "description=No name\n")
-        assert parser.fetch(tmp_path / "manifests", excluded=[]).value == []
+        fetcher = self._make_fetcher(tmp_path, "description=No name\n")
+        assert fetcher.fetch(tmp_path / "manifests", excluded=[]).value == []
 
     def test_raises_parsing_error_if_no_files(self, tmp_path: Path) -> None:
         from autodoc.exceptions import ParsingError
+        from autodoc.parser.steps.base import PipelineContext
 
-        parser = ManifestFetcher.__new__(ManifestFetcher)
-        parser._tfs = MagicMock()
-        parser._tfs.download_properties.return_value = None
-        parser._base_url = "https://tfs.example.com/DEP"
-        parser._manifests_remotes_path = "/remotes/manifests"
-        parser._platform_branch_name = "develop"
-        parser._platform_version = "2.0"
-        parser._platform_ref_type = VersionType.BRANCH
-        parser._configured = True
+        mock_tfs = MagicMock()
+        mock_tfs.download_properties.return_value = None  # ничего не пишет на диск
+
+        config = _make_config()
+        ctx = MagicMock(spec=PipelineContext)
+        ctx.tfs_client = mock_tfs
+        ctx.config = config
+
+        fetcher = ManifestFetcher()
+        fetcher.configure(ctx)
+
         with pytest.raises(ParsingError, match=".properties"):
-            parser.fetch(tmp_path / "empty", excluded=[])
+            fetcher.fetch(tmp_path / "empty", excluded=[])
 
 
 class TestManifestParser:
     """Тесты ManifestParser напрямую — без TFS, без моков сети."""
 
     def test_parse_returns_component(self, tmp_path: Path) -> None:
-        _write_properties(tmp_path, "c.properties", SAMPLE_PROPERTIES)
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        _write_properties(tmp_path, "c.properties", content)
         parser = ManifestParser(target_platform="2.0")
         components, warnings = parser.parse(
             list(tmp_path.glob("*.properties")), excluded=[]
@@ -156,7 +164,8 @@ class TestManifestParser:
         assert warnings == []
 
     def test_parse_excluded_returns_empty(self, tmp_path: Path) -> None:
-        _write_properties(tmp_path, "c.properties", SAMPLE_PROPERTIES)
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        _write_properties(tmp_path, "c.properties", content)
         parser = ManifestParser(target_platform="2.0")
         components, _ = parser.parse(
             list(tmp_path.glob("*.properties")), excluded=["crypto_lib"]
@@ -170,7 +179,8 @@ class TestManifestParser:
         assert components == []
 
     def test_release_fields_correct(self, tmp_path: Path) -> None:
-        _write_properties(tmp_path, "c.properties", SAMPLE_PROPERTIES)
+        content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
+        _write_properties(tmp_path, "c.properties", content)
         parser = ManifestParser(target_platform="2.0")
         components, _ = parser.parse(list(tmp_path.glob("*.properties")), excluded=[])
         release = components[0].releases[0]

@@ -1,12 +1,12 @@
 """
-Abstract interfaces (Protocols) for parser infrastructure dependencies.
+Абстрактные интерфейсы (Protocol) для инфраструктурных зависимостей парсера.
 
-Using ``typing.Protocol`` (structural subtyping) means neither ``TFSClient``
-nor ``ArtifactoryClient`` requires any code change — they satisfy these
-interfaces implicitly.
+Использование ``typing.Protocol`` (структурная типизация) означает, что ни
+``TFSClient``, ни ``ArtifactoryClient`` не требуют изменений в коде —
+они удовлетворяют этим интерфейсам неявно.
 
-Pipeline steps and ``PipelineContext`` depend on these Protocols, not on
-concrete infrastructure classes.
+Шаги пайплайна и ``PipelineContext`` зависят от этих Protocol-ов, а не от
+конкретных инфраструктурных классов.
 """
 
 from typing import Any, Protocol, runtime_checkable
@@ -17,24 +17,24 @@ import requests
 @runtime_checkable
 class IArtifactoryClient(Protocol):
     """
-    Interface for checking artifact availability in Artifactory.
+    Интерфейс для проверки доступности артефактов в Artifactory.
 
-    Covers only the ``head()`` method used by ``ArtifactoryValidationStep``.
-    ``ArtifactoryClient`` satisfies this interface structurally.
+    Охватывает только метод ``head()``, используемый в ``ArtifactoryValidationStep``.
+    ``ArtifactoryClient`` удовлетворяет этому интерфейсу структурно.
     """
 
     def head(self, url: str) -> requests.Response:
-        """Perform an HTTP HEAD request and return the response."""
+        """Выполняет HTTP HEAD-запрос и возвращает ответ."""
         ...
 
 
 @runtime_checkable
 class ITFSClient(Protocol):
     """
-    Interface for reading files and directory listings from TFS.
+    Интерфейс для чтения файлов и листинга директорий из TFS.
 
-    Covers the three public methods used by fetcher classes.
-    ``TFSClient`` satisfies this interface structurally.
+    Охватывает три публичных метода, используемых классами-фетчерами.
+    ``TFSClient`` удовлетворяет этому интерфейсу структурно.
     """
 
     def download_properties(
@@ -45,7 +45,7 @@ class ITFSClient(Protocol):
         output_dir: str,
         version_type: Any = None,
     ) -> None:
-        """Download all ``.properties`` files from a TFS directory."""
+        """Скачивает все ``.properties``-файлы из директории TFS."""
         ...
 
     def get_file_content(
@@ -55,7 +55,7 @@ class ITFSClient(Protocol):
         branch: str,
         version_type: Any = None,
     ) -> requests.Response:
-        """Retrieve a single file's content from TFS."""
+        """Получает содержимое одного файла из TFS."""
         ...
 
     def get_items(
@@ -65,5 +65,5 @@ class ITFSClient(Protocol):
         recursion: Any = None,
         version_type: Any = None,
     ) -> list[dict[str, Any]]:
-        """Return a list of items (files and folders) from a TFS repository."""
+        """Возвращает список элементов (файлов и папок) репозитория TFS."""
         ...

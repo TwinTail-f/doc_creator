@@ -116,13 +116,3 @@ class Component(BaseModel):
         description="Список релизов компонента",
     )
 
-
-__all__ = [
-    "OptionType",
-    "BuildOptionSet",
-    "OptionDefinition",
-    "ConanVariant",
-    "ProfileBuild",
-    "Release",
-    "Component",
-]

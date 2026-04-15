@@ -5,7 +5,7 @@
 import requests
 
 from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.parallel_executor import ParallelExecutor
+from autodoc.infrastructure.parallel_executor import LogLevel, ParallelExecutor
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
 from autodoc.parser.clients.protocols import IArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
@@ -117,7 +117,7 @@ class ArtifactoryValidationStep(BaseParseStep):
         executor = ParallelExecutor(
             max_workers=_VALIDATION_MAX_WORKERS,
             log_progress_interval=_LOG_PROGRESS_INTERVAL,
-            log_level="debug",
+            log_level=LogLevel.DEBUG,
         )
         raw_results = executor.execute(
             check_one,

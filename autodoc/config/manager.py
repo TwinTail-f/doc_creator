@@ -29,7 +29,7 @@ class ConfigManager:
 
     SUPPORTED_FORMATS: list[str] = [".json", ".yaml", ".yml"]
 
-    def __init__(self, configs_dir: str) -> None:
+    def __init__(self, configs_dir: str | Path) -> None:
         """
         Инициализирует менеджер конфигураций.
 
@@ -176,7 +176,7 @@ class ConfigManager:
             if candidate.exists():
                 return candidate.name
 
-        available = [e.name for e in self.configs_dir.iterdir() if not e.is_dir()]
+        available = [item.name for item in self.configs_dir.iterdir() if not item.is_dir()]
         logger.error(
             f'Конфиг "{basename}" не найден в {self.configs_dir}. '
             f"Доступные файлы: {available}. "

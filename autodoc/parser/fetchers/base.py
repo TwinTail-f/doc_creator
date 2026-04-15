@@ -13,10 +13,15 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+from autodoc.parser.clients.tfs_client import TFSClient
+
 if TYPE_CHECKING:
-    from autodoc.parser.clients.tfs_client import TFSClient
+    # PipelineContext живёт в steps/base.py, который сам импортирует fetchers/base —
+    # прямой импорт здесь образует цикл, поэтому используем TYPE_CHECKING.
     from autodoc.parser.steps.base import PipelineContext
 
+# Параметр типа для обобщённых классов FetchResult и IFetcher/BaseTFSFetcher:
+# конкретизируется в каждом фетчере (например, _T = list[Component]).
 _T = TypeVar("_T")
 
 
@@ -79,7 +84,7 @@ class BaseTFSFetcher(IFetcher[_T]):
     """
 
     def __init__(self) -> None:
-        """Initialises the fetcher; ``_tfs`` is populated by ``configure()``."""
+        """Инициализирует фетчер; ``_tfs`` заполняется в методе ``configure()``."""
         self._tfs: TFSClient | None = None
 
     @abstractmethod

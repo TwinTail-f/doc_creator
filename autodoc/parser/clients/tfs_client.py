@@ -55,16 +55,18 @@ class TFSClient:
         """
         Инициализирует TFS-клиент из конфигурации парсера.
 
-        Если ``tfs_token`` не задан — клиент помечается как неработоспособный
-        и все последующие запросы вернут ``NetworkError`` с понятным сообщением.
+        Если ``tfs_token`` не задан — немедленно бросает ``ConfigError``;
+        объект в нерабочем состоянии не создаётся.
 
         Args:
             config: Валидированная конфигурация парсера с учётными данными TFS.
+
+        Raises:
+            ConfigError: Если ``tfs_token`` отсутствует в конфигурации.
         """
         if not config.tfs_token:
             raise ConfigError("TFSClient: tfs_token не задан в конфигурации")
 
-        self._configured = True
         self.session = create_retryable_session(
             token=config.tfs_token,
             max_retries=config.max_retries,
@@ -100,9 +102,6 @@ class TFSClient:
             "versionDescriptor.versionType": version_type.value,
             "recursionLevel": RecursionLevel.ONE_LEVEL.value,
         }
-
-        if not self._configured:
-            raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
 
         logger.info(
             f"Запрос списка файлов из {items_url} ({version_type.value}: {branch})"
@@ -160,9 +159,6 @@ class TFSClient:
         Raises:
             NetworkError: Если запрос не удался.
         """
-        if not self._configured:
-            raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
-
         params = {
             "path": path,
             "versionDescriptor.version": branch,
@@ -195,9 +191,6 @@ class TFSClient:
         Raises:
             NetworkError: Если запрос не удался.
         """
-        if not self._configured:
-            raise NetworkError("TFSClient не сконфигурирован: tfs_token не задан")
-
         params = {
             "recursionLevel": recursion.value,
             "versionDescriptor.version": branch,

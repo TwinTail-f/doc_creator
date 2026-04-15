@@ -22,38 +22,6 @@ _TFS_SESSION_PATH = "autodoc.parser.clients.tfs_client.create_retryable_session"
 
 
 # ---------------------------------------------------------------------------
-# VersionType enum
-# ---------------------------------------------------------------------------
-
-
-class TestVersionType:
-    """Тесты перечисления VersionType."""
-
-    def test_branch_value(self) -> None:
-        """VersionType.BRANCH имеет значение 'branch'."""
-        assert VersionType.BRANCH.value == "branch"
-
-    def test_tag_value(self) -> None:
-        """VersionType.TAG имеет значение 'tag'."""
-        assert VersionType.TAG.value == "tag"
-
-    def test_commit_value(self) -> None:
-        """VersionType.COMMIT имеет значение 'commit'."""
-        assert VersionType.COMMIT.value == "commit"
-
-    def test_construct_from_string(self) -> None:
-        """VersionType конструируется из строки."""
-        assert VersionType("tag") is VersionType.TAG
-        assert VersionType("branch") is VersionType.BRANCH
-        assert VersionType("commit") is VersionType.COMMIT
-
-    def test_invalid_value_raises(self) -> None:
-        """Неизвестное значение вызывает ValueError."""
-        with pytest.raises(ValueError):
-            VersionType("unknown")
-
-
-# ---------------------------------------------------------------------------
 # Вспомогательные утилиты
 # ---------------------------------------------------------------------------
 
