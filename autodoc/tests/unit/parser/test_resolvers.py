@@ -13,7 +13,6 @@ from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher
 from autodoc.parser.parsers.docker_parser import DockerParser
 
-# 4.2 Новое имя поля
 MINIMAL_CONFIG_DATA = {
     "platform_version": "2.0",
     "platform_branch_name": "develop",
@@ -37,8 +36,19 @@ def _make_component(name: str, version: str, channel: str, git_repo: str) -> Com
         channel=channel,
         git_url="https://tfs.example.com/repo",
     )
-    # 1.3 git_repo — на Component, не на Release
     return Component(name=name, git_repo=git_repo, releases=[release])
+
+
+def _make_sync_executor() -> MagicMock:
+    """
+    Возвращает мок ParallelExecutor, который выполняет задачи синхронно.
+
+    Воспроизводит контракт ParallelExecutor.execute(fn, items, ...) → list,
+    не запуская реальные потоки — достаточно для юнит-тестов.
+    """
+    mock_executor = MagicMock()
+    mock_executor.execute.side_effect = lambda fn, items, **kw: [fn(item) for item in items]
+    return mock_executor
 
 
 class TestDockerParserAliases:
@@ -114,6 +124,7 @@ class TestOptionsFetcher:
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = "https://tfs.example.com/DEP"
         resolver._configured = True
+        resolver._executor = _make_sync_executor()
         mock_tfs = MagicMock()
         mock_tfs.get_items.return_value = [{"path": opt_path, "isFolder": False}]
         mock_resp = MagicMock()
@@ -143,6 +154,7 @@ class TestOptionsFetcher:
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = "https://tfs.example.com/DEP"
         resolver._configured = True
+        resolver._executor = _make_sync_executor()
         resolver._tfs = MagicMock()
         comp = _make_component("no_repo_lib", "1.0.0", "stable", "")
         result = resolver.fetch([comp])
@@ -153,6 +165,7 @@ class TestOptionsFetcher:
         resolver = OptionsFetcher.__new__(OptionsFetcher)
         resolver._base_url = "https://tfs.example.com/DEP"
         resolver._configured = True
+        resolver._executor = _make_sync_executor()
         mock_tfs = MagicMock()
         mock_tfs.get_items.return_value = [{"path": "/other.txt", "isFolder": False}]
         resolver._tfs = mock_tfs

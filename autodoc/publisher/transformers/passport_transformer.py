@@ -107,17 +107,13 @@ class PassportTransformer(BaseDataTransformer):
 
         return {
             "platform_version": data.platform_version,
-            "generated_at": data.generated_at,
             "component": {
                 "name": target_comp.name,
                 "description": target_comp.description,
                 "git_project": target_comp.git_project,
                 "git_repo": target_comp.git_repo,
-                # data.component.releases — список из одного элемента,
-                # чтобы шаблон мог groupby('channel') без изменений
-                "releases": [release_dict],
             },
-            # data.release — для обратной совместимости и прямого доступа
+            # data.release — единственная точка доступа к данным релиза в шаблоне
             "release": release_dict,
             "legacy_contents": {},
         }

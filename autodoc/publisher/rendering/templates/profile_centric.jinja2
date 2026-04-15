@@ -103,7 +103,9 @@
                                                                 <th class="confluenceTh ap-cth">Компонент</th>
                                                                 <th class="confluenceTh ap-cth">Версия</th>
                                                                 <th class="confluenceTh ap-cth">Conan Reference</th>
+                                                                {%- if data.include_passport_links -%}
                                                                 <th class="confluenceTh ap-cth">Паспорт</th>
+                                                                {%- endif -%}
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -120,6 +122,7 @@
                                                                         {{ comp.reference }} &#8599;
                                                                     </a>
                                                                 </td>
+                                                                {%- if data.include_passport_links -%}
                                                                 <td class="confluenceTd ap-ctd">
                                                                     {%- if comp.passport_link -%}
                                                                         <a href="{{ comp.passport_link }}" class="ap-passport-btn">
@@ -129,6 +132,7 @@
                                                                         <span class="ap-text-subtlest">—</span>
                                                                     {%- endif -%}
                                                                 </td>
+                                                                {%- endif -%}
                                                             </tr>
                                                             {%- endfor -%}
                                                         </tbody>

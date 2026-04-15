@@ -6,7 +6,16 @@ from typing import Any
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.view_models import ConanVariantView
 
-_DEFAULT_PASSPORT_PATTERN: str = "/spaces/DOC/pages/{component_name}+{release_version}"
+_DEFAULT_PASSPORT_PATTERN: str | None = None
+"""
+Шаблон URL паспорта по умолчанию.
+
+Намеренно ``None``: паспортная ссылка всегда должна внедряться
+``PassportPageRegistry`` после публикации. До заполнения реестра
+ссылка недоступна, поэтому шаблон отображает «—» вместо нерабочего URL.
+Передайте явный ``passport_page_pattern`` в конструктор трансформера,
+только если вы знаете URL заранее.
+"""
 
 
 class PassportLinkMixin:
@@ -22,7 +31,7 @@ class PassportLinkMixin:
     """
 
     _include_passport_links: bool
-    _pattern: str
+    _pattern: str | None
 
     def _passport_link(self, comp_name: str, version: str) -> str | None:
         """
@@ -34,9 +43,10 @@ class PassportLinkMixin:
 
         Returns:
             URL паспорта, построенный по ``_pattern``, или ``None``,
-            если ссылки отключены (``_include_passport_links is False``).
+            если ссылки отключены (``_include_passport_links is False``)
+            либо шаблон не задан (реестр ещё не заполнен).
         """
-        if not self._include_passport_links:
+        if not self._include_passport_links or not self._pattern:
             return None
         return self._pattern.format(
             component_name=comp_name.replace(" ", "+"),
