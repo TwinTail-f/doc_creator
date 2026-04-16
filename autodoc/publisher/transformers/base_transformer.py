@@ -89,7 +89,11 @@ class BaseDataTransformer(ABC):
         )
 
     @staticmethod
-    def _build_variant_view(variant: Any, component_name: str) -> ConanVariantView:
+    def _build_variant_view(
+        variant: Any,
+        component_name: str,
+        conan_options: dict[str, Any] | None = None,
+    ) -> ConanVariantView:
         """
         Преобразует доменный ``ConanVariant`` в ``ConanVariantView`` паблишера.
 
@@ -99,17 +103,20 @@ class BaseDataTransformer(ABC):
         Args:
             variant: Доменный объект ``ConanVariant``.
             component_name: Имя компонента для квалификации ключей опций.
+            conan_options: Разрешённые опции варианта из ``Release.option_sets``
+                           (по ``variant.options_ref``). Если ``None`` — пустой словарь.
 
         Returns:
             Готовый ``ConanVariantView`` с предформатированными опциями.
         """
+        opts = conan_options or {}
         return ConanVariantView(
             package_id=variant.package_id,
             build_url=variant.build_url,
             build_date=variant.build_date,
-            conan_options=dict(variant.conan_options),
+            conan_options=opts,
             install_options=BaseDataTransformer._build_install_options(
-                variant.conan_options, component_name
+                opts, component_name
             ),
         )
 

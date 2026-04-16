@@ -37,10 +37,10 @@ class ProfileCentricTransformer(BaseReleaseTransformer):
         """
         logger.debug("Трансформация в профиль-центричный вид")
 
-        # Собираем агрегированные настройки и docker URL по профилям.
-        # Header-only компоненты пропускаются намеренно: их profile_builds содержат
-        # пустые conan_settings, которые перезаписали бы корректные данные,
-        # ранее заполненные из обычных (не header-only) компонентов.
+        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
+
+        # Collect profile metadata from profile_definitions; iterate components only
+        # to discover which profiles are actually present in non-header-only releases.
         profile_meta: dict[str, dict[str, Any]] = {}
         for comp in data.components:
             for rel in comp.releases:
@@ -48,16 +48,11 @@ class ProfileCentricTransformer(BaseReleaseTransformer):
                     continue
                 for pb in rel.profile_builds:
                     if pb.profile_name not in profile_meta:
+                        pd = pd_map.get(pb.profile_name)
                         profile_meta[pb.profile_name] = {
-                            "settings": {},
-                            "docker_url": "",
+                            "settings": dict(pd.conan_settings) if pd else {},
+                            "docker_url": pd.docker_image if pd else "",
                         }
-                    if pb.conan_settings:
-                        profile_meta[pb.profile_name]["settings"].update(
-                            pb.conan_settings
-                        )
-                    if pb.docker_image:
-                        profile_meta[pb.profile_name]["docker_url"] = pb.docker_image
 
         profiles: list[dict[str, Any]] = []
         for profile_name in sorted(profile_meta):

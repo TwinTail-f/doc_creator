@@ -3,7 +3,7 @@ Unit-тесты DataEnricher.
 
 Покрывают все три статических метода:
 - apply_options      — запись опций в Release
-- apply_docker_links — запись docker_image в ProfileBuild
+- apply_docker_links — запись docker_image в ProfileDefinition
 - apply_conan_results — применение ConanEnrichmentResult к Release и ProfileBuild
 """
 
@@ -15,6 +15,7 @@ from autodoc.models.component import (
     Component,
     OptionDefinition,
     ProfileBuild,
+    ProfileDefinition,
     Release,
 )
 from autodoc.models.conan_result import (
@@ -110,54 +111,43 @@ class TestApplyOptions:
 
 class TestApplyDockerLinks:
     def test_docker_image_filled_for_matching_profile(self) -> None:
-        pb = _make_pb("linux_x86_64")
-        release = _make_release()
-        release.profile_builds = [pb]
-        comp = _make_component(release=release)
+        # docker_image живёт в ProfileDefinition (убрано из ProfileBuild в Task 1)
+        pd = ProfileDefinition(profile_name="linux_x86_64")
 
         DataEnricher.apply_docker_links(
-            [comp], {"linux_x86_64": "registry.example.com/builder:1.0"}
+            [pd], {"linux_x86_64": "registry.example.com/builder:1.0"}
         )
 
-        assert pb.docker_image == "registry.example.com/builder:1.0"
+        assert pd.docker_image == "registry.example.com/builder:1.0"
 
     def test_unknown_profile_gets_empty_string(self) -> None:
-        pb = _make_pb("unknown_profile")
-        release = _make_release()
-        release.profile_builds = [pb]
-        comp = _make_component(release=release)
+        pd = ProfileDefinition(profile_name="unknown_profile")
 
-        DataEnricher.apply_docker_links([comp], {"linux_x86_64": "registry/img:1"})
+        DataEnricher.apply_docker_links([pd], {"linux_x86_64": "registry/img:1"})
 
-        assert pb.docker_image == ""
+        assert pd.docker_image == ""
 
     def test_multiple_profiles_each_get_own_image(self) -> None:
-        pb1 = _make_pb("linux_x86_64")
-        pb2 = _make_pb("linux_aarch64")
-        release = _make_release()
-        release.profile_builds = [pb1, pb2]
-        comp = _make_component(release=release)
+        pd1 = ProfileDefinition(profile_name="linux_x86_64")
+        pd2 = ProfileDefinition(profile_name="linux_aarch64")
 
         DataEnricher.apply_docker_links(
-            [comp],
+            [pd1, pd2],
             {
                 "linux_x86_64": "registry/img:x86",
                 "linux_aarch64": "registry/img:arm",
             },
         )
 
-        assert pb1.docker_image == "registry/img:x86"
-        assert pb2.docker_image == "registry/img:arm"
+        assert pd1.docker_image == "registry/img:x86"
+        assert pd2.docker_image == "registry/img:arm"
 
     def test_empty_links_map_leaves_all_empty(self) -> None:
-        pb = _make_pb()
-        release = _make_release()
-        release.profile_builds = [pb]
-        comp = _make_component(release=release)
+        pd = ProfileDefinition(profile_name="linux_x86_64")
 
-        DataEnricher.apply_docker_links([comp], {})
+        DataEnricher.apply_docker_links([pd], {})
 
-        assert pb.docker_image == ""
+        assert pd.docker_image == ""
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +202,8 @@ class TestApplyConanResults:
         release = _make_release()
         release.profile_builds = [pb]
         comp = _make_component(release=release)
+        # conan_settings теперь хранится в ProfileDefinition, не в ProfileBuild
+        pd_def = ProfileDefinition(profile_name=pb.profile_name)
 
         pb_data = ProfileConanData(
             conan_settings={"os": "Linux", "arch": "x86_64"},
@@ -221,16 +213,17 @@ class TestApplyConanResults:
                     package_id="abc123",
                     build_url="https://art.example.com/build",
                     build_date="2026-01-01T00:00:00+00:00",
-                    conan_options={"shared": "True"},
+                    options_ref="1",  # conan_options убрано из ConanVariant в Task 1
                 )
             ],
         )
         conan_result = _make_conan_result(profile_data={id(pb): pb_data})
 
-        DataEnricher.apply_conan_results([comp], conan_result)
+        DataEnricher.apply_conan_results([comp], conan_result, [pd_def])
 
         assert pb.exists is True
-        assert pb.conan_settings == {"os": "Linux", "arch": "x86_64"}
+        # conan_settings теперь проверяем через ProfileDefinition из контекста
+        assert pd_def.conan_settings == {"os": "Linux", "arch": "x86_64"}
         assert len(pb.variants) == 1
         assert isinstance(pb.variants[0], ConanVariant)
         assert pb.variants[0].package_id == "abc123"

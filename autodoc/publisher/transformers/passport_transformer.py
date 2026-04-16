@@ -41,12 +41,7 @@ class PassportTransformer(BaseDataTransformer):
         Raises:
             ValueError: Если компонент или версия не найдены.
         """
-        profile_settings: dict[str, dict[str, Any]] = {}
-        for comp in data.components:
-            for rel in comp.releases:
-                for pb in rel.profile_builds:
-                    if pb.conan_settings and pb.profile_name not in profile_settings:
-                        profile_settings[pb.profile_name] = dict(pb.conan_settings)
+        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
 
         target_comp = next(
             (c for c in data.components if c.name == self._component_name), None
@@ -69,20 +64,29 @@ class PassportTransformer(BaseDataTransformer):
                 f"PassportTransformer: версия {self._release_version} для {self._component_name} не найдена"
             )
 
+        # Lookup resolved options by options_ref for this release
+        os_map: dict[str, dict] = {
+            os_.id: os_.options for os_ in target_rel.option_sets
+        }
+
         enriched_pbs = []
         for pb in target_rel.profile_builds:
-            settings = dict(pb.conan_settings) if pb.conan_settings else {}
-            if not settings and pb.profile_name in profile_settings:
-                settings = profile_settings[pb.profile_name]
+            pd = pd_map.get(pb.profile_name)
+            settings = dict(pd.conan_settings) if pd else {}
+            docker_image = pd.docker_image if pd else ""
 
             enriched_pbs.append(
                 {
                     "profile_name": pb.profile_name,
                     "conan_settings": settings,
                     "exists": pb.exists,
-                    "docker_image": pb.docker_image,  # новое имя
+                    "docker_image": docker_image,
                     "variants": [
-                        self._build_variant_view(v, target_comp.name)
+                        self._build_variant_view(
+                            v,
+                            target_comp.name,
+                            os_map.get(v.options_ref, {}),
+                        )
                         for v in (pb.variants or [])
                     ],
                 }
