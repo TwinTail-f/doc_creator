@@ -117,9 +117,11 @@ class DataEnricher:
             result: ``ConanEnrichmentResult`` из ``ConanFetcher.fetch()``.
             profile_definitions: Mutable list of ProfileDefinition to upsert conan_settings into.
         """
-        pd_map: dict[str, ProfileDefinition] = {}
-        if profile_definitions is not None:
-            pd_map = {pd.profile_name: pd for pd in profile_definitions}
+        # Строим карту один раз до всех циклов
+        pd_map: dict[str, ProfileDefinition] = (
+            {pd.profile_name: pd for pd in profile_definitions}
+            if profile_definitions is not None else {}
+        )
 
         for comp in components:
             for release in comp.releases:
@@ -137,7 +139,6 @@ class DataEnricher:
                     if pb_data:
                         pb.exists = pb_data.exists
                         pb.variants = pb_data.variants
-                        # conan_settings now lives in ProfileDefinition
                         if profile_definitions is not None:
                             pname = pb.profile_name
                             if pname not in pd_map:
@@ -147,6 +148,5 @@ class DataEnricher:
                                 )
                                 pd_map[pname] = entry
                                 profile_definitions.append(entry)
-                            else:
-                                if pb_data.conan_settings:  # только если есть что писать (защита от header only)
-                                    pd_map[pname].conan_settings = pb_data.conan_settings
+                            elif pb_data.conan_settings:  # не затираем непустые данные пустыми
+                                pd_map[pname].conan_settings = pb_data.conan_settings
