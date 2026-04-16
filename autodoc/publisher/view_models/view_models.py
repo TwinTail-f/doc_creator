@@ -22,7 +22,3 @@ class ConanVariantView:
     # для подстановки напрямую в команду 'conan install'.
     install_options: str = ""
 
-
-__all__ = [
-    "ConanVariantView",
-]

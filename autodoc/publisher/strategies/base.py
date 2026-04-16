@@ -9,8 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, ClassVar
 
-if TYPE_CHECKING:
-    from autodoc.models.parsed_result import ParsedResult
+from autodoc.models.parsed_result import ParsedResult
 
 from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
 

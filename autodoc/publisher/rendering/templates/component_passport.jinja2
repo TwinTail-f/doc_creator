@@ -110,11 +110,16 @@
                             </ac:rich-text-body>
                         </ac:structured-macro>
 
-                        <p class="ap-install-label">Команда для установки:</p>
-                        <ac:structured-macro ac:name="code">
-                            <ac:parameter ac:name="language">bash</ac:parameter>
-                            <ac:parameter ac:name="theme">Confluence</ac:parameter>
-                            <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }}]]></ac:plain-text-body>
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Команда для установки (conan install)</ac:parameter>
+                            <ac:rich-text-body>
+                                <ac:structured-macro ac:name="code">
+                                    <ac:parameter ac:name="wrap">true</ac:parameter>
+                                    <ac:parameter ac:name="language">bash</ac:parameter>
+                                    <ac:parameter ac:name="theme">Confluence</ac:parameter>
+                                    <ac:plain-text-body><![CDATA[conan install --requires {{ data.release.conan_reference }}]]></ac:plain-text-body>
+                                </ac:structured-macro>
+                            </ac:rich-text-body>
                         </ac:structured-macro>
                     {%- else -%}
                         <ac:structured-macro ac:name="expand">
@@ -187,14 +192,16 @@
                                                                     {%- endif -%}
                                                                 </div>
 
-                                                                <p class="ap-install-label">Команда для установки:</p>
-                                                                <ac:structured-macro ac:name="code">
-                                                                    <ac:parameter ac:name="language">bash</ac:parameter>
-                                                                    <ac:parameter ac:name="theme">Confluence</ac:parameter>
-                                                                    <ac:parameter ac:name="collapse">false</ac:parameter>
-                                                                    <ac:plain-text-body><![CDATA[conan install {{ data.release.conan_reference }} \
-    -pr {{ build.profile_name }}{% if var.install_options %} \
-    {{ var.install_options | replace(" -o ", " \\\n    -o ") }}{% endif %}]]></ac:plain-text-body>
+                                                                <ac:structured-macro ac:name="expand">
+                                                                    <ac:parameter ac:name="title">Команда для установки (conan install)</ac:parameter>
+                                                                    <ac:rich-text-body>
+                                                                        <ac:structured-macro ac:name="code">
+                                                                            <ac:parameter ac:name="wrap">true</ac:parameter>
+                                                                            <ac:parameter ac:name="language">bash</ac:parameter>
+                                                                            <ac:parameter ac:name="theme">Confluence</ac:parameter>
+                                                                            <ac:plain-text-body><![CDATA[conan install --requires {{ data.release.conan_reference }} -pr {{ build.profile_name }}{% if var.install_options %} {{ var.install_options }}{% endif %}]]></ac:plain-text-body>
+                                                                        </ac:structured-macro>
+                                                                    </ac:rich-text-body>
                                                                 </ac:structured-macro>
 
                                                             </div>
