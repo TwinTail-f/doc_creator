@@ -6,12 +6,12 @@
 """
 
 import json
-from pathlib import Path
 import os
 import shutil
 import subprocess
 import tempfile
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.conan_result import ConanRawResult
@@ -38,39 +38,131 @@ class BaseConanRunner(ABC):
         """Очищает локальный кэш Conan."""
 
 
+class ConanEnvironmentManager:
+    """
+    Управляет жизненным циклом изолированного окружения Conan.
+
+    Создаёт одну разделяемую директорию-шаблон (``_setup_dir``), в которую
+    единожды устанавливается конфигурация через ``conan config install``.
+    Каждый вызов ``Conan2Runner.run()`` копирует шаблон в свою временную
+    директорию — это исключает race condition при параллельных вызовах.
+
+    После завершения работы ``cleanup()`` удаляет директорию-шаблон.
+    Временные директории отдельных вызовов удаляются самими вызовами через
+    ``tempfile.TemporaryDirectory``.
+
+    Типичное использование::
+
+        manager = ConanEnvironmentManager(config_url="https://...")
+        try:
+            setup_dir = manager.setup()
+            runner = Conan2Runner(timeout=120, conan_home_template=setup_dir)
+            # ... запуск задач ...
+        finally:
+            manager.cleanup()
+    """
+
+    _CONFIG_INSTALL_TIMEOUT: int = 120
+
+    def __init__(self, config_url: str) -> None:
+        """
+        Args:
+            config_url: URL zip-архива конфигурации Conan в Artifactory.
+                Например:
+                ``https://artifactory.company.ru/artifactory/components-conan2/
+                platform_config2/1.0.1.2/conan_config.zip``
+        """
+        self._config_url = config_url
+        self._setup_dir: Path | None = None
+
+    def setup(self) -> Path:
+        """
+        Создаёт временную директорию и устанавливает в неё конфигурацию Conan.
+
+        Выполняет ``conan config install <config_url>`` с ``CONAN_HOME``
+        указывающим на свежую временную директорию. По итогу там появляются:
+        папка ``profiles/``, файлы ``global.conf``, ``remotes.json``,
+        ``settings.yml``.
+
+        Returns:
+            Путь к директории-шаблону с установленной конфигурацией.
+
+        Raises:
+            RuntimeError: Если ``conan`` не найден в PATH или установка завершилась
+                с ненулевым кодом возврата.
+        """
+        if not shutil.which("conan"):
+            raise RuntimeError("Утилита conan не найдена в PATH.")
+
+        self._setup_dir = Path(tempfile.mkdtemp(prefix="conan_setup_"))
+        logger.info(
+            f"Устанавливаем конфигурацию Conan из {self._config_url!r} "
+            f"в {self._setup_dir} …"
+        )
+
+        env = {**os.environ, "CONAN_HOME": str(self._setup_dir)}
+        try:
+            result = subprocess.run(
+                ["conan", "config", "install", self._config_url],
+                capture_output=True,
+                text=True,
+                timeout=self._CONFIG_INSTALL_TIMEOUT,
+                env=env,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.cleanup()
+            raise RuntimeError(
+                f"Таймаут при установке конфигурации Conan ({self._CONFIG_INSTALL_TIMEOUT} с)."
+            ) from exc
+
+        if result.returncode != 0:
+            error = result.stderr.strip() or result.stdout.strip()
+            self.cleanup()
+            raise RuntimeError(
+                f"conan config install завершился с ошибкой (код {result.returncode}): {error}"
+            )
+
+        logger.info("Конфигурация Conan установлена успешно.")
+        return self._setup_dir
+
+    def cleanup(self) -> None:
+        """
+        Удаляет директорию-шаблон с конфигурацией Conan.
+
+        Безопасно вызывать повторно и при ``setup()`` не вызывавшемся.
+        """
+        if self._setup_dir and self._setup_dir.exists():
+            shutil.rmtree(self._setup_dir, ignore_errors=True)
+            logger.debug(f"Удалена директория конфигурации Conan: {self._setup_dir}")
+            self._setup_dir = None
+
+
 class Conan2Runner(BaseConanRunner):
     """
     Запускает команды Conan 2.x через ``subprocess``.
 
     Обрабатывает таймауты и ненулевые коды возврата.
-    Каждый вызов ``run()`` независим — безопасен для использования из нескольких потоков.
+    Каждый вызов ``run()`` копирует ``conan_home_template`` в свою изолированную
+    временную директорию — безопасен для использования из нескольких потоков.
+
+    ``conan_home_template`` должен быть подготовлен заранее через
+    ``ConanEnvironmentManager.setup()`` и передан при создании экземпляра.
     """
 
     _CONAN_NOT_FOUND_MSG: str = "Утилита conan не найдена. Проверьте PATH."
     _CLEAN_CACHE_CMD: list[str] = ["conan", "remove", "*", "-c"]
     _CLEAN_CACHE_TIMEOUT: int = 60
 
-    def __init__(self, timeout: int) -> None:
+    def __init__(self, timeout: int, conan_home_template: Path) -> None:
         """
         Args:
             timeout: Таймаут выполнения одной команды ``conan graph info`` в секундах.
+            conan_home_template: Путь к директории-шаблону с установленной конфигурацией
+                Conan (профили, ``global.conf``, ``remotes.json``, ``settings.yml``).
+                Создаётся и управляется ``ConanEnvironmentManager``.
         """
         self._timeout = timeout
-
-    @staticmethod
-    def _real_conan_home() -> Path:
-        """Возвращает путь к реальному CONAN_HOME (из env или ~/.conan2)."""
-        return Path(os.environ.get("CONAN_HOME", Path.home() / ".conan2"))
-
-    @staticmethod
-    def _setup_isolated_conan_home(src_home: Path, dst_home: Path) -> None:
-        """
-        Копирует папку ``.conan2`` из реального CONAN_HOME в изолированный.
-
-        Без этого Conan не находит ни пользовательские профили (-pr=...),
-        ни дефолтный профиль, и завершается с ошибкой.
-        """
-        shutil.copytree(src_home, dst_home, dirs_exist_ok=True)
+        self._conan_home_template = conan_home_template
 
     def run(self, task: ConanTask) -> ConanRawResult:
         """
@@ -78,8 +170,9 @@ class Conan2Runner(BaseConanRunner):
 
         Проверяет наличие ``conan`` в PATH до запуска subprocess.
         Для каждого вызова создаётся изолированный временный ``CONAN_HOME``
-        с скопированными профилями из реального окружения пользователя.
+        путём копирования директории-шаблона (``conan_home_template``).
         Это устраняет race condition в кэше Conan 2.x при параллельных вызовах.
+        Временная директория удаляется автоматически после завершения вызова.
 
         При таймауте или отсутствии утилиты возвращает ``success=False``
         с описанием ошибки — не бросает исключений.
@@ -98,9 +191,15 @@ class Conan2Runner(BaseConanRunner):
                 error=self._CONAN_NOT_FOUND_MSG,
             )
 
-        with tempfile.TemporaryDirectory(prefix="conan_home_") as tmp_home:
-            self._setup_isolated_conan_home(self._real_conan_home(), Path(tmp_home))
-            env = {**os.environ, "CONAN_HOME": tmp_home}
+        with tempfile.TemporaryDirectory(prefix="conan_run_") as tmp_run:
+            tmp_run_path = Path(tmp_run)
+            shutil.copytree(
+                self._conan_home_template,
+                tmp_run_path,
+                dirs_exist_ok=True,
+            )
+            env = {**os.environ, "CONAN_HOME": tmp_run}
+
             try:
                 result = subprocess.run(
                     task.cmd,
@@ -138,7 +237,7 @@ class Conan2Runner(BaseConanRunner):
 
     def clean_cache(self) -> None:
         """
-        Очищает локальный кэш пакетов Conan 2.
+        Очищает локальный кэш пакетов Conan 2 в директории-шаблоне.
 
         Raises:
             RuntimeError: Если утилита ``conan`` не найдена в PATH.
@@ -147,12 +246,14 @@ class Conan2Runner(BaseConanRunner):
             raise RuntimeError(self._CONAN_NOT_FOUND_MSG)
 
         logger.info("Очищаем локальный кэш Conan 2…")
+        env = {**os.environ, "CONAN_HOME": str(self._conan_home_template)}
         try:
             result = subprocess.run(
                 self._CLEAN_CACHE_CMD,
                 capture_output=True,
                 text=True,
                 timeout=self._CLEAN_CACHE_TIMEOUT,
+                env=env,
             )
             if result.returncode == 0:
                 logger.info("Кэш Conan 2 очищен.")

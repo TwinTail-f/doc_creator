@@ -31,6 +31,11 @@ class ParserConfigSchema(BaseModel):
         ...,
         description="Personal Access Token для TFS",
     )
+    artifactory_token: str | None = Field(
+        default=None,
+        validate_default=True,
+        description="PAT-токен Artifactory",
+    )
     tfs_dep_components_url: str = Field(
         ...,
         description="Базовый URL проекта DEP_Components в TFS",
@@ -38,6 +43,10 @@ class ParserConfigSchema(BaseModel):
     manifests_remotes_path: str = Field(
         ...,
         description="Путь к директории с манифестами в TFS",
+    )
+    conan_config_url: str = Field(
+        ...,
+        description="URL zip-архива конфигурации Conan в Artifactory"
     )
 
     # Опциональные поля
@@ -52,13 +61,6 @@ class ParserConfigSchema(BaseModel):
     excluded_components: list[str] = Field(
         default_factory=list,
         description="Список компонентов для исключения из обработки",
-    )
-
-    # Credentials Artifactory — из конфига с fallback на env-переменную.
-    artifactory_token: str | None = Field(
-        default=None,
-        validate_default=True,
-        description="PAT-токен Artifactory (из env ART_TOKEN если не задан явно)",
     )
 
     # Тайм-ауты
@@ -88,28 +90,6 @@ class ParserConfigSchema(BaseModel):
         le=10.0,
         description="Множитель для exponential backoff (1 с, затем 2, 4, 8…)",
     )
-
-    @field_validator("artifactory_token", mode="before")
-    @classmethod
-    def fill_artifactory_token_from_env(
-        cls, v: str | None, info: Any
-    ) -> str:  # type: ignore[override]
-        """
-        Заполняет artifactory_token из env ART_TOKEN если не задан явно.
-
-        Raises:
-            ValueError: Если ни конфигурация, ни переменная окружения не содержат значение.
-        """
-        if v:
-            return v
-        env_val = os.getenv("ART_TOKEN", "")
-        if not env_val:
-            raise ValueError(
-                "Поле 'artifactory_token' не задано в конфигурации "
-                "и переменная окружения 'ART_TOKEN' не установлена. "
-                "Укажите токен явно или задайте переменную окружения ART_TOKEN."
-            )
-        return env_val
 
 
 class ConfluenceConfigSchema(BaseModel):
