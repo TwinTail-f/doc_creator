@@ -45,5 +45,5 @@ class DockerResolveStep(BaseParseStep):
             for w in result.warnings:
                 logger.warning(w)
         docker_links = result.value
-        DataEnricher.apply_docker_links(ctx.components, docker_links)
+        DataEnricher.apply_docker_links(ctx.components, docker_links, profile_definitions=ctx.profile_definitions)
         ctx.intermediate["docker_links"] = docker_links

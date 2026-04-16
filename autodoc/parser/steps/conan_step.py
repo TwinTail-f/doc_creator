@@ -16,7 +16,7 @@ class ConanEnrichStep(BaseParseStep):
 
         fetcher.configure(ctx)
         result = fetcher.fetch(ctx.components)
-        DataEnricher.apply_conan_results(ctx.components, result.value)
+        DataEnricher.apply_conan_results(ctx.components, result.value, profile_definitions=ctx.profile_definitions)
 
     Зависимость от ``ConanFetcher`` внедряется через конструктор — шаг
     легко тестируется с подставным фетчером без запуска Conan.
@@ -54,5 +54,5 @@ class ConanEnrichStep(BaseParseStep):
             for w in result.warnings:
                 logger.warning(w)
 
-        DataEnricher.apply_conan_results(ctx.components, result.value)
+        DataEnricher.apply_conan_results(ctx.components, result.value, profile_definitions=ctx.profile_definitions)
         ctx.intermediate["conan_report"] = result.value.errors

@@ -8,7 +8,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.exceptions import ParsingError
 from autodoc.infrastructure.logger import logger
-from autodoc.models.component import Component
+from autodoc.models.component import Component, ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 
@@ -35,39 +35,61 @@ class FinalizeStep(BaseParseStep):
         Args:
             ctx: Контекст пайплайна с накопленными компонентами.
         """
-        self._compute_header_only_flags(ctx.components)
+        self._compute_header_only_flags(ctx.components, ctx.profile_definitions)
         ctx.components.sort(key=lambda c: c.name.lower())
 
         removed = self._filter_empty_profiles(ctx.components)
         if removed:
             logger.info(f"Удалено {removed} профилей с exists=False.")
 
+        ctx.profile_definitions = self._deduplicate_profile_definitions(ctx.profile_definitions)
         ctx.result = self._build_result(ctx)
 
     @staticmethod
-    def _compute_header_only_flags(components: list[Component]) -> None:
+    def _compute_header_only_flags(
+        components: list[Component],
+        profile_definitions: list[ProfileDefinition],
+    ) -> None:
         """
         Устанавливает флаг ``is_header_only`` для каждого ``Release``.
 
-        Компонент считается header-only, если у всех его профилей пусты
-        настройки Conan и хотя бы у одного варианта пусты опции.
+        A release is header-only when:
+        - ALL of its profiles have empty conan_settings in ProfileDefinition, AND
+        - at least one variant across all profiles has no options (options_ref == ""
+          or the referenced OptionSet has an empty options dict).
 
         Args:
             components: Список компонентов для обработки.
+            profile_definitions: Profile definitions to look up conan_settings.
         """
+        pd_map: dict[str, ProfileDefinition] = {
+            pd.profile_name: pd for pd in profile_definitions
+        }
+
         for comp in components:
             for release in comp.releases:
-                profile_builds = release.profile_builds
-                if not profile_builds:
+                pbs = release.profile_builds
+                if not pbs:
                     release.is_header_only = False
                     continue
-                all_set_empty = all(not pb.conan_settings for pb in profile_builds)
+
+                all_settings_empty = all(
+                    not pd_map.get(pb.profile_name, ProfileDefinition(profile_name=pb.profile_name)).conan_settings
+                    for pb in pbs
+                )
+
+                # Build a lookup for option_sets of this release
+                os_map: dict[str, dict] = {
+                    os_.id: os_.options for os_ in release.option_sets
+                }
+
                 has_empty_opts = any(
-                    not variant.conan_options
-                    for pb in profile_builds
+                    not os_map.get(variant.options_ref, {})
+                    for pb in pbs
                     for variant in pb.variants
                 )
-                release.is_header_only = all_set_empty and has_empty_opts
+
+                release.is_header_only = all_settings_empty and has_empty_opts
 
     @staticmethod
     def _filter_empty_profiles(components: list[Component]) -> int:
@@ -91,6 +113,16 @@ class FinalizeStep(BaseParseStep):
         return removed
 
     @staticmethod
+    def _deduplicate_profile_definitions(
+        definitions: list[ProfileDefinition],
+    ) -> list[ProfileDefinition]:
+        """Deduplicates by profile_name, keeping the last-written entry."""
+        seen: dict[str, ProfileDefinition] = {}
+        for pd in definitions:
+            seen[pd.profile_name] = pd
+        return list(seen.values())
+
+    @staticmethod
     def _build_result(ctx: PipelineContext) -> ParsedResult:
         """
         Собирает финальный ``ParsedResult`` из контекста пайплайна.
@@ -112,6 +144,7 @@ class FinalizeStep(BaseParseStep):
             result = ParsedResult(
                 generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 platform_version=ctx.config.platform_version,
+                profile_definitions=ctx.profile_definitions,   # NEW
                 components=ctx.components,
             )
             logger.info(f"Данные валидированы. {len(result.components)} компонентов.")

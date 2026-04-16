@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from autodoc.config.schemas import ParserConfigSchema
-from autodoc.models.component import Component
+from autodoc.models.component import Component, ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher
 
@@ -50,6 +50,7 @@ class PipelineContext:
     components: list[Component] = field(default_factory=list)
     result: ParsedResult | None = None
     intermediate: dict[str, Any] = field(default_factory=dict)
+    profile_definitions: list[ProfileDefinition] = field(default_factory=list)
 
 
 class BaseParseStep(ABC):

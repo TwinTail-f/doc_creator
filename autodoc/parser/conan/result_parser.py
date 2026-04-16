@@ -34,6 +34,7 @@ class ConanEnrichData:
     build_url: str
     build_date: str
     conan_options: dict[str, Any]
+    option_id: str  # copied from ConanTask.option_id
 
 
 class ConanResultParser:
@@ -103,6 +104,7 @@ class ConanResultParser:
             build_url=build_url,
             build_date=build_date,
             conan_options=conan_options,
+            option_id=task.option_id,
         )
 
     @staticmethod

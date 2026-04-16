@@ -10,7 +10,7 @@ Unit-тесты DataEnricher.
 import pytest
 
 from autodoc.models.component import (
-    BuildOptionSet,
+    ConanInputOptions,
     ConanVariant,
     Component,
     OptionDefinition,

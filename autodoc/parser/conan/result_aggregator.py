@@ -269,7 +269,7 @@ class _ProfileBuildAggregator:
                 package_id=enrich.package_id,
                 build_url=enrich.build_url,
                 build_date=enrich.build_date,
-                conan_options=enrich.conan_options,
+                options_ref=enrich.option_id,
             )
 
 
