@@ -2,32 +2,13 @@
 Единственная точка мутации доменных моделей в пайплайне парсера.
 """
 
-from typing import Any
-
 from autodoc.models.component import (
     ConanInputOptions,
     Component,
-    OptionDefinition,
-    OptionSet,
     ProfileDefinition,
 )
 from autodoc.models.conan_result import ConanEnrichmentResult
 from autodoc.parser.fetchers.options_fetcher import OptionsMap
-
-
-def _parse_option_str(option_str: str) -> dict[str, Any]:
-    """Convert 'shared=True, fPIC=False' string to {'shared': 'True', 'fPIC': 'False'}."""
-    result: dict[str, Any] = {}
-    if not option_str:
-        return result
-    for part in option_str.split(","):
-        part = part.strip()
-        if "=" in part:
-            k, _, v = part.partition("=")
-            # strip package prefix (e.g. "mylib:shared=True" → key "shared")
-            key = k.strip().split(":")[-1].strip()
-            result[key] = v.strip()
-    return result
 
 
 class DataEnricher:
@@ -44,7 +25,12 @@ class DataEnricher:
         options_map: OptionsMap,
     ) -> None:
         """
-        Записывает опции Conan в приватный атрибут каждого ``Release``.
+        Записывает входные опции Conan (ConanInputOptions) в каждый ``Release``.
+
+        Заполняет ``build_option_sets`` — список ``ConanInputOptions``
+        (шаг 2, входные данные до выполнения conan graph info).
+        ``TotalOptionsSet`` будет заполнен позднее в ``apply_conan_results``
+        из фактических resolved-опций conan graph info.
 
         Args:
             components: Список компонентов для обогащения.
@@ -62,9 +48,6 @@ class DataEnricher:
                     release._build_option_sets_internal = opts
                     release.build_option_sets = [
                         ConanInputOptions(id=k, options=v) for k, v in opts.items()
-                    ]
-                    release.option_sets = [
-                        OptionSet(id=k, options=_parse_option_str(v)) for k, v in opts.items()
                     ]
 
     @staticmethod
@@ -108,9 +91,11 @@ class DataEnricher:
         """
         Применяет результаты Conan graph info к моделям ``Release`` и ``ProfileBuild``.
 
-        ``ReleaseConanData.default_options`` и ``ProfileConanData.variants`` уже
-        хранят типизированные объекты (``OptionDefinition``, ``ConanVariant``),
-        поэтому прямое присваивание не требует дополнительной конверсии.
+        ``ReleaseConanData.default_options`` хранит типизированные объекты
+        ``DefaultOptionsSet`` (из поля ``default_options`` в JSON).
+        ``ReleaseConanData.total_options`` хранит типизированные объекты
+        ``TotalOptionsSet`` (из поля ``options`` в JSON — resolved-опции).
+        ``ProfileConanData.variants`` хранит типизированные объекты ``ConanVariant``.
 
         Args:
             components: Список компонентов для обогащения.
@@ -130,7 +115,10 @@ class DataEnricher:
                 if rel_data:
                     release.conan_reference = rel_data.base_ref
                     release.artifactory_url = rel_data.artifactory_url
+                    # DefaultOptionsSet: from "default_options" field in conan graph info
                     release.default_options = rel_data.default_options
+                    # TotalOptionsSet: from "options" field in conan graph info
+                    release.total_option_sets = rel_data.total_options
                     release.patches = rel_data.patches
                     release.dependencies = rel_data.dependencies
 

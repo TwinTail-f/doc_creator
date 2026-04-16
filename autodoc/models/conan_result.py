@@ -5,14 +5,15 @@
 без привязки к внутренностям пакета ``conan/``.
 
 ``ReleaseConanData`` и ``ProfileConanData`` используют типизированные поля
-из ``component.py`` (``OptionDefinition``, ``ConanVariant``), устраняя
-дублирование промежуточных словарей и необходимость конверсии в ``DataEnricher``.
+из ``component.py`` (``DefaultOptionsSet``, ``TotalOptionsSet``, ``ConanVariant``),
+устраняя дублирование промежуточных словарей и необходимость конверсии в
+``DataEnricher``.
 """
 
 from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
-from autodoc.models.component import ConanVariant, OptionDefinition
+from autodoc.models.component import ConanVariant, DefaultOptionsSet, TotalOptionsSet
 
 if TYPE_CHECKING:
     from autodoc.parser.conan.task_builder import ConanTask
@@ -61,14 +62,18 @@ class ReleaseConanData:
     """
     Данные Conan для обогащения одного Release.
 
-    Поле ``default_options`` хранит уже типизированные объекты ``OptionDefinition``
-    (а не сырые словари), что исключает дополнительную конверсию в ``DataEnricher``.
+    Поле ``default_options`` хранит уже типизированные объекты ``DefaultOptionsSet``
+    (из поля ``default_options`` в JSON conan graph info).
+
+    Поле ``total_options`` хранит типизированные объекты ``TotalOptionsSet``
+    (из поля ``options`` в JSON conan graph info), сгруппированные по option_id.
     """
 
     base_ref: str
     rrev: str
     full_version: str
-    default_options: list[OptionDefinition]
+    default_options: list[DefaultOptionsSet]
+    total_options: list[TotalOptionsSet]
     patches: list[str]
     dependencies: list[str]
     artifactory_url: str

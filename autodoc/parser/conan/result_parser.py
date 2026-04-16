@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from autodoc.models.component import OptionDefinition
+from autodoc.models.component import DefaultOptionsSet
 from autodoc.parser.conan.task_builder import ConanTask
 
 
@@ -19,21 +19,25 @@ class ConanEnrichData:
     Заполняется из JSON-ответа ``conan graph info`` для одной задачи.
     Внутренний датакласс — не попадает в доменные модели напрямую.
 
-    Поле ``default_options`` хранит уже типизированные объекты ``OptionDefinition``
-    — конверсия из сырых словарей выполняется в момент парсинга, а не при обогащении.
+    Поле ``default_options`` хранит уже типизированные объекты ``DefaultOptionsSet``
+    (из поля ``default_options`` в JSON) — конверсия из сырых словарей выполняется
+    в момент парсинга, а не при обогащении.
+
+    Поле ``conan_options`` содержит значения из поля ``options`` в JSON
+    — итоговые resolved-опции, из которых строится ``TotalOptionsSet``.
     """
 
     base_ref: str
     rrev: str
     full_version: str
-    default_options: list[OptionDefinition]
+    default_options: list[DefaultOptionsSet]
     patches: list[str]
     dependencies: list[str]
     conan_settings: dict[str, Any]
     package_id: str
     build_url: str
     build_date: str
-    conan_options: dict[str, Any]
+    conan_options: dict[str, Any]  # from "options" field in conan graph info
     option_id: str  # copied from ConanTask.option_id
 
 
@@ -90,6 +94,9 @@ class ConanResultParser:
             else ""
         )
         build_date = self._extract_build_date(target_node)
+
+        # "options" field holds the fully resolved options after Conan applies
+        # defaults + user overrides. This is what goes into TotalOptionsSet.
         conan_options: dict = info_dict.get("options", target_node.get("options", {}))
 
         return ConanEnrichData(
@@ -128,10 +135,11 @@ class ConanResultParser:
         return base_ref, rrev, full_version
 
     @staticmethod
-    def _extract_default_options(node: dict[str, Any]) -> list[OptionDefinition]:
+    def _extract_default_options(node: dict[str, Any]) -> list[DefaultOptionsSet]:
+        """Extract default_options field → list[DefaultOptionsSet]."""
         opt_defs: dict = node.get("options_definitions", {}) or {}
         def_opts: dict = node.get("default_options", {}) or {}
-        result: list[OptionDefinition] = []
+        result: list[DefaultOptionsSet] = []
 
         for opt_name, opt_val in def_opts.items():
             opt_type = "string"
@@ -146,7 +154,7 @@ class ConanResultParser:
                 else:
                     opt_type = "enum"
             result.append(
-                OptionDefinition(name=opt_name, type=opt_type, default_value=opt_val)
+                DefaultOptionsSet(name=opt_name, type=opt_type, default_value=opt_val)
             )
 
         return result

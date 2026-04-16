@@ -78,9 +78,9 @@ class FinalizeStep(BaseParseStep):
                     for pb in pbs
                 )
 
-                # Build a lookup for option_sets of this release
+                # Build a lookup for total_option_sets of this release
                 os_map: dict[str, dict] = {
-                    os_.id: os_.options for os_ in release.option_sets
+                    os_.id: os_.options for os_ in release.total_option_sets
                 }
 
                 has_empty_opts = any(

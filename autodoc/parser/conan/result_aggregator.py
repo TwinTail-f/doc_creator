@@ -6,14 +6,14 @@
 
 Выделен из ``ConanManager`` в отдельный слой, чтобы каждый этап пайплайна
 имел единственную ответственность:
-- ``ConanFetcher``      — сбор сырых данных (запуск subprocess в параллель);
-- ``ConanResultParser`` — парсинг одного JSON-ответа;
+- ``ConanFetcher``          — сбор сырых данных (запуск subprocess в параллель);
+- ``ConanResultParser``     — парсинг одного JSON-ответа;
 - ``ConanResultAggregator`` — агрегация N результатов → ``ConanEnrichmentResult``.
 """
 
 from typing import Any
 
-from autodoc.models.component import ConanVariant
+from autodoc.models.component import ConanVariant, TotalOptionsSet
 from autodoc.models.conan_result import (
     ConanCommandRecord,
     ConanComponentReport,
@@ -120,11 +120,18 @@ class ConanResultAggregator:
                         f"{art_base}/platform-{target_platform}"
                         f"/{task.comp_name}/{fe.full_version}/{task.channel}/{fe.rrev}"
                     )
+                # Build TotalOptionsSet list: one entry per option_id that succeeded,
+                # using the resolved "options" dict from conan graph info.
+                total_options = [
+                    TotalOptionsSet(id=opt_id, options=opts)
+                    for opt_id, opts in agg.resolved_options_by_id.items()
+                ]
                 result.release_data[release_key] = ReleaseConanData(
                     base_ref=fe.base_ref,
                     rrev=fe.rrev,
                     full_version=fe.full_version,
                     default_options=fe.default_options,
+                    total_options=total_options,
                     patches=fe.patches,
                     dependencies=fe.dependencies,
                     artifactory_url=art_url,
@@ -239,6 +246,7 @@ class _ProfileBuildAggregator:
         "first_enrich",
         "conan_settings",
         "errors",
+        "resolved_options_by_id",
     )
 
     def __init__(self) -> None:
@@ -247,13 +255,17 @@ class _ProfileBuildAggregator:
         self.unique_variants: dict[str, ConanVariant] = {}
         self.first_enrich: ConanEnrichData | None = None
         self.errors: list[dict[str, Any]] = []
+        # option_id → resolved conan options dict (from "options" field in graph info)
+        self.resolved_options_by_id: dict[str, dict[str, Any]] = {}
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:
         """
         Применяет данные одной завершённой задачи к агрегатору.
 
         Обновляет настройки Conan, фиксирует первый успешный EnrichData при
-        наличии base_ref и добавляет вариант сборки в ``unique_variants``.
+        наличии base_ref, сохраняет resolved-опции (из поля ``options`` conan
+        graph info) по ``option_id`` и добавляет вариант сборки в
+        ``unique_variants``.
 
         Args:
             enrich: Структурированные данные из разобранного ответа Conan.
@@ -263,6 +275,13 @@ class _ProfileBuildAggregator:
 
         if self.first_enrich is None and enrich.base_ref:
             self.first_enrich = enrich
+
+        # Store the resolved "options" dict keyed by option_id so that the
+        # aggregator can later build TotalOptionsSet entries. Each option_id
+        # corresponds to one ConanInputOptions set; the value is the full set
+        # of resolved options Conan computed for that invocation.
+        if enrich.option_id and enrich.option_id not in self.resolved_options_by_id:
+            self.resolved_options_by_id[enrich.option_id] = enrich.conan_options
 
         if enrich.package_id and enrich.package_id not in self.unique_variants:
             self.unique_variants[enrich.package_id] = ConanVariant(

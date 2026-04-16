@@ -49,3 +49,5 @@ configs/confluence_config.yml
 
 # Logs
 *.log
+
+archive
