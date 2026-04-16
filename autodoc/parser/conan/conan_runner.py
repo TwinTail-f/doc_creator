@@ -184,9 +184,7 @@ class Conan2Runner(BaseConanRunner):
             ``ConanRawResult`` с данными или описанием ошибки.
         """
         if not shutil.which("conan"):
-            return ConanRawResult(
-                task=task,
-                success=False,
+            return ConanRawResult(success=False,
                 data=None,
                 error=self._CONAN_NOT_FOUND_MSG,
             )
@@ -209,28 +207,22 @@ class Conan2Runner(BaseConanRunner):
                     env=env,
                 )
             except subprocess.TimeoutExpired:
-                return ConanRawResult(
-                    task=task,
-                    success=False,
+                return ConanRawResult(success=False,
                     data=None,
                     error=f"Таймаут выполнения команды ({self._timeout} с).",
                 )
 
             if result.returncode != 0:
-                return ConanRawResult(
-                    task=task,
-                    success=False,
+                return ConanRawResult(success=False,
                     data=None,
                     error=self._extract_error_message(result.stderr),
                 )
 
             try:
                 parsed = json.loads(result.stdout)
-                return ConanRawResult(task=task, success=True, data=parsed, error="")
+                return ConanRawResult(success=True, data=parsed, error="")
             except json.JSONDecodeError as e:
-                return ConanRawResult(
-                    task=task,
-                    success=False,
+                return ConanRawResult(success=False,
                     data=None,
                     error=f"JSON decode error: {e}. STDOUT: {result.stdout[:300]}",
                 )

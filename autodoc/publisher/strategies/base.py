@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar
 
 from autodoc.models.parsed_result import ParsedResult
 

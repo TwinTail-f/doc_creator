@@ -11,19 +11,15 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from autodoc.models.component import ConanVariant, DefaultOptionsSet, TotalOptionsSet
-
-if TYPE_CHECKING:
-    from autodoc.parser.conan.task_builder import ConanTask
 
 
 @dataclass
 class ConanRawResult:
     """Сырой результат одного вызова ``conan graph info``."""
 
-    task: "ConanTask"
     success: bool
     data: dict[str, Any] | None
     error: str = ""
