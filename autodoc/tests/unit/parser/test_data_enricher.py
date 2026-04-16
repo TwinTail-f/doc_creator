@@ -13,7 +13,7 @@ from autodoc.models.component import (
     ConanInputOptions,
     ConanVariant,
     Component,
-    OptionDefinition,
+    DefaultOptionsSet,
     ProfileBuild,
     ProfileDefinition,
     Release,
@@ -179,7 +179,7 @@ class TestApplyConanResults:
             rrev="rev001",
             full_version="1.0.0",
             default_options=[
-                OptionDefinition(name="shared", type="bool", default_value=False)
+                DefaultOptionsSet(name="shared", type="bool", default_value=False)
             ],
             patches=["fix.patch"],
             dependencies=["zlib"],
@@ -195,7 +195,7 @@ class TestApplyConanResults:
         assert release.artifactory_url == "https://art.example.com/pkg"
         assert release.patches == ["fix.patch"]
         assert release.dependencies == ["zlib"]
-        assert isinstance(release.default_options[0], OptionDefinition)
+        assert isinstance(release.default_options[0], DefaultOptionsSet)
 
     def test_profile_build_fields_populated(self) -> None:
         pb = _make_pb()

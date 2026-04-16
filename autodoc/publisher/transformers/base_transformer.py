@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.view_models import ConanVariantView
+from autodoc.publisher.view_models.passports import ConanVariantView
 
 _DEFAULT_PASSPORT_PATTERN: str | None = None
 """

@@ -7,8 +7,11 @@
 
   "tfs_username": "firstname.lastname@company.com",
   "tfs_token": "YOUR_TFS_PERSONAL_ACCESS_TOKEN",
+  "artifactory_token": "YOUR_ARTIFACTORY_PERSONAL_ACCESS_TOKEN",
   "tfs_dep_components_url": "https://tfs.company.com/tfs/DefaultCollection/DEP_Components",
   "manifests_remotes_path": "/remotes/manifests",
+
+  "conan_config_url": "https://conan.example.com/config",
 
   "artifactory_components_conan2_url": "https://artifactory.company.com/artifactory/conan2-local",
 
@@ -17,9 +20,6 @@
   ],
 
   "excluded_components": [],
-
-  "_comment_artifactory_token": "PAT-токен Artifactory. Можно задать здесь или через env ART_TOKEN",
-  "artifactory_token": "",
 
   "tfs_request_timeout": 15,
   "conan_command_timeout": 300,

@@ -10,8 +10,8 @@ from autodoc.models.component import (
     ConanInputOptions,
     ConanVariant,
     Component,
-    OptionDefinition,
-    OptionSet,
+    DefaultOptionsSet,
+    TotalOptionsSet,
     ProfileBuild,
     ProfileDefinition,
     Release,
@@ -83,7 +83,7 @@ class TestComponentCreation:
 
     def test_option_definition_type_literal(self) -> None:
         """1.6 OptionType ограничивает допустимые значения type."""
-        opt = OptionDefinition(name="shared", type="bool", default_value=False)
+        opt = DefaultOptionsSet(name="shared", type="bool", default_value=False)
         assert opt.type == "bool"
 
     def test_component_extra_fields_ignored(self) -> None:
@@ -188,7 +188,7 @@ class TestProfileDefinitionAndOptionSet:
         assert pd.conan_settings["os"] == "Linux"
 
     def test_option_set_creation(self) -> None:
-        os_ = OptionSet(id="1", options={"shared": "True"})
+        os_ = TotalOptionsSet(id="1", options={"shared": "True"})
         assert os_.id == "1"
         assert os_.options["shared"] == "True"
 
@@ -196,10 +196,10 @@ class TestProfileDefinitionAndOptionSet:
         release = Release(
             version="1.0.0", platform="develop",
             channel="stable", git_url="https://example.com",
-            option_sets=[OptionSet(id="1", options={"shared": "True"})],
+            total_option_sets=[TotalOptionsSet(id="1", options={"shared": "True"})],
         )
-        assert len(release.option_sets) == 1
-        assert release.option_sets[0].id == "1"
+        assert len(release.total_option_sets) == 1
+        assert release.total_option_sets[0].id == "1"
 
     def test_parsed_result_has_profile_definitions(self) -> None:
         result = ParsedResult(
@@ -221,7 +221,7 @@ class TestFinalizeStepHeaderOnly:
         return ProfileDefinition(profile_name=name, conan_settings=settings or {})
 
     def test_header_only_when_no_settings_and_empty_options(self) -> None:
-        from autodoc.models.component import OptionSet, ConanVariant, ProfileBuild, Release, Component
+        from autodoc.models.component import TotalOptionsSet, ConanVariant, ProfileBuild, Release, Component
         from autodoc.parser.steps.finalize_step import FinalizeStep
 
         variant = ConanVariant(package_id="p1", options_ref="1")
@@ -229,7 +229,7 @@ class TestFinalizeStepHeaderOnly:
         release = Release(
             version="1.0.0", platform="dev", channel="stable",
             git_url="https://example.com",
-            option_sets=[OptionSet(id="1", options={})],  # empty options
+            total_option_sets=[TotalOptionsSet(id="1", options={})],  # empty options
             profile_builds=[pb],
         )
         comp = Component(name="hdr_lib", releases=[release])
@@ -239,7 +239,7 @@ class TestFinalizeStepHeaderOnly:
         assert release.is_header_only is True
 
     def test_not_header_only_when_settings_present(self) -> None:
-        from autodoc.models.component import OptionSet, ConanVariant, ProfileBuild, Release, Component
+        from autodoc.models.component import TotalOptionsSet, ConanVariant, ProfileBuild, Release, Component
         from autodoc.parser.steps.finalize_step import FinalizeStep
 
         variant = ConanVariant(package_id="p1", options_ref="1")
@@ -247,7 +247,7 @@ class TestFinalizeStepHeaderOnly:
         release = Release(
             version="1.0.0", platform="dev", channel="stable",
             git_url="https://example.com",
-            option_sets=[OptionSet(id="1", options={})],
+            total_option_sets=[TotalOptionsSet(id="1", options={})],
             profile_builds=[pb],
         )
         comp = Component(name="bin_lib", releases=[release])
