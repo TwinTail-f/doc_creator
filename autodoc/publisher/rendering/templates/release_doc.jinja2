@@ -1,5 +1,5 @@
-{%- include '../styles/_styles_base.jinja2' -%}
-{%- from '../macros/_macros.jinja2' import os_style, docker_note -%}
+{%- include 'styles/_styles_base.jinja2' -%}
+{%- from 'macros/_macros.jinja2' import os_style, docker_note -%}
 {% set PAGE_SIZE = 20 %}
 {% set all_components = data.components | list %}
 {% set total = all_components | length %}
