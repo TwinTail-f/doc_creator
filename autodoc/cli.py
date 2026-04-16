@@ -289,10 +289,16 @@ def publish_release(
 @click.option(
     "--page-title", default=None, help="Заголовок страницы (переопределяет конфиг)"
 )
+@click.option(
+    "--no-passport-links",
+    is_flag=True,
+    help="Отключить ссылки на паспорта компонентов",
+)
 @click.pass_context
 def publish_profile(
     ctx: click.Context,
     page_title: str | None,
+    no_passport_links: bool,
 ) -> None:
     """Публикация документации от профилей сборки."""
     cli_ctx: _CliCtx = ctx.obj["cli"]
@@ -322,6 +328,7 @@ def publish_profile(
             page_title=final_title,
             template_name=_PROFILE_TEMPLATE,
             parent_id=conf_config.parent_id,
+            include_passport_links=not no_passport_links,
         )
 
         _print_publish_result(result)

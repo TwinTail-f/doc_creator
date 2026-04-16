@@ -63,6 +63,28 @@ class BaseDataTransformer(ABC):
     """
 
     @staticmethod
+    def _build_install_options_from_string(options_str: str) -> str:
+        """
+        Преобразует строку опций из ``ConanInputOptions.options`` в флаги ``conan install``.
+
+        Входная строка имеет формат ``"pkg:opt=val, pkg:opt2=val2"`` (как хранится
+        в конфиге и отображается в таблице конфигураций).
+        Результат: ``"-o pkg:opt=val -o pkg:opt2=val2"``.
+
+        Пустая строка означает дефолтные опции — возвращает ``""``.
+
+        Args:
+            options_str: Строка опций из ``ConanInputOptions.options``.
+
+        Returns:
+            Строка флагов ``-o``, разделённых пробелами, или ``""`` если опций нет.
+        """
+        if not options_str or not options_str.strip():
+            return ""
+        parts = [p.strip() for p in options_str.split(",") if p.strip()]
+        return " ".join(f"-o {p}" for p in parts)
+
+    @staticmethod
     def _build_install_options(
         conan_options: dict[str, Any], component_name: str
     ) -> str:
@@ -93,31 +115,40 @@ class BaseDataTransformer(ABC):
         variant: Any,
         component_name: str,
         conan_options: dict[str, Any] | None = None,
+        install_options_override: str | None = None,
     ) -> ConanVariantView:
         """
         Преобразует доменный ``ConanVariant`` в ``ConanVariantView`` паблишера.
 
-        Заполняет поле ``install_options`` через ``_build_install_options``,
-        квалифицируя ключи именем компонента.
+        Заполняет поле ``install_options``:
+        - Если передан ``install_options_override`` (строка из ``ConanInputOptions.options``),
+          она используется напрямую как команда установки (опции из таблицы конфигураций).
+        - Иначе строится через ``_build_install_options`` из resolved ``conan_options``.
 
         Args:
             variant: Доменный объект ``ConanVariant``.
             component_name: Имя компонента для квалификации ключей опций.
             conan_options: Разрешённые опции варианта из ``Release.option_sets``
                            (по ``variant.options_ref``). Если ``None`` — пустой словарь.
+                           Используются для отображения бейджей опций в UI.
+            install_options_override: Строка опций из ``ConanInputOptions.options``
+                                      (таблица конфигураций). Если передана — используется
+                                      вместо resolved ``conan_options`` для ``install_options``.
 
         Returns:
             Готовый ``ConanVariantView`` с предформатированными опциями.
         """
         opts = conan_options or {}
+        if install_options_override is not None:
+            install_opts = install_options_override
+        else:
+            install_opts = BaseDataTransformer._build_install_options(opts, component_name)
         return ConanVariantView(
             package_id=variant.package_id,
             build_url=variant.build_url,
             build_date=variant.build_date,
             conan_options=opts,
-            install_options=BaseDataTransformer._build_install_options(
-                opts, component_name
-            ),
+            install_options=install_opts,
         )
 
     @abstractmethod
