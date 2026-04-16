@@ -16,7 +16,7 @@
 - ``ConanResultAggregator``   — агрегация N результатов → ``ConanEnrichmentResult``.
 """
 
-from typing import TYPE_CHECKING
+
 
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
@@ -27,9 +27,7 @@ from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTaskBuilder
 from autodoc.parser.fetchers.base import FetchResult, IFetcher
-
-if TYPE_CHECKING:
-    from autodoc.parser.steps.base import PipelineContext
+from autodoc.parser.pipeline.context import PipelineContext
 
 _DEFAULT_MAX_WORKERS: int = 64
 _LOG_PROGRESS_INTERVAL: int = 50
@@ -56,7 +54,7 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
         self._artifactory_base_url: str = ""
         self._conan_config_url: str = ""
 
-    def configure(self, ctx: "PipelineContext") -> None:
+    def configure(self, ctx: PipelineContext) -> None:
         """
         Инициализирует фетчер из контекста пайплайна.
 

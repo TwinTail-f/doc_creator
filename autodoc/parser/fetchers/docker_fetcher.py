@@ -12,7 +12,7 @@ from autodoc.infrastructure.logger import logger
 from autodoc.parser.parsers.docker_parser import DockerLinksMap as DockerLinksMap
 from autodoc.parser.parsers.docker_parser import DockerParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
-from autodoc.parser.steps.base import PipelineContext
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):

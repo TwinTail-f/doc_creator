@@ -10,7 +10,7 @@ from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.parser.parsers.options_parser import OptionsParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
-from autodoc.parser.steps.base import PipelineContext
+from autodoc.parser.pipeline.context import PipelineContext
 
 OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
