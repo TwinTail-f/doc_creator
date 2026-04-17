@@ -14,7 +14,7 @@ from autodoc.parser.pipeline.context import PipelineContext
 
 OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
-_OPTIONS_MAX_WORKERS: int = 32
+_OPTIONS_MAX_WORKERS: int = 64
 _OPTIONS_LOG_INTERVAL: int = 50
 
 
