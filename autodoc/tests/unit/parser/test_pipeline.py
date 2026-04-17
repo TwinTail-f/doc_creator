@@ -16,17 +16,6 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.base import BaseParseStep, PipelineContext
 from autodoc.parser.steps.manifest_step import ManifestStep
 
-MINIMAL_CONFIG = ParserConfigSchema(
-    platform_version="2.0",
-    platform_branch_name="develop",
-    tfs_username="robot",
-    tfs_token="secret",
-    tfs_dep_components_url="https://tfs.example.com/DEP",
-    manifests_remotes_path="/remotes/manifests",
-    artifactory_token="art-token",
-    conan_config_url="https://conan.example.com/config",
-)
-
 
 class _SuccessStep(BaseParseStep):
     is_critical = False
@@ -77,7 +66,9 @@ class TestBaseParseStepContract:
 
 
 class TestPipelineStepOrder:
-    def test_all_steps_executed_in_order(self, tmp_path: Path) -> None:
+    def test_all_steps_executed_in_order(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         order = []
 
         class OrderStep(BaseParseStep):
@@ -95,38 +86,48 @@ class TestPipelineStepOrder:
                     )
 
         parser = ComponentParser(
-            MINIMAL_CONFIG, tmp_path, steps=[OrderStep(1), OrderStep(2), OrderStep(3)]
+            minimal_config, tmp_path, steps=[OrderStep(1), OrderStep(2), OrderStep(3)]
         )
         parser.parse()
         assert order == [1, 2, 3]
 
-    def test_non_critical_step_failure_continues(self, tmp_path: Path) -> None:
+    def test_non_critical_step_failure_continues(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         steps = [_FailStep(critical=False), _FinalizeStub()]
-        parser = ComponentParser(MINIMAL_CONFIG, tmp_path, steps=steps)
+        parser = ComponentParser(minimal_config, tmp_path, steps=steps)
         result = parser.parse()
         assert result is not None
 
-    def test_critical_step_failure_raises(self, tmp_path: Path) -> None:
+    def test_critical_step_failure_raises(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         with pytest.raises(ParsingError, match="Намеренная ошибка"):
             ComponentParser(
-                MINIMAL_CONFIG,
+                minimal_config,
                 tmp_path,
                 steps=[_FailStep(critical=True), _FinalizeStub()],
             ).parse()
 
-    def test_tmp_dir_cleaned_on_success(self, tmp_path: Path) -> None:
-        ComponentParser(MINIMAL_CONFIG, tmp_path, steps=[_FinalizeStub()]).parse()
+    def test_tmp_dir_cleaned_on_success(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
+        ComponentParser(minimal_config, tmp_path, steps=[_FinalizeStub()]).parse()
         assert not (tmp_path / "tmp").exists()
 
-    def test_tmp_dir_cleaned_on_failure(self, tmp_path: Path) -> None:
+    def test_tmp_dir_cleaned_on_failure(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         (tmp_path / "tmp").mkdir()
         with pytest.raises(ParsingError):
             ComponentParser(
-                MINIMAL_CONFIG, tmp_path, steps=[_FailStep(critical=True)]
+                minimal_config, tmp_path, steps=[_FailStep(critical=True)]
             ).parse()
         assert not (tmp_path / "tmp").exists()
 
-    def test_injected_clients_are_placed_in_context(self, tmp_path: Path) -> None:
+    def test_injected_clients_are_placed_in_context(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         """Клиенты, переданные в конструктор, доступны через ctx во время выполнения."""
         captured: dict = {}
 
@@ -144,7 +145,7 @@ class TestPipelineStepOrder:
         mock_art = MagicMock(spec=ArtifactoryClient)
 
         ComponentParser(
-            MINIMAL_CONFIG,
+            minimal_config,
             tmp_path,
             steps=[CapturingStep()],
             tfs_client=mock_tfs,
@@ -156,16 +157,20 @@ class TestPipelineStepOrder:
 
 
 class TestSaveIntermediate:
-    def test_save_intermediate_creates_files(self, tmp_path: Path) -> None:
+    def test_save_intermediate_creates_files(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         steps = [_SuccessStep("a"), _FinalizeStub()]
-        ComponentParser(MINIMAL_CONFIG, tmp_path, steps=steps).parse(
+        ComponentParser(minimal_config, tmp_path, steps=steps).parse(
             save_intermediate=True
         )
         files = list((tmp_path / "intermediate").glob("*.json"))
         assert len(files) == 2
 
-    def test_save_intermediate_false_no_files(self, tmp_path: Path) -> None:
-        ComponentParser(MINIMAL_CONFIG, tmp_path, steps=[_FinalizeStub()]).parse(
+    def test_save_intermediate_false_no_files(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
+        ComponentParser(minimal_config, tmp_path, steps=[_FinalizeStub()]).parse(
             save_intermediate=False
         )
         assert not (tmp_path / "intermediate").exists()
@@ -173,10 +178,10 @@ class TestSaveIntermediate:
 
 class TestManifestStepSingularity:
     def test_default_pipeline_has_exactly_one_manifest_step(
-        self, tmp_path: Path
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
     ) -> None:
         """default_pipeline() содержит ровно один ManifestStep — клиенты не создаются."""
-        parser = ComponentParser(MINIMAL_CONFIG, tmp_path)
+        parser = ComponentParser(minimal_config, tmp_path)
         manifest_steps = [s for s in parser._steps if isinstance(s, ManifestStep)]
         assert len(manifest_steps) == 1
 
@@ -184,7 +189,9 @@ class TestManifestStepSingularity:
 class TestProfileBuildFieldNames:
     """Проверка переименованных полей ProfileBuild в пайплайне."""
 
-    def test_finalize_uses_exists_not_pb_exist(self, tmp_path: Path) -> None:
+    def test_finalize_uses_exists_not_pb_exist(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         """FinalizeStep использует pb.exists, а не pb.pb_exist."""
         from autodoc.models.component import Component, ProfileBuild, Release
         from autodoc.parser.steps.finalize_step import FinalizeStep
@@ -199,7 +206,7 @@ class TestProfileBuildFieldNames:
         release.profile_builds = [pb]
         comp = Component(name="lib", releases=[release])
 
-        ctx = PipelineContext(config=MINIMAL_CONFIG, tmp_dir=tmp_path)
+        ctx = PipelineContext(config=minimal_config, tmp_dir=tmp_path)
         ctx.components = [comp]
 
         step = FinalizeStep()

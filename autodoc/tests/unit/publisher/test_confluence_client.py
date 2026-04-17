@@ -20,6 +20,7 @@ from autodoc.publisher.clients.confluence_client import (
     _BACKOFF_FACTOR,
     _INITIAL_VERSION,
 )
+from autodoc.tests.unit.conftest import VALID_CONFLUENCE_CONFIG
 
 _SESSION_FACTORY_PATH = (
     "autodoc.publisher.clients.confluence_client.create_retryable_session"
@@ -31,14 +32,7 @@ _SESSION_FACTORY_PATH = (
 
 
 def _make_config(**overrides) -> ConfluenceConfigSchema:
-    defaults = {
-        "url": "https://confluence.example.com",
-        "token": "test-pat-token",
-        "space": "PROJ",
-        "confluence_request_timeout": 30,
-        "verify_ssl": True,
-    }
-    return ConfluenceConfigSchema(**{**defaults, **overrides})
+    return ConfluenceConfigSchema(**{**VALID_CONFLUENCE_CONFIG, **overrides})
 
 
 def _make_mock_session() -> MagicMock:

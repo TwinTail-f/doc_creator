@@ -7,26 +7,10 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 
-from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher
 from autodoc.parser.parsers.docker_parser import DockerParser
-
-MINIMAL_CONFIG_DATA = {
-    "platform_version": "2.0",
-    "platform_branch_name": "develop",
-    "tfs_username": "robot",
-    "tfs_token": "secret",
-    "tfs_dep_components_url": "https://tfs.example.com/DEP",
-    "manifests_remotes_path": "/remotes/manifests",
-    "profiles_urls": [],
-    "artifactory_token": "art-token",
-}
-
-
-def _make_config() -> ParserConfigSchema:
-    return ParserConfigSchema(**MINIMAL_CONFIG_DATA)
 
 
 def _make_component(name: str, version: str, channel: str, git_repo: str) -> Component:

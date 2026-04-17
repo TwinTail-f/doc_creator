@@ -106,36 +106,33 @@ class TestAutoDiscovery:
 
 
 class TestArtifactoryToken:
-    """Тесты заполнения artifactory_token из конфига или env ART_TOKEN."""
+    """Тесты поля artifactory_token схемы ParserConfigSchema."""
 
     def test_token_from_config(self, tmp_path: Path) -> None:
+        """Токен из конфига читается корректно."""
         config_data = {**VALID_PARSER_CONFIG, "artifactory_token": "my-art-pat"}
         (tmp_path / "parser_config.json").write_text(json.dumps(config_data))
         config = ConfigManager(tmp_path).load_parser_config()
         assert config is not None
         assert config.artifactory_token == "my-art-pat"
 
-    def test_token_from_env_when_not_in_config(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_token_defaults_to_none_when_absent(self, tmp_path: Path) -> None:
+        """Отсутствие artifactory_token в конфиге → поле равно None, конфиг валиден."""
         config_without_token = {
             k: v for k, v in VALID_PARSER_CONFIG.items() if k != "artifactory_token"
         }
         (tmp_path / "parser_config.json").write_text(json.dumps(config_without_token))
-        monkeypatch.setenv("ART_TOKEN", "env-art-token")
         config = ConfigManager(tmp_path).load_parser_config()
         assert config is not None
-        assert config.artifactory_token == "env-art-token"
+        assert config.artifactory_token is None
 
-    def test_returns_none_when_token_missing_and_no_env(self, tmp_path: Path) -> None:
-        """Отсутствие токена и env → None, не исключение."""
-        config_without_token = {
-            k: v for k, v in VALID_PARSER_CONFIG.items() if k != "artifactory_token"
-        }
-        (tmp_path / "parser_config.json").write_text(json.dumps(config_without_token))
-        os.environ.pop("ART_TOKEN", None)
+    def test_token_explicit_none_in_config(self, tmp_path: Path) -> None:
+        """Явный null в конфиге → поле равно None, конфиг валиден."""
+        config_data = {**VALID_PARSER_CONFIG, "artifactory_token": None}
+        (tmp_path / "parser_config.json").write_text(json.dumps(config_data))
         config = ConfigManager(tmp_path).load_parser_config()
-        assert config is None
+        assert config is not None
+        assert config.artifactory_token is None
 
 
 class TestPlatformRefType:

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from autodoc.config.schemas import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.utils.properties_reader import read_properties
@@ -13,21 +14,6 @@ from autodoc.parser.parsers.manifest_parser import ManifestParser
 # Путь к тестовым данным в виде .properties-файла
 _RESOURCES = Path(__file__).parent / "resources"
 _SAMPLE_PROPERTIES_FILE = _RESOURCES / "crypto_lib.properties"
-
-MINIMAL_CONFIG_DATA = {
-    "platform_version": "2.0",
-    "platform_branch_name": "develop",
-    "tfs_username": "robot",
-    "tfs_token": "secret",
-    "tfs_dep_components_url": "https://tfs.example.com/DEP",
-    "manifests_remotes_path": "/remotes/manifests",
-    "artifactory_token": "art-token",
-}
-
-
-def _make_config():
-    from autodoc.config.schemas import ParserConfigSchema
-    return ParserConfigSchema(**MINIMAL_CONFIG_DATA)
 
 
 def _write_properties(tmp_path: Path, filename: str, content: str) -> Path:
@@ -63,7 +49,9 @@ class TestReadProperties:
 class TestManifestFetcher:
     """Тесты ManifestFetcher через стандартную инициализацию configure() -> fetch()."""
 
-    def _make_fetcher(self, tmp_path: Path, content: str) -> ManifestFetcher:
+    def _make_fetcher(
+        self, tmp_path: Path, content: str, config: ParserConfigSchema
+    ) -> ManifestFetcher:
         """
         Создаёт ManifestFetcher через штатный путь: сначала __init__, затем configure().
 
@@ -78,7 +66,6 @@ class TestManifestFetcher:
         mock_tfs = MagicMock()
         mock_tfs.download_properties.side_effect = fake_download
 
-        config = _make_config()
         ctx = MagicMock(spec=PipelineContext)
         ctx.tfs_client = mock_tfs
         ctx.config = config
@@ -87,60 +74,73 @@ class TestManifestFetcher:
         fetcher.configure(ctx)
         return fetcher
 
-    def test_returns_component_list(self, tmp_path: Path) -> None:
+    def test_returns_component_list(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
-        fetcher = self._make_fetcher(tmp_path, content)
+        fetcher = self._make_fetcher(tmp_path, content, minimal_config)
         result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         assert len(result.value) == 1
         assert isinstance(result.value[0], Component)
         assert result.value[0].name == "crypto_lib"
 
-    def test_release_fields_populated(self, tmp_path: Path) -> None:
+    def test_release_fields_populated(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
-        fetcher = self._make_fetcher(tmp_path, content)
+        fetcher = self._make_fetcher(tmp_path, content, minimal_config)
         result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         release = result.value[0].releases[0]
         assert release.version == "1.2.3"
         assert release.channel == "stable"
 
-    def test_git_repo_on_component_not_release(self, tmp_path: Path) -> None:
+    def test_git_repo_on_component_not_release(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         """1.3 git_repo/git_project должны быть на Component, не на Release."""
         content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
-        fetcher = self._make_fetcher(tmp_path, content)
+        fetcher = self._make_fetcher(tmp_path, content, minimal_config)
         result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         comp = result.value[0]
         assert comp.git_repo == "crypto_lib"
         assert comp.git_project == "DEP_Components"
         assert not hasattr(comp.releases[0], "git_repo")
 
-    def test_profile_builds_populated(self, tmp_path: Path) -> None:
+    def test_profile_builds_populated(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
-        fetcher = self._make_fetcher(tmp_path, content)
+        fetcher = self._make_fetcher(tmp_path, content, minimal_config)
         result = fetcher.fetch(tmp_path / "manifests", excluded=[])
         profiles = result.value[0].releases[0].profile_builds
         assert len(profiles) == 2
         assert {p.profile_name for p in profiles} == {"linux_x86_64", "linux_aarch64"}
 
-    def test_excluded_component_skipped(self, tmp_path: Path) -> None:
+    def test_excluded_component_skipped(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
-        fetcher = self._make_fetcher(tmp_path, content)
+        fetcher = self._make_fetcher(tmp_path, content, minimal_config)
         assert fetcher.fetch(tmp_path / "manifests", excluded=["crypto_lib"]).value == []
 
-    def test_component_without_name_skipped(self, tmp_path: Path) -> None:
-        fetcher = self._make_fetcher(tmp_path, "description=No name\n")
+    def test_component_without_name_skipped(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
+        fetcher = self._make_fetcher(tmp_path, "description=No name\n", minimal_config)
         assert fetcher.fetch(tmp_path / "manifests", excluded=[]).value == []
 
-    def test_raises_parsing_error_if_no_files(self, tmp_path: Path) -> None:
+    def test_raises_parsing_error_if_no_files(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         from autodoc.exceptions import ParsingError
         from autodoc.parser.steps.base import PipelineContext
 
         mock_tfs = MagicMock()
         mock_tfs.download_properties.return_value = None  # ничего не пишет на диск
 
-        config = _make_config()
         ctx = MagicMock(spec=PipelineContext)
         ctx.tfs_client = mock_tfs
-        ctx.config = config
+        ctx.config = minimal_config
 
         fetcher = ManifestFetcher()
         fetcher.configure(ctx)

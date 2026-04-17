@@ -23,23 +23,13 @@ from autodoc.models.component import (
     ConanVariant,
     Component,
     ProfileBuild,
+    ProfileDefinition,
     Release,
 )
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.base import PipelineContext
 from autodoc.parser.steps.finalize_step import FinalizeStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-
-_MINIMAL_CONFIG = ParserConfigSchema(
-    platform_version="2.0",
-    platform_branch_name="develop",
-    tfs_username="robot",
-    tfs_token="secret",
-    tfs_dep_components_url="https://tfs.example.com/DEP",
-    manifests_remotes_path="/remotes/manifests",
-    artifactory_token="art-token",
-    conan_config_url="https://conan.example.com/config",
-)
 
 
 # ---------------------------------------------------------------------------
@@ -70,9 +60,13 @@ def _make_component(name="lib", pbs=None) -> Component:
     return Component(name=name, releases=[r])
 
 
-def _make_ctx(components=None, tmp_path=None) -> PipelineContext:
+def _make_ctx(
+    config: ParserConfigSchema,
+    components=None,
+    tmp_path=None,
+) -> PipelineContext:
     ctx = PipelineContext(
-        config=_MINIMAL_CONFIG,
+        config=config,
         tmp_dir=tmp_path or Path("/tmp/test_finalize"),
     )
     ctx.components = components or []
@@ -89,52 +83,51 @@ class TestComputeHeaderOnlyFlags:
         r = _make_release()
         r.profile_builds = []
         comp = Component(name="lib", releases=[r])
-        FinalizeStep._compute_header_only_flags([comp])
+        FinalizeStep._compute_header_only_flags([comp], [])
         assert r.is_header_only is False
 
     def test_all_empty_settings_and_empty_options_is_header_only(self) -> None:
-        variant = ConanVariant(
-            package_id="x", build_url="", build_date="", conan_options={}
-        )
-        pb = ProfileBuild(profile_name="p", conan_settings={}, variants=[variant])
+        # variant with options_ref="" means no options — empty options_ref
+        # resolves to empty dict via os_map.get("", {}), so has_empty_opts=True
+        variant = ConanVariant(package_id="x", build_url="", build_date="")
+        pb = ProfileBuild(profile_name="p", variants=[variant])
+        pd = ProfileDefinition(profile_name="p", conan_settings={})
         r = _make_release()
         r.profile_builds = [pb]
         comp = Component(name="lib", releases=[r])
 
-        FinalizeStep._compute_header_only_flags([comp])
+        FinalizeStep._compute_header_only_flags([comp], [pd])
 
         assert r.is_header_only is True
 
     def test_non_empty_settings_not_header_only(self) -> None:
-        variant = ConanVariant(
-            package_id="x", build_url="", build_date="", conan_options={}
-        )
-        pb = ProfileBuild(
-            profile_name="p",
-            conan_settings={"os": "Linux"},
-            variants=[variant],
-        )
+        # ProfileDefinition has non-empty conan_settings → not header-only
+        variant = ConanVariant(package_id="x", build_url="", build_date="")
+        pb = ProfileBuild(profile_name="p", variants=[variant])
+        pd = ProfileDefinition(profile_name="p", conan_settings={"os": "Linux"})
         r = _make_release()
         r.profile_builds = [pb]
         comp = Component(name="lib", releases=[r])
 
-        FinalizeStep._compute_header_only_flags([comp])
+        FinalizeStep._compute_header_only_flags([comp], [pd])
 
         assert r.is_header_only is False
 
     def test_non_empty_conan_options_not_header_only(self) -> None:
+        # variant.options_ref points to an TotalOptionsSet with non-empty options
         variant = ConanVariant(
-            package_id="x",
-            build_url="",
-            build_date="",
-            conan_options={"shared": "True"},
+            package_id="x", build_url="", build_date="", options_ref="opt1"
         )
-        pb = ProfileBuild(profile_name="p", conan_settings={}, variants=[variant])
+        pb = ProfileBuild(profile_name="p", variants=[variant])
+        pd = ProfileDefinition(profile_name="p", conan_settings={})
         r = _make_release()
         r.profile_builds = [pb]
+        # Add an TotalOptionsSet so os_map["opt1"] = {"shared": "True"} → not empty
+        from autodoc.models.component import TotalOptionsSet
+        r.total_option_sets = [TotalOptionsSet(id="opt1", options={"shared": "True"})]
         comp = Component(name="lib", releases=[r])
 
-        FinalizeStep._compute_header_only_flags([comp])
+        FinalizeStep._compute_header_only_flags([comp], [pd])
 
         assert r.is_header_only is False
 
@@ -183,24 +176,30 @@ class TestFilterEmptyProfiles:
 
 
 class TestFinalizeStepExecute:
-    def test_result_set_in_context(self, tmp_path: Path) -> None:
-        ctx = _make_ctx(tmp_path=tmp_path)
+    def test_result_set_in_context(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
+        ctx = _make_ctx(minimal_config, tmp_path=tmp_path)
         FinalizeStep().execute(ctx)
         assert isinstance(ctx.result, ParsedResult)
 
-    def test_components_sorted_by_name(self, tmp_path: Path) -> None:
+    def test_components_sorted_by_name(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
         comps = [
             _make_component("zz_lib"),
             _make_component("aa_lib"),
             _make_component("mm_lib"),
         ]
-        ctx = _make_ctx(components=comps, tmp_path=tmp_path)
+        ctx = _make_ctx(minimal_config, components=comps, tmp_path=tmp_path)
         FinalizeStep().execute(ctx)
         names = [c.name for c in ctx.components]
         assert names == sorted(names, key=str.lower)
 
-    def test_platform_version_in_result(self, tmp_path: Path) -> None:
-        ctx = _make_ctx(tmp_path=tmp_path)
+    def test_platform_version_in_result(
+        self, tmp_path: Path, minimal_config: ParserConfigSchema
+    ) -> None:
+        ctx = _make_ctx(minimal_config, tmp_path=tmp_path)
         FinalizeStep().execute(ctx)
         assert ctx.result.platform_version == "2.0"
 
@@ -298,19 +297,23 @@ class TestRemoveDeadVariants:
 
 class TestArtifactoryValidationStepExecute:
     def _make_ctx_with_variant(
-        self, url="https://art.example.com/ui/repos/tree/General/pkg"
+        self,
+        minimal_config: ParserConfigSchema,
+        url="https://art.example.com/ui/repos/tree/General/pkg",
     ):
         variant = _make_variant(url)
         pb = _make_pb()
         pb.variants = [variant]
         comp = _make_component(pbs=[pb])
-        ctx = PipelineContext(config=_MINIMAL_CONFIG, tmp_dir=Path("/tmp"))
+        ctx = PipelineContext(config=minimal_config, tmp_dir=Path("/tmp"))
         ctx.components = [comp]
         ctx.artifactory_client = MagicMock()
         return ctx, pb, variant
 
-    def test_404_variant_removed(self) -> None:
-        ctx, pb, variant = self._make_ctx_with_variant()
+    def test_404_variant_removed(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
+        ctx, pb, variant = self._make_ctx_with_variant(minimal_config)
         mock_resp = MagicMock()
         mock_resp.status_code = 404
         ctx.artifactory_client.head.return_value = mock_resp
@@ -319,8 +322,10 @@ class TestArtifactoryValidationStepExecute:
 
         assert variant not in pb.variants
 
-    def test_200_variant_kept(self) -> None:
-        ctx, pb, variant = self._make_ctx_with_variant()
+    def test_200_variant_kept(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
+        ctx, pb, variant = self._make_ctx_with_variant(minimal_config)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         ctx.artifactory_client.head.return_value = mock_resp
@@ -329,16 +334,20 @@ class TestArtifactoryValidationStepExecute:
 
         assert variant in pb.variants
 
-    def test_network_error_variant_kept(self) -> None:
-        ctx, pb, variant = self._make_ctx_with_variant()
+    def test_network_error_variant_kept(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
+        ctx, pb, variant = self._make_ctx_with_variant(minimal_config)
         ctx.artifactory_client.head.side_effect = requests.RequestException("timeout")
 
         ArtifactoryValidationStep().execute(ctx)
 
         assert variant in pb.variants
 
-    def test_no_variants_no_head_calls(self) -> None:
-        ctx = PipelineContext(config=_MINIMAL_CONFIG, tmp_dir=Path("/tmp"))
+    def test_no_variants_no_head_calls(
+        self, minimal_config: ParserConfigSchema
+    ) -> None:
+        ctx = PipelineContext(config=minimal_config, tmp_dir=Path("/tmp"))
         ctx.components = [_make_component(pbs=[])]
         ctx.artifactory_client = MagicMock()
 

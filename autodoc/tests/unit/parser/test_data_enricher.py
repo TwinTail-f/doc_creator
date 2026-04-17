@@ -107,36 +107,59 @@ class TestApplyOptions:
 # ---------------------------------------------------------------------------
 # apply_docker_links
 # ---------------------------------------------------------------------------
+# docker_image lives in ProfileDefinition (removed from ProfileBuild in Task 1).
+# apply_docker_links now takes list[Component] + profile_definitions kwarg;
+# it resolves the docker URL for each profile_build and writes it into the
+# matching ProfileDefinition entry.
+# ---------------------------------------------------------------------------
 
 
 class TestApplyDockerLinks:
     def test_docker_image_filled_for_matching_profile(self) -> None:
-        # docker_image живёт в ProfileDefinition (убрано из ProfileBuild в Task 1)
         pd = ProfileDefinition(profile_name="linux_x86_64")
+        pb = _make_pb("linux_x86_64")
+        release = _make_release()
+        release.profile_builds = [pb]
+        comp = _make_component(release=release)
 
         DataEnricher.apply_docker_links(
-            [pd], {"linux_x86_64": "registry.example.com/builder:1.0"}
+            [comp],
+            {"linux_x86_64": "registry.example.com/builder:1.0"},
+            [pd],
         )
 
         assert pd.docker_image == "registry.example.com/builder:1.0"
 
     def test_unknown_profile_gets_empty_string(self) -> None:
         pd = ProfileDefinition(profile_name="unknown_profile")
+        pb = _make_pb("unknown_profile")
+        release = _make_release()
+        release.profile_builds = [pb]
+        comp = _make_component(release=release)
 
-        DataEnricher.apply_docker_links([pd], {"linux_x86_64": "registry/img:1"})
+        DataEnricher.apply_docker_links([comp], {"linux_x86_64": "registry/img:1"}, [pd])
 
         assert pd.docker_image == ""
 
     def test_multiple_profiles_each_get_own_image(self) -> None:
         pd1 = ProfileDefinition(profile_name="linux_x86_64")
         pd2 = ProfileDefinition(profile_name="linux_aarch64")
+        pb1 = _make_pb("linux_x86_64")
+        pb2 = _make_pb("linux_aarch64")
+        r1 = _make_release()
+        r2 = _make_release()
+        r1.profile_builds = [pb1]
+        r2.profile_builds = [pb2]
+        c1 = _make_component(name="lib_a", release=r1)
+        c2 = _make_component(name="lib_b", release=r2)
 
         DataEnricher.apply_docker_links(
-            [pd1, pd2],
+            [c1, c2],
             {
                 "linux_x86_64": "registry/img:x86",
                 "linux_aarch64": "registry/img:arm",
             },
+            [pd1, pd2],
         )
 
         assert pd1.docker_image == "registry/img:x86"
@@ -144,8 +167,12 @@ class TestApplyDockerLinks:
 
     def test_empty_links_map_leaves_all_empty(self) -> None:
         pd = ProfileDefinition(profile_name="linux_x86_64")
+        pb = _make_pb("linux_x86_64")
+        release = _make_release()
+        release.profile_builds = [pb]
+        comp = _make_component(release=release)
 
-        DataEnricher.apply_docker_links([pd], {})
+        DataEnricher.apply_docker_links([comp], {}, [pd])
 
         assert pd.docker_image == ""
 
@@ -181,6 +208,7 @@ class TestApplyConanResults:
             default_options=[
                 DefaultOptionsSet(name="shared", type="bool", default_value=False)
             ],
+            total_options=[],
             patches=["fix.patch"],
             dependencies=["zlib"],
             artifactory_url="https://art.example.com/pkg",
