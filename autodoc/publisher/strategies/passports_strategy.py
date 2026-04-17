@@ -88,7 +88,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         self._template_name: str = template_name
         self._hierarchy: PageHierarchyManager = PageHierarchyManager(confluence_client)
         self._legacy_svc: LegacyContentService = LegacyContentService()
-        self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
+        self._page_registry: PassportPageRegistry = PassportPageRegistry(data_dir)
         self._queue: PublishQueue = PublishQueue(
             batch_size=batch_size,
             batch_delay_seconds=batch_delay_seconds,
@@ -130,7 +130,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         pages_failed = len(failed_pages)
 
         pages_map = self._build_pages_map(details)
-        self._registry.save(pages_map)
+        self._page_registry.save(pages_map)
 
         logger.info(
             f"Завершено — {pages_published} опубликовано, "

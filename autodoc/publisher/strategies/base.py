@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
+
+from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod

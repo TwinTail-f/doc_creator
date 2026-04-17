@@ -60,7 +60,7 @@ class FullReleaseTransformer(BaseReleaseTransformer):
         Returns:
             Словарь с полными данными релиза для шаблона.
         """
-        os_map: dict[str, dict] = {os_.id: os_.options for os_ in rel.option_sets}
+        os_map: dict[str, dict] = {os_.id: os_.options for os_ in rel.total_option_sets}
         return {
             "version": rel.version,
             "channel": rel.channel,

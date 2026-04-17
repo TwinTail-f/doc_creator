@@ -128,7 +128,7 @@ class BaseDataTransformer(ABC):
         Args:
             variant: Доменный объект ``ConanVariant``.
             component_name: Имя компонента для квалификации ключей опций.
-            conan_options: Разрешённые опции варианта из ``Release.option_sets``
+            conan_options: Разрешённые опции варианта из ``Release.total_option_sets``
                            (по ``variant.options_ref``). Если ``None`` — пустой словарь.
                            Используются для отображения бейджей опций в UI.
             install_options_override: Строка опций из ``ConanInputOptions.options``

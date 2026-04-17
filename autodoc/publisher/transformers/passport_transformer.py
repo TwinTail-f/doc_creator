@@ -66,7 +66,7 @@ class PassportTransformer(BaseDataTransformer):
 
         # Lookup resolved options by options_ref for this release (used for conan_options badges)
         os_map: dict[str, dict] = {
-            os_.id: os_.options for os_ in target_rel.option_sets
+            os_.id: os_.options for os_ in target_rel.total_option_sets
         }
 
         # Lookup raw ConanInputOptions strings by id for conan install command
