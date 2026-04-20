@@ -181,7 +181,7 @@
                                                                 </div>
 
                                                                 <div class="ap-var-options">
-                                                                    <span class="ap-var-title">Вариант {{ loop.index }}</span>
+                                                                    <span class="ap-var-title">Вариант {{ var.option_ref }}</span>
                                                                     {%- if var.conan_options -%}
                                                                         {%- for k, v in var.conan_options.items() -%}
                                                                             {%- set vc = 'ap-badge-t' if (v==True or v=='True') else ('ap-badge-f' if (v==False or v=='False') else 'ap-badge-n') -%}

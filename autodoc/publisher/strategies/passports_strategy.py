@@ -15,8 +15,8 @@ from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer
 
 _DEFAULT_TEMPLATE: str = "component_passport.jinja2"
-_DEFAULT_BATCH_SIZE: int = 10
-_DEFAULT_BATCH_DELAY: float = 0.0
+_DEFAULT_BATCH_SIZE: int = 2
+_DEFAULT_BATCH_DELAY: float = 5.0
 
 
 @dataclass

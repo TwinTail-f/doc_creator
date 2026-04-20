@@ -5,7 +5,7 @@
   "platform_branch_name": "develop",
   "platform_ref_type": "branch",
 
-  "tfs_username": "firstname.lastname@company.com",
+  "username": "firstname.lastname@company.com",
   "tfs_token": "YOUR_TFS_PERSONAL_ACCESS_TOKEN",
   "artifactory_token": "YOUR_ARTIFACTORY_PERSONAL_ACCESS_TOKEN",
   "tfs_dep_components_url": "https://tfs.company.com/tfs/DefaultCollection/DEP_Components",

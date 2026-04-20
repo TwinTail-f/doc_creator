@@ -17,6 +17,7 @@ class ConanVariantView:
     package_id: str
     build_url: str
     build_date: str
+    option_ref: str = ""
     conan_options: dict[str, Any] = field(default_factory=dict)
     # Предформатированная строка вида '-o pkg:opt=val -o dep:opt=val'
     # для подстановки напрямую в команду 'conan install'.

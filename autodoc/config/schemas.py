@@ -27,6 +27,10 @@ class ParserConfigSchema(BaseModel):
         default="branch",
         description='Тип версии: "branch" (по умолчанию), "tag" или "commit"',
     )
+    username: str = Field(
+        ...,
+        description="Имя пользователя TFS / Artifactory (используется в conan remote login и config install)",
+    )
     tfs_token: str = Field(
         ...,
         description="Personal Access Token для TFS",
