@@ -4,6 +4,8 @@
 {% set all_profiles = data.profiles | list %}
 {% set total = all_profiles | length %}
 
+{%- include 'templates/_platform_intro.jinja2' -%}
+
 <ac:structured-macro ac:name="tabs-group">
     <ac:parameter ac:name="disposition">horizontal</ac:parameter>
     <ac:parameter ac:name="outline">true</ac:parameter>
