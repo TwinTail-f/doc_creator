@@ -8,7 +8,8 @@ from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import LogLevel, ParallelExecutor
 from autodoc.models.component import Component, ConanVariant, ProfileBuild
 from autodoc.parser.clients.protocols import IArtifactoryClient
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.parser.steps.base import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 _VALIDATION_MAX_WORKERS: int = 20
 _HTTP_STATUS_NOT_FOUND: int = 404

@@ -4,7 +4,8 @@ from autodoc.infrastructure.logger import logger
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.options_fetcher import OptionsMap, OptionsFetcher
 from autodoc.parser.fetchers.base import IFetcher
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.parser.steps.base import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class OptionsResolveStep(BaseParseStep):

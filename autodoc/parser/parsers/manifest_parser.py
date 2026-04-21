@@ -179,6 +179,5 @@ class ManifestParser:
     @staticmethod
     def _get_profiles_string(props: dict, c_ver: str, p_ver: str) -> str:
         """Извлекает строку со списком профилей для заданной комбинации версий."""
-        key_develop = f"integration-profiles-develop-{c_ver}-{p_ver}"
         key_profiles = f"profiles-{c_ver}-{p_ver}"
-        return props.get(key_develop, props.get(key_profiles, ""))
+        return props.get(key_profiles, "")

@@ -108,7 +108,7 @@ class PassportTransformer(BaseDataTransformer):
             "git_url": target_rel.git_url,
             "conan_reference": target_rel.conan_reference,
             "artifactory_url": target_rel.artifactory_url,
-            "is_header_only": target_rel.is_header_only,  # новое имя
+            "is_header_only": target_rel.is_header_only,
             "build_option_sets": [
                 bos.model_dump() for bos in target_rel.build_option_sets
             ],

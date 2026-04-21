@@ -6,7 +6,8 @@ from autodoc.infrastructure.logger import logger
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
 from autodoc.parser.fetchers.base import IFetcher
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.parser.steps.base import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class DockerResolveStep(BaseParseStep):
