@@ -59,7 +59,7 @@
                                     <ac:parameter ac:name="outline">true</ac:parameter>
 
                                     <ac:rich-text-body>
-                                        {%- set releases_by_channel = comp.releases | groupby('channel') -%}
+                                        {%- set releases_by_channel = comp.releases | groupby('channel') | sort(attribute='grouper') -%}
                                         {%- for channel_group in releases_by_channel -%}
                                         {%- set channel_name = channel_group.grouper -%}
                                         {%- set releases_in_channel = channel_group.list -%}

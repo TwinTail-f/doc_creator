@@ -85,7 +85,7 @@
 
                                     <ac:rich-text-body>
 
-                                        {%- for channel_name, components in profile.channels.items() -%}
+                                        {%- for channel_name, components in profile.channels.items() | sort -%}
                                         <ac:structured-macro ac:name="tab-pane">
 
                                             <ac:parameter ac:name="name">{{ channel_name | capitalize }} ({{ components | length }})</ac:parameter>

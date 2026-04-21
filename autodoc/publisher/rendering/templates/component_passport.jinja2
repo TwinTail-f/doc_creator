@@ -1,5 +1,6 @@
 {%- include 'styles/_styles_base.jinja2' -%}
 {%- include 'styles/_styles_passport.jinja2' -%}
+{%- from 'macros/_macros.jinja2' import os_style, docker_note -%}
 <div class="ap-page-header">
     <p class="ap-page-sub">Документация компонента в рамках релиза <strong>{{ data.target_platform }}</strong></p>
     <h1 class="ap-page-title">{{ data.component.name }} {{ data.release.version }}</h1>
@@ -148,7 +149,9 @@
                                             <td class="ap-vm">
                                                 {%- if build.docker_image -%}
                                                     {{ build.docker_image }}
-                                                {%- else -%} <span class="ap-cell-s">—</span> {%- endif -%}
+                                                {%- else -%}
+                                                    {{ docker_note(build.conan_settings.get('os', '')) }}
+                                                {%- endif -%}
                                             </td>
                                         </tr>
 
