@@ -46,6 +46,10 @@ class FinalizeStep(BaseParseStep):
         ctx.profile_definitions = self._deduplicate_profile_definitions(ctx.profile_definitions)
         ctx.result = self._build_result(ctx)
 
+    # SHA1 от пустой строки — стандартный нулевой package_id Conan.
+    # Conan выставляет его для header-only пакетов.
+    _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
     @staticmethod
     def _compute_header_only_flags(
         components: list[Component],
@@ -54,43 +58,33 @@ class FinalizeStep(BaseParseStep):
         """
         Устанавливает флаг ``is_header_only`` для каждого ``Release``.
 
-        A release is header-only when:
-        - ALL of its profiles have empty conan_settings in ProfileDefinition, AND
-        - at least one variant across all profiles has no options (options_ref == ""
-          or the referenced OptionSet has an empty options dict).
+        Критерий: ВСЕ варианты во всех профилях имеют нулевой package_id
+        (``da39a3ee5e6b4b0d3255bfef95601890afd80709`` - SHA1 от пустой строки).
+        Именно такой package_id Conan выставляет header-only пакетам.
+
+        Если у релиза нет ни одного варианта — флаг устанавливается в ``False``.
 
         Args:
             components: Список компонентов для обработки.
-            profile_definitions: Profile definitions to look up conan_settings.
+            profile_definitions: Не используется, оставлен для совместимости сигнатуры.
         """
-        pd_map: dict[str, ProfileDefinition] = {
-            pd.profile_name: pd for pd in profile_definitions
-        }
+        null_id = FinalizeStep._NULL_PACKAGE_ID
 
         for comp in components:
             for release in comp.releases:
-                pbs = release.profile_builds
-                if not pbs:
+                all_variants = [
+                    variant
+                    for pb in release.profile_builds
+                    for variant in pb.variants
+                ]
+
+                if not all_variants:
                     release.is_header_only = False
                     continue
 
-                all_settings_empty = all(
-                    not pd_map.get(pb.profile_name, ProfileDefinition(profile_name=pb.profile_name)).conan_settings
-                    for pb in pbs
+                release.is_header_only = all(
+                    variant.package_id == null_id for variant in all_variants
                 )
-
-                # Build a lookup for total_option_sets of this release
-                os_map: dict[str, dict] = {
-                    os_.id: os_.options for os_ in release.total_option_sets
-                }
-
-                has_empty_opts = any(
-                    not os_map.get(variant.options_ref, {})
-                    for pb in pbs
-                    for variant in pb.variants
-                )
-
-                release.is_header_only = all_settings_empty and has_empty_opts
 
     @staticmethod
     def _filter_empty_profiles(components: list[Component]) -> int:

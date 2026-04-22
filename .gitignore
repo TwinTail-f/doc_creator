@@ -50,4 +50,8 @@ configs/confluence_config.yml
 # Logs
 *.log
 
+#zip
+.zip
+.7z
+
 archive

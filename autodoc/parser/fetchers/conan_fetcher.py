@@ -67,6 +67,8 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
             ctx.config.artifactory_components_conan2_url or ""
         ).rstrip("/")
         self._conan_config_url = (ctx.config.conan_config_url or "").strip()
+        self._username = ctx.config.username
+        self._password = ctx.config.artifactory_token
 
     def fetch(
         self,
@@ -112,7 +114,12 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
             logger.info("Нет задач для выполнения.")
             return FetchResult(value=ConanEnrichmentResult())
 
-        env_manager = ConanEnvironmentManager(config_url=self._conan_config_url)
+        
+        env_manager = ConanEnvironmentManager(
+            config_url=self._conan_config_url,
+            username=self._username,
+            password=self._password,
+        )
         try:
             conan_home_template = env_manager.setup()
 

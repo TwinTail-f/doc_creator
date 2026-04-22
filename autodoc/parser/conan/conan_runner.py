@@ -4,7 +4,7 @@
 Содержит интерфейс ``BaseConanRunner`` и реализацию ``Conan2Runner``.
 Дата-класс результата вынесен в ``conan_result.py``.
 """
-
+import zipfile
 import json
 import os
 import shutil
@@ -39,91 +39,82 @@ class BaseConanRunner(ABC):
 
 
 class ConanEnvironmentManager:
-    """
-    Управляет жизненным циклом изолированного окружения Conan.
-
-    Создаёт одну разделяемую директорию-шаблон (``_setup_dir``), в которую
-    единожды устанавливается конфигурация через ``conan config install``.
-    Каждый вызов ``Conan2Runner.run()`` копирует шаблон в свою временную
-    директорию — это исключает race condition при параллельных вызовах.
-
-    После завершения работы ``cleanup()`` удаляет директорию-шаблон.
-    Временные директории отдельных вызовов удаляются самими вызовами через
-    ``tempfile.TemporaryDirectory``.
-
-    Типичное использование::
-
-        manager = ConanEnvironmentManager(config_url="https://...")
-        try:
-            setup_dir = manager.setup()
-            runner = Conan2Runner(timeout=120, conan_home_template=setup_dir)
-            # ... запуск задач ...
-        finally:
-            manager.cleanup()
-    """
-
     _CONFIG_INSTALL_TIMEOUT: int = 120
+    _LOGIN_TIMEOUT: int = 30
+    _CONAN_REMOTE_NAME: str = "components-conan2"
 
-    def __init__(self, config_url: str) -> None:
+    def __init__(
+        self,
+        config_url: str,
+        username: str,
+        password: str,
+    ) -> None:
         """
         Args:
-            config_url: URL zip-архива конфигурации Conan в Artifactory.
-                Например:
-                ``https://artifactory.company.ru/artifactory/components-conan2/
-                platform_config2/1.0.1.2/conan_config.zip``
+            config_url: URL zip-архива конфигурации Conan (без credentials).
+            username: Логин пользователя Artifactory / TFS.
+            password: PAT-токен Artifactory.
         """
         self._config_url = config_url
+        self._username = username
+        self._password = password
         self._setup_dir: Path | None = None
 
     def setup(self) -> Path:
-        """
-        Создаёт временную директорию и устанавливает в неё конфигурацию Conan.
-
-        Выполняет ``conan config install <config_url>`` с ``CONAN_HOME``
-        указывающим на свежую временную директорию. По итогу там появляются:
-        папка ``profiles/``, файлы ``global.conf``, ``remotes.json``,
-        ``settings.yml``.
-
-        Returns:
-            Путь к директории-шаблону с установленной конфигурацией.
-
-        Raises:
-            RuntimeError: Если ``conan`` не найден в PATH или установка завершилась
-                с ненулевым кодом возврата.
-        """
         if not shutil.which("conan"):
             raise RuntimeError("Утилита conan не найдена в PATH.")
 
         self._setup_dir = Path(tempfile.mkdtemp(prefix="conan_setup_"))
-        logger.info(
-            f"Устанавливаем конфигурацию Conan из {self._config_url!r} "
-            f"в {self._setup_dir} …"
-        )
-
         env = {**os.environ, "CONAN_HOME": str(self._setup_dir)}
-        try:
-            result = subprocess.run(
-                ["conan", "config", "install", self._config_url],
-                capture_output=True,
-                text=True,
-                timeout=self._CONFIG_INSTALL_TIMEOUT,
-                env=env,
-            )
-        except subprocess.TimeoutExpired as exc:
+
+        self._install_config(env)
+        self._login_remote(env)
+
+        return self._setup_dir
+
+    def _login_remote(self, env: dict) -> None:
+        """Авторизуется в Conan remote через ``conan remote login``."""
+        logger.info(f"Авторизуемся в Conan remote '{self._CONAN_REMOTE_NAME}' …")
+        result = subprocess.run(
+            [
+                "conan", "remote", "login",
+                "--password", self._password,
+                self._CONAN_REMOTE_NAME,
+                self._username,
+            ],
+            capture_output=True, text=True,
+            timeout=self._LOGIN_TIMEOUT, env=env,
+        )
+        if result.returncode != 0:
+            error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
-                f"Таймаут при установке конфигурации Conan ({self._CONFIG_INSTALL_TIMEOUT} с)."
-            ) from exc
+                f"conan remote login завершился с ошибкой (код {result.returncode}): {error}"
+            )
+        logger.info(f"Авторизация в '{self._CONAN_REMOTE_NAME}' прошла успешно.")
 
+    def _install_config(self, env: dict) -> None:
+        """Устанавливает конфигурацию Conan из Artifactory через ``conan config install``."""
+        # Встраиваем credentials в URL: https://user:token@host/...
+        parsed = self._config_url.split("://", 1)
+        if len(parsed) != 2:
+            raise RuntimeError(f"Некорректный config_url: {self._config_url!r}")
+        scheme, rest = parsed
+        url_with_creds = f"{scheme}://{self._username}:{self._password}@{rest}"
+
+        logger.info(f"Устанавливаем конфигурацию Conan из {self._config_url!r} в {self._setup_dir} …")
+        result = subprocess.run(
+            ["conan", "config", "install", url_with_creds],
+            capture_output=True, text=True,
+            timeout=self._CONFIG_INSTALL_TIMEOUT, env=env,
+        )
         if result.returncode != 0:
             error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
                 f"conan config install завершился с ошибкой (код {result.returncode}): {error}"
             )
-
         logger.info("Конфигурация Conan установлена успешно.")
-        return self._setup_dir
 
     def cleanup(self) -> None:
         """
@@ -135,7 +126,6 @@ class ConanEnvironmentManager:
             shutil.rmtree(self._setup_dir, ignore_errors=True)
             logger.debug(f"Удалена директория конфигурации Conan: {self._setup_dir}")
             self._setup_dir = None
-
 
 class Conan2Runner(BaseConanRunner):
     """

@@ -12,7 +12,15 @@ _COMPONENT_PAGE_BODY: str = (
     '</ac:structured-macro>'
     '</p>'
 )
-_VERSION_PAGE_BODY: str = "Автоматически созданная страница версии"
+_VERSION_PAGE_BODY: str = (
+    "Автоматически созданная страница версии компонента"
+    '<p>'
+    '<ac:structured-macro ac:macro-id="8cb4ae85-0212-4b3d-a15f-77899af1f1d7" '
+    'ac:name="children" ac:schema-version="2">'
+    '<ac:parameter ac:name="depth">2</ac:parameter>'
+    '</ac:structured-macro>'
+    '</p>'
+)
 
 
 class PageHierarchyManager:
@@ -60,19 +68,19 @@ class PageHierarchyManager:
         """
         logger.debug(f"Иерархия для {component_name}@{release_version}")
 
-        comp_page_id = self._client.get_or_create_page(
+        comp_page_id = self._client.publish_page(
             space=space,
-            title=component_name,
             parent_id=root_parent_id,
-            body=_COMPONENT_PAGE_BODY,
-        )
+            title=component_name,
+            body_html=_COMPONENT_PAGE_BODY,
+        )["id"]
 
         version_title = f"{component_name} {release_version}"
-        version_page_id = self._client.get_or_create_page(
+        version_page_id = self._client.publish_page(
             space=space,
-            title=version_title,
             parent_id=comp_page_id,
-            body=_VERSION_PAGE_BODY,
-        )
+            title=version_title,
+            body_html=_VERSION_PAGE_BODY,
+        )["id"]
 
         return version_page_id
