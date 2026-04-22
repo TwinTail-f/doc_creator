@@ -7,7 +7,6 @@
 
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from enum import Enum
 from typing import Callable, TypeVar
 
 from autodoc.infrastructure.logger import logger
@@ -18,14 +17,6 @@ _T = TypeVar("_T")
 _R = TypeVar("_R")
 
 _DEFAULT_LOG_PROGRESS_INTERVAL: int = 50
-
-
-class LogLevel(Enum):
-    """Допустимые уровни логирования для ``ParallelExecutor``."""
-
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
 
 
 class ParallelExecutor:
@@ -41,7 +32,7 @@ class ParallelExecutor:
         executor = ParallelExecutor(max_workers=8)
         results = executor.execute(parse_file, files, task_label="файлов")
 
-        executor = ParallelExecutor(max_workers=64, log_level=LogLevel.INFO)
+        executor = ParallelExecutor(max_workers=64)
         raw_results = executor.execute(runner.run, tasks, task_label="задач Conan")
     """
 
@@ -49,17 +40,14 @@ class ParallelExecutor:
         self,
         max_workers: int,
         log_progress_interval: int = _DEFAULT_LOG_PROGRESS_INTERVAL,
-        log_level: LogLevel = LogLevel.INFO,
     ) -> None:
         """
         Args:
             max_workers: Максимальное число одновременно работающих потоков.
             log_progress_interval: Интервал логирования прогресса (каждые N задач).
-            log_level: Уровень логирования прогресса. По умолчанию ``LogLevel.INFO``.
         """
         self._max_workers = max_workers
         self._log_progress_interval = log_progress_interval
-        self._log_level = log_level
 
     def execute(
         self,
@@ -99,10 +87,7 @@ class ParallelExecutor:
             for future in as_completed(future_to_idx):
                 completed += 1
                 if completed % self._log_progress_interval == 0 or completed == total:
-                    logger.log(
-                        self._log_level.value,
-                        f"Прогресс: {completed}/{total} {task_label}…",
-                    )
+                    logger.info(f"Прогресс: {completed}/{total} {task_label}…")
 
                 idx = future_to_idx[future]
                 try:

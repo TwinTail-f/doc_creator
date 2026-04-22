@@ -4,15 +4,16 @@
 
 import json
 from pathlib import Path
-from typing import Any
-
-from autodoc.exceptions import ConfigError
-from pydantic import ValidationError
+from typing import Any, TypeVar
 
 import yaml
+from pydantic import BaseModel, ValidationError
 
 from autodoc.config.schemas import ConfluenceConfigSchema, ParserConfigSchema
+from autodoc.exceptions import ConfigError
 from autodoc.infrastructure.logger import logger
+
+_SchemaT = TypeVar("_SchemaT", bound=BaseModel)
 
 
 class ConfigManager:
@@ -57,25 +58,7 @@ class ConfigManager:
         Returns:
             Валидированная конфигурация парсера или ``None`` при любой ошибке.
         """
-        if not self.configs_dir.is_dir():
-            logger.error(f"Директория с конфигами недоступна: {self.configs_dir}")
-            return None
-
-        filename = config_file or self._find_config_file("parser_config")
-        if filename is None:
-            return None
-
-        raw = self._load_config(filename)
-        if raw is None:
-            return None
-
-        try:
-            validated = ParserConfigSchema(**raw)
-            logger.info(f"{filename} успешно загружен и провалидирован")
-            return validated
-        except ValidationError as e:
-            logger.error(f"Ошибка валидации {filename}: {e}")
-            return None
+        return self._load_validated("parser_config", ParserConfigSchema, config_file)
 
     def load_confluence_config(
         self, config_file: str | None = None
@@ -89,25 +72,7 @@ class ConfigManager:
         Returns:
             Валидированная конфигурация Confluence или ``None`` при любой ошибке.
         """
-        if not self.configs_dir.is_dir():
-            logger.error(f"Директория с конфигами недоступна: {self.configs_dir}")
-            return None
-
-        filename = config_file or self._find_config_file("confluence_config")
-        if filename is None:
-            return None
-
-        raw = self._load_config(filename)
-        if raw is None:
-            return None
-
-        try:
-            validated = ConfluenceConfigSchema(**raw)
-            logger.info(f"{filename} успешно загружен и провалидирован")
-            return validated
-        except ValidationError as e:
-            logger.error(f"Ошибка валидации {filename}: {e}")
-            return None
+        return self._load_validated("confluence_config", ConfluenceConfigSchema, config_file)
 
     def load_raw(self, filename: str) -> dict[str, Any]:
         """
@@ -151,15 +116,47 @@ class ConfigManager:
             )
 
         try:
-            if suffix == ".json":
-                with path.open("r", encoding="utf-8") as f:
-                    json.load(f)
-            else:  # .yaml / .yml
-                with path.open("r", encoding="utf-8") as f:
-                    yaml.safe_load(f)
+            self._parse_file(path)
             return True, None
-        except (json.JSONDecodeError, yaml.YAMLError, OSError) as e:
+        except (json.JSONDecodeError, yaml.YAMLError, OSError, ConfigError) as e:
             return False, f"Ошибка валидации: {e}"
+
+    def _load_validated(
+        self,
+        basename: str,
+        schema_cls: type[_SchemaT],
+        config_file: str | None,
+    ) -> _SchemaT | None:
+        """
+        Общая логика загрузки и схемной валидации конфига.
+
+        Args:
+            basename: Базовое имя файла для автопоиска (без расширения).
+            schema_cls: Pydantic-схема для валидации.
+            config_file: Явное имя файла или ``None`` для автопоиска.
+
+        Returns:
+            Провалидированная схема или ``None`` при любой ошибке.
+        """
+        if not self.configs_dir.is_dir():
+            logger.error(f"Директория с конфигами недоступна: {self.configs_dir}")
+            return None
+
+        filename = config_file or self._find_config_file(basename)
+        if filename is None:
+            return None
+
+        raw = self._load_config(filename)
+        if raw is None:
+            return None
+
+        try:
+            validated = schema_cls(**raw)
+            logger.info(f"{filename} успешно загружен и провалидирован")
+            return validated
+        except ValidationError as e:
+            logger.error(f"Ошибка валидации {filename}: {e}")
+            return None
 
     def _find_config_file(self, basename: str) -> str | None:
         """
@@ -176,7 +173,11 @@ class ConfigManager:
             if candidate.exists():
                 return candidate.name
 
-        available = [item.name for item in self.configs_dir.iterdir() if not item.is_dir()]
+        available = [
+            item.name
+            for item in self.configs_dir.iterdir()
+            if not item.is_dir()
+        ]
         logger.error(
             f'Конфиг "{basename}" не найден в {self.configs_dir}. '
             f"Доступные файлы: {available}. "
@@ -186,7 +187,7 @@ class ConfigManager:
 
     def _load_config(self, filename: str) -> dict[str, Any] | None:
         """
-        Загружает конфигурационный файл по имени.
+        Загружает конфигурационный файл по имени из ``configs_dir``.
 
         Args:
             filename: Имя файла (с расширением).
@@ -200,71 +201,57 @@ class ConfigManager:
             logger.error(f"Конфиг-файл не найден: {filepath}")
             return None
 
-        suffix = filepath.suffix.lower()
-        if suffix == ".json":
-            return self._load_json(filepath)
-        elif suffix in (".yaml", ".yml"):
-            return self._load_yaml(filepath)
-        else:
+        if filepath.suffix.lower() not in self.SUPPORTED_FORMATS:
             logger.error(
-                f"Неподдерживаемый формат: {suffix}. "
+                f"Неподдерживаемый формат: {filepath.suffix}. "
                 f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
             )
             return None
 
-    def _load_json(self, filepath: Path) -> dict[str, Any] | None:
-        """
-        Читает JSON-файл.
-
-        Args:
-            filepath: Путь к файлу.
-
-        Returns:
-            Содержимое файла в виде словаря или ``None`` при ошибке чтения/парсинга.
-        """
-        if not filepath.is_file():
-            logger.error(f"Файл недоступен для чтения: {filepath.name}")
+        try:
+            return self._parse_file(filepath)
+        except (json.JSONDecodeError, yaml.YAMLError) as e:
+            logger.error(f"Ошибка парсинга {filepath.name}: {e}")
+            return None
+        except OSError as e:
+            logger.error(f"Ошибка чтения {filepath.name}: {e}")
+            return None
+        except ConfigError as e:
+            logger.error(str(e))
             return None
 
-        try:
-            with filepath.open("r", encoding="utf-8") as f:
+    def _parse_file(self, filepath: Path) -> dict[str, Any]:
+        """
+        Открывает и парсит файл конфигурации. Бросает исключение при любой ошибке.
+
+        Единственное место, где происходит реальное чтение диска — используется
+        как ``_load_config``, так и ``validate_config_file``.
+
+        Args:
+            filepath: Путь к файлу (должен существовать).
+
+        Returns:
+            Содержимое файла в виде словаря.
+
+        Raises:
+            ConfigError: Если путь не является обычным файлом или YAML содержит не dict.
+            json.JSONDecodeError: При невалидном JSON.
+            yaml.YAMLError: При невалидном YAML.
+            OSError: При ошибке чтения файла.
+        """
+        if not filepath.is_file():
+            raise ConfigError(f"Не является обычным файлом: {filepath.name}")
+
+        with filepath.open("r", encoding="utf-8") as f:
+            if filepath.suffix.lower() == ".json":
                 return json.load(f)
-        except json.JSONDecodeError as e:
-            logger.error(f"Невалидный JSON в {filepath.name}: {e}")
-            return None
-        except OSError as e:
-            logger.error(f"Ошибка чтения {filepath.name}: {e}")
-            return None
-
-    def _load_yaml(self, filepath: Path) -> dict[str, Any] | None:
-        """
-        Читает YAML-файл.
-
-        Args:
-            filepath: Путь к файлу.
-
-        Returns:
-            Содержимое файла в виде словаря или ``None`` при ошибке чтения/парсинга.
-        """
-        if not filepath.is_file():
-            logger.error(f"Файл недоступен для чтения: {filepath.name}")
-            return None
-
-        try:
-            with filepath.open("r", encoding="utf-8") as f:
+            else:  # .yaml / .yml
                 data = yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            logger.error(f"Невалидный YAML в {filepath.name}: {e}")
-            return None
-        except OSError as e:
-            logger.error(f"Ошибка чтения {filepath.name}: {e}")
-            return None
 
         if not isinstance(data, dict):
-            logger.error(
+            raise ConfigError(
                 f"YAML-файл {filepath.name} должен содержать объект (dict), "
                 f"получен {type(data).__name__}"
             )
-            return None
-
         return data
+

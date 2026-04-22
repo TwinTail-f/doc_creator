@@ -7,7 +7,7 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
 OptionType = Literal["bool", "enum", "ANY", "string"]
 
@@ -21,16 +21,15 @@ class DefaultOptionsSet(BaseModel):
 
 
 def _parse_option_str(option_str: str) -> dict[str, Any]:
-    """Convert 'pkg:shared=True, pkg:fPIC=False' → {'shared': 'True', 'fPIC': 'False'}.
+    """Преобразует строку 'pkg:shared=True, pkg:fPIC=False' в {'shared': 'True', 'fPIC': 'False'}.
 
-    Package prefixes (e.g. ``mylib:``) are stripped so the result mirrors the
-    structure of ``TotalOptionsSet.options`` and ``DefaultOptionsSet``.
+    Пакетные префиксы (например ``mylib:``) удаляются, чтобы результат
+    соответствовал структуре ``TotalOptionsSet.options`` и ``DefaultOptionsSet``.
     """
     result: dict[str, Any] = {}
     if not option_str:
         return result
     for part in option_str.split(","):
-        part = part.strip()
         if "=" in part:
             k, _, v = part.partition("=")
             key = k.strip().split(":")[-1].strip()
@@ -57,21 +56,22 @@ class ConanInputOptions(BaseModel):
         description="Опции в виде словаря {name: value} (пакетные префиксы удалены)",
     )
 
-    def model_post_init(self, __context: Any) -> None:
+    @model_validator(mode="after")
+    def _fill_parsed_options(self) -> "ConanInputOptions":
         """Автоматически заполняет ``parsed_options`` из ``options`` при создании."""
         if not self.parsed_options and self.options:
-            # model fields are frozen after validation — use object.__setattr__
-            object.__setattr__(self, "parsed_options", _parse_option_str(self.options))
+            self.parsed_options = _parse_option_str(self.options)
+        return self
 
 
 class TotalOptionsSet(BaseModel):
-    """A named set of resolved Conan build options from conan graph info 'options' field,
-    keyed by ConanInputOptions.id."""
+    """Именованный набор разрешённых опций сборки Conan из поля ``options`` вывода ``conan graph info``,
+    привязанный к идентификатору ``ConanInputOptions.id``."""
 
-    id: str = Field(..., description='Option-set identifier matching ConanInputOptions.id (e.g. "1", "2")')
+    id: str = Field(..., description='Идентификатор набора опций, совпадает с ConanInputOptions.id (например "1", "2")')
     options: dict[str, Any] = Field(
         default_factory=dict,
-        description="Resolved Conan options from 'options' field in conan graph info: {name: value}",
+        description="Разрешённые опции Conan из поля options вывода conan graph info: {name: value}",
     )
 
 
@@ -83,7 +83,7 @@ class ConanVariant(BaseModel):
     build_date: str = Field(default="", description="Дата сборки пакета")
     options_ref: str = Field(
         default="",
-        description="Reference to Release.total_option_sets entry by id",
+        description="Ссылка на элемент Release.total_option_sets по идентификатору",
     )
 
 
@@ -102,16 +102,16 @@ class ProfileBuild(BaseModel):
 
 
 class ProfileDefinition(BaseModel):
-    """Per-profile settings and docker image, deduplicated at ParsedResult level."""
+    """Настройки и Docker-образ для конкретного профиля, дедублированные на уровне ParsedResult."""
 
-    profile_name: str = Field(..., description="Build profile name (unique key)")
+    profile_name: str = Field(..., description="Имя профиля сборки (уникальный ключ)")
     conan_settings: dict[str, Any] = Field(
         default_factory=dict,
-        description="Conan settings for this profile",
+        description="Настройки Conan для данного профиля",
     )
     docker_image: str = Field(
         default="",
-        description="Docker image URL for this profile",
+        description="URL Docker-образа для данного профиля",
     )
 
 
@@ -150,8 +150,8 @@ class Release(BaseModel):
     total_option_sets: list[TotalOptionsSet] = Field(
         default_factory=list,
         description=(
-            "Resolved option sets from conan graph info 'options' field (шаг 3); "
-            "ConanVariant.options_ref points here by id"
+            "Разрешённые наборы опций из поля options вывода conan graph info (шаг 3); "
+            "ConanVariant.options_ref ссылается сюда по идентификатору"
         ),
     )
 

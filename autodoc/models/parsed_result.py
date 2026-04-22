@@ -19,7 +19,7 @@ class ParsedResult(BaseModel):
     platform_version: str = Field(..., description="Версия платформы (из конфига)")
     profile_definitions: list[ProfileDefinition] = Field(
         default_factory=list,
-        description="Deduplicated profile definitions (conan_settings + docker_image) for all profiles encountered across all components",
+        description="Дедублированные определения профилей (conan_settings + docker_image) для всех профилей, встреченных во всех компонентах",
     )
     components: list[Component] = Field(
         default_factory=list,
