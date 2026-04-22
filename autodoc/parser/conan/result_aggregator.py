@@ -98,6 +98,20 @@ class ConanResultAggregator:
         )
         result.failed = result.total_tasks - result.succeeded
 
+        # Предварительно объединяем зависимости по всем pb-агрегаторам для каждого
+        # релиза. Разные профили и наборы опций могут давать разный граф зависимостей,
+        # поэтому берём объединение — не перезаписываем первым найденным.
+        release_deps: dict[tuple[str, str, str], set[str]] = {}
+        for task in tasks:
+            release_key_pre: tuple[str, str, str] = (
+                task.comp_name,
+                task.version,
+                task.channel,
+            )
+            release_deps.setdefault(release_key_pre, set()).update(
+                pb_agg[id(task.pb)].all_dependencies
+            )
+
         visited_pbs: set[int] = set()
         for task in tasks:
             pb_id = id(task.pb)
@@ -133,7 +147,7 @@ class ConanResultAggregator:
                     default_options=fe.default_options,
                     total_options=total_options,
                     patches=fe.patches,
-                    dependencies=fe.dependencies,
+                    dependencies=sorted(release_deps.get(release_key, set())),
                     artifactory_url=art_url,
                 )
 
@@ -247,6 +261,7 @@ class _ProfileBuildAggregator:
         "conan_settings",
         "errors",
         "resolved_options_by_id",
+        "all_dependencies",
     )
 
     def __init__(self) -> None:
@@ -257,6 +272,8 @@ class _ProfileBuildAggregator:
         self.errors: list[dict[str, Any]] = []
         # option_id → resolved conan options dict (from "options" field in graph info)
         self.resolved_options_by_id: dict[str, dict[str, Any]] = {}
+        # Накопленные зависимости из всех успешных задач для этого ProfileBuild
+        self.all_dependencies: set[str] = set()
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:
         """
@@ -276,12 +293,10 @@ class _ProfileBuildAggregator:
         if self.first_enrich is None and enrich.base_ref:
             self.first_enrich = enrich
 
-        # Store the resolved "options" dict keyed by option_id so that the
-        # aggregator can later build TotalOptionsSet entries. Each option_id
-        # corresponds to one ConanInputOptions set; the value is the full set
-        # of resolved options Conan computed for that invocation.
         if enrich.option_id and enrich.option_id not in self.resolved_options_by_id:
             self.resolved_options_by_id[enrich.option_id] = enrich.conan_options
+
+        self.all_dependencies.update(enrich.dependencies)
 
         if enrich.package_id and enrich.package_id not in self.unique_variants:
             self.unique_variants[enrich.package_id] = ConanVariant(

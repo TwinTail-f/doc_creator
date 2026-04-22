@@ -81,7 +81,7 @@ class ConanResultParser:
         base_ref, rrev, full_version = self._extract_ref_info(target_node, task.version)
         default_options = self._extract_default_options(target_node)
         patches = self._extract_patches(target_node, task.version)
-        dependencies = self._extract_dependencies(target_node, task.comp_name)
+        dependencies = self._extract_dependencies(nodes, task.comp_name)
 
         info_dict: dict = target_node.get("info", {})
         conan_settings: dict = info_dict.get(
@@ -178,11 +178,19 @@ class ConanResultParser:
         return list(dict.fromkeys(extracted))
 
     @staticmethod
-    def _extract_dependencies(node: dict[str, Any], comp_name: str) -> list[str]:
-        deps_node: dict = node.get("dependencies", {})
+    def _extract_dependencies(nodes: dict[str, Any], comp_name: str) -> list[str]:
+        """Собирает имена всех пакетов из графа зависимостей, кроме самого
+        компонента и виртуальной ноды conanfile.
+
+        Обходит все узлы графа (включая транзитивные зависимости), а не только
+        прямые зависимости целевого узла.
+        """
         deps: list[str] = []
-        for dep_info in deps_node.values():
-            ref: str = dep_info.get("ref", "")
+        for node in nodes.values():
+            name: str = node.get("name", "")
+            if not name or name == comp_name or name == "conanfile":
+                continue
+            ref: str = node.get("ref", "")
             if ref:
                 dep_name = ref.split("/")[0]
                 if dep_name and dep_name != comp_name:
