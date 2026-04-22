@@ -4,16 +4,14 @@
 
 import json
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 import yaml
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from autodoc.config.schemas import ConfluenceConfigSchema, ParserConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.infrastructure.logger import logger
-
-_SchemaT = TypeVar("_SchemaT", bound=BaseModel)
 
 
 class ConfigManager:
@@ -124,9 +122,9 @@ class ConfigManager:
     def _load_validated(
         self,
         basename: str,
-        schema_cls: type[_SchemaT],
+        schema_cls: type[Any],
         config_file: str | None,
-    ) -> _SchemaT | None:
+    ) -> Any | None:
         """
         Общая логика загрузки и схемной валидации конфига.
 
