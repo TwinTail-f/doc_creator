@@ -5,6 +5,7 @@
 from dataclasses import dataclass
 
 from autodoc.models.component import Component, ProfileBuild, Release
+from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
 # Шаблон Conan version range с поддержкой pre-release версий
 _CONAN_REF_TEMPLATE: str = (
@@ -61,6 +62,7 @@ class ConanTaskBuilder:
         components: list[Component],
         target_platform: str,
         artifactory_base_url: str,
+        profile_overrides: ProfileSettingsOverrides | None = None,
     ) -> list[ConanTask]:
         """
         Формирует полный список задач для параллельного выполнения.
@@ -69,12 +71,16 @@ class ConanTaskBuilder:
             components: Список компонентов с заполненными ``_build_option_sets_internal``.
             target_platform: Целевая платформа (например ``'2.0'``).
             artifactory_base_url: Базовый URL Artifactory для построения ссылок.
+            profile_overrides: Переопределения ``-s`` настроек по имени профиля.
+                Используется как костыль для Jinja-профилей с ``os.getenv()``.
+                Если ``None`` — переопределения не применяются.
 
         Returns:
             Список задач. Может быть пустым, если у компонентов нет профилей.
         """
         tasks: list[ConanTask] = []
         art_base = artifactory_base_url.rstrip("/")
+        overrides = profile_overrides or ProfileSettingsOverrides.empty()
 
         for comp in components:
             for release in comp.releases:
@@ -88,8 +94,9 @@ class ConanTaskBuilder:
                 )
 
                 for pb in release.profile_builds:
+                    extra_settings = overrides.resolve(pb.profile_name)
                     for opt_id, opt_str in options_dict.items():
-                        cmd = self._build_cmd(reference, pb.profile_name, opt_str)
+                        cmd = self._build_cmd(reference, pb.profile_name, opt_str, extra_settings)
                         tasks.append(
                             ConanTask(
                                 cmd=cmd,
@@ -109,19 +116,31 @@ class ConanTaskBuilder:
         return tasks
 
     @staticmethod
-    def _build_cmd(reference: str, profile_name: str, opt_str: str) -> list[str]:
+    def _build_cmd(
+        reference: str,
+        profile_name: str,
+        opt_str: str,
+        extra_settings: dict[str, str] | None = None,
+    ) -> list[str]:
         """
         Собирает список аргументов CLI-команды ``conan graph info``.
 
         Каждая опция из ``opt_str`` (через запятую) добавляется флагом ``-o``.
-        Если опция не содержит ``:``, добавляется префикс ``*:``.
+        Если опция не содержит ``:``, добавляется префикс ``*:``
         Если опция содержит ``:``, но не ``/*:`` и не начинается на ``*:``,
         имя пакета расширяется до шаблона ``pkg/*:opt``.
+
+        Дополнительные настройки из ``extra_settings`` добавляются флагами ``-s key=value``.
+        Используется как костыль для Jinja-профилей, требующих env-переменные
+        (например ``compiler.toolchain_config_id``).
 
         Args:
             reference: Conan-ссылка с диапазоном версии.
             profile_name: Имя профиля сборки.
             opt_str: Строка опций через запятую (может быть пустой).
+            extra_settings: Словарь дополнительных настроек ``{key: value}``
+                для добавления в команду флагами ``-s``. Если ``None`` или пуст —
+                игнорируется.
 
         Returns:
             Список аргументов для передачи в ``subprocess.run``.
@@ -134,6 +153,11 @@ class ConanTaskBuilder:
             f"-pr={profile_name}",
             "--format=json",
         ]
+
+        # Костыль: явные -s настройки для профилей с os.getenv() в Jinja-шаблонах
+        if extra_settings:
+            for key, value in extra_settings.items():
+                cmd.extend(["-s", f"{key}={value}"])
 
         if opt_str:
             for raw_opt in opt_str.split(","):

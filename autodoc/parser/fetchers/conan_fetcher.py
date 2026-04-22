@@ -23,6 +23,7 @@ from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.models.conan_result import ConanEnrichmentResult
 from autodoc.parser.conan.conan_runner import Conan2Runner, ConanEnvironmentManager
+from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTaskBuilder
@@ -53,6 +54,7 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
         self._platform_version: str = ""
         self._artifactory_base_url: str = ""
         self._conan_config_url: str = ""
+        self._profile_overrides: ProfileSettingsOverrides = ProfileSettingsOverrides.empty()
 
     def configure(self, ctx: PipelineContext) -> None:
         """
@@ -69,6 +71,17 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
         self._conan_config_url = (ctx.config.conan_config_url or "").strip()
         self._username = ctx.config.username
         self._password = ctx.config.artifactory_token
+
+        # Загружаем костыль с переопределениями -s настроек для Jinja-профилей
+        overrides_path = getattr(ctx.config, "profile_settings_overrides_file", None)
+        if overrides_path:
+            self._profile_overrides = ProfileSettingsOverrides.from_file(overrides_path)
+            if not self._profile_overrides.is_empty():
+                logger.info(
+                    f"ConanFetcher: загружены переопределения настроек профилей из '{overrides_path}'."
+                )
+        else:
+            self._profile_overrides = ProfileSettingsOverrides.empty()
 
     def fetch(
         self,
@@ -107,7 +120,10 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
 
         task_builder = ConanTaskBuilder()
         tasks = task_builder.build(
-            components, self._platform_version, self._artifactory_base_url
+            components,
+            self._platform_version,
+            self._artifactory_base_url,
+            profile_overrides=self._profile_overrides,
         )
 
         if not tasks:

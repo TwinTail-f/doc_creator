@@ -24,5 +24,14 @@
   "tfs_request_timeout": 15,
   "conan_command_timeout": 300,
   "max_retries": 3,
-  "retry_backoff_factor": 2.0
+  "retry_backoff_factor": 2.0,
+
+  "_comment_overrides": [
+    "Необязательно. Путь к файлу с переопределениями настроек (-s) для профилей Conan.",
+    "Используется как костыль для Jinja-профилей, читающих env-переменные",
+    "(например KOS_SDK_VER → compiler.toolchain_config_id).",
+    "Пример файла: configs/profile_settings_overrides.json.example",
+    "Если поле не указано или файл не найден — костыль отключён, поведение не меняется."
+  ],
+  "profile_settings_overrides_file": "configs/profile_settings_overrides.json"
 }
