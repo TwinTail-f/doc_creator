@@ -81,7 +81,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         )
 
     @classmethod
-    def _make_transformer(cls, kwargs: dict) -> BaseDataTransformer:
+    def _make_transformer(cls, kwargs: dict[str, Any]) -> BaseDataTransformer:
         """
         Строит ``FullReleaseTransformer`` из kwargs перед вызовом ``__init__``.
 
@@ -126,7 +126,10 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         inject_fn = None
         if self._include_passport_links:
             passport_pages = self._registry.load()
-            inject_fn = lambda vm: self._inject_passport_links(vm, passport_pages)
+
+            def inject_fn(vm: dict[str, Any]) -> None:
+                """Инжектирует ссылки на паспорта в release view-model."""
+                self._inject_passport_links(vm, passport_pages)
 
         return self._publish_single_page(
             page_title=self._page_title,

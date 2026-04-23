@@ -7,6 +7,7 @@ from autodoc.config.schemas import ConfluenceConfigSchema
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
+from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
 
@@ -23,6 +24,10 @@ class DocumentPublisher:
     инфраструктурные зависимости — клиент, рендерер и директорию данных.
     Параметры пакетной публикации читаются из конфигурации и автоматически
     передаются стратегии ``passports``.
+
+    Attributes:
+        _client: ``IConfluenceClient`` — клиент Confluence API.
+        _builder: ``IDocumentBuilder`` — рендерер Jinja2-шаблонов.
     """
 
     def __init__(
@@ -40,8 +45,8 @@ class DocumentPublisher:
                       По умолчанию ``Path('data')``.
         """
         self._config: ConfluenceConfigSchema = confluence_config
-        self._client: ConfluenceClient = ConfluenceClient(confluence_config)
-        self._builder: DocumentBuilder = DocumentBuilder(rendering_dir)
+        self._client: IConfluenceClient = ConfluenceClient(confluence_config)
+        self._builder: IDocumentBuilder = DocumentBuilder(rendering_dir)
         self._data_dir: Path = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
         logger.info("Инициализирован")
 

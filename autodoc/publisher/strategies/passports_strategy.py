@@ -7,7 +7,7 @@ from typing import Any
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
-from autodoc.publisher.legacy_content.legacy_service import LegacyContentService
+from autodoc.publisher.legacy_content.legacy_service import extract_for_platform
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.utils.publish_queue import PublishQueue
@@ -72,7 +72,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
             template_name: Имя Jinja2-шаблона. По умолчанию ``component_passport.jinja2``.
             data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
             batch_size: Количество страниц, публикуемых в одном пакете.
-                        По умолчанию ``10``.
+                        По умолчанию ``2``.
             batch_delay_seconds: Задержка в секундах между пакетами.
                                  По умолчанию ``0`` (без задержки).
             target_release_version: Подпись текущего релиза (например ``"Platform 2.2"``).
@@ -93,7 +93,6 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         self._template_name: str = template_name
         self._target_release_version: str = target_release_version
         self._hierarchy: PageHierarchyManager = PageHierarchyManager(confluence_client)
-        self._legacy_svc: LegacyContentService = LegacyContentService()
         self._page_registry: PassportPageRegistry = PassportPageRegistry(data_dir)
         self._queue: PublishQueue = PublishQueue(
             batch_size=batch_size,
@@ -224,7 +223,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
 
         # Извлекаем legacy-секции других платформ, чтобы не потерять их
         # при обновлении страницы для текущей платформы.
-        legacy_contents = self._legacy_svc.extract_for_platform(
+        legacy_contents = extract_for_platform(
             existing_html, platform_version
         )
         target_platform = (

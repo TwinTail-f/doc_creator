@@ -86,7 +86,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         )
 
     @classmethod
-    def _make_transformer(cls, kwargs: dict) -> ProfileCentricTransformer:
+    def _make_transformer(cls, kwargs: dict[str, Any]) -> ProfileCentricTransformer:
         """
         Строит ``ProfileCentricTransformer`` из kwargs перед вызовом ``__init__``.
 
@@ -132,7 +132,10 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         inject_fn = None
         if self._include_passport_links:
             passport_pages = self._registry.load()
-            inject_fn = lambda vm: self._inject_passport_links(vm, passport_pages)
+
+            def inject_fn(vm: dict[str, Any]) -> None:
+                """Инжектирует ссылки на паспорта в view-model профиль-центричного вида."""
+                self._inject_passport_links(vm, passport_pages)
 
         return self._publish_single_page(
             page_title=self._page_title,

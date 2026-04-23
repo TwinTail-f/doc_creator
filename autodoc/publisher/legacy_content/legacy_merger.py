@@ -276,7 +276,7 @@ class LegacyContentMerger:
         """
         return (
             '  <ac:structured-macro ac:name="tab">\n'
-            '    <ac:parameter ac:name="name">%s</ac:parameter>\n'
-            "    <ac:rich-text-body>\n      %s\n    </ac:rich-text-body>\n"
+            f'    <ac:parameter ac:name="name">{name}</ac:parameter>\n'
+            f"    <ac:rich-text-body>\n      {content}\n    </ac:rich-text-body>\n"
             "  </ac:structured-macro>\n"
-        ) % (name, content)
+        )

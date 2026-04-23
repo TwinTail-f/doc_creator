@@ -8,6 +8,7 @@ from autodoc.publisher.transformers.base_transformer import (
     BaseDataTransformer,
     PassportLinkMixin,
     _DEFAULT_PASSPORT_PATTERN,
+    _VariantOpts,
 )
 
 
@@ -32,7 +33,7 @@ class BaseReleaseTransformer(PassportLinkMixin, BaseDataTransformer):
                 По умолчанию используется ``_DEFAULT_PASSPORT_PATTERN``.
         """
         self._include_passport_links: bool = include_passport_links
-        self._pattern: str = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
+        self._pattern: str | None = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
 
 
 class FullReleaseTransformer(BaseReleaseTransformer):
@@ -83,7 +84,9 @@ class FullReleaseTransformer(BaseReleaseTransformer):
                     "exists": pb.exists,
                     "variants": [
                         self._build_variant_view(
-                            v, comp_name, os_map.get(v.options_ref, {})
+                            v,
+                            comp_name,
+                            _VariantOpts(conan_options=os_map.get(v.options_ref, {})),
                         )
                         for v in pb.variants
                     ],
