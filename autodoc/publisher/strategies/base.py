@@ -200,7 +200,9 @@ class BasePublishStrategy(ABC):
             if inject_links is not None:
                 inject_links(view_model)
 
-            html_body = self._minify_html(self._builder.build(template_name, view_model))
+            html_body = self._minify_html(
+                self._builder.build(template_name, view_model)
+            )
             result = self._client.publish_page(
                 space=self._space,
                 parent_id=parent_id,
@@ -252,8 +254,8 @@ class BasePublishStrategy(ABC):
             Минимизированный HTML без лишних пробелов и комментариев.
         """
         html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)  # удаляем комментарии
-        html = re.sub(r">\s+<", "><", html)                      # пробелы между тегами
-        html = re.sub(r"\s{2,}", " ", html)                      # схлопываем повторные пробелы
+        html = re.sub(r">\s+<", "><", html)  # пробелы между тегами
+        html = re.sub(r"\s{2,}", " ", html)  # схлопываем повторные пробелы
         return html.strip()
 
     @abstractmethod

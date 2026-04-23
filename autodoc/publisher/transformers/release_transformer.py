@@ -70,12 +70,16 @@ class FullReleaseTransformer(BaseReleaseTransformer):
             "profile_builds": [
                 {
                     "profile_name": pb.profile_name,
-                    "conan_settings": dict(pd_map[pb.profile_name].conan_settings)
-                    if pb.profile_name in pd_map
-                    else {},
-                    "docker_image": pd_map[pb.profile_name].docker_image
-                    if pb.profile_name in pd_map
-                    else "",
+                    "conan_settings": (
+                        dict(pd_map[pb.profile_name].conan_settings)
+                        if pb.profile_name in pd_map
+                        else {}
+                    ),
+                    "docker_image": (
+                        pd_map[pb.profile_name].docker_image
+                        if pb.profile_name in pd_map
+                        else ""
+                    ),
                     "exists": pb.exists,
                     "variants": [
                         self._build_variant_view(
@@ -99,7 +103,9 @@ class FullReleaseTransformer(BaseReleaseTransformer):
             Словарь view-model для шаблона полного релиза.
         """
         logger.debug("Трансформация в полный вид")
-        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
+        pd_map: dict[str, Any] = {
+            pd.profile_name: pd for pd in data.profile_definitions
+        }
         return {
             "platform_version": data.platform_version,
             "include_passport_links": self._include_passport_links,

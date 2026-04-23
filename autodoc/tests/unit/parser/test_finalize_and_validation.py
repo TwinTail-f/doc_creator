@@ -31,7 +31,6 @@ from autodoc.parser.steps.base import PipelineContext
 from autodoc.parser.steps.finalize_step import FinalizeStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 
-
 # ---------------------------------------------------------------------------
 # Фабрики
 # ---------------------------------------------------------------------------
@@ -124,6 +123,7 @@ class TestComputeHeaderOnlyFlags:
         r.profile_builds = [pb]
         # Add an TotalOptionsSet so os_map["opt1"] = {"shared": "True"} → not empty
         from autodoc.models.component import TotalOptionsSet
+
         r.total_option_sets = [TotalOptionsSet(id="opt1", options={"shared": "True"})]
         comp = Component(name="lib", releases=[r])
 
@@ -310,9 +310,7 @@ class TestArtifactoryValidationStepExecute:
         ctx.artifactory_client = MagicMock()
         return ctx, pb, variant
 
-    def test_404_variant_removed(
-        self, minimal_config: ParserConfigSchema
-    ) -> None:
+    def test_404_variant_removed(self, minimal_config: ParserConfigSchema) -> None:
         ctx, pb, variant = self._make_ctx_with_variant(minimal_config)
         mock_resp = MagicMock()
         mock_resp.status_code = 404
@@ -322,9 +320,7 @@ class TestArtifactoryValidationStepExecute:
 
         assert variant not in pb.variants
 
-    def test_200_variant_kept(
-        self, minimal_config: ParserConfigSchema
-    ) -> None:
+    def test_200_variant_kept(self, minimal_config: ParserConfigSchema) -> None:
         ctx, pb, variant = self._make_ctx_with_variant(minimal_config)
         mock_resp = MagicMock()
         mock_resp.status_code = 200

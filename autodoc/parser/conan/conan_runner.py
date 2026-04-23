@@ -4,6 +4,7 @@
 Содержит интерфейс ``BaseConanRunner`` и реализацию ``Conan2Runner``.
 Дата-класс результата вынесен в ``conan_result.py``.
 """
+
 import zipfile
 import json
 import os
@@ -77,13 +78,18 @@ class ConanEnvironmentManager:
         logger.info(f"Авторизуемся в Conan remote '{self._CONAN_REMOTE_NAME}' …")
         result = subprocess.run(
             [
-                "conan", "remote", "login",
-                "--password", self._password,
+                "conan",
+                "remote",
+                "login",
+                "--password",
+                self._password,
                 self._CONAN_REMOTE_NAME,
                 self._username,
             ],
-            capture_output=True, text=True,
-            timeout=self._LOGIN_TIMEOUT, env=env,
+            capture_output=True,
+            text=True,
+            timeout=self._LOGIN_TIMEOUT,
+            env=env,
         )
         if result.returncode != 0:
             error = result.stderr.strip() or result.stdout.strip()
@@ -102,11 +108,15 @@ class ConanEnvironmentManager:
         scheme, rest = parsed
         url_with_creds = f"{scheme}://{self._username}:{self._password}@{rest}"
 
-        logger.info(f"Устанавливаем конфигурацию Conan из {self._config_url!r} в {self._setup_dir} …")
+        logger.info(
+            f"Устанавливаем конфигурацию Conan из {self._config_url!r} в {self._setup_dir} …"
+        )
         result = subprocess.run(
             ["conan", "config", "install", url_with_creds],
-            capture_output=True, text=True,
-            timeout=self._CONFIG_INSTALL_TIMEOUT, env=env,
+            capture_output=True,
+            text=True,
+            timeout=self._CONFIG_INSTALL_TIMEOUT,
+            env=env,
         )
         if result.returncode != 0:
             error = result.stderr.strip() or result.stdout.strip()
@@ -126,6 +136,7 @@ class ConanEnvironmentManager:
             shutil.rmtree(self._setup_dir, ignore_errors=True)
             logger.debug(f"Удалена директория конфигурации Conan: {self._setup_dir}")
             self._setup_dir = None
+
 
 class Conan2Runner(BaseConanRunner):
     """
@@ -174,7 +185,8 @@ class Conan2Runner(BaseConanRunner):
             ``ConanRawResult`` с данными или описанием ошибки.
         """
         if not shutil.which("conan"):
-            return ConanRawResult(success=False,
+            return ConanRawResult(
+                success=False,
                 data=None,
                 error=self._CONAN_NOT_FOUND_MSG,
             )
@@ -197,13 +209,15 @@ class Conan2Runner(BaseConanRunner):
                     env=env,
                 )
             except subprocess.TimeoutExpired:
-                return ConanRawResult(success=False,
+                return ConanRawResult(
+                    success=False,
                     data=None,
                     error=f"Таймаут выполнения команды ({self._timeout} с).",
                 )
 
             if result.returncode != 0:
-                return ConanRawResult(success=False,
+                return ConanRawResult(
+                    success=False,
                     data=None,
                     error=self._extract_error_message(result.stderr),
                 )
@@ -212,7 +226,8 @@ class Conan2Runner(BaseConanRunner):
                 parsed = json.loads(result.stdout)
                 return ConanRawResult(success=True, data=parsed, error="")
             except json.JSONDecodeError as e:
-                return ConanRawResult(success=False,
+                return ConanRawResult(
+                    success=False,
                     data=None,
                     error=f"JSON decode error: {e}. STDOUT: {result.stdout[:300]}",
                 )

@@ -41,7 +41,9 @@ class PassportTransformer(BaseDataTransformer):
         Raises:
             ValueError: Если компонент или версия не найдены.
         """
-        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
+        pd_map: dict[str, Any] = {
+            pd.profile_name: pd for pd in data.profile_definitions
+        }
 
         target_comp = next(
             (c for c in data.components if c.name == self._component_name), None

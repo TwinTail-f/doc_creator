@@ -20,5 +20,5 @@
   "publish_batch_size": 10,
   "publish_batch_delay_seconds": 0.5,
 
-  "target_platform_version": "Platform 2.0"
+  "target_release_version": "Platform 2.2"
 }

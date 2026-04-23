@@ -194,8 +194,10 @@ class TestProfileDefinitionAndOptionSet:
 
     def test_release_has_option_sets_field(self) -> None:
         release = Release(
-            version="1.0.0", platform="develop",
-            channel="stable", git_url="https://example.com",
+            version="1.0.0",
+            platform="develop",
+            channel="stable",
+            git_url="https://example.com",
             total_option_sets=[TotalOptionsSet(id="1", options={"shared": "True"})],
         )
         assert len(release.total_option_sets) == 1
@@ -205,9 +207,7 @@ class TestProfileDefinitionAndOptionSet:
         result = ParsedResult(
             generated_at="2026-01-01T00:00:00",
             platform_version="2.0",
-            profile_definitions=[
-                ProfileDefinition(profile_name="linux_x86_64")
-            ],
+            profile_definitions=[ProfileDefinition(profile_name="linux_x86_64")],
             components=[],
         )
         assert len(result.profile_definitions) == 1
@@ -216,18 +216,29 @@ class TestProfileDefinitionAndOptionSet:
 class TestFinalizeStepHeaderOnly:
     """Tests for the updated _compute_header_only_flags logic."""
 
-    def _make_profile_def(self, name: str, settings: dict | None = None) -> "ProfileDefinition":
+    def _make_profile_def(
+        self, name: str, settings: dict | None = None
+    ) -> "ProfileDefinition":
         from autodoc.models.component import ProfileDefinition
+
         return ProfileDefinition(profile_name=name, conan_settings=settings or {})
 
     def test_header_only_when_no_settings_and_empty_options(self) -> None:
-        from autodoc.models.component import TotalOptionsSet, ConanVariant, ProfileBuild, Release, Component
+        from autodoc.models.component import (
+            TotalOptionsSet,
+            ConanVariant,
+            ProfileBuild,
+            Release,
+            Component,
+        )
         from autodoc.parser.steps.finalize_step import FinalizeStep
 
         variant = ConanVariant(package_id="p1", options_ref="1")
         pb = ProfileBuild(profile_name="linux_x86_64", exists=True, variants=[variant])
         release = Release(
-            version="1.0.0", platform="dev", channel="stable",
+            version="1.0.0",
+            platform="dev",
+            channel="stable",
             git_url="https://example.com",
             total_option_sets=[TotalOptionsSet(id="1", options={})],  # empty options
             profile_builds=[pb],
@@ -239,19 +250,29 @@ class TestFinalizeStepHeaderOnly:
         assert release.is_header_only is True
 
     def test_not_header_only_when_settings_present(self) -> None:
-        from autodoc.models.component import TotalOptionsSet, ConanVariant, ProfileBuild, Release, Component
+        from autodoc.models.component import (
+            TotalOptionsSet,
+            ConanVariant,
+            ProfileBuild,
+            Release,
+            Component,
+        )
         from autodoc.parser.steps.finalize_step import FinalizeStep
 
         variant = ConanVariant(package_id="p1", options_ref="1")
         pb = ProfileBuild(profile_name="linux_x86_64", exists=True, variants=[variant])
         release = Release(
-            version="1.0.0", platform="dev", channel="stable",
+            version="1.0.0",
+            platform="dev",
+            channel="stable",
             git_url="https://example.com",
             total_option_sets=[TotalOptionsSet(id="1", options={})],
             profile_builds=[pb],
         )
         comp = Component(name="bin_lib", releases=[release])
-        pd = self._make_profile_def("linux_x86_64", settings={"os": "Linux"})  # non-empty
+        pd = self._make_profile_def(
+            "linux_x86_64", settings={"os": "Linux"}
+        )  # non-empty
 
         FinalizeStep._compute_header_only_flags([comp], [pd])
         assert release.is_header_only is False

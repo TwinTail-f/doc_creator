@@ -5,21 +5,21 @@ from autodoc.publisher.clients.protocols import IConfluenceClient
 
 _COMPONENT_PAGE_BODY: str = (
     "Автоматически созданная страница компонента"
-    '<p>'
+    "<p>"
     '<ac:structured-macro ac:macro-id="8cb4ae85-0212-4b3d-a15f-77899af1f1d7" '
     'ac:name="children" ac:schema-version="2">'
     '<ac:parameter ac:name="depth">3</ac:parameter>'
-    '</ac:structured-macro>'
-    '</p>'
+    "</ac:structured-macro>"
+    "</p>"
 )
 _VERSION_PAGE_BODY: str = (
     "Автоматически созданная страница версии компонента"
-    '<p>'
+    "<p>"
     '<ac:structured-macro ac:macro-id="8cb4ae85-0212-4b3d-a15f-77899af1f1d7" '
     'ac:name="children" ac:schema-version="2">'
     '<ac:parameter ac:name="depth">2</ac:parameter>'
-    '</ac:structured-macro>'
-    '</p>'
+    "</ac:structured-macro>"
+    "</p>"
 )
 
 

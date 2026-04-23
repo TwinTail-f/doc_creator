@@ -137,7 +137,9 @@ class TestApplyDockerLinks:
         release.profile_builds = [pb]
         comp = _make_component(release=release)
 
-        DataEnricher.apply_docker_links([comp], {"linux_x86_64": "registry/img:1"}, [pd])
+        DataEnricher.apply_docker_links(
+            [comp], {"linux_x86_64": "registry/img:1"}, [pd]
+        )
 
         assert pd.docker_image == ""
 

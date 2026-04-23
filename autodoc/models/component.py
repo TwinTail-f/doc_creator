@@ -68,7 +68,10 @@ class TotalOptionsSet(BaseModel):
     """Именованный набор разрешённых опций сборки Conan из поля ``options`` вывода ``conan graph info``,
     привязанный к идентификатору ``ConanInputOptions.id``."""
 
-    id: str = Field(..., description='Идентификатор набора опций, совпадает с ConanInputOptions.id (например "1", "2")')
+    id: str = Field(
+        ...,
+        description='Идентификатор набора опций, совпадает с ConanInputOptions.id (например "1", "2")',
+    )
     options: dict[str, Any] = Field(
         default_factory=dict,
         description="Разрешённые опции Conan из поля options вывода conan graph info: {name: value}",

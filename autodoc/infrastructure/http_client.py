@@ -72,7 +72,12 @@ class RetryableSession(requests.Session):
     def request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Все HTTP-методы проходят сюда — таймаут подставляется один раз."""
         timeout = kwargs.pop("timeout", None)
-        return super().request(method, url, timeout=timeout if timeout is not None else self._timeout, **kwargs)
+        return super().request(
+            method,
+            url,
+            timeout=timeout if timeout is not None else self._timeout,
+            **kwargs,
+        )
 
 
 def create_retryable_session(

@@ -60,6 +60,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         data_dir: Path | None = None,
         batch_size: int = _DEFAULT_BATCH_SIZE,
         batch_delay_seconds: float = _DEFAULT_BATCH_DELAY,
+        target_release_version: str = "",
     ) -> None:
         """
         Args:
@@ -74,6 +75,10 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
                         По умолчанию ``10``.
             batch_delay_seconds: Задержка в секундах между пакетами.
                                  По умолчанию ``0`` (без задержки).
+            target_release_version: Подпись текущего релиза (например ``"Platform 2.2"``).
+                                    Отображается в заголовке паспорта и метке вкладки.
+                                    Если пустая строка — формируется автоматически из
+                                    ``platform_version`` данных парсера.
 
         Raises:
             ValueError: Если ``space`` или ``root_page_id`` пустые.
@@ -86,6 +91,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         super().__init__(confluence_client, document_builder, parsed_data, space)
         self._root_page_id: str = root_page_id
         self._template_name: str = template_name
+        self._target_release_version: str = target_release_version
         self._hierarchy: PageHierarchyManager = PageHierarchyManager(confluence_client)
         self._legacy_svc: LegacyContentService = LegacyContentService()
         self._page_registry: PassportPageRegistry = PassportPageRegistry(data_dir)
@@ -221,10 +227,17 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         legacy_contents = self._legacy_svc.extract_for_platform(
             existing_html, platform_version
         )
-        view_model["target_platform"] = f"Платформа {platform_version}"
+        target_platform = (
+            self._target_release_version
+            if self._target_release_version
+            else f"Платформа {platform_version}"
+        )
+        view_model["target_platform"] = target_platform
         view_model["legacy_contents"] = legacy_contents
 
-        html_body = self._minify_html(self._builder.build(self._template_name, view_model))
+        html_body = self._minify_html(
+            self._builder.build(self._template_name, view_model)
+        )
         result = self._client.publish_page(
             space=self._space,
             parent_id=version_page_id,

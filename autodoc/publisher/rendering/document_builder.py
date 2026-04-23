@@ -30,7 +30,9 @@ class DocumentBuilder:
             FileNotFoundError: Если директория не существует.
         """
         if not rendering_dir.exists():
-            raise FileNotFoundError(f"Директория рендеринга не найдена: {rendering_dir}")
+            raise FileNotFoundError(
+                f"Директория рендеринга не найдена: {rendering_dir}"
+            )
 
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(rendering_dir))

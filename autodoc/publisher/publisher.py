@@ -126,6 +126,7 @@ class DocumentPublisher:
             template_name=passport_template_name,
             batch_size=self._config.publish_batch_size,
             batch_delay_seconds=self._config.publish_batch_delay_seconds,
+            target_release_version=self._config.target_release_version,
         )
 
         release_report = self.publish(
@@ -135,6 +136,7 @@ class DocumentPublisher:
             template_name=release_template_name,
             parent_id=release_parent_id,
             include_passport_links=include_passport_links,
+            target_release_version=self._config.target_release_version,
         )
 
         return PublishReport(

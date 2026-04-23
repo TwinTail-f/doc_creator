@@ -82,12 +82,14 @@ class BaseDataTransformer(ABC):
         if not options_str or not options_str.strip():
             return ""
         parts = [p.strip() for p in options_str.split(",") if p.strip()]
+
         def _qualify(p: str) -> str:
             if ":" in p:
                 pkg, rest = p.split(":", 1)
                 if not pkg.endswith("/*"):
                     p = f"{pkg}/*:{rest}"
             return p
+
         return " ".join(f"-o {_qualify(p)}" for p in parts)
 
     @staticmethod
@@ -111,16 +113,14 @@ class BaseDataTransformer(ABC):
         """
         if not conan_options:
             return ""
+
         def _qualify_key(k: str) -> str:
             pkg, opt = k.split(":", 1) if ":" in k else (component_name, k)
             if not pkg.endswith("/*"):
                 pkg = f"{pkg}/*"
             return f"{pkg}:{opt}"
 
-        return " ".join(
-            f"-o {_qualify_key(k)}={v}"
-            for k, v in conan_options.items()
-        )
+        return " ".join(f"-o {_qualify_key(k)}={v}" for k, v in conan_options.items())
 
     @staticmethod
     def _build_variant_view(
@@ -154,7 +154,9 @@ class BaseDataTransformer(ABC):
         if install_options_override is not None:
             install_opts = install_options_override
         else:
-            install_opts = BaseDataTransformer._build_install_options(opts, component_name)
+            install_opts = BaseDataTransformer._build_install_options(
+                opts, component_name
+            )
         return ConanVariantView(
             package_id=variant.package_id,
             build_url=variant.build_url,

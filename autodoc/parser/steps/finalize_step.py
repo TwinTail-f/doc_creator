@@ -43,7 +43,9 @@ class FinalizeStep(BaseParseStep):
         if removed:
             logger.info(f"Удалено {removed} профилей с exists=False.")
 
-        ctx.profile_definitions = self._deduplicate_profile_definitions(ctx.profile_definitions)
+        ctx.profile_definitions = self._deduplicate_profile_definitions(
+            ctx.profile_definitions
+        )
         ctx.result = self._build_result(ctx)
 
     # SHA1 от пустой строки — стандартный нулевой package_id Conan.
@@ -73,9 +75,7 @@ class FinalizeStep(BaseParseStep):
         for comp in components:
             for release in comp.releases:
                 all_variants = [
-                    variant
-                    for pb in release.profile_builds
-                    for variant in pb.variants
+                    variant for pb in release.profile_builds for variant in pb.variants
                 ]
 
                 if not all_variants:
@@ -139,7 +139,7 @@ class FinalizeStep(BaseParseStep):
             result = ParsedResult(
                 generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 platform_version=ctx.config.platform_version,
-                profile_definitions=ctx.profile_definitions,   # NEW
+                profile_definitions=ctx.profile_definitions,  # NEW
                 components=ctx.components,
             )
             logger.info(f"Данные валидированы. {len(result.components)} компонентов.")

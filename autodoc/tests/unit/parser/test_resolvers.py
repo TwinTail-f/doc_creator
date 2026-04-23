@@ -31,7 +31,9 @@ def _make_sync_executor() -> MagicMock:
     не запуская реальные потоки — достаточно для юнит-тестов.
     """
     mock_executor = MagicMock()
-    mock_executor.execute.side_effect = lambda fn, items, **kw: [fn(item) for item in items]
+    mock_executor.execute.side_effect = lambda fn, items, **kw: [
+        fn(item) for item in items
+    ]
     return mock_executor
 
 

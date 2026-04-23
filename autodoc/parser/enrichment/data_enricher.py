@@ -76,7 +76,9 @@ class DataEnricher:
                     docker_url = docker_links.get(pname, "")
                     if profile_definitions is not None:
                         if pname not in pd_map:
-                            entry = ProfileDefinition(profile_name=pname, docker_image=docker_url)
+                            entry = ProfileDefinition(
+                                profile_name=pname, docker_image=docker_url
+                            )
                             pd_map[pname] = entry
                             profile_definitions.append(entry)
                         else:
@@ -105,7 +107,8 @@ class DataEnricher:
         # Строим карту один раз до всех циклов
         pd_map: dict[str, ProfileDefinition] = (
             {pd.profile_name: pd for pd in profile_definitions}
-            if profile_definitions is not None else {}
+            if profile_definitions is not None
+            else {}
         )
 
         for comp in components:
@@ -136,5 +139,7 @@ class DataEnricher:
                                 )
                                 pd_map[pname] = entry
                                 profile_definitions.append(entry)
-                            elif pb_data.conan_settings:  # не затираем непустые данные пустыми
+                            elif (
+                                pb_data.conan_settings
+                            ):  # не затираем непустые данные пустыми
                                 pd_map[pname].conan_settings = pb_data.conan_settings

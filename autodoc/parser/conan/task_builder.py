@@ -96,7 +96,9 @@ class ConanTaskBuilder:
                 for pb in release.profile_builds:
                     extra_settings = overrides.resolve(pb.profile_name)
                     for opt_id, opt_str in options_dict.items():
-                        cmd = self._build_cmd(reference, pb.profile_name, opt_str, extra_settings)
+                        cmd = self._build_cmd(
+                            reference, pb.profile_name, opt_str, extra_settings
+                        )
                         tasks.append(
                             ConanTask(
                                 cmd=cmd,

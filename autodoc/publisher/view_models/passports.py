@@ -22,4 +22,3 @@ class ConanVariantView:
     # Предформатированная строка вида '-o pkg:opt=val -o dep:opt=val'
     # для подстановки напрямую в команду 'conan install'.
     install_options: str = ""
-

@@ -60,7 +60,9 @@ class TestManifestFetcher:
         """
         from autodoc.parser.steps.base import PipelineContext
 
-        def fake_download(items_url, remote_path, branch, output_dir, version_type=None):
+        def fake_download(
+            items_url, remote_path, branch, output_dir, version_type=None
+        ):
             _write_properties(Path(output_dir), "comp.properties", content)
 
         mock_tfs = MagicMock()
@@ -121,7 +123,9 @@ class TestManifestFetcher:
     ) -> None:
         content = _SAMPLE_PROPERTIES_FILE.read_text(encoding="utf-8")
         fetcher = self._make_fetcher(tmp_path, content, minimal_config)
-        assert fetcher.fetch(tmp_path / "manifests", excluded=["crypto_lib"]).value == []
+        assert (
+            fetcher.fetch(tmp_path / "manifests", excluded=["crypto_lib"]).value == []
+        )
 
     def test_component_without_name_skipped(
         self, tmp_path: Path, minimal_config: ParserConfigSchema

@@ -37,7 +37,9 @@ class ProfileCentricTransformer(BaseReleaseTransformer):
         """
         logger.debug("Трансформация в профиль-центричный вид")
 
-        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
+        pd_map: dict[str, Any] = {
+            pd.profile_name: pd for pd in data.profile_definitions
+        }
 
         # Собираем метаданные профилей из profile_definitions; компоненты перебираем
         # только для того, чтобы определить, какие профили реально присутствуют

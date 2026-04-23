@@ -16,8 +16,6 @@
 - ``ConanResultAggregator``   — агрегация N результатов → ``ConanEnrichmentResult``.
 """
 
-
-
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
@@ -54,7 +52,9 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
         self._platform_version: str = ""
         self._artifactory_base_url: str = ""
         self._conan_config_url: str = ""
-        self._profile_overrides: ProfileSettingsOverrides = ProfileSettingsOverrides.empty()
+        self._profile_overrides: ProfileSettingsOverrides = (
+            ProfileSettingsOverrides.empty()
+        )
 
     def configure(self, ctx: PipelineContext) -> None:
         """
@@ -130,7 +130,6 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
             logger.info("Нет задач для выполнения.")
             return FetchResult(value=ConanEnrichmentResult())
 
-        
         env_manager = ConanEnvironmentManager(
             config_url=self._conan_config_url,
             username=self._username,

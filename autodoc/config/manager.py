@@ -70,7 +70,9 @@ class ConfigManager:
         Returns:
             Валидированная конфигурация Confluence или ``None`` при любой ошибке.
         """
-        return self._load_validated("confluence_config", ConfluenceConfigSchema, config_file)
+        return self._load_validated(
+            "confluence_config", ConfluenceConfigSchema, config_file
+        )
 
     def load_raw(self, filename: str) -> dict[str, Any]:
         """
@@ -172,9 +174,7 @@ class ConfigManager:
                 return candidate.name
 
         available = [
-            item.name
-            for item in self.configs_dir.iterdir()
-            if not item.is_dir()
+            item.name for item in self.configs_dir.iterdir() if not item.is_dir()
         ]
         logger.error(
             f'Конфиг "{basename}" не найден в {self.configs_dir}. '
@@ -252,4 +252,3 @@ class ConfigManager:
                 f"получен {type(data).__name__}"
             )
         return data
-

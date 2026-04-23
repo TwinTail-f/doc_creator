@@ -55,5 +55,7 @@ class ConanEnrichStep(BaseParseStep):
             for w in result.warnings:
                 logger.warning(w)
 
-        DataEnricher.apply_conan_results(ctx.components, result.value, profile_definitions=ctx.profile_definitions)
+        DataEnricher.apply_conan_results(
+            ctx.components, result.value, profile_definitions=ctx.profile_definitions
+        )
         ctx.intermediate["conan_report"] = result.value.errors

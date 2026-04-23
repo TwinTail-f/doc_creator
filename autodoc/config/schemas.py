@@ -49,8 +49,7 @@ class ParserConfigSchema(BaseModel):
         description="Путь к директории с манифестами в TFS",
     )
     conan_config_url: str = Field(
-        ...,
-        description="URL zip-архива конфигурации Conan в Artifactory"
+        ..., description="URL zip-архива конфигурации Conan в Artifactory"
     )
 
     # Опциональные поля
@@ -160,9 +159,10 @@ class ConfluenceConfigSchema(BaseModel):
             "0 — без задержки."
         ),
     )
-    target_platform_version: str = Field(
+    target_release_version: str = Field(
         default="Platform 2.2",
-        description='Имя текущей платформы (например "Platform 2.2")',
+        description='Подпись текущего релиза (например "Platform 2.2"). '
+        "Используется в заголовке паспортов и метке вкладки релиза.",
     )
     preserve_legacy_platforms: list[str] = Field(
         default_factory=list,
