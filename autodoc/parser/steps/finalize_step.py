@@ -111,7 +111,7 @@ class FinalizeStep(BaseParseStep):
     def _deduplicate_profile_definitions(
         definitions: list[ProfileDefinition],
     ) -> list[ProfileDefinition]:
-        """Deduplicates by profile_name, keeping the last-written entry."""
+        """Дедуплицирует по profile_name, сохраняя последнюю записанную запись."""
         seen: dict[str, ProfileDefinition] = {}
         for pd in definitions:
             seen[pd.profile_name] = pd

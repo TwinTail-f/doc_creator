@@ -23,7 +23,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
     """
 
     def __init__(self) -> None:
-        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        """Инициализирует фетчер; перед вызовом ``fetch()`` необходимо вызвать ``configure(ctx)``."""
         super().__init__()
         self._profiles_urls: list[str] = []
         self._platform_version: str = ""

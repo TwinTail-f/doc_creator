@@ -68,9 +68,9 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
             ValueError: Если ``space`` или ``page_title`` пустые.
         """
         if not space:
-            raise ValueError("space cannot be empty")
+            raise ValueError("space не может быть пустым")
         if not page_title:
-            raise ValueError("page_title cannot be empty")
+            raise ValueError("page_title не может быть пустым")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
         self._page_title: str = page_title
@@ -109,7 +109,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         )
 
     def _build_view_model(self) -> dict[str, Any]:
-        """Transforms parsed data into a view-model for the profile-centric template."""
+        """Трансформирует данные парсера в view-model для профиль-центричного шаблона."""
         return self._transformer.transform(self._data)
 
     def _inject_passport_links(
@@ -117,7 +117,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         view_model: dict[str, Any],
         passport_pages: dict[str, Any],
     ) -> None:
-        """Injects passport page links into the profile view-model in place."""
+        """Вставляет ссылки на паспорта в profile view-model на месте."""
         PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
 
     def execute(self) -> PublishReport:

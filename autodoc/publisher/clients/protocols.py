@@ -1,12 +1,12 @@
 """
-Abstract interfaces (Protocols) for publisher infrastructure dependencies.
+Абстрактные интерфейсы (Protocol) для инфраструктурных зависимостей паблишера.
 
-Using ``typing.Protocol`` (structural subtyping) means neither
-``ConfluenceClient`` nor ``DocumentBuilder`` requires any code change —
-they satisfy these interfaces implicitly.
+Использование ``typing.Protocol`` (структурная типизация) означает, что ни
+``ConfluenceClient``, ни ``DocumentBuilder`` не требуют изменений в коде —
+они удовлетворяют этим интерфейсам неявно.
 
-Strategies, page managers, and tests depend on these Protocols,
-not on the concrete infrastructure classes.
+Стратегии, менеджеры страниц и тесты зависят от этих Protocol-ов,
+а не от конкретных инфраструктурных классов.
 """
 
 from typing import Any, Protocol, runtime_checkable
@@ -15,10 +15,10 @@ from typing import Any, Protocol, runtime_checkable
 @runtime_checkable
 class IConfluenceClient(Protocol):
     """
-    Read/write interface to Confluence pages used by publisher strategies.
+    Интерфейс чтения/записи страниц Confluence для стратегий паблишера.
 
-    Covers only the methods actually called by business-logic code.
-    ``ConfluenceClient`` satisfies this interface structurally.
+    Охватывает только методы, реально вызываемые бизнес-логикой.
+    ``ConfluenceClient`` удовлетворяет этому интерфейсу структурно.
     """
 
     def publish_page(
@@ -28,7 +28,7 @@ class IConfluenceClient(Protocol):
         title: str,
         body_html: str,
     ) -> dict[str, Any]:
-        """Create or update a Confluence page and return its metadata."""
+        """Создаёт или обновляет страницу Confluence и возвращает её метаданные."""
         ...
 
     def get_or_create_page(
@@ -38,7 +38,7 @@ class IConfluenceClient(Protocol):
         parent_id: str | None = None,
         body: str = "",
     ) -> str:
-        """Return the ID of an existing page or create a new one."""
+        """Возвращает ID существующей страницы или создаёт новую."""
         ...
 
     def find_page(
@@ -47,7 +47,7 @@ class IConfluenceClient(Protocol):
         space: str | None = None,
         expand: str = "",
     ) -> dict[str, Any] | None:
-        """Search for a page by title; return its data dict or None."""
+        """Ищет страницу по заголовку; возвращает словарь данных или None."""
         ...
 
     def get_page(
@@ -55,22 +55,22 @@ class IConfluenceClient(Protocol):
         page_id: str,
         expand: str = "",
     ) -> dict[str, Any]:
-        """Load a page by ID."""
+        """Загружает страницу по ID."""
         ...
 
     def get_page_body(self, space: str, title: str) -> str:
-        """Return the page body in Confluence Storage Format, or empty string."""
+        """Возвращает тело страницы в Confluence Storage Format или пустую строку."""
         ...
 
 
 @runtime_checkable
 class IDocumentBuilder(Protocol):
     """
-    Interface for rendering Jinja2 templates to HTML.
+    Интерфейс рендеринга Jinja2-шаблонов в HTML.
 
-    ``DocumentBuilder`` satisfies this interface structurally.
+    ``DocumentBuilder`` удовлетворяет этому интерфейсу структурно.
     """
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:
-        """Render *template_name* with *view_model* and return the HTML string."""
+        """Рендерит *template_name* с *view_model* и возвращает HTML-строку."""
         ...

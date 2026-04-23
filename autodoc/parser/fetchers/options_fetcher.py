@@ -30,7 +30,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
     """
 
     def __init__(self) -> None:
-        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        """Инициализирует фетчер; перед вызовом ``fetch()`` необходимо вызвать ``configure(ctx)``."""
         super().__init__()
         self._base_url: str = ""
         self._executor = ParallelExecutor(
@@ -69,8 +69,8 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
 
         fetch_warnings: list[str] = []
 
-        # Collect unique (repo_name, branch) pairs in encounter order,
-        # keyed by cache_key so the parallel results can be zipped back.
+        # Собираем уникальные пары (repo_name, branch) в порядке появления;
+        # ключ cache_key нужен для сопоставления с параллельными результатами.
         unique_keys: list[str] = []
         unique_pairs: list[tuple[str, str]] = []
         seen: set[str] = set()
@@ -88,7 +88,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                     unique_keys.append(cache_key)
                     unique_pairs.append((repo_name, branch))
 
-        # Fetch all unique repo/branch combinations in parallel.
+        # Скачиваем все уникальные комбинации repo/branch параллельно.
         raw_results = self._executor.execute(
             lambda pair: self._fetch_options_for_repo(pair[0], pair[1]),
             unique_pairs,
@@ -101,7 +101,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             for key, repo_data in zip(unique_keys, raw_results)
         }
 
-        # Build the result map using the populated cache — no more network calls.
+        # Строим карту результатов из заполненного кэша — без повторных сетевых запросов.
         result: OptionsMap = {}
         for comp in components:
             if not comp.git_repo:

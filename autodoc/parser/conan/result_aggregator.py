@@ -86,7 +86,7 @@ class ConanResultAggregator:
                         {
                             " ".join(
                                 task.cmd
-                            ): "Binary not found (Missing) for this profile."
+                            ): "Бинарный пакет не найден (Missing) для этого профиля."
                         }
                     )
             else:
@@ -134,8 +134,8 @@ class ConanResultAggregator:
                         f"{art_base}/platform-{target_platform}"
                         f"/{task.comp_name}/{fe.full_version}/{task.channel}/{fe.rrev}"
                     )
-                # Build TotalOptionsSet list: one entry per option_id that succeeded,
-                # using the resolved "options" dict from conan graph info.
+                # Строим список TotalOptionsSet: по одной записи на каждый успешный option_id,
+                # используя resolved-словарь "options" из conan graph info.
                 total_options = [
                     TotalOptionsSet(id=opt_id, options=opts)
                     for opt_id, opts in agg.resolved_options_by_id.items()
@@ -210,7 +210,7 @@ class ConanResultAggregator:
                     record = ConanCommandRecord(
                         command=" ".join(task.cmd),
                         status="BINARY_MISSING",
-                        error="WARNING: Binary not found (Missing) for this profile.",
+                        error="ПРЕДУПРЕЖДЕНИЕ: Бинарный пакет не найден (Missing) для этого профиля.",
                     )
                 else:
                     record = ConanCommandRecord(
@@ -270,7 +270,7 @@ class _ProfileBuildAggregator:
         self.unique_variants: dict[str, ConanVariant] = {}
         self.first_enrich: ConanEnrichData | None = None
         self.errors: list[dict[str, Any]] = []
-        # option_id → resolved conan options dict (from "options" field in graph info)
+        # option_id → resolved-словарь опций Conan (из поля "options" в graph info)
         self.resolved_options_by_id: dict[str, dict[str, Any]] = {}
         # Накопленные зависимости из всех успешных задач для этого ProfileBuild
         self.all_dependencies: set[str] = set()

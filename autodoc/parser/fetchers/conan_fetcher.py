@@ -49,7 +49,7 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
     """
 
     def __init__(self) -> None:
-        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        """Инициализирует фетчер; перед вызовом ``fetch()`` необходимо вызвать ``configure(ctx)``."""
         self._timeout: int = 0
         self._platform_version: str = ""
         self._artifactory_base_url: str = ""

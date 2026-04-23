@@ -23,7 +23,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
     """
 
     def __init__(self) -> None:
-        """Initialises the fetcher; call ``configure(ctx)`` before ``fetch()``."""
+        """Инициализирует фетчер; перед вызовом ``fetch()`` необходимо вызвать ``configure(ctx)``."""
         super().__init__()
         self._base_url: str = ""
         self._manifests_remotes_path: str = ""

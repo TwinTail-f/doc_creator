@@ -1,8 +1,8 @@
 """
-Shared HTML parsing utilities for legacy Confluence content processing.
+Общие утилиты разбора HTML для обработки legacy-контента Confluence.
 
-Contains compiled regex patterns and the common h1-section extraction
-algorithm used by both LegacyContentExtractor and LegacyContentMerger.
+Содержит скомпилированные regex-паттерны и общий алгоритм извлечения
+h1-секций, используемый LegacyContentExtractor и LegacyContentMerger.
 """
 
 import re
@@ -15,23 +15,23 @@ PLATFORM_VERSION_RE: re.Pattern[str] = re.compile(r"Platform\s+[\d.]+")
 
 
 class _H1Section(NamedTuple):
-    """Internal record of one parsed h1 element."""
+    """Внутренняя запись одного разобранного элемента h1."""
 
-    tag_start: int  # index of the opening <h1...> tag
-    tag_end: int  # index just after the closing </h1>
-    text: str  # inner text of the h1 (tags stripped)
+    tag_start: int  # индекс открывающего тега <h1...>
+    tag_end: int  # индекс сразу после закрывающего </h1>
+    text: str  # внутренний текст h1 (теги удалены)
 
 
 def find_h1_sections(html: str) -> list[_H1Section]:
     """
-    Scans *html* and returns metadata for every ``<h1>`` element found.
+    Сканирует *html* и возвращает метаданные каждого найденного элемента ``<h1>``.
 
     Args:
-        html: Full HTML document in Confluence Storage Format.
+        html: Полный HTML-документ в Confluence Storage Format.
 
     Returns:
-        List of ``_H1Section`` tuples in document order.
-        Empty list if no ``<h1>`` elements are present.
+        Список кортежей ``_H1Section`` в порядке документа.
+        Пустой список, если элементов ``<h1>`` нет.
     """
     sections: list[_H1Section] = []
     for m in H1_OPEN_RE.finditer(html):
@@ -46,18 +46,18 @@ def find_h1_sections(html: str) -> list[_H1Section]:
 
 def extract_platform_h1_sections(html: str) -> dict[str, str]:
     """
-    Extracts ``Platform X.Y`` sections from pages using ``<h1>`` headings.
+    Извлекает секции ``Platform X.Y`` из страниц по заголовкам ``<h1>``.
 
-    Identifies h1 elements whose text matches ``Platform X.Y``, then
-    collects everything between that heading's closing ``</h1>`` and the
-    start of the next ``<h1>`` as the section content.
+    Находит элементы h1, текст которых соответствует ``Platform X.Y``,
+    затем собирает всё между закрывающим ``</h1>`` этого заголовка и
+    началом следующего ``<h1>`` как содержимое секции.
 
     Args:
-        html: Full HTML document in Confluence Storage Format.
+        html: Полный HTML-документ в Confluence Storage Format.
 
     Returns:
-        Dictionary ``{platform_name: html_content}``.
-        Empty dict if no matching headings are found.
+        Словарь ``{имя_платформы: html_контент}``.
+        Пустой словарь, если подходящих заголовков не найдено.
     """
     h1_list = find_h1_sections(html)
     result: dict[str, str] = {}

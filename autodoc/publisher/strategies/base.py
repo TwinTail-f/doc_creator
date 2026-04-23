@@ -158,34 +158,34 @@ class BasePublishStrategy(ABC):
         inject_links: Callable[[dict[str, Any]], None] | None = None,
     ) -> PublishReport:
         """
-        Encapsulates the common single-page publish flow used by release and
-        profile-centric strategies.
+        Инкапсулирует общий поток публикации одной страницы для стратегий
+        release и profile-centric.
 
-        Steps:
-        1. Call ``transform_fn`` to produce the view-model.
-        2. Validate that the view-model is non-empty.
-        3. Inject the Space key into the view-model.
-        4. Optionally call ``inject_links`` to insert passport URLs.
-        5. Render the Jinja2 template.
-        6. Publish the page via ``ConfluenceClient``.
-        7. Return a ``PublishReport``.
+        Этапы:
+        1. Вызов ``transform_fn`` для получения view-model.
+        2. Проверка, что view-model не пустой.
+        3. Запись ключа Space в view-model.
+        4. Опциональный вызов ``inject_links`` для вставки ссылок на паспорта.
+        5. Рендеринг Jinja2-шаблона.
+        6. Публикация страницы через ``ConfluenceClient``.
+        7. Возврат ``PublishReport``.
 
-        Any exception raised during steps 1–6 is caught, logged, and returned
-        as a failed ``PublishReport``.
+        Любое исключение из шагов 1–6 перехватывается, логируется и возвращается
+        как неудачный ``PublishReport``.
 
         Args:
-            page_title: Title of the Confluence page to create or update.
-            template_name: Name of the Jinja2 template file.
-            transform_fn: Zero-argument callable that produces the view-model
-                          dict (typically ``lambda: transformer.transform(data)``).
-                          Called inside the try block so transformer errors are
-                          captured in the returned ``PublishReport``.
-            parent_id: ID of the parent Confluence page (empty string = no parent).
-            inject_links: Optional callable that mutates the view-model in-place
-                          to add passport page links. Receives the view-model dict.
+            page_title: Заголовок страницы Confluence для создания или обновления.
+            template_name: Имя файла Jinja2-шаблона.
+            transform_fn: Callable без аргументов, возвращающий словарь view-model
+                          (обычно ``lambda: transformer.transform(data)``).
+                          Вызывается внутри try-блока, чтобы ошибки трансформера
+                          попадали в ``PublishReport``.
+            parent_id: ID родительской страницы Confluence (пустая строка = без родителя).
+            inject_links: Опциональный callable, мутирующий view-model на месте
+                          для добавления ссылок на паспорта. Получает словарь view-model.
 
         Returns:
-            ``PublishReport`` reflecting the outcome of the publish attempt.
+            ``PublishReport`` с результатом попытки публикации.
         """
         errors: list[str] = []
         details: list[dict[str, Any]] = []
@@ -220,9 +220,9 @@ class BasePublishStrategy(ABC):
             logger.info(f"{page_title} {result['status']} (ID: {result['id']})")
             return PublishReport(success=True, pages_published=1, details=details)
 
-        # Broad catch is intentional: any error (network, rendering, API) during
-        # single-page publication must be isolated and reported without crashing
-        # the entire publish workflow.
+        # Сознательно ловим все исключения: любая ошибка (сеть, рендеринг, API)
+        # при публикации одной страницы должна быть изолирована и зафиксирована,
+        # не прерывая весь рабочий процесс публикации.
         except Exception as e:
             reason = str(e)
             errors.append(reason)
@@ -251,9 +251,9 @@ class BasePublishStrategy(ABC):
         Returns:
             Минимизированный HTML без лишних пробелов и комментариев.
         """
-        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)  # strip comments
-        html = re.sub(r">\s+<", "><", html)                      # whitespace between tags
-        html = re.sub(r"\s{2,}", " ", html)                      # collapse runs of spaces
+        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)  # удаляем комментарии
+        html = re.sub(r">\s+<", "><", html)                      # пробелы между тегами
+        html = re.sub(r"\s{2,}", " ", html)                      # схлопываем повторные пробелы
         return html.strip()
 
     @abstractmethod

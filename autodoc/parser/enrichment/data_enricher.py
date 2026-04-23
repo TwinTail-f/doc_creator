@@ -57,13 +57,13 @@ class DataEnricher:
         profile_definitions: list[ProfileDefinition] | None = None,
     ) -> None:
         """
-        Fills docker_image into ProfileDefinition entries.
-        If profile_definitions is provided, upserts by profile_name.
+        Заполняет поле docker_image в записях ProfileDefinition.
+        Если profile_definitions передан — выполняет upsert по profile_name.
 
         Args:
             components: Список компонентов для обогащения.
             docker_links: Маппинг ``имя_профиля → docker_image_url``.
-            profile_definitions: Mutable list of ProfileDefinition to upsert into.
+            profile_definitions: Изменяемый список ProfileDefinition для upsert.
         """
         pd_map: dict[str, ProfileDefinition] = {}
         if profile_definitions is not None:
@@ -100,7 +100,7 @@ class DataEnricher:
         Args:
             components: Список компонентов для обогащения.
             result: ``ConanEnrichmentResult`` из ``ConanFetcher.fetch()``.
-            profile_definitions: Mutable list of ProfileDefinition to upsert conan_settings into.
+            profile_definitions: Изменяемый список ProfileDefinition для upsert conan_settings.
         """
         # Строим карту один раз до всех циклов
         pd_map: dict[str, ProfileDefinition] = (
@@ -115,9 +115,9 @@ class DataEnricher:
                 if rel_data:
                     release.conan_reference = rel_data.base_ref
                     release.artifactory_url = rel_data.artifactory_url
-                    # DefaultOptionsSet: from "default_options" field in conan graph info
+                    # DefaultOptionsSet: из поля "default_options" в conan graph info
                     release.default_options = rel_data.default_options
-                    # TotalOptionsSet: from "options" field in conan graph info
+                    # TotalOptionsSet: из поля "options" в conan graph info
                     release.total_option_sets = rel_data.total_options
                     release.patches = rel_data.patches
                     release.dependencies = rel_data.dependencies

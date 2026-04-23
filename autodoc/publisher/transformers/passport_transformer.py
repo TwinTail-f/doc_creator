@@ -64,14 +64,14 @@ class PassportTransformer(BaseDataTransformer):
                 f"PassportTransformer: версия {self._release_version} для {self._component_name} не найдена"
             )
 
-        # Lookup resolved options by options_ref for this release (used for conan_options badges)
+        # Ищем resolved-опции по options_ref для этого релиза (используются для бейджей conan_options)
         os_map: dict[str, dict] = {
             os_.id: os_.options for os_ in target_rel.total_option_sets
         }
 
-        # Lookup raw ConanInputOptions strings by id for conan install command
-        # These are the options as specified in the configuration table (ConanInputOptions.options),
-        # not the full resolved option set returned by Conan.
+        # Ищем строки ConanInputOptions по id для команды conan install.
+        # Это опции в том виде, как они заданы в таблице конфигураций (ConanInputOptions.options),
+        # а не полный resolved-набор, возвращаемый Conan.
         bos_map: dict[str, str] = {
             bos.id: self._build_install_options_from_string(bos.options)
             for bos in target_rel.build_option_sets

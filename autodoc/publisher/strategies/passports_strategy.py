@@ -79,9 +79,9 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
             ValueError: Если ``space`` или ``root_page_id`` пустые.
         """
         if not space:
-            raise ValueError("space cannot be empty")
+            raise ValueError("space не может быть пустым")
         if not root_page_id:
-            raise ValueError("root_page_id cannot be empty")
+            raise ValueError("root_page_id не может быть пустым")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
         self._root_page_id: str = root_page_id
@@ -169,9 +169,9 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
                     "status": status,
                 }
             )
-        # Broad catch is intentional: any error for one passport (network, API,
-        # template rendering, missing data) must be isolated so the remaining
-        # passports still publish successfully.
+        # Сознательно ловим все исключения: любая ошибка одного паспорта (сеть, API,
+        # рендеринг шаблона, отсутствие данных) должна быть изолирована, чтобы
+        # остальные паспорта публиковались без сбоев.
         except Exception as e:
             reason = str(e)
             msg = f"Ошибка паспорта {comp_name} v{release_version}: {reason}"
@@ -249,9 +249,9 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         """
         try:
             return self._client.get_page_body(space=self._space, title=page_title)
-        # Broad catch is intentional: failure to retrieve the existing page body
-        # is non-fatal — the passport will be published without legacy-content
-        # preservation, which is acceptable.
+        # Сознательно ловим все исключения: невозможность получить текущее тело
+        # страницы некритична — паспорт будет опубликован без сохранения
+        # legacy-контента, что допустимо.
         except Exception as e:
             logger.warning(f"Не удалось получить тело страницы {page_title}: {e}")
             return ""

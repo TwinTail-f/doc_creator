@@ -37,8 +37,8 @@ class ConanEnrichData:
     package_id: str
     build_url: str
     build_date: str
-    conan_options: dict[str, Any]  # from "options" field in conan graph info
-    option_id: str  # copied from ConanTask.option_id
+    conan_options: dict[str, Any]  # из поля "options" вывода conan graph info
+    option_id: str  # скопировано из ConanTask.option_id
 
 
 class ConanResultParser:
@@ -71,9 +71,9 @@ class ConanResultParser:
         if target_node is None:
             return None
 
-        # Conan returns exit code 0 even when the binary is absent — check the binary
-        # status field explicitly. "Missing" means no prebuilt binary exists for this
-        # profile; treat it the same as a failed lookup so the profile is excluded.
+        # Conan завершается с кодом 0 даже при отсутствии бинарного пакета —
+        # проверяем поле binary явно. "Missing" означает, что собранного пакета
+        # для этого профиля нет; считаем это неудачей и исключаем профиль.
         binary_status: str = target_node.get("binary", "")
         if binary_status == "Missing":
             return None
@@ -95,8 +95,8 @@ class ConanResultParser:
         )
         build_date = self._extract_build_date(target_node)
 
-        # "options" field holds the fully resolved options after Conan applies
-        # defaults + user overrides. This is what goes into TotalOptionsSet.
+        # Поле "options" содержит финально разрешённые опции после применения
+        # дефолтов и пользовательских переопределений — они попадают в TotalOptionsSet.
         conan_options: dict = info_dict.get("options", target_node.get("options", {}))
 
         return ConanEnrichData(
@@ -136,7 +136,7 @@ class ConanResultParser:
 
     @staticmethod
     def _extract_default_options(node: dict[str, Any]) -> list[DefaultOptionsSet]:
-        """Extract default_options field → list[DefaultOptionsSet]."""
+        """Извлекает поле default_options → list[DefaultOptionsSet]."""
         opt_defs: dict = node.get("options_definitions", {}) or {}
         def_opts: dict = node.get("default_options", {}) or {}
         result: list[DefaultOptionsSet] = []

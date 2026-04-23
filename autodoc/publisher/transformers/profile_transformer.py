@@ -39,8 +39,9 @@ class ProfileCentricTransformer(BaseReleaseTransformer):
 
         pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
 
-        # Collect profile metadata from profile_definitions; iterate components only
-        # to discover which profiles are actually present in non-header-only releases.
+        # Собираем метаданные профилей из profile_definitions; компоненты перебираем
+        # только для того, чтобы определить, какие профили реально присутствуют
+        # в не-header-only релизах.
         profile_meta: dict[str, dict[str, Any]] = {}
         for comp in data.components:
             for rel in comp.releases:

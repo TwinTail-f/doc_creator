@@ -40,8 +40,8 @@ _EXPAND_BODY: str = "body.storage"
 _EXPAND_VERSION_AND_BODY: str = "version,body.storage"
 
 _INITIAL_VERSION: int = 1
-# Fallback when the version number cannot be extracted from a Confluence response.
-# Using 0 means get_next_version will produce 1 — the safe minimum for Confluence.
+# Fallback-значение при невозможности извлечь номер версии из ответа Confluence.
+# Значение 0 означает, что следующая версия будет 1 — безопасный минимум для Confluence.
 _FALLBACK_VERSION: int = 0
 
 
@@ -360,7 +360,7 @@ class ConfluenceClient:
             "id": page_id,
             "version": _INITIAL_VERSION,
             "status": "created",
-            "message": f"Page created with version {_INITIAL_VERSION}",
+            "message": f"Страница создана с версией {_INITIAL_VERSION}",
         }
 
     def _update_page(
@@ -417,7 +417,7 @@ class ConfluenceClient:
             "id": page_id,
             "version": next_version,
             "status": "updated",
-            "message": f"Page updated to version {next_version}",
+            "message": f"Страница обновлена до версии {next_version}",
         }
 
     @staticmethod

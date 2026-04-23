@@ -66,9 +66,9 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
             ValueError: Если ``space`` или ``page_title`` пустые.
         """
         if not space:
-            raise ValueError("space cannot be empty")
+            raise ValueError("space не может быть пустым")
         if not page_title:
-            raise ValueError("page_title cannot be empty")
+            raise ValueError("page_title не может быть пустым")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
         self._page_title: str = page_title
@@ -103,7 +103,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         )
 
     def _build_view_model(self) -> dict[str, Any]:
-        """Transforms parsed data into a view-model for the release template."""
+        """Трансформирует данные парсера в view-model для шаблона релиза."""
         return self._transformer.transform(self._data)
 
     def _inject_passport_links(
@@ -111,7 +111,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         view_model: dict[str, Any],
         passport_pages: dict[str, Any],
     ) -> None:
-        """Injects passport page links into the release view-model in place."""
+        """Вставляет ссылки на паспорта в release view-model на месте."""
         PassportPageRegistry.inject_links(view_model, passport_pages)
 
     def execute(self) -> PublishReport:
