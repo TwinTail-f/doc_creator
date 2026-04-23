@@ -55,6 +55,8 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
         self._profile_overrides: ProfileSettingsOverrides = (
             ProfileSettingsOverrides.empty()
         )
+        self._username: str = ""
+        self._password: str | None = None
 
     def configure(self, ctx: PipelineContext) -> None:
         """

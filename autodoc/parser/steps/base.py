@@ -7,17 +7,10 @@
 """
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
-from autodoc.config.schemas import ParserConfigSchema
-from autodoc.models.component import Component, ProfileDefinition
-from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult, IFetcher
-
-from autodoc.parser.clients.protocols import IArtifactoryClient, ITFSClient
 from autodoc.parser.pipeline.context import PipelineContext
 
 

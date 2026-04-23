@@ -15,6 +15,10 @@ from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
 
+# TFS добавляет «GB» как префикс для ссылок на ветки в versionDescriptor
+_TFS_BRANCH_REF_PREFIX: str = "GB"
+
+
 class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
     """
     Скачивает YAML-файлы профилей из TFS и делегирует разбор DockerParser.
@@ -69,8 +73,8 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
             yaml_path = query.get("path", [""])[0]
             branch_raw = query.get("version", [""])[0]
             branch = (
-                branch_raw[2:]
-                if branch_raw.startswith("GB")
+                branch_raw[len(_TFS_BRANCH_REF_PREFIX):]
+                if branch_raw.startswith(_TFS_BRANCH_REF_PREFIX)
                 else (branch_raw or target_platform)
             )
 

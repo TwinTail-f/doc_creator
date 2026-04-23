@@ -42,6 +42,9 @@ def default_pipeline() -> list[BaseParseStep]:
     ]
 
 
+_INTERMEDIATE_DOCKER_LINKS_KEY: str = "docker_links"
+
+
 def _serialize_intermediate(intermediate: dict) -> dict:
     """Конвертирует intermediate-данные в JSON-совместимый вид.
 
@@ -51,7 +54,7 @@ def _serialize_intermediate(intermediate: dict) -> dict:
     """
     result = {}
     for k, v in intermediate.items():
-        if k == "docker_links":
+        if k == _INTERMEDIATE_DOCKER_LINKS_KEY:
             continue
         if isinstance(v, dict):
             result[k] = {
@@ -202,7 +205,7 @@ class ComponentParser:
             "intermediate_keys": list(ctx.intermediate.keys()),
             "components": [c.model_dump() for c in ctx.components],
             "intermediate": _serialize_intermediate(ctx.intermediate),
-            "docker_links_count": len(ctx.intermediate.get("docker_links", {})),
+            "docker_links_count": len(ctx.intermediate.get(_INTERMEDIATE_DOCKER_LINKS_KEY, {})),
         }
 
         try:

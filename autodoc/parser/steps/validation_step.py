@@ -111,8 +111,12 @@ class ArtifactoryValidationStep(BaseParseStep):
                 resp = client.head(url)
                 if resp.status_code == _HTTP_STATUS_NOT_FOUND:
                     return pb, variant, False
-            except requests.RequestException:
-                pass  # при сетевом сбое считаем вариант живым
+            except requests.RequestException as exc:
+                # При сетевом сбое считаем вариант живым — не удаляем данные
+                # из-за временных проблем сети; предупреждение фиксируется в лог.
+                logger.debug(
+                    f"Сетевая ошибка при проверке {url} (вариант считается живым): {exc}"
+                )
             return pb, variant, True
 
         executor = ParallelExecutor(

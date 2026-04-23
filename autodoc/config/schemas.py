@@ -3,8 +3,6 @@ Pydantic-схемы для валидации конфигурационных �
 Совместимо с Pydantic v2.
 """
 
-import os
-
 from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

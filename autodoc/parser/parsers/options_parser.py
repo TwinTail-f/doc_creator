@@ -7,7 +7,10 @@ import json
 
 from autodoc.infrastructure.logger import logger
 
-_CI_PRIORITY = ("/ci-2.0/", "/ci-1.6/")
+_CI_DIR_V2: str = "/ci-2.0/"
+_CI_DIR_V1_6: str = "/ci-1.6/"
+
+_CI_PRIORITY: tuple[str, ...] = (_CI_DIR_V2, _CI_DIR_V1_6)
 
 
 class OptionsParser:

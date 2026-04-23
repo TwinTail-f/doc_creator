@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Generic, TypeVar
 
-from autodoc.parser.clients.tfs_client import TFSClient
+from autodoc.parser.clients.protocols import ITFSClient
 from autodoc.parser.pipeline.context import PipelineContext
 
 # Параметр типа для обобщённых классов FetchResult и IFetcher/BaseTFSFetcher:
@@ -79,7 +79,7 @@ class BaseTFSFetcher(IFetcher[_T]):
 
     def __init__(self) -> None:
         """Инициализирует фетчер; ``_tfs`` заполняется в методе ``configure()``."""
-        self._tfs: TFSClient | None = None
+        self._tfs: ITFSClient | None = None
 
     @abstractmethod
     def configure(self, ctx: PipelineContext) -> None: ...

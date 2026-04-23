@@ -16,6 +16,7 @@ OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
 _OPTIONS_MAX_WORKERS: int = 64
 _OPTIONS_LOG_INTERVAL: int = 50
+_RELEASE_BRANCH_PREFIX: str = "release_"
 
 
 class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
@@ -81,10 +82,9 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 fetch_warnings.append(f"{comp.name} без git_repo, пропуск")
                 continue
             for release in comp.releases:
-                branch = f"release_{release.version}"
+                branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
                 cache_key = f"{repo_name}_{branch}"
                 if cache_key not in seen:
-                    seen.add(cache_key)
                     unique_keys.append(cache_key)
                     unique_pairs.append((repo_name, branch))
 
@@ -95,7 +95,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             task_label="репозиториев",
         )
 
-        _empty: dict = {"global": {}, "channels": {}}
+        _empty: dict[str, dict[str, str]] = {"global": {}, "channels": {}}
         options_cache: dict[str, dict] = {
             key: (repo_data if repo_data is not None else _empty)
             for key, repo_data in zip(unique_keys, raw_results)
@@ -107,7 +107,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             if not comp.git_repo:
                 continue
             for release in comp.releases:
-                branch = f"release_{release.version}"
+                branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
                 cache_key = f"{comp.git_repo}_{branch}"
                 chosen = OptionsParser.pick_options(
                     options_cache[cache_key], release.channel

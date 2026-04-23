@@ -10,11 +10,10 @@ env-переменные (например ``KOS_SDK_VER`` → ``compiler.toolch
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from autodoc.infrastructure.logger import logger
 
 
 class ProfileSettingsOverrides:
@@ -202,7 +201,7 @@ class ProfileSettingsOverrides:
             for profile in profiles:
                 if not isinstance(profile, str) or not profile.strip():
                     logger.warning(
-                        f"profile_settings_overrides ({source}): запись [{idx}] содержит невалидный профиль: {profile!r}, пропускается."
+                        f"profile_settings_overrides ({source}): запись [{idx}] содержит невалидный профиль: {profile}, пропускается."
                     )
                     continue
 

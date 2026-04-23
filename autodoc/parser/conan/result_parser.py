@@ -63,7 +63,7 @@ class ConanResultParser:
         Returns:
             ``ConanEnrichData`` если нода компонента найдена, иначе ``None``.
         """
-        nodes: dict = conan_json.get("graph", {}).get("nodes", {})
+        nodes: dict[str, Any] = conan_json.get("graph", {}).get("nodes", {})
         target_node = next(
             (n for n in nodes.values() if n.get("name") == task.comp_name),
             None,
@@ -83,8 +83,8 @@ class ConanResultParser:
         patches = self._extract_patches(target_node, task.version)
         dependencies = self._extract_dependencies(nodes, task.comp_name)
 
-        info_dict: dict = target_node.get("info", {})
-        conan_settings: dict = info_dict.get(
+        info_dict: dict[str, Any] = target_node.get("info", {})
+        conan_settings: dict[str, Any] = info_dict.get(
             "settings", target_node.get("settings", {})
         )
         package_id = target_node.get("package_id", "")
@@ -97,7 +97,7 @@ class ConanResultParser:
 
         # Поле "options" содержит финально разрешённые опции после применения
         # дефолтов и пользовательских переопределений — они попадают в TotalOptionsSet.
-        conan_options: dict = info_dict.get("options", target_node.get("options", {}))
+        conan_options: dict[str, Any] = info_dict.get("options", target_node.get("options", {}))
 
         return ConanEnrichData(
             base_ref=base_ref,
@@ -119,6 +119,22 @@ class ConanResultParser:
         node: dict[str, Any],
         fallback_version: str,
     ) -> tuple[str, str, str]:
+        """
+        Извлекает base_ref, rrev и полную версию из узла графа Conan.
+
+        Conan сериализует ссылку в двух полях: ``ref`` (полная ссылка, включая ``#rrev``)
+        и ``rrev`` (отдельным полем). Метод поддерживает оба варианта.
+
+        Args:
+            node: Словарь узла из JSON-ответа ``conan graph info``.
+            fallback_version: Версия из задачи — используется, если ref отсутствует.
+
+        Returns:
+            Кортеж ``(base_ref, rrev, full_version)``:
+            - ``base_ref`` — ссылка без ``#rrev`` (например ``name/ver@user/channel``);
+            - ``rrev`` — recipe revision;
+            - ``full_version`` — версия компонента, извлечённая из ref или fallback.
+        """
         full_ref: str = node.get("ref", "")
         rrev: str = node.get("rrev", "")
         full_version = fallback_version
@@ -137,8 +153,8 @@ class ConanResultParser:
     @staticmethod
     def _extract_default_options(node: dict[str, Any]) -> list[DefaultOptionsSet]:
         """Извлекает поле default_options → list[DefaultOptionsSet]."""
-        opt_defs: dict = node.get("options_definitions", {}) or {}
-        def_opts: dict = node.get("default_options", {}) or {}
+        opt_defs: dict[str, Any] = node.get("options_definitions", {}) or {}
+        def_opts: dict[str, Any] = node.get("default_options", {}) or {}
         result: list[DefaultOptionsSet] = []
 
         for opt_name, opt_val in def_opts.items():
@@ -161,7 +177,7 @@ class ConanResultParser:
 
     @staticmethod
     def _extract_patches(node: dict[str, Any], version: str) -> list[str]:
-        patches_dict: dict = node.get("conandata", {}).get("patches", {})
+        patches_dict: dict[str, Any] = node.get("conandata", {}).get("patches", {})
         if not isinstance(patches_dict, dict):
             return []
 
@@ -201,6 +217,22 @@ class ConanResultParser:
     def _build_artifactory_url(
         task: ConanTask, full_version: str, rrev: str, package_id: str = ""
     ) -> str:
+        """
+        Строит URL пакета в Artifactory для данного варианта сборки.
+
+        Возвращает пустую строку, если ``task.artifactory_base_url`` не задан
+        или ``rrev`` пуст — в этих случаях URL сформировать невозможно.
+
+        Args:
+            task: Задача Conan с метаданными компонента и URL Artifactory.
+            full_version: Полная версия компонента (из ref или fallback).
+            rrev: Recipe revision.
+            package_id: Идентификатор конкретного бинарного пакета.
+                        Если задан — добавляется суффикс ``/package/<id>``.
+
+        Returns:
+            Полный URL пакета в Artifactory или пустая строка.
+        """
         if not task.artifactory_base_url or not rrev:
             return ""
         url = (
@@ -213,6 +245,20 @@ class ConanResultParser:
 
     @staticmethod
     def _extract_build_date(node: dict[str, Any]) -> str:
+        """
+        Извлекает дату сборки пакета из поля ``prev_timestamp`` узла.
+
+        ``prev_timestamp`` — POSIX-время последнего изменения recipe revision в Artifactory.
+        Конвертируется в ISO 8601 UTC строку. При любой ошибке конвертации (невалидное
+        значение, переполнение) возвращает пустую строку — это не критично для пайплайна.
+
+        Args:
+            node: Словарь узла из JSON-ответа ``conan graph info``.
+
+        Returns:
+            Дата в формате ISO 8601 (UTC) или пустая строка, если поле отсутствует или
+            содержит невалидное значение.
+        """
         prev_timestamp = node.get("prev_timestamp")
         if not prev_timestamp:
             return ""

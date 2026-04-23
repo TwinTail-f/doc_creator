@@ -229,7 +229,7 @@ class ConanResultAggregator:
         return list(comp_map.values())
 
     @staticmethod
-    def _extract_binary_status(data: dict | None, comp_name: str) -> str:
+    def _extract_binary_status(data: dict[str, Any] | None, comp_name: str) -> str:
         """
         Извлекает поле ``binary`` целевого узла из JSON-ответа ``conan graph info``.
 
@@ -265,6 +265,18 @@ class _ProfileBuildAggregator:
     )
 
     def __init__(self) -> None:
+        """
+        Инициализирует пустой агрегатор для одного ``ProfileBuild``.
+
+        Attributes собираются постепенно через ``apply_enrich()``:
+            any_success: Флаг — хотя бы один вызов conan для данного ProfileBuild успешен.
+            conan_settings: Настройки Conan из последнего успешного вызова.
+            unique_variants: Уникальные варианты сборки (package_id → ConanVariant).
+            first_enrich: Первый успешный EnrichData с непустым base_ref.
+            errors: Список записей об ошибках (команда → сообщение).
+            resolved_options_by_id: option_id → resolved-словарь опций Conan.
+            all_dependencies: Объединение зависимостей всех успешных задач.
+        """
         self.any_success: bool = False
         self.conan_settings: dict[str, Any] = {}
         self.unique_variants: dict[str, ConanVariant] = {}

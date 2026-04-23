@@ -80,6 +80,69 @@ class RetryableSession(requests.Session):
         )
 
 
+def create_bearer_session(
+    token: str | None = None,
+    max_retries: int = 3,
+    backoff_factor: float = 1.0,
+    timeout: int = 15,
+) -> RetryableSession:
+    """
+    Создаёт ``RetryableSession`` с Bearer-аутентификацией.
+
+    Используется для Confluence Data Center PAT-аутентификации.
+
+    Args:
+        token: Bearer-токен. Если ``None`` — заголовок Authorization не устанавливается.
+        max_retries: Максимальное количество retry-попыток.
+        backoff_factor: Множитель для exponential backoff.
+        timeout: Таймаут запроса в секундах.
+
+    Returns:
+        Настроенная сессия с retry-логикой и Bearer-аутентификацией.
+    """
+    session = RetryableSession(
+        max_retries=max_retries,
+        backoff_factor=backoff_factor,
+        timeout=timeout,
+    )
+    if token:
+        session.headers["Authorization"] = f"Bearer {token}"
+        logger.debug("Настроена Bearer-аутентификация")
+    return session
+
+
+def create_pat_session(
+    token: str | None = None,
+    max_retries: int = 3,
+    backoff_factor: float = 1.0,
+    timeout: int = 15,
+) -> RetryableSession:
+    """
+    Создаёт ``RetryableSession`` с PAT / Basic-аутентификацией.
+
+    Username подставляется как пустая строка — корректное поведение для
+    Azure DevOps / TFS, где PAT не привязан к конкретному пользователю.
+
+    Args:
+        token: Personal Access Token. Если ``None`` — аутентификация не устанавливается.
+        max_retries: Максимальное количество retry-попыток.
+        backoff_factor: Множитель для exponential backoff.
+        timeout: Таймаут запроса в секундах.
+
+    Returns:
+        Настроенная сессия с retry-логикой и PAT-аутентификацией.
+    """
+    session = RetryableSession(
+        max_retries=max_retries,
+        backoff_factor=backoff_factor,
+        timeout=timeout,
+    )
+    if token:
+        session.auth = (_PAT_DEFAULT_USERNAME, token)
+        logger.debug("Настроена PAT-аутентификация (username не задан)")
+    return session
+
+
 def create_retryable_session(
     timeout: int = 15,
     token: str | None = None,
@@ -90,37 +153,31 @@ def create_retryable_session(
     """
     Создаёт ``RetryableSession`` с опциональной аутентификацией.
 
-    Поддерживает два режима:
-
-    * **Bearer** — передать ``token`` и ``bearer=True``; токен подставляется
-      в заголовок ``Authorization: Bearer <token>``. Используется для
-      Confluence Data Center PAT-аутентификации.
-    * **PAT-only** — передать только ``token``; username подставляется
-      как пустая строка, что корректно для Azure DevOps / TFS,
-      где PAT не привязан к конкретному пользователю.
+    .. deprecated::
+        Prefer ``create_bearer_session()`` or ``create_pat_session()`` directly.
+        This wrapper will be removed in a future release.
 
     Args:
+        timeout: Таймаут запроса в секундах.
         token: Токен / PAT.
-        bearer: Если ``True`` — использовать Bearer-аутентификацию вместо Basic.
+        bearer: Если ``True`` — делегирует в ``create_bearer_session()``,
+            иначе — в ``create_pat_session()``.
         max_retries: Максимальное количество retry-попыток.
         backoff_factor: Множитель для exponential backoff.
-        timeout: Таймаут запроса в секундах.
 
     Returns:
         Настроенная сессия с retry-логикой.
     """
-    session = RetryableSession(
+    if bearer and token:
+        return create_bearer_session(
+            token=token,
+            max_retries=max_retries,
+            backoff_factor=backoff_factor,
+            timeout=timeout,
+        )
+    return create_pat_session(
+        token=token,
         max_retries=max_retries,
         backoff_factor=backoff_factor,
         timeout=timeout,
     )
-
-    if bearer and token:
-        session.headers["Authorization"] = f"Bearer {token}"
-        logger.debug("Настроена Bearer-аутентификация")
-    elif token:
-        # PAT-аутентификация: username опционален (Azure DevOps / TFS и др.)
-        session.auth = (_PAT_DEFAULT_USERNAME, token)
-        logger.debug("Настроена PAT-аутентификация (username не задан)")
-
-    return session
