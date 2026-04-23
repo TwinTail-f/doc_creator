@@ -218,9 +218,7 @@ class TestFinalizeStepHeaderOnly:
 
     def _make_profile_def(
         self, name: str, settings: dict | None = None
-    ) -> "ProfileDefinition":
-        from autodoc.models.component import ProfileDefinition
-
+    ) -> ProfileDefinition:
         return ProfileDefinition(profile_name=name, conan_settings=settings or {})
 
     def test_header_only_when_no_settings_and_empty_options(self) -> None:

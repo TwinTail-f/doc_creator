@@ -11,7 +11,7 @@ env-переменные (например ``KOS_SDK_VER`` → ``compiler.toolch
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 from autodoc.infrastructure.logger import logger
 
@@ -41,12 +41,12 @@ class ProfileSettingsOverrides:
     # ------------------------------------------------------------------
 
     @classmethod
-    def empty(cls) -> "ProfileSettingsOverrides":
+    def empty(cls) -> Self:
         """Возвращает пустой экземпляр (костыль отключён)."""
         return cls({})
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "ProfileSettingsOverrides":
+    def from_file(cls, path: str | Path) -> Self:
         """
         Загружает переопределения из JSON-файла.
 
@@ -93,7 +93,7 @@ class ProfileSettingsOverrides:
         return cls._parse(raw, source=str(p))
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "ProfileSettingsOverrides":
+    def from_dict(cls, raw: dict[str, Any]) -> Self:
         """
         Строит экземпляр из уже загруженного словаря (например из ``ConfigManager``).
 
@@ -143,7 +143,7 @@ class ProfileSettingsOverrides:
     # ------------------------------------------------------------------
 
     @classmethod
-    def _parse(cls, raw: Any, source: str) -> "ProfileSettingsOverrides":
+    def _parse(cls, raw: Any, source: str) -> Self:
         """
         Разбирает содержимое конфига в плоский словарь ``{profile: {setting: value}}``.
 

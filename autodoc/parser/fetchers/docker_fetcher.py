@@ -47,7 +47,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
 
     def fetch(
         self, urls: list[str], target_platform: str
-    ) -> "FetchResult[DockerLinksMap]":
+    ) -> FetchResult[DockerLinksMap]:
         """
         Скачивает YAML-файлы профилей и собирает маппинг Docker-образов.
 

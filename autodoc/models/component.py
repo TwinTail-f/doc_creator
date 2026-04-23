@@ -5,7 +5,7 @@
 до финальной публикации в Confluence.
 """
 
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
@@ -57,7 +57,7 @@ class ConanInputOptions(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _fill_parsed_options(self) -> "ConanInputOptions":
+    def _fill_parsed_options(self) -> Self:
         """Автоматически заполняет ``parsed_options`` из ``options`` при создании."""
         if not self.parsed_options and self.options:
             self.parsed_options = _parse_option_str(self.options)

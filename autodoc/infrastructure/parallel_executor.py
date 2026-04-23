@@ -7,14 +7,9 @@
 
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, TypeVar
+from collections.abc import Callable
 
 from autodoc.infrastructure.logger import logger
-
-# _T — тип входного элемента, передаваемого в fn
-# _R — тип результата, возвращаемого fn
-_T = TypeVar("_T")
-_R = TypeVar("_R")
 
 _DEFAULT_LOG_PROGRESS_INTERVAL: int = 50
 
@@ -49,12 +44,12 @@ class ParallelExecutor:
         self._max_workers = max_workers
         self._log_progress_interval = log_progress_interval
 
-    def execute(
+    def execute[T, R](
         self,
-        fn: Callable[[_T], _R],
-        items: list[_T],
+        fn: Callable[[T], R],
+        items: list[T],
         task_label: str = "задач",
-    ) -> list[_R | None]:
+    ) -> list[R | None]:
         """
         Выполняет ``fn`` для каждого элемента ``items`` параллельно.
 
@@ -74,7 +69,7 @@ class ParallelExecutor:
         if not items:
             return []
 
-        results: list[_R | None] = [None] * len(items)
+        results: list[R | None] = [None] * len(items)
 
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
             future_to_idx = {

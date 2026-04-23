@@ -6,6 +6,8 @@ import json
 import shutil
 from pathlib import Path
 
+from typing import Self
+
 from autodoc.config.schemas import ParserConfigSchema
 from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.infrastructure.logger import logger
@@ -108,7 +110,7 @@ class ComponentParser:
         config: ParserConfigSchema,
         data_dir: Path,
         exclude: list[type],
-    ) -> "ComponentParser":
+    ) -> Self:
         """
         Фабричный метод: создаёт парсер без указанных классов шагов.
 

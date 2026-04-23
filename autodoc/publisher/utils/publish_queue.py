@@ -2,12 +2,8 @@
 
 import time
 from collections.abc import Callable
-from typing import TypeVar
 
 from autodoc.infrastructure.logger import logger
-
-T = TypeVar("T")
-R = TypeVar("R")
 
 _DEFAULT_BATCH_SIZE: int = 4
 _DEFAULT_BATCH_DELAY: float = 5.0
@@ -60,7 +56,7 @@ class PublishQueue:
         """Задержка между пакетами в секундах."""
         return self._batch_delay
 
-    def process(self, items: list[T], fn: Callable[[T], R]) -> list[R]:
+    def process[T, R](self, items: list[T], fn: Callable[[T], R]) -> list[R]:
         """
         Обрабатывает элементы пакетами, вызывая ``fn`` для каждого.
 

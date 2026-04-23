@@ -2,12 +2,11 @@
 Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
 """
 
-from __future__ import annotations
-
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, ClassVar
+from collections.abc import Callable
+from typing import Any, ClassVar
 
 from autodoc.models.parsed_result import ParsedResult
 

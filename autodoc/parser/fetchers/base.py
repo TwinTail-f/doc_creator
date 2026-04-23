@@ -9,18 +9,14 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from autodoc.parser.clients.protocols import ITFSClient
 from autodoc.parser.pipeline.context import PipelineContext
 
-# Параметр типа для обобщённых классов FetchResult и IFetcher/BaseTFSFetcher:
-# конкретизируется в каждом фетчере (например, _T = list[Component]).
-_T = TypeVar("_T")
-
 
 @dataclass
-class FetchResult(Generic[_T]):
+class FetchResult[T]:
     """
     Тонкая обёртка над результатом fetch — значение и список предупреждений.
 
@@ -32,11 +28,11 @@ class FetchResult(Generic[_T]):
         warnings: Накопленный список предупреждений, возникших в ходе загрузки.
     """
 
-    value: _T
+    value: T
     warnings: list[str] = field(default_factory=list)
 
 
-class IFetcher(ABC, Generic[_T]):
+class IFetcher[T](ABC):
     """
     Интерфейс двухфазового фетчера: ``configure()`` → ``fetch()``.
 
@@ -57,7 +53,7 @@ class IFetcher(ABC, Generic[_T]):
         """
 
     @abstractmethod
-    def fetch(self, *args: Any, **kwargs: Any) -> "FetchResult[_T]":
+    def fetch(self, *args: Any, **kwargs: Any) -> FetchResult[T]:
         """
         Загружает данные. Должен вызываться после ``configure()``.
 
@@ -70,7 +66,7 @@ class IFetcher(ABC, Generic[_T]):
         """
 
 
-class BaseTFSFetcher(IFetcher[_T]):
+class BaseTFSFetcher[T](IFetcher[T]):
     """
     Базовый фетчер с отложенным доступом к ``TFSClient``-синглтону.
 
