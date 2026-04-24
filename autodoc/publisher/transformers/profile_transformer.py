@@ -87,7 +87,9 @@ class ProfileCentricTransformer(BaseReleaseTransformer):
 
         for comp in data.components:
             for rel in comp.releases:
-                has_profile_build = any(pb.profile_name == profile_name for pb in rel.profile_builds)
+                has_profile_build = any(
+                    pb.profile_name == profile_name for pb in rel.profile_builds
+                )
                 if not rel.is_header_only and not has_profile_build:
                     continue
                 if rel.channel not in entry["channels"]:
@@ -122,7 +124,9 @@ class ProfileCentricTransformer(BaseReleaseTransformer):
         """
         logger.debug("Трансформация в профиль-центричный вид")
 
-        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
+        pd_map: dict[str, Any] = {
+            pd.profile_name: pd for pd in data.profile_definitions
+        }
         profile_meta = self._collect_profile_meta(data, pd_map)
 
         profiles: list[dict[str, Any]] = [

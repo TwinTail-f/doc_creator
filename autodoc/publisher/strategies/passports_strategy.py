@@ -223,9 +223,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
 
         # Извлекаем legacy-секции других платформ, чтобы не потерять их
         # при обновлении страницы для текущей платформы.
-        legacy_contents = extract_for_platform(
-            existing_html, platform_version
-        )
+        legacy_contents = extract_for_platform(existing_html, platform_version)
         target_platform = (
             self._target_release_version
             if self._target_release_version

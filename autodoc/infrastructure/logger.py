@@ -10,6 +10,7 @@ Usage::
     from autodoc.infrastructure.logger import logger
     logger.info("Сообщение")
 """
+
 import logging
 
 

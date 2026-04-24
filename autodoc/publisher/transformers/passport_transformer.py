@@ -3,7 +3,10 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_transformer import BaseDataTransformer, _VariantOpts
+from autodoc.publisher.transformers.base_transformer import (
+    BaseDataTransformer,
+    _VariantOpts,
+)
 
 
 class PassportTransformer(BaseDataTransformer):
@@ -44,7 +47,9 @@ class PassportTransformer(BaseDataTransformer):
         """
         comp = next((c for c in data.components if c.name == component_name), None)
         if not comp:
-            raise ValueError(f"PassportTransformer: компонент {component_name} не найден")
+            raise ValueError(
+                f"PassportTransformer: компонент {component_name} не найден"
+            )
         return comp
 
     @staticmethod
@@ -115,7 +120,9 @@ class PassportTransformer(BaseDataTransformer):
                             comp_name,
                             _VariantOpts(
                                 conan_options=os_map.get(v.options_ref, {}),
-                                install_options_override=bos_map.get(v.options_ref, None),
+                                install_options_override=bos_map.get(
+                                    v.options_ref, None
+                                ),
                             ),
                         )
                         for v in (pb.variants or [])
@@ -137,13 +144,17 @@ class PassportTransformer(BaseDataTransformer):
         Raises:
             ValueError: Если компонент или версия не найдены.
         """
-        pd_map: dict[str, Any] = {pd.profile_name: pd for pd in data.profile_definitions}
+        pd_map: dict[str, Any] = {
+            pd.profile_name: pd for pd in data.profile_definitions
+        }
 
         target_comp = self._find_component(data, self._component_name)
         target_rel = self._find_release(target_comp, self._release_version)
 
         # Resolved опции — для бейджей conan_options в UI
-        os_map: dict[str, dict] = {os_.id: os_.options for os_ in target_rel.total_option_sets}
+        os_map: dict[str, dict] = {
+            os_.id: os_.options for os_ in target_rel.total_option_sets
+        }
         # Строки из таблицы конфигураций — для команды conan install
         bos_map: dict[str, str] = {
             bos.id: self._build_install_options_from_string(bos.options)
@@ -162,7 +173,9 @@ class PassportTransformer(BaseDataTransformer):
             "conan_reference": target_rel.conan_reference,
             "artifactory_url": target_rel.artifactory_url,
             "is_header_only": target_rel.is_header_only,
-            "build_option_sets": [bos.model_dump() for bos in target_rel.build_option_sets],
+            "build_option_sets": [
+                bos.model_dump() for bos in target_rel.build_option_sets
+            ],
             "default_options": [o.model_dump() for o in target_rel.default_options],
             "patches": target_rel.patches,
             "dependencies": target_rel.dependencies,

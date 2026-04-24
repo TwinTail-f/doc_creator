@@ -207,7 +207,9 @@ class ComponentParser:
             "intermediate_keys": list(ctx.intermediate.keys()),
             "components": [c.model_dump() for c in ctx.components],
             "intermediate": _serialize_intermediate(ctx.intermediate),
-            "docker_links_count": len(ctx.intermediate.get(_INTERMEDIATE_DOCKER_LINKS_KEY, {})),
+            "docker_links_count": len(
+                ctx.intermediate.get(_INTERMEDIATE_DOCKER_LINKS_KEY, {})
+            ),
         }
 
         try:

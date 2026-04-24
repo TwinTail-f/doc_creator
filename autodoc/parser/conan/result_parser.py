@@ -97,7 +97,9 @@ class ConanResultParser:
 
         # Поле "options" содержит финально разрешённые опции после применения
         # дефолтов и пользовательских переопределений — они попадают в TotalOptionsSet.
-        conan_options: dict[str, Any] = info_dict.get("options", target_node.get("options", {}))
+        conan_options: dict[str, Any] = info_dict.get(
+            "options", target_node.get("options", {})
+        )
 
         return ConanEnrichData(
             base_ref=base_ref,

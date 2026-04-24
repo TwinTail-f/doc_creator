@@ -52,6 +52,7 @@ class ConanEnvironmentManager:
         _password: PAT-токен Artifactory.
         _setup_dir: Путь к созданной директории-шаблону; ``None`` до ``setup()``.
     """
+
     _CONFIG_INSTALL_TIMEOUT: int = 120
     _LOGIN_TIMEOUT: int = 30
     _CONAN_REMOTE_NAME: str = "components-conan2"
