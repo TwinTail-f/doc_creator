@@ -4,6 +4,7 @@
 """
 
 from pathlib import Path
+from typing import Any
 
 # Тип: имя_профиля → docker_image_url
 DockerLinksMap = dict[str, str]
@@ -13,7 +14,9 @@ class DockerParser:
     """Статические методы для разбора YAML-профилей и извлечения Docker-ссылок."""
 
     @staticmethod
-    def extract_from_yaml(content: dict, docker_links: DockerLinksMap) -> None:
+    def extract_from_yaml(
+        content: dict[str, Any], docker_links: DockerLinksMap
+    ) -> None:
         """Обходит раздел archs: YAML-профиля и заполняет маппинг docker_links."""
         archs = content.get("archs", {})
         for key, val in archs.items():
@@ -34,7 +37,7 @@ class DockerParser:
                     DockerParser.add_aliases(ph, docker_img, docker_links)
 
     @staticmethod
-    def extract_docker_image(arch_val: dict) -> str:
+    def extract_docker_image(arch_val: dict[str, Any]) -> str:
         """Извлекает URL Docker-образа из словаря значений одной архитектуры."""
         docker_val = arch_val.get("docker")
         if isinstance(docker_val, str):

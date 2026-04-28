@@ -24,8 +24,9 @@ from autodoc.models.conan_result import (
     ReleaseConanData,
     _ErrorLog,
 )
-from autodoc.parser.conan.result_parser import ConanEnrichData, ConanResultParser
+from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTask
+from autodoc.parser.conan.types import ConanEnrichData
 
 
 class ConanResultAggregator:

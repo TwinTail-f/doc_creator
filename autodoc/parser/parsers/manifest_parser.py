@@ -134,7 +134,7 @@ class ManifestParser:
         )
         return _FileParseResult(component=component)
 
-    def _build_releases(self, props: dict) -> list[Release]:
+    def _build_releases(self, props: dict[str, str]) -> list[Release]:
         """Строит список Release из словаря свойств манифеста."""
         target_platform = self._target_platform
         comp_versions = [
@@ -177,7 +177,7 @@ class ManifestParser:
         return releases
 
     @staticmethod
-    def _get_profiles_string(props: dict, c_ver: str, p_ver: str) -> str:
+    def _get_profiles_string(props: dict[str, str], c_ver: str, p_ver: str) -> str:
         """Извлекает строку со списком профилей для заданной комбинации версий."""
         key_profiles = f"profiles-{c_ver}-{p_ver}"
         return props.get(key_profiles, "")

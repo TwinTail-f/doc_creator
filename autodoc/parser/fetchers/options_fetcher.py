@@ -4,15 +4,15 @@
 """
 
 import requests
+from typing import Any
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
+from autodoc.models.types import OptionsMap
 from autodoc.parser.parsers.options_parser import OptionsParser
 from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
-
-OptionsMap = dict[tuple[str, str, str], dict[str, str]]
 
 _OPTIONS_MAX_WORKERS: int = 64
 _OPTIONS_LOG_INTERVAL: int = 50
@@ -85,6 +85,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
                 cache_key = f"{repo_name}_{branch}"
                 if cache_key not in seen:
+                    seen.add(cache_key)
                     unique_keys.append(cache_key)
                     unique_pairs.append((repo_name, branch))
 
@@ -95,8 +96,8 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             task_label="репозиториев",
         )
 
-        _empty: dict[str, dict[str, str]] = {"global": {}, "channels": {}}
-        options_cache: dict[str, dict] = {
+        _empty: dict[str, Any] = {"global": {}, "channels": {}}
+        options_cache: dict[str, dict[str, Any]] = {
             key: (repo_data if repo_data is not None else _empty)
             for key, repo_data in zip(unique_keys, raw_results)
         }
@@ -117,7 +118,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         logger.info(f"Завершён. Собрано опций для {len(result)} релизов.")
         return FetchResult(value=result, warnings=fetch_warnings)
 
-    def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict:
+    def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict[str, Any]:
         """
         Скачивает все options.json для репозитория и возвращает структуру данных.
 
@@ -128,7 +129,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         Returns:
             Словарь с ключами ``'global'`` и ``'channels'``.
         """
-        repo_data: dict = {"global": {}, "channels": {}}
+        repo_data: dict[str, Any] = {"global": {}, "channels": {}}
         items_url = f"{self._base_url}/_apis/git/repositories/{repo_name}/items"
 
         try:
@@ -164,7 +165,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         opt_path: str,
         branch: str,
         ci_prefix: str,
-        repo_data: dict,
+        repo_data: dict[str, Any],
     ) -> None:
         """
         Скачивает один options.json и сохраняет разобранный результат в repo_data.

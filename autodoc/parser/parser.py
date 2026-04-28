@@ -24,49 +24,6 @@ from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 
 
-def default_pipeline() -> list[BaseParseStep]:
-    """
-    Возвращает стандартный набор шагов пайплайна.
-
-    Клиенты (TFS, Artifactory) не создаются здесь — они внедряются в
-    ``PipelineContext`` самим ``ComponentParser.parse()``.
-
-    Returns:
-        Список шагов пайплайна в порядке выполнения.
-    """
-    return [
-        ManifestStep(),
-        OptionsResolveStep(),
-        ConanEnrichStep(),
-        DockerResolveStep(),
-        ArtifactoryValidationStep(),
-        FinalizeStep(),
-    ]
-
-
-_INTERMEDIATE_DOCKER_LINKS_KEY: str = "docker_links"
-
-
-def _serialize_intermediate(intermediate: dict) -> dict:
-    """Конвертирует intermediate-данные в JSON-совместимый вид.
-
-    Tuple-ключи конвертируются в строковое представление списка.
-    docker_links пропускается — он большой и не нужен в снимке.
-    """
-    result = {}
-    for k, v in intermediate.items():
-        if k == _INTERMEDIATE_DOCKER_LINKS_KEY:
-            continue
-        if isinstance(v, dict):
-            result[k] = {
-                str(list(ik)) if isinstance(ik, tuple) else ik: iv
-                for ik, iv in v.items()
-            }
-        else:
-            result[k] = v
-    return result
-
-
 class ComponentParser:
     """
     Верхний уровень бизнес-логики парсера компонентов платформы.
@@ -87,7 +44,7 @@ class ComponentParser:
         Args:
             config: Валидированная конфигурация парсера.
             data_dir: Корневая директория для временных и промежуточных файлов.
-            steps: Список шагов пайплайна. ``None`` → ``default_pipeline()``.
+            steps: Список шагов пайплайна. ``None`` → ``_default_pipeline()``.
             tfs_client: Готовый экземпляр ``TFSClient``. ``None`` → создаётся
                         из ``config`` при каждом вызове ``parse()``.
             artifactory_client: Готовый экземпляр ``ArtifactoryClient``. ``None`` →
@@ -98,10 +55,30 @@ class ComponentParser:
         self._tmp_dir = data_dir / "tmp"
         self._intermediate_dir = data_dir / "intermediate"
         self._steps: list[BaseParseStep] = (
-            steps if steps is not None else default_pipeline()
+            steps if steps is not None else ComponentParser._default_pipeline()
         )
         self._tfs_client: ITFSClient | None = tfs_client
         self._artifactory_client: IArtifactoryClient | None = artifactory_client
+
+    @staticmethod
+    def _default_pipeline() -> list[BaseParseStep]:
+        """
+        Возвращает стандартный набор шагов пайплайна.
+
+        Клиенты (TFS, Artifactory) не создаются здесь — они внедряются в
+        ``PipelineContext`` самим ``ComponentParser.parse()``.
+
+        Returns:
+            Список шагов пайплайна в порядке выполнения.
+        """
+        return [
+            ManifestStep(),
+            OptionsResolveStep(),
+            ConanEnrichStep(),
+            DockerResolveStep(),
+            ArtifactoryValidationStep(),
+            FinalizeStep(),
+        ]
 
     @classmethod
     def with_steps_excluded(
@@ -121,7 +98,11 @@ class ComponentParser:
         Returns:
             Экземпляр ``ComponentParser`` с отфильтрованным пайплайном.
         """
-        steps = [s for s in default_pipeline() if not isinstance(s, tuple(exclude))]
+        steps = [
+            s
+            for s in ComponentParser._default_pipeline()
+            if not isinstance(s, tuple(exclude))
+        ]
         return cls(config, data_dir, steps=steps)
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:
@@ -195,16 +176,7 @@ class ComponentParser:
         safe_name = step.name.lower().replace(" ", "_").replace("/", "_")
         filepath = self._intermediate_dir / f"{step_idx + 1:02d}_{safe_name}.json"
 
-        snapshot = {
-            "step": step.name,
-            "components_count": len(ctx.components),
-            "intermediate_keys": list(ctx.intermediate.keys()),
-            "components": [c.model_dump() for c in ctx.components],
-            "intermediate": _serialize_intermediate(ctx.intermediate),
-            "docker_links_count": len(
-                ctx.intermediate.get(_INTERMEDIATE_DOCKER_LINKS_KEY, {})
-            ),
-        }
+        snapshot = {"step": step.name, **ctx.to_snapshot_dict()}
 
         try:
             filepath.write_text(

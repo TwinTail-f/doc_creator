@@ -8,7 +8,7 @@ from autodoc.models.component import (
     ProfileDefinition,
 )
 from autodoc.models.conan_result import ConanEnrichmentResult
-from autodoc.parser.fetchers.options_fetcher import OptionsMap
+from autodoc.models.types import OptionsMap
 
 
 class DataEnricher:

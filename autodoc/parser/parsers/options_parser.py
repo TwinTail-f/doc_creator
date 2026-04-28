@@ -4,6 +4,7 @@
 """
 
 import json
+from typing import Any
 
 from autodoc.infrastructure.logger import logger
 
@@ -37,7 +38,7 @@ class OptionsParser:
             (channel_name_or_None, cleaned_options)
         """
         try:
-            parsed: dict = json.loads(text)
+            parsed: dict[str, Any] = json.loads(text)
         except json.JSONDecodeError as e:
             logger.warning(f"Ошибка чтения {opt_path}: {e}")
             return None, {}
