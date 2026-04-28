@@ -15,7 +15,7 @@ class OptionsResolveStep(BaseParseStep):
     name = "Сбор опций Conan (options.json)"
     is_critical = False
 
-    def __init__(self, fetcher: "IFetcher[OptionsMap] | None" = None) -> None:
+    def __init__(self, fetcher: IFetcher[OptionsMap] | None = None) -> None:
         """
         Args:
             fetcher: Фетчер опций Conan. Если не передан — используется

@@ -18,7 +18,7 @@ class DockerResolveStep(BaseParseStep):
     name = "Сбор Docker-ссылок профилей"
     is_critical = False
 
-    def __init__(self, fetcher: "IFetcher[DockerLinksMap] | None" = None) -> None:
+    def __init__(self, fetcher: IFetcher[DockerLinksMap] | None = None) -> None:
         """
         Args:
             fetcher: Фетчер Docker-ссылок. Если не передан — используется

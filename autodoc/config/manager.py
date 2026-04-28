@@ -20,9 +20,8 @@ class ConfigManager:
     """
     Менеджер для загрузки и валидации конфигурационных файлов.
 
-    Поддерживает форматы JSON и YAML. При явно переданном имени файла
-    ищет именно его; если имя не указано — перебирает поддерживаемые
-    расширения в порядке ``SUPPORTED_FORMATS``.
+    Поддерживает форматы JSON и YAML. Если имя файла передано без расширения,
+    автоматически ищет подходящий файл в ``SUPPORTED_FORMATS``.
 
     Attributes:
         configs_dir: Путь к директории с конфигурационными файлами.
@@ -32,8 +31,6 @@ class ConfigManager:
 
     def __init__(self, configs_dir: str | Path) -> None:
         """
-        Инициализирует менеджер конфигураций.
-
         Args:
             configs_dir: Абсолютный путь к папке ``configs/``.
         """
@@ -51,16 +48,21 @@ class ConfigManager:
         """
         Загружает и валидирует конфигурацию парсера.
 
-        Если ``config_file`` не указан, автоматически ищет файл
-        ``parser_config`` с одним из поддерживаемых расширений.
-
         Args:
-            config_file: Имя файла конфига. Если ``None`` — определяется автоматически.
+            config_file: Имя файла. Если ``None`` — определяется автоматически.
 
         Returns:
-            Валидированная конфигурация парсера или ``None`` при любой ошибке.
+            Валидированная конфигурация или ``None`` при любой ошибке.
         """
-        return self._load_validated("parser_config", ParserConfigSchema, config_file)
+        try:
+            filepath = self._resolve_path(config_file or "parser_config")
+            raw = self._parse_file(filepath)
+            result = self._validate(raw, ParserConfigSchema, filepath.name)
+            logger.info(f"{filepath.name} успешно загружен и провалидирован")
+            return result
+        except ConfigError as e:
+            logger.error(str(e))
+            return None
 
     def load_confluence_config(
         self, config_file: str | None = None
@@ -69,164 +71,105 @@ class ConfigManager:
         Загружает и валидирует конфигурацию Confluence.
 
         Args:
-            config_file: Имя файла конфига. Если ``None`` — определяется автоматически.
+            config_file: Имя файла. Если ``None`` — определяется автоматически.
 
         Returns:
-            Валидированная конфигурация Confluence или ``None`` при любой ошибке.
+            Валидированная конфигурация или ``None`` при любой ошибке.
         """
-        return self._load_validated(
-            "confluence_config", ConfluenceConfigSchema, config_file
-        )
+        try:
+            filepath = self._resolve_path(config_file or "confluence_config")
+            raw = self._parse_file(filepath)
+            result = self._validate(raw, ConfluenceConfigSchema, filepath.name)
+            logger.info(f"{filepath.name} успешно загружен и провалидирован")
+            return result
+        except ConfigError as e:
+            logger.error(str(e))
+            return None
 
     def load_raw(self, filename: str) -> dict[str, Any]:
         """
         Загружает конфиг-файл без схемной валидации.
 
+        Поддерживает автопоиск по базовому имени (без расширения).
+
         Args:
-            filename: Имя файла (с расширением).
+            filename: Имя файла или базовое имя без расширения.
 
         Returns:
             Загруженные данные в виде словаря.
 
         Raises:
-            ConfigError: Если директория недоступна или файл не удалось загрузить.
+            ConfigError: Если файл не найден или не удалось загрузить.
         """
-        if not self.configs_dir.is_dir():
-            raise ConfigError(
-                f"Директория с конфигами не найдена или не является директорией: {self.configs_dir}"
-            )
-        result = self._load_config(filename)
-        if result is None:
-            raise ConfigError(f"Не удалось загрузить файл конфигурации: {filename}")
-        return result
+        return self._parse_file(self._resolve_path(filename))
 
-    def validate_config_file(self, filepath: str) -> tuple[bool, str | None]:
+    def validate_config_file(self, filepath: str) -> None:
         """
         Проверяет синтаксическую корректность файла конфигурации.
 
         Args:
             filepath: Абсолютный путь к файлу.
 
-        Returns:
-            Кортеж ``(valid, error_message)`` — при успехе ``(True, None)``.
+        Raises:
+            ConfigError: Если файл не найден, формат не поддерживается
+                         или содержимое невалидно.
         """
         path = Path(filepath)
         if not path.exists():
-            return False, f"Файл не найден: {filepath}"
+            raise ConfigError(f"Файл не найден: {filepath}")
 
         suffix = path.suffix.lower()
         if suffix not in self.SUPPORTED_FORMATS:
-            return False, (
+            raise ConfigError(
                 f"Неподдерживаемый формат: {suffix}. "
                 f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
             )
 
-        try:
-            self._parse_file(path)
-            return True, None
-        except ConfigError as e:
-            return False, str(e)
+        self._parse_file(path)
 
-    def _load_validated(
-        self,
-        basename: str,
-        schema_cls: type[_TConfig],
-        config_file: str | None,
-    ) -> _TConfig | None:
+    def _resolve_path(self, filename: str) -> Path:
         """
-        Общая логика загрузки и схемной валидации конфига.
+        Разрешает имя файла в абсолютный путь внутри ``configs_dir``.
+
+        Если ``filename`` содержит известное расширение — возвращает путь напрямую.
+        Если расширения нет — перебирает ``SUPPORTED_FORMATS`` и возвращает
+        первый найденный файл.
 
         Args:
-            basename: Базовое имя файла для автопоиска (без расширения).
-            schema_cls: Pydantic-схема для валидации.
-            config_file: Явное имя файла или ``None`` для автопоиска.
+            filename: Имя файла (с расширением или без).
 
         Returns:
-            Провалидированная схема или ``None`` при любой ошибке.
+            Абсолютный путь к файлу.
+
+        Raises:
+            ConfigError: Если директория не найдена или файл не существует.
         """
         if not self.configs_dir.is_dir():
-            logger.error(
+            raise ConfigError(
                 f"Директория с конфигами не найдена или не является директорией: {self.configs_dir}"
             )
-            return None
 
-        filename = config_file or self._find_config_file(basename)
-        if filename is None:
-            return None
+        if Path(filename).suffix.lower() in self.SUPPORTED_FORMATS:
+            return self.configs_dir / filename
 
-        raw = self._load_config(filename)
-        if raw is None:
-            return None
-
-        try:
-            validated = schema_cls(**raw)
-            logger.info(f"{filename} успешно загружен и провалидирован")
-            return validated
-        except ValidationError as e:
-            logger.error(f"Ошибка валидации {filename}: {e}")
-            return None
-
-    def _find_config_file(self, basename: str) -> str | None:
-        """
-        Ищет файл конфигурации по базовому имени (без расширения).
-
-        Args:
-            basename: Базовое имя файла (например ``"parser_config"``).
-
-        Returns:
-            Имя найденного файла (с расширением) или ``None``, если файл не найден.
-        """
         for ext in self.SUPPORTED_FORMATS:
-            candidate = self.configs_dir / f"{basename}{ext}"
+            candidate = self.configs_dir / f"{filename}{ext}"
             if candidate.exists():
-                return candidate.name
+                return candidate
 
-        available = [
-            item.name for item in self.configs_dir.iterdir() if not item.is_dir()
-        ]
-        logger.error(
-            f'Конфиг "{basename}" не найден в {self.configs_dir}. '
+        available = [item.name for item in self.configs_dir.iterdir() if not item.is_dir()]
+        raise ConfigError(
+            f'Конфиг "{filename}" не найден в {self.configs_dir}. '
             f"Доступные файлы: {available}. "
             f"Поддерживаемые форматы: {self.SUPPORTED_FORMATS}"
         )
-        return None
-
-    def _load_config(self, filename: str) -> dict[str, Any] | None:
-        """
-        Загружает конфигурационный файл по имени из ``configs_dir``.
-
-        Args:
-            filename: Имя файла (с расширением).
-
-        Returns:
-            Загруженные данные в виде словаря или ``None`` при ошибке.
-        """
-        filepath = self.configs_dir / filename
-
-        if not filepath.exists():
-            logger.error(f"Конфиг-файл не найден: {filepath}")
-            return None
-
-        if filepath.suffix.lower() not in self.SUPPORTED_FORMATS:
-            logger.error(
-                f"Неподдерживаемый формат: {filepath.suffix}. "
-                f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
-            )
-            return None
-
-        try:
-            return self._parse_file(filepath)
-        except ConfigError as e:
-            logger.error(str(e))
-            return None
 
     def _parse_file(self, filepath: Path) -> dict[str, Any]:
         """
-        Открывает и парсит файл конфигурации.
+        Читает и парсит файл конфигурации.
 
-        Единственное место, где происходит реальное чтение диска.
-        Все ошибки (I/O, парсинг формата, неверная структура) преобразуются
-        в ``ConfigError`` — вызывающим методам не нужно знать о деталях.
+        Единственное место, где происходит чтение диска.
+        Все ошибки преобразуются в ``ConfigError``.
 
         Args:
             filepath: Путь к файлу.
@@ -235,8 +178,7 @@ class ConfigManager:
             Содержимое файла в виде словаря.
 
         Raises:
-            ConfigError: При любой ошибке — файл не является файлом,
-                         ошибка чтения, невалидный JSON/YAML или не dict.
+            ConfigError: При любой ошибке чтения или парсинга.
         """
         if not filepath.is_file():
             raise ConfigError(f"Путь не указывает на файл: {filepath.name}")
@@ -260,3 +202,26 @@ class ConfigManager:
                 f"получен {type(data).__name__}"
             )
         return data
+
+    def _validate(
+        self, raw: dict[str, Any], schema_cls: type[_TConfig], source: str = ""
+    ) -> _TConfig:
+        """
+        Валидирует словарь через Pydantic-схему.
+
+        Args:
+            raw: Данные для валидации.
+            schema_cls: Класс схемы.
+            source: Имя источника для сообщения об ошибке (обычно имя файла).
+
+        Returns:
+            Провалидированный объект схемы.
+
+        Raises:
+            ConfigError: Если данные не соответствуют схеме.
+        """
+        try:
+            return schema_cls(**raw)
+        except ValidationError as e:
+            label = f" {source}" if source else ""
+            raise ConfigError(f"Ошибка валидации{label}: {e}") from e

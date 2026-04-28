@@ -28,7 +28,7 @@ class ConanEnrichStep(BaseParseStep):
 
     def __init__(
         self,
-        fetcher: "IFetcher[ConanEnrichmentResult] | None" = None,
+        fetcher: IFetcher[ConanEnrichmentResult] | None = None,
     ) -> None:
         """
         Args:

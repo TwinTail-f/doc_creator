@@ -14,7 +14,7 @@ class ManifestStep(BaseParseStep):
     name = "Загрузка и парсинг манифестов"
     is_critical = True
 
-    def __init__(self, fetcher: "IFetcher[list[Component]] | None" = None) -> None:
+    def __init__(self, fetcher: IFetcher[list[Component]] | None = None) -> None:
         """
         Args:
             fetcher: Фетчер манифестов. Если не передан — используется
