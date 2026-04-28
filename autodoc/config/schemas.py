@@ -33,6 +33,14 @@ class ParserConfigSchema(BaseModel):
         ...,
         description="Personal Access Token для TFS",
     )
+
+    @field_validator("tfs_token")
+    @classmethod
+    def tfs_token_not_empty(cls, v: str) -> str:
+        if not v:
+            raise ValueError("tfs_token не может быть пустой строкой")
+        return v
+
     artifactory_token: str | None = Field(
         default=None,
         validate_default=True,

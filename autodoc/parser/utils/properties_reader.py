@@ -2,12 +2,48 @@
 Утилита для чтения файлов формата .properties.
 """
 
+from collections.abc import Generator
 from pathlib import Path
 
 # Поддерживаемые разделители ключ-значение.
 # Новый формат манифестов использует «=», старый формат — «:».
 _SEPARATOR_EQ: str = "="
 _SEPARATOR_COLON: str = ":"
+
+
+def _logical_lines(filepath: Path) -> Generator[str, None, None]:
+    """
+    Генератор логических строк файла ``.properties``.
+
+    Объединяет физические строки с продолжением (оканчивающиеся на ``\\``)
+    в одну логическую строку. Пустые строки и комментарии (``#``) пропускаются
+    здесь же, чтобы не засорять основную логику парсинга.
+
+    Args:
+        filepath: Путь к файлу ``.properties``.
+
+    Yields:
+        Логические строки без символа продолжения и без обрамляющих пробелов.
+
+    Raises:
+        OSError: Если файл не найден или недоступен для чтения.
+    """
+    with filepath.open("r", encoding="utf-8") as f:
+        pending = ""
+        for raw in f:
+            if raw.endswith("\\\n"):
+                pending += raw[:-2]
+            else:
+                pending += raw.rstrip("\n")
+                line = pending.strip()
+                pending = ""
+                if line and not line.startswith("#"):
+                    yield line
+        # Последняя строка, если файл не заканчивается переводом строки
+        if pending:
+            line = pending.strip()
+            if line and not line.startswith("#"):
+                yield line
 
 
 def read_properties(filepath: Path) -> dict[str, str]:
@@ -34,22 +70,13 @@ def read_properties(filepath: Path) -> dict[str, str]:
     Raises:
         OSError: Если файл не найден или недоступен для чтения.
     """
-    content = filepath.read_text(encoding="utf-8")
-
-    # Склеиваем строки с переносом (заканчивающиеся на '\')
-    content = content.replace("\\\n", "")
-
     props: dict[str, str] = {}
-    for line in content.split("\n"):
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
+    for line in _logical_lines(filepath):
         sep = _detect_separator(line)
         if sep is None:
             continue
         key, val = line.split(sep, 1)
         props[key.strip()] = val.strip()
-
     return props
 
 

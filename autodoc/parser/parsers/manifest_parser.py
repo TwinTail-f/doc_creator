@@ -15,9 +15,9 @@ _MANIFEST_MAX_WORKERS: int = 32
 _MANIFEST_LOG_INTERVAL: int = 50
 
 
-@dataclass(slots=True)
+@dataclass
 class _FileParseResult:
-    """Результат разбора одного .properties-файла."""
+    """Результат разбора одного .properties-файла. Используется только внутри ManifestParser."""
 
     component: Component | None = None
     warnings: list[str] = field(default_factory=list)

@@ -98,10 +98,12 @@ class ConanResultAggregator:
         )
         result.failed = result.total_tasks - result.succeeded
 
-        # Предварительно объединяем зависимости по всем pb-агрегаторам для каждого
-        # релиза. Разные профили и наборы опций могут давать разный граф зависимостей,
-        # поэтому берём объединение — не перезаписываем первым найденным.
         release_deps: dict[tuple[str, str, str], set[str]] = {}
+
+        release_resolved_options: dict[
+            tuple[str, str, str], dict[str, dict[str, Any]]
+        ] = {}
+
         for task in tasks:
             release_key_pre: tuple[str, str, str] = (
                 task.comp_name,
@@ -111,6 +113,10 @@ class ConanResultAggregator:
             release_deps.setdefault(release_key_pre, set()).update(
                 pb_agg[id(task.pb)].all_dependencies
             )
+            merged_opts = release_resolved_options.setdefault(release_key_pre, {})
+            for opt_id, opts in pb_agg[id(task.pb)].resolved_options_by_id.items():
+                if opt_id not in merged_opts:
+                    merged_opts[opt_id] = opts
 
         visited_pbs: set[int] = set()
         for task in tasks:
@@ -134,11 +140,12 @@ class ConanResultAggregator:
                         f"{art_base}/platform-{target_platform}"
                         f"/{task.comp_name}/{fe.full_version}/{task.channel}/{fe.rrev}"
                     )
-                # Строим список TotalOptionsSet: по одной записи на каждый успешный option_id,
-                # используя resolved-словарь "options" из conan graph info.
+
                 total_options = [
                     TotalOptionsSet(id=opt_id, options=opts)
-                    for opt_id, opts in agg.resolved_options_by_id.items()
+                    for opt_id, opts in release_resolved_options.get(
+                        release_key, {}
+                    ).items()
                 ]
                 result.release_data[release_key] = ReleaseConanData(
                     base_ref=fe.base_ref,
@@ -282,9 +289,7 @@ class _ProfileBuildAggregator:
         self.unique_variants: dict[str, ConanVariant] = {}
         self.first_enrich: ConanEnrichData | None = None
         self.errors: list[dict[str, Any]] = []
-        # option_id → resolved-словарь опций Conan (из поля "options" в graph info)
         self.resolved_options_by_id: dict[str, dict[str, Any]] = {}
-        # Накопленные зависимости из всех успешных задач для этого ProfileBuild
         self.all_dependencies: set[str] = set()
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:

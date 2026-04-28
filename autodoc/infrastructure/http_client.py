@@ -69,15 +69,12 @@ class RetryableSession(requests.Session):
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.mount("https://", adapter)
 
-    def request(self, method: str, url: str, **kwargs) -> requests.Response:
+    def request(
+        self, method: str, url: str, *, timeout: int | None = None, **kwargs
+    ) -> requests.Response:
         """Все HTTP-методы проходят сюда — таймаут подставляется один раз."""
-        timeout = kwargs.pop("timeout", None)
-        return super().request(
-            method,
-            url,
-            timeout=timeout if timeout is not None else self._timeout,
-            **kwargs,
-        )
+        effective_timeout = timeout or self._timeout
+        return super().request(method, url, timeout=effective_timeout, **kwargs)
 
 
 def create_bearer_session(

@@ -26,7 +26,7 @@ class BaseParseStep(ABC):
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        if not getattr(cls, "__abstractmethods__", None) and not cls.name:
+        if not cls.name:
             raise TypeError(f"{cls.__name__} должен определить атрибут name")
 
     @abstractmethod

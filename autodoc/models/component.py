@@ -12,29 +12,29 @@ from pydantic import BaseModel, Field, PrivateAttr, model_validator
 OptionType = Literal["bool", "enum", "ANY", "string"]
 
 
+def _parse_option_str(option_str: str) -> dict[str, str]:
+    """Преобразует строку 'pkg:shared=True, pkg:fPIC=False' в {'shared': 'True', 'fPIC': 'False'}.
+
+    Пакетные префиксы (например ``mylib:``) удаляются, чтобы результат
+    соответствовал структуре ``TotalOptionsSet.options`` и ``DefaultOptionsSet``.
+    """
+    result: dict[str, str] = {}
+    if not option_str:
+        return result
+    for part in option_str.split(","):
+        if "=" in part:
+            k, v = part.split("=", 1)
+            key = k.strip().split(":")[-1]
+            result[key] = v.strip()
+    return result
+
+
 class DefaultOptionsSet(BaseModel):
     """Описание одной дефолтной опции Conan-пакета (из поля default_options)."""
 
     name: str = Field(..., description="Имя опции")
     type: OptionType = Field(..., description="Тип значения опции")
     default_value: Any = Field(..., description="Значение по умолчанию")
-
-
-def _parse_option_str(option_str: str) -> dict[str, Any]:
-    """Преобразует строку 'pkg:shared=True, pkg:fPIC=False' в {'shared': 'True', 'fPIC': 'False'}.
-
-    Пакетные префиксы (например ``mylib:``) удаляются, чтобы результат
-    соответствовал структуре ``TotalOptionsSet.options`` и ``DefaultOptionsSet``.
-    """
-    result: dict[str, Any] = {}
-    if not option_str:
-        return result
-    for part in option_str.split(","):
-        if "=" in part:
-            k, _, v = part.partition("=")
-            key = k.strip().split(":")[-1].strip()
-            result[key] = v.strip()
-    return result
 
 
 class ConanInputOptions(BaseModel):
@@ -51,7 +51,7 @@ class ConanInputOptions(BaseModel):
         default="",
         description='Строка опций (например "component:shared=False, component:fPIC=True")',
     )
-    parsed_options: dict[str, Any] = Field(
+    parsed_options: dict[str, str] = Field(
         default_factory=dict,
         description="Опции в виде словаря {name: value} (пакетные префиксы удалены)",
     )

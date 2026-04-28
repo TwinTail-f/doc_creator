@@ -50,8 +50,7 @@ _INTERMEDIATE_DOCKER_LINKS_KEY: str = "docker_links"
 def _serialize_intermediate(intermediate: dict) -> dict:
     """Конвертирует intermediate-данные в JSON-совместимый вид.
 
-    Tuple-ключи (например в options_map) преобразуются в строки вида
-    "comp::version::channel", чтобы json.dumps не падал с TypeError.
+    Tuple-ключи конвертируются в строковое представление списка.
     docker_links пропускается — он большой и не нужен в снимке.
     """
     result = {}
@@ -60,7 +59,7 @@ def _serialize_intermediate(intermediate: dict) -> dict:
             continue
         if isinstance(v, dict):
             result[k] = {
-                "::".join(ik) if isinstance(ik, tuple) else ik: iv
+                str(list(ik)) if isinstance(ik, tuple) else ik: iv
                 for ik, iv in v.items()
             }
         else:
@@ -160,7 +159,7 @@ class ComponentParser:
             self._intermediate_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            for step in self._steps:
+            for step_idx, step in enumerate(self._steps):
                 logger.info(f"ComponentParser → [{step.name}]…")
                 try:
                     step.execute(ctx)
@@ -178,7 +177,7 @@ class ComponentParser:
                     )
 
                 if save_intermediate:
-                    self._save_intermediate(ctx, step.name)
+                    self._save_intermediate(ctx, step, step_idx)
 
         finally:
             shutil.rmtree(self._tmp_dir, ignore_errors=True)
@@ -189,20 +188,15 @@ class ComponentParser:
 
         return ctx.result
 
-    def _save_intermediate(self, ctx: PipelineContext, step_name: str) -> None:
+    def _save_intermediate(
+        self, ctx: PipelineContext, step: BaseParseStep, step_idx: int
+    ) -> None:
         """Сохраняет снимок промежуточного состояния контекста в JSON-файл."""
-        step_idx = next(
-            (i for i, s in enumerate(self._steps) if s.name == step_name), -1
-        )
-        if step_idx == -1:
-            logger.warning(f"шаг {step_name} не найден в списке шагов, снимок пропущен")
-            return
-
-        safe_name = step_name.lower().replace(" ", "_").replace("/", "_")
+        safe_name = step.name.lower().replace(" ", "_").replace("/", "_")
         filepath = self._intermediate_dir / f"{step_idx + 1:02d}_{safe_name}.json"
 
         snapshot = {
-            "step": step_name,
+            "step": step.name,
             "components_count": len(ctx.components),
             "intermediate_keys": list(ctx.intermediate.keys()),
             "components": [c.model_dump() for c in ctx.components],
