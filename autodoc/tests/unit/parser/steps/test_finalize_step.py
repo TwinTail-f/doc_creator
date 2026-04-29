@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/steps/finalize_step.py."""
+"""Юнит-тесты для autodoc/parser/steps/finalize_step.py."""
 
 import pytest
 
@@ -18,19 +18,19 @@ REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Вспомогательные функции
 # ---------------------------------------------------------------------------
 
 
 def _null_variant() -> ConanVariant:
-    """Create a ConanVariant with the null (header-only) package_id."""
+    """Создаёт ConanVariant с нулевым (только заголовок) package_id."""
     return ConanVariant(
         package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1"
     )
 
 
 def _real_variant() -> ConanVariant:
-    """Create a ConanVariant with a non-null package_id."""
+    """Создаёт ConanVariant с ненулевым package_id."""
     return ConanVariant(
         package_id=REAL_PACKAGE_ID,
         build_url="https://art.example.com/pkg",
@@ -40,7 +40,7 @@ def _real_variant() -> ConanVariant:
 
 
 def _make_release(profile_builds: list[ProfileBuild]) -> Release:
-    """Build a minimal Release with the given profile_builds."""
+    """Строит минимальный Release с заданными profile_builds."""
     return Release(
         version="1.0.0",
         platform="2.0",
@@ -51,19 +51,19 @@ def _make_release(profile_builds: list[ProfileBuild]) -> Release:
 
 
 def _make_component(name: str, release: Release) -> Component:
-    """Build a minimal Component wrapping a single Release."""
+    """Строит минимальный Component, оборачивающий один Release."""
     return Component(name=name, git_project="DEP", git_repo=name, releases=[release])
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Тесты
 # ---------------------------------------------------------------------------
 
 
 def test_finalize_step_sets_header_only_true(
     parser_pipeline_context,
 ) -> None:
-    """is_header_only is True when all variants across all profiles have the null package_id."""
+    """is_header_only равен True, когда все варианты всех профилей имеют нулевой package_id."""
     pb1 = ProfileBuild(
         profile_name="profile_a", exists=True, variants=[_null_variant()]
     )
@@ -80,7 +80,7 @@ def test_finalize_step_sets_header_only_true(
 def test_finalize_step_sets_header_only_false_on_mixed(
     parser_pipeline_context,
 ) -> None:
-    """is_header_only is False when at least one variant has a real package_id."""
+    """is_header_only равен False, когда хотя бы один вариант имеет реальный package_id."""
     pb = ProfileBuild(
         profile_name="profile_a",
         exists=True,
@@ -96,7 +96,7 @@ def test_finalize_step_sets_header_only_false_on_mixed(
 def test_finalize_step_sets_header_only_false_on_no_variants(
     parser_pipeline_context,
 ) -> None:
-    """is_header_only is False when a release has no variants at all."""
+    """is_header_only равен False, когда у релиза нет вариантов вообще."""
     pb = ProfileBuild(profile_name="profile_a", exists=True, variants=[])
     release = _make_release([pb])
     parser_pipeline_context.components = [_make_component("mylib", release)]
@@ -108,7 +108,7 @@ def test_finalize_step_sets_header_only_false_on_no_variants(
 def test_finalize_step_removes_profile_build_with_exists_false(
     parser_pipeline_context,
 ) -> None:
-    """ProfileBuild entries with exists=False are removed during finalization."""
+    """Записи ProfileBuild с exists=False удаляются в процессе финализации."""
     pb_live = ProfileBuild(profile_name="live", exists=True, variants=[])
     pb_dead = ProfileBuild(profile_name="dead", exists=False, variants=[])
     release = _make_release([pb_live, pb_dead])
@@ -122,7 +122,7 @@ def test_finalize_step_removes_profile_build_with_exists_false(
 def test_finalize_step_sorts_components_by_name(
     parser_pipeline_context,
 ) -> None:
-    """Components are sorted alphabetically by name (case-insensitive) after finalization."""
+    """Компоненты сортируются алфавитно по имени (без учёта регистра) после финализации."""
     zlib_component = _make_component("Zlib", _make_release([]))
     apache_component = _make_component("apache", _make_release([]))
     parser_pipeline_context.components = [zlib_component, apache_component]
@@ -134,7 +134,7 @@ def test_finalize_step_sorts_components_by_name(
 def test_finalize_step_deduplicates_profile_definitions(
     parser_pipeline_context,
 ) -> None:
-    """ProfileDefinition entries with the same profile_name are deduplicated (last-write-wins)."""
+    """Записи ProfileDefinition с одинаковым profile_name дедуплицируются (побеждает последняя запись)."""
     pd1 = ProfileDefinition(profile_name="my-profile", docker_image="image:v1")
     pd2 = ProfileDefinition(profile_name="my-profile", docker_image="image:v2")
     parser_pipeline_context.profile_definitions = [pd1, pd2]
@@ -147,7 +147,7 @@ def test_finalize_step_deduplicates_profile_definitions(
 def test_finalize_step_populates_ctx_result(
     parser_pipeline_context,
 ) -> None:
-    """ctx.result is populated with a valid ParsedResult after execute."""
+    """ctx.result заполняется корректным ParsedResult после execute."""
     step = FinalizeStep()
     step.execute(parser_pipeline_context)
     assert parser_pipeline_context.result is not None
@@ -159,13 +159,13 @@ def test_finalize_step_raises_parsing_error_on_validation_failure(
     mocker,
     parser_pipeline_context,
 ) -> None:
-    """_build_result wraps a Pydantic ValidationError into a ParsingError."""
+    """_build_result оборачивает Pydantic ValidationError в ParsingError."""
     from pydantic import BaseModel, ValidationError
 
     class _Dummy(BaseModel):
         x: int
 
-    # Create a real pydantic.ValidationError instance to use as side_effect
+    # Создаём реальный экземпляр pydantic.ValidationError для использования как side_effect
     try:
         _Dummy(x="not-an-int")  # type: ignore[arg-type]
     except ValidationError as exc:

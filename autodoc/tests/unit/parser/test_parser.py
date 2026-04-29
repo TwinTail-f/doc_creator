@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/parser.py (ComponentParser)."""
+"""Юнит-тесты для autodoc/parser/parser.py (ComponentParser)."""
 
 import datetime
 from pathlib import Path
@@ -13,12 +13,12 @@ from autodoc.parser.steps.base import BaseParseStep
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 # ---------------------------------------------------------------------------
-# Fake pipeline steps
+# Фейковые шаги пайплайна
 # ---------------------------------------------------------------------------
 
 
 class FakeStep(BaseParseStep):
-    """Fake pipeline step that records execution order and optionally raises."""
+    """Фейковый шаг пайплайна, записывающий порядок выполнения и опционально вызывающий исключение."""
 
     name = "fake_step"
     is_critical = True
@@ -26,24 +26,24 @@ class FakeStep(BaseParseStep):
     def __init__(self, side_effect: Exception | None = None) -> None:
         """
         Args:
-            side_effect: Exception to raise when execute() is called. None → no-op.
+            side_effect: Исключение для вызова при execute(). None → нет действий.
         """
         self._side_effect = side_effect
 
     def execute(self, ctx: PipelineContext) -> None:
-        """Execute fake step; optionally raise a configured exception."""
+        """Выполняет фейковый шаг; опционально вызывает настроенное исключение."""
         if self._side_effect:
             raise self._side_effect
 
 
 class FakeFinalize(BaseParseStep):
-    """Fake FinalizeStep that populates ctx.result with a minimal ParsedResult."""
+    """Фейковый FinalizeStep, заполняющий ctx.result минимальным ParsedResult."""
 
     name = "fake_finalize"
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:
-        """Populate ctx.result with a minimal valid ParsedResult."""
+        """Заполняет ctx.result минимальным корректным ParsedResult."""
         ctx.result = ParsedResult(
             generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             platform_version=ctx.config.platform_version,
@@ -53,18 +53,18 @@ class FakeFinalize(BaseParseStep):
 
 
 class NonCriticalStep(BaseParseStep):
-    """Non-critical step that always raises ParsingError."""
+    """Некритичный шаг, всегда вызывающий ParsingError."""
 
     name = "non_critical"
     is_critical = False
 
     def execute(self, ctx: PipelineContext) -> None:
-        """Always raise to simulate a non-critical failure."""
+        """Всегда вызывает исключение для имитации некритичного сбоя."""
         raise ParsingError("non-critical boom")
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Тесты
 # ---------------------------------------------------------------------------
 
 
@@ -72,7 +72,7 @@ def test_component_parser_parse_returns_parsed_result(
     parser_config,
     tmp_path,
 ) -> None:
-    """Happy path: parse() returns a ParsedResult when FakeFinalize populates ctx.result."""
+    """Успешный путь: parse() возвращает ParsedResult, когда FakeFinalize заполняет ctx.result."""
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
@@ -86,7 +86,7 @@ def test_component_parser_critical_step_failure_raises_parsing_error(
     parser_config,
     tmp_path,
 ) -> None:
-    """A critical step failure raises ParsingError and subsequent steps are not executed."""
+    """Сбой критичного шага вызывает ParsingError, последующие шаги не выполняются."""
     finalize_executed: list[bool] = []
 
     class TrackingFinalize(BaseParseStep):
@@ -110,13 +110,13 @@ def test_component_parser_non_critical_step_failure_continues(
     parser_config,
     tmp_path,
 ) -> None:
-    """A non-critical step failure is swallowed and the pipeline continues to completion."""
+    """Сбой некритичного шага поглощается, и пайплайн продолжает работу до завершения."""
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
         steps=[NonCriticalStep(), FakeFinalize()],
     )
-    result = parser.parse()  # must not raise
+    result = parser.parse()  # не должно вызывать исключений
     assert isinstance(result, ParsedResult)
 
 
@@ -124,7 +124,7 @@ def test_component_parser_cleans_up_tmp_dir_on_success(
     parser_config,
     tmp_path,
 ) -> None:
-    """The tmp_dir is removed after a successful parse (finally block)."""
+    """tmp_dir удаляется после успешного парсинга (блок finally)."""
     data_dir = tmp_path / "workspace"
     data_dir.mkdir()
     tmp_dir = data_dir / "tmp"
@@ -142,7 +142,7 @@ def test_component_parser_cleans_up_tmp_dir_on_failure(
     parser_config,
     tmp_path,
 ) -> None:
-    """The tmp_dir is removed even when a critical step raises (finally block)."""
+    """tmp_dir удаляется даже когда критичный шаг вызывает исключение (блок finally)."""
     data_dir = tmp_path / "workspace"
     data_dir.mkdir()
     tmp_dir = data_dir / "tmp"
@@ -161,7 +161,7 @@ def test_component_parser_raises_if_result_not_set(
     parser_config,
     tmp_path,
 ) -> None:
-    """If no step populates ctx.result, parse() raises ParsingError after all steps complete."""
+    """Если ни один шаг не заполняет ctx.result, parse() вызывает ParsingError после завершения всех шагов."""
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
@@ -175,7 +175,7 @@ def test_component_parser_with_steps_excluded_removes_step_class(
     parser_config,
     tmp_path,
 ) -> None:
-    """with_steps_excluded factory method removes all instances of the specified step class."""
+    """Фабричный метод with_steps_excluded удаляет все экземпляры указанного класса шагов."""
     parser = ComponentParser.with_steps_excluded(
         config=parser_config,
         data_dir=tmp_path,
@@ -189,7 +189,7 @@ def test_component_parser_uses_injected_tfs_client(
     parser_config,
     tmp_path,
 ) -> None:
-    """When a tfs_client is injected via constructor, TFSClient.__init__ is never called."""
+    """Когда tfs_client передаётся через конструктор, TFSClient.__init__ никогда не вызывается."""
     from autodoc.tests.unit.parser.conftest import FakeTFSClient
 
     mock_tfs_init = mocker.patch(
@@ -210,7 +210,7 @@ def test_component_parser_save_intermediate_writes_files(
     parser_config,
     tmp_path,
 ) -> None:
-    """parse(save_intermediate=True) writes at least one JSON file into the intermediate dir."""
+    """parse(save_intermediate=True) записывает хотя бы один JSON-файл в директорию intermediate."""
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,

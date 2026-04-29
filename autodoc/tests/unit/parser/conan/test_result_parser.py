@@ -1,9 +1,9 @@
 """
-Unit tests for autodoc/parser/conan/result_parser.py.
+Юнит-тесты для autodoc/parser/conan/result_parser.py.
 
-Covers ConanResultParser.parse() — happy path, missing-binary,
-missing-node, root-node skipping, and field extraction.
-JSON fixtures are loaded via the shared resources_dir fixture.
+Охватывает ConanResultParser.parse() — успешный путь, отсутствующий
+бинарник, отсутствующий узел, пропуск корневого узла и извлечение полей.
+JSON-фикстуры загружаются через общую фикстуру resources_dir.
 """
 
 import json
@@ -17,13 +17,13 @@ from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.task_builder import ConanTask
 
 # ---------------------------------------------------------------------------
-# Local fixtures
+# Локальные фикстуры
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture
 def conan_task() -> ConanTask:
-    """Minimal ConanTask targeting benchmark/1.9.4.549 in graph_info_success.json."""
+    """Минимальный ConanTask для benchmark/1.9.4.549 из graph_info_success.json."""
     release = Release(version="1.9.4.549", platform="2.0", channel="tech", git_url="")
     pb = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2")
     return ConanTask(
@@ -43,18 +43,18 @@ def conan_task() -> ConanTask:
 
 @pytest.fixture
 def success_json(resources_dir: Path) -> dict[str, Any]:
-    """Parsed contents of graph_info_success.json."""
+    """Разобранное содержимое graph_info_success.json."""
     return json.loads((resources_dir / "conan" / "graph_info_success.json").read_text())
 
 
 @pytest.fixture
 def missing_json(resources_dir: Path) -> dict[str, Any]:
-    """Parsed contents of graph_info_missing.json (libyang with binary=Missing)."""
+    """Разобранное содержимое graph_info_missing.json (libyang с binary=Missing)."""
     return json.loads((resources_dir / "conan" / "graph_info_missing.json").read_text())
 
 
 # ---------------------------------------------------------------------------
-# 2.1
+# Успешный путь: parse() возвращает ConanEnrichData
 # ---------------------------------------------------------------------------
 
 
@@ -62,7 +62,7 @@ def test_result_parser_returns_enrich_data_on_success(
     success_json: dict[str, Any],
     conan_task: ConanTask,
 ) -> None:
-    """parse() returns ConanEnrichData with the expected package_id on success."""
+    """parse() возвращает ConanEnrichData с ожидаемым package_id при успехе."""
     result = ConanResultParser().parse(success_json, conan_task)
 
     assert result is not None
@@ -70,7 +70,7 @@ def test_result_parser_returns_enrich_data_on_success(
 
 
 # ---------------------------------------------------------------------------
-# 2.2
+# parse() возвращает None при binary=Missing
 # ---------------------------------------------------------------------------
 
 
@@ -78,8 +78,8 @@ def test_result_parser_returns_none_on_missing_binary(
     missing_json: dict[str, Any],
     conan_task: ConanTask,
 ) -> None:
-    """parse() returns None when the target node has binary='Missing'."""
-    # graph_info_missing.json targets libyang
+    """parse() возвращает None, когда целевой узел имеет binary='Missing'."""
+    # graph_info_missing.json нацелен на libyang
     object.__setattr__(conan_task, "comp_name", "libyang")
     result = ConanResultParser().parse(missing_json, conan_task)
 
@@ -87,7 +87,7 @@ def test_result_parser_returns_none_on_missing_binary(
 
 
 # ---------------------------------------------------------------------------
-# 2.3
+# parse() возвращает None, если узел не найден
 # ---------------------------------------------------------------------------
 
 
@@ -95,7 +95,7 @@ def test_result_parser_returns_none_when_node_not_found(
     success_json: dict[str, Any],
     conan_task: ConanTask,
 ) -> None:
-    """parse() returns None when no node matches comp_name."""
+    """parse() возвращает None, когда ни один узел не совпадает с comp_name."""
     object.__setattr__(conan_task, "comp_name", "nonexistent")
     result = ConanResultParser().parse(success_json, conan_task)
 
@@ -103,12 +103,12 @@ def test_result_parser_returns_none_when_node_not_found(
 
 
 # ---------------------------------------------------------------------------
-# 2.4
+# Корневой узел '0' никогда не совпадает
 # ---------------------------------------------------------------------------
 
 
 def test_result_parser_skips_root_node(conan_task: ConanTask) -> None:
-    """Node '0' with name=null is never matched, even when it's the only node."""
+    """Узел '0' с name=null никогда не совпадает, даже если он единственный."""
     minimal_json: dict[str, Any] = {
         "graph": {
             "nodes": {
@@ -128,7 +128,7 @@ def test_result_parser_skips_root_node(conan_task: ConanTask) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 2.5
+# Извлечение base_ref
 # ---------------------------------------------------------------------------
 
 
@@ -136,7 +136,7 @@ def test_result_parser_extracts_base_ref(
     success_json: dict[str, Any],
     conan_task: ConanTask,
 ) -> None:
-    """base_ref starts with 'benchmark/' and contains no '#' revision hash."""
+    """base_ref начинается с 'benchmark/' и не содержит хеша ревизии '#'."""
     result = ConanResultParser().parse(success_json, conan_task)
 
     assert result is not None
@@ -145,7 +145,7 @@ def test_result_parser_extracts_base_ref(
 
 
 # ---------------------------------------------------------------------------
-# 2.6
+# Извлечение conan_settings
 # ---------------------------------------------------------------------------
 
 
@@ -153,7 +153,7 @@ def test_result_parser_extracts_conan_settings(
     success_json: dict[str, Any],
     conan_task: ConanTask,
 ) -> None:
-    """conan_settings is a non-empty dict containing at least 'os' or 'arch'."""
+    """conan_settings — непустой словарь, содержащий как минимум 'os' или 'arch'."""
     result = ConanResultParser().parse(success_json, conan_task)
 
     assert result is not None
@@ -163,12 +163,12 @@ def test_result_parser_extracts_conan_settings(
 
 
 # ---------------------------------------------------------------------------
-# 2.7
+# Узел с default_options=null возвращает пустой список
 # ---------------------------------------------------------------------------
 
 
 def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> None:
-    """A node with default_options=null must yield an empty default_options list."""
+    """Узел с default_options=null должен возвращать пустой список default_options."""
     minimal_json: dict[str, Any] = {
         "graph": {
             "nodes": {

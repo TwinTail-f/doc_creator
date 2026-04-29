@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/steps/validation_step.py."""
+"""Юнит-тесты для autodoc/parser/steps/validation_step.py."""
 
 import pytest
 import requests
@@ -13,7 +13,7 @@ API_URL: str = "https://art.example.com/artifactory/conan2/lib/package"
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Вспомогательные функции
 # ---------------------------------------------------------------------------
 
 
@@ -21,7 +21,7 @@ def _make_component_with_variant(
     package_id: str = REAL_PACKAGE_ID,
     build_url: str = UI_URL,
 ) -> tuple[Component, ProfileBuild, ConanVariant]:
-    """Build a minimal Component → Release → ProfileBuild → ConanVariant tree."""
+    """Строит минимальное дерево Component → Release → ProfileBuild → ConanVariant."""
     variant = ConanVariant(
         package_id=package_id,
         build_url=build_url,
@@ -45,18 +45,18 @@ def _make_component_with_variant(
 
 
 class _RecordingClient:
-    """Fake Artifactory client that records head() calls and returns a fixed status."""
+    """Фейковый клиент Artifactory, записывающий вызовы head() и возвращающий фиксированный статус."""
 
     def __init__(self, status_code: int = 200) -> None:
         """
         Args:
-            status_code: HTTP status code to return.
+            status_code: Возвращаемый HTTP-код статуса.
         """
         self.status_code = status_code
         self.called_urls: list[str] = []
 
     def head(self, url: str) -> requests.Response:
-        """Record the URL and return configured response."""
+        """Записывает URL и возвращает настроенный ответ."""
         self.called_urls.append(url)
         resp = requests.Response()
         resp.status_code = self.status_code
@@ -64,15 +64,15 @@ class _RecordingClient:
 
 
 class _RaisingClient:
-    """Fake Artifactory client whose head() always raises RequestException."""
+    """Фейковый клиент Artifactory, чей head() всегда вызывает RequestException."""
 
     def head(self, url: str) -> requests.Response:
-        """Raise a network error unconditionally."""
+        """Безусловно вызывает сетевую ошибку."""
         raise requests.RequestException("network failure")
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Тесты
 # ---------------------------------------------------------------------------
 
 
@@ -80,7 +80,7 @@ def test_validation_step_removes_404_variant(
     parser_pipeline_context,
     artifactory_client,
 ) -> None:
-    """A variant whose build_url returns HTTP 404 is removed from pb.variants."""
+    """Вариант, чей build_url возвращает HTTP 404, удаляется из pb.variants."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
     parser_pipeline_context.artifactory_client = artifactory_client.__class__(
@@ -95,7 +95,7 @@ def test_validation_step_keeps_200_variant(
     parser_pipeline_context,
     artifactory_client,
 ) -> None:
-    """A variant whose build_url returns HTTP 200 is kept in pb.variants."""
+    """Вариант, чей build_url возвращает HTTP 200, остаётся в pb.variants."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
     parser_pipeline_context.artifactory_client = artifactory_client.__class__(
@@ -109,7 +109,7 @@ def test_validation_step_keeps_200_variant(
 def test_validation_step_transforms_ui_url_to_api_url(
     parser_pipeline_context,
 ) -> None:
-    """The UI URL is transformed to an API URL before calling client.head()."""
+    """UI URL преобразуется в API URL перед вызовом client.head()."""
     component, _, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
     recording_client = _RecordingClient(status_code=200)
@@ -122,7 +122,7 @@ def test_validation_step_transforms_ui_url_to_api_url(
 def test_validation_step_keeps_variant_on_network_exception(
     parser_pipeline_context,
 ) -> None:
-    """A network exception during HEAD check does not remove the variant (fail-open)."""
+    """Сетевое исключение во время проверки HEAD не удаляет вариант (fail-open)."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
     parser_pipeline_context.artifactory_client = _RaisingClient()
@@ -134,7 +134,7 @@ def test_validation_step_keeps_variant_on_network_exception(
 def test_validation_step_skips_variant_with_empty_build_url(
     parser_pipeline_context,
 ) -> None:
-    """A variant with an empty build_url is not checked at all (head() never called)."""
+    """Вариант с пустым build_url не проверяется вообще (head() никогда не вызывается)."""
     component, _, _ = _make_component_with_variant(build_url="")
     parser_pipeline_context.components = [component]
     recording_client = _RecordingClient(status_code=200)
@@ -147,20 +147,20 @@ def test_validation_step_skips_variant_with_empty_build_url(
 def test_validation_step_no_client_skips(
     parser_pipeline_context,
 ) -> None:
-    """When artifactory_client is None, the step completes without exception."""
+    """Когда artifactory_client равен None, шаг завершается без исключений."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
     parser_pipeline_context.artifactory_client = None
     step = ArtifactoryValidationStep()
-    step.execute(parser_pipeline_context)  # must not raise
+    step.execute(parser_pipeline_context)  # не должно вызывать исключений
     assert len(pb.variants) == 1
 
 
 def test_collect_variants_collects_all_variants(
     parser_pipeline_context,
 ) -> None:
-    """_collect_variants gathers all variants across all components and profiles."""
-    # Build 2 components × 2 profiles × 1 variant each → 4 collected
+    """_collect_variants собирает все варианты по всем компонентам и профилям."""
+    # Строим 2 компонента × 2 профиля × 1 вариант каждый → 4 собранных
     components: list[Component] = []
     for comp_idx in range(2):
         profile_builds: list[ProfileBuild] = []

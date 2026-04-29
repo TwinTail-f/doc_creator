@@ -1,8 +1,8 @@
 """
-Unit tests for autodoc/parser/conan/task_builder.py.
+Юнит-тесты для autodoc/parser/conan/task_builder.py.
 
-Covers ConanTaskBuilder.build() — task enumeration, field population,
-and option-string normalization. No I/O; no subprocess calls.
+Охватывает ConanTaskBuilder.build() — перебор задач, заполнение полей
+и нормализацию строк опций. Без ввода/вывода и вызовов subprocess.
 """
 
 import pytest
@@ -11,7 +11,7 @@ from autodoc.models.component import Component, ProfileBuild, Release
 from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
 
 # ---------------------------------------------------------------------------
-# Local helpers / fixtures
+# Локальные вспомогательные функции / фикстуры
 # ---------------------------------------------------------------------------
 
 
@@ -21,7 +21,7 @@ def make_release(
     profiles: tuple[str, ...] = ("hw-linux-x86_64",),
     opts: dict[str, str] | None = None,
 ) -> Release:
-    """Build a Release with the given profiles and internal option sets."""
+    """Создаёт Release с заданными профилями и внутренними наборами опций."""
     r = Release(
         version=version,
         platform="2.0",
@@ -37,7 +37,7 @@ def make_release(
 def make_component(
     name: str = "mylib", releases: list[Release] | None = None
 ) -> Component:
-    """Build a Component with optional releases list."""
+    """Создаёт Component с необязательным списком релизов."""
     return Component(name=name, releases=releases or [])
 
 
@@ -46,12 +46,12 @@ PLATFORM: str = "2.0"
 
 
 # ---------------------------------------------------------------------------
-# 1.1
+# Один компонент × один релиз × два профиля → две задачи
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_produces_one_task_per_profile() -> None:
-    """One component × one release × two profiles → two tasks."""
+    """Один компонент × один релиз × два профиля → две задачи."""
     release = make_release(profiles=("hw-linux-x86_64", "hw-linux-armv8"))
     comp = make_component(releases=[release])
 
@@ -61,14 +61,14 @@ def test_task_builder_produces_one_task_per_profile() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.2
+# Релиз без настроенных опций → одна задача с option_id '1'
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_uses_default_empty_option_set() -> None:
-    """Release with no options configured → one task with option_id '1'."""
+    """Релиз без настроенных опций → одна задача с option_id '1'."""
     release = make_release()
-    # _build_option_sets_internal is empty by default
+    # _build_option_sets_internal пуст по умолчанию
     comp = make_component(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
@@ -78,12 +78,12 @@ def test_task_builder_uses_default_empty_option_set() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.3
+# Один профиль × два набора опций → две задачи
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_multiplies_tasks_by_option_sets() -> None:
-    """One profile × two option sets → two tasks."""
+    """Один профиль × два набора опций → две задачи."""
     opts = {"1": "shared=True", "2": "shared=False"}
     release = make_release(opts=opts)
     comp = make_component(releases=[release])
@@ -94,12 +94,12 @@ def test_task_builder_multiplies_tasks_by_option_sets() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.4
+# Первый элемент --requires= в cmd содержит имя компонента
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_cmd_contains_requires_flag() -> None:
-    """The first --requires= element of cmd must contain the component name."""
+    """Первый элемент --requires= в cmd должен содержать имя компонента."""
     release = make_release()
     comp = make_component(name="mylib", releases=[release])
 
@@ -111,31 +111,31 @@ def test_task_builder_cmd_contains_requires_flag() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.5
+# Голое 'shared=True' дополняется префиксом '*:'
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_normalizes_bare_option() -> None:
-    """Bare 'shared=True' must be prefixed with '*:' in the cmd."""
+    """Голое 'shared=True' должно быть дополнено префиксом '*:' в cmd."""
     release = make_release(opts={"1": "shared=True"})
     comp = make_component(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
     cmd = tasks[0].cmd
-    # cmd contains [..., "-o", "*:shared=True", ...]
+    # cmd содержит [..., "-o", "*:shared=True", ...]
     assert "-o" in cmd
     o_index = cmd.index("-o")
     assert cmd[o_index + 1] == "*:shared=True"
 
 
 # ---------------------------------------------------------------------------
-# 1.6
+# 'mylib:shared=True' расширяется до 'mylib/*:shared=True'
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_normalizes_package_qualified_option() -> None:
-    """'mylib:shared=True' must be expanded to 'mylib/*:shared=True'."""
+    """'mylib:shared=True' должно быть расширено до 'mylib/*:shared=True'."""
     release = make_release(opts={"1": "mylib:shared=True"})
     comp = make_component(releases=[release])
 
@@ -146,12 +146,12 @@ def test_task_builder_normalizes_package_qualified_option() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.7
+# 'mylib/*:shared=True' не должно быть дважды заменено символом подстановки
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_already_wildcarded_option_unchanged() -> None:
-    """'mylib/*:shared=True' must not be double-wildcarded."""
+    """'mylib/*:shared=True' не должно быть дважды заменено символом подстановки."""
     release = make_release(opts={"1": "mylib/*:shared=True"})
     comp = make_component(releases=[release])
 
@@ -159,29 +159,29 @@ def test_task_builder_already_wildcarded_option_unchanged() -> None:
 
     cmd = tasks[0].cmd
     assert "mylib/*:shared=True" in cmd
-    # Ensure no double-wildcarded variant exists
+    # Убеждаемся, что дважды замаскированный вариант отсутствует
     assert "mylib/*/*:shared=True" not in cmd
 
 
 # ---------------------------------------------------------------------------
-# 1.8
+# Пустой список компонентов → пустой список задач
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_empty_components_returns_empty() -> None:
-    """Empty component list must return empty task list."""
+    """Пустой список компонентов должен возвращать пустой список задач."""
     tasks = ConanTaskBuilder().build([], PLATFORM, ART_URL)
 
     assert tasks == []
 
 
 # ---------------------------------------------------------------------------
-# 1.9
+# Все скалярные поля ConanTask совпадают со значениями исходной модели
 # ---------------------------------------------------------------------------
 
 
 def test_task_builder_task_fields_populated() -> None:
-    """All ConanTask scalar fields must match source model values."""
+    """Все скалярные поля ConanTask должны совпадать со значениями исходной модели."""
     release = make_release(
         version="3.2.1", channel="stable", profiles=("hw-linux-x86_64",)
     )

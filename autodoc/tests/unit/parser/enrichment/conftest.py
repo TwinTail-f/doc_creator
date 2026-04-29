@@ -1,8 +1,8 @@
 """
-Fixtures for autodoc/tests/unit/parser/enrichment/.
+Фикстуры для autodoc/tests/unit/parser/enrichment/.
 
-manifest_component, manifest_release are inherited from the parent
-tests/unit/parser/conftest.py and available here automatically.
+manifest_component и manifest_release наследуются из родительского
+tests/unit/parser/conftest.py и доступны здесь автоматически.
 """
 
 import pytest
@@ -12,7 +12,7 @@ from autodoc.models.component import ConanVariant
 
 @pytest.fixture
 def conan_variant() -> ConanVariant:
-    """A minimal ConanVariant for use in apply_conan_results tests."""
+    """Минимальный ConanVariant для использования в тестах apply_conan_results."""
     return ConanVariant(
         package_id="575ea8086554107ae2c0fdbb4909d62390c52b77",
         build_url="https://art.example.com/package/575ea808",

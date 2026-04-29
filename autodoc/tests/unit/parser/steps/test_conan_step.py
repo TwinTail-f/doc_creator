@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/steps/conan_step.py."""
+"""Юнит-тесты для autodoc/parser/steps/conan_step.py."""
 
 import pytest
 
@@ -7,7 +7,7 @@ from autodoc.parser.fetchers.base import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 # ---------------------------------------------------------------------------
-# Sentinel empty result used across tests
+# Сигнальный пустой результат, используемый в тестах
 # ---------------------------------------------------------------------------
 
 EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
@@ -16,12 +16,12 @@ EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
 
 
 # ---------------------------------------------------------------------------
-# Fake Fetcher
+# Фейковый Fetcher
 # ---------------------------------------------------------------------------
 
 
 class FakeFetcher:
-    """Controllable fake fetcher for ConanEnrichStep unit tests."""
+    """Управляемый фейковый fetcher для юнит-тестов ConanEnrichStep."""
 
     def __init__(
         self,
@@ -30,8 +30,8 @@ class FakeFetcher:
     ) -> None:
         """
         Args:
-            value: The ConanEnrichmentResult to return from fetch().
-            warnings: Optional list of warning strings.
+            value: ConanEnrichmentResult, возвращаемый из fetch().
+            warnings: Необязательный список строк предупреждений.
         """
         self.value = value
         self.warnings = warnings or []
@@ -39,24 +39,24 @@ class FakeFetcher:
         self.fetch_called: bool = False
 
     def configure(self, ctx: object) -> None:
-        """Record that configure was called."""
+        """Записывает факт вызова configure."""
         self.configure_called = True
 
     def fetch(self, *args: object, **kwargs: object) -> FetchResult:
-        """Return controlled FetchResult."""
+        """Возвращает управляемый FetchResult."""
         self.fetch_called = True
         return FetchResult(value=self.value, warnings=self.warnings)
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Тесты
 # ---------------------------------------------------------------------------
 
 
 def test_conan_step_stores_conan_report_in_intermediate(
     parser_pipeline_context,
 ) -> None:
-    """ctx.intermediate['conan_report'] is populated after execute."""
+    """ctx.intermediate['conan_report'] заполняется после execute."""
     fake = FakeFetcher(value=EMPTY_CONAN_RESULT)
     step = ConanEnrichStep(fetcher=fake)
     step.execute(parser_pipeline_context)
@@ -64,14 +64,14 @@ def test_conan_step_stores_conan_report_in_intermediate(
 
 
 def test_conan_step_is_not_critical() -> None:
-    """ConanEnrichStep is a non-critical pipeline step."""
+    """ConanEnrichStep является некритичным шагом пайплайна."""
     assert ConanEnrichStep.is_critical is False
 
 
 def test_conan_step_warnings_do_not_raise(
     parser_pipeline_context,
 ) -> None:
-    """Warnings from the fetcher do not cause an exception."""
+    """Предупреждения от fetcher не вызывают исключений."""
     fake = FakeFetcher(value=EMPTY_CONAN_RESULT, warnings=["conan timeout"])
     step = ConanEnrichStep(fetcher=fake)
-    step.execute(parser_pipeline_context)  # must not raise
+    step.execute(parser_pipeline_context)  # не должно вызывать исключений

@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/steps/manifest_step.py."""
+"""Юнит-тесты для autodoc/parser/steps/manifest_step.py."""
 
 import pytest
 
@@ -7,20 +7,20 @@ from autodoc.parser.fetchers.base import FetchResult
 from autodoc.parser.steps.manifest_step import ManifestStep
 
 # ---------------------------------------------------------------------------
-# Fake Fetcher
+# Фейковый Fetcher
 # ---------------------------------------------------------------------------
 
 
 class FakeFetcher:
-    """Controllable fake fetcher for ManifestStep unit tests."""
+    """Управляемый фейковый fetcher для юнит-тестов ManifestStep."""
 
     def __init__(
         self, value: list[Component], warnings: list[str] | None = None
     ) -> None:
         """
         Args:
-            value: The component list to return from fetch().
-            warnings: Optional list of warning strings.
+            value: Список компонентов, возвращаемый из fetch().
+            warnings: Необязательный список строк предупреждений.
         """
         self.value = value
         self.warnings = warnings or []
@@ -28,17 +28,17 @@ class FakeFetcher:
         self.fetch_called: bool = False
 
     def configure(self, ctx: object) -> None:
-        """Record that configure was called."""
+        """Записывает факт вызова configure."""
         self.configure_called = True
 
     def fetch(self, *args: object, **kwargs: object) -> FetchResult:
-        """Return controlled FetchResult."""
+        """Возвращает управляемый FetchResult."""
         self.fetch_called = True
         return FetchResult(value=self.value, warnings=self.warnings)
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Тесты
 # ---------------------------------------------------------------------------
 
 
@@ -46,7 +46,7 @@ def test_manifest_step_populates_ctx_components(
     parser_pipeline_context,
     manifest_component,
 ) -> None:
-    """Happy path: ctx.components is populated from fetcher result."""
+    """Успешный путь: ctx.components заполняется из результата fetcher."""
     fake = FakeFetcher(value=[manifest_component])
     step = ManifestStep(fetcher=fake)
     step.execute(parser_pipeline_context)
@@ -56,10 +56,10 @@ def test_manifest_step_populates_ctx_components(
 def test_manifest_step_logs_warnings_without_raising(
     parser_pipeline_context,
 ) -> None:
-    """Warnings from fetcher are passed through without raising an exception."""
+    """Предупреждения от fetcher передаются без вызова исключений."""
     fake = FakeFetcher(value=[], warnings=["something failed"])
     step = ManifestStep(fetcher=fake)
-    step.execute(parser_pipeline_context)  # must not raise
+    step.execute(parser_pipeline_context)  # не должно вызывать исключений
     assert parser_pipeline_context.components == []
 
 
@@ -67,7 +67,7 @@ def test_manifest_step_calls_configure_before_fetch(
     parser_pipeline_context,
     manifest_component,
 ) -> None:
-    """configure() is called on the fetcher before execute() returns."""
+    """configure() вызывается на fetcher до завершения execute()."""
     fake = FakeFetcher(value=[manifest_component])
     step = ManifestStep(fetcher=fake)
     step.execute(parser_pipeline_context)
@@ -75,10 +75,10 @@ def test_manifest_step_calls_configure_before_fetch(
 
 
 def test_manifest_step_has_name() -> None:
-    """ManifestStep.name is set and non-empty."""
+    """ManifestStep.name задан и не пуст."""
     assert ManifestStep.name != ""
 
 
 def test_manifest_step_is_critical() -> None:
-    """ManifestStep is a critical pipeline step."""
+    """ManifestStep является критичным шагом пайплайна."""
     assert ManifestStep.is_critical is True

@@ -1,8 +1,8 @@
 """
-Unit tests for autodoc/parser/conan/profile_overrides.py.
+Юнит-тесты для autodoc/parser/conan/profile_overrides.py.
 
-Covers ProfileSettingsOverrides: from_file(), resolve(), is_empty(),
-empty(), and multi-entry merge behaviour.
+Охватывает ProfileSettingsOverrides: from_file(), resolve(), is_empty(),
+empty() и поведение слияния нескольких записей.
 """
 
 import json
@@ -13,7 +13,7 @@ import pytest
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Вспомогательные функции
 # ---------------------------------------------------------------------------
 
 _SINGLE_OVERRIDE: dict = {
@@ -27,19 +27,19 @@ _SINGLE_OVERRIDE: dict = {
 
 
 def _write_json(tmp_path: Path, content: dict) -> Path:
-    """Write a dict as JSON to a temp file and return the path."""
+    """Записывает словарь как JSON во временный файл и возвращает путь."""
     p = tmp_path / "overrides.json"
     p.write_text(json.dumps(content), encoding="utf-8")
     return p
 
 
 # ---------------------------------------------------------------------------
-# 3.1
+# from_file с корректным JSON
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_from_file_loads_correctly(tmp_path: Path) -> None:
-    """from_file() with a valid JSON file resolves the exact profile name correctly."""
+    """from_file() с корректным JSON-файлом правильно разрешает точное имя профиля."""
     path = _write_json(tmp_path, _SINGLE_OVERRIDE)
     overrides = ProfileSettingsOverrides.from_file(path)
 
@@ -47,24 +47,24 @@ def test_profile_overrides_from_file_loads_correctly(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3.2
+# from_file с несуществующим путём
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_from_file_missing_file_returns_empty() -> None:
-    """from_file() with a nonexistent path returns an empty instance."""
+    """from_file() с несуществующим путём возвращает пустой экземпляр."""
     overrides = ProfileSettingsOverrides.from_file(Path("/nonexistent/path.json"))
 
     assert overrides.is_empty() is True
 
 
 # ---------------------------------------------------------------------------
-# 3.3
+# from_file с некорректным JSON
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_from_file_invalid_json_returns_empty(tmp_path: Path) -> None:
-    """from_file() with malformed JSON content returns an empty instance."""
+    """from_file() с некорректным JSON возвращает пустой экземпляр."""
     bad_file = tmp_path / "bad.json"
     bad_file.write_bytes(b"not-json")
 
@@ -74,12 +74,12 @@ def test_profile_overrides_from_file_invalid_json_returns_empty(tmp_path: Path) 
 
 
 # ---------------------------------------------------------------------------
-# 3.4
+# resolve: точное совпадение имени
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_resolve_exact_match(tmp_path: Path) -> None:
-    """resolve() with the exact profile name as listed in config returns settings."""
+    """resolve() с точным именем профиля из конфига возвращает настройки."""
     data = {
         "overrides": [
             {
@@ -97,16 +97,16 @@ def test_profile_overrides_resolve_exact_match(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3.5
+# resolve: сопоставление по basename при полном пути
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_resolve_basename_fallback(tmp_path: Path) -> None:
-    """resolve() falls back to basename match when full path is used as profile name.
+    """resolve() использует сопоставление по basename, когда полный путь используется как имя профиля.
 
-    The source code performs a basename (Path.name) lookup as a secondary step.
-    A profile stored as 'hw-linux-x86_64.jinja' should be found when queried
-    via '/some/path/to/hw-linux-x86_64.jinja'.
+    Исходный код выполняет поиск по basename (Path.name) в качестве вторичного шага.
+    Профиль, хранящийся как 'hw-linux-x86_64.jinja', должен находиться при запросе
+    через '/some/path/to/hw-linux-x86_64.jinja'.
     """
     data = {
         "overrides": [
@@ -119,19 +119,19 @@ def test_profile_overrides_resolve_basename_fallback(tmp_path: Path) -> None:
     path = _write_json(tmp_path, data)
     overrides = ProfileSettingsOverrides.from_file(path)
 
-    # Use a full path whose basename matches the stored profile name
+    # Используем полный путь, basename которого совпадает с именем сохранённого профиля
     result = overrides.resolve("/some/path/to/hw-linux-x86_64.jinja")
 
     assert result == {"compiler": "gcc"}
 
 
 # ---------------------------------------------------------------------------
-# 3.6
+# resolve: неизвестное имя профиля
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -> None:
-    """resolve() with an unknown profile name returns an empty dict."""
+    """resolve() с неизвестным именем профиля возвращает пустой словарь."""
     path = _write_json(tmp_path, _SINGLE_OVERRIDE)
     overrides = ProfileSettingsOverrides.from_file(path)
 
@@ -141,22 +141,22 @@ def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -
 
 
 # ---------------------------------------------------------------------------
-# 3.7
+# empty(): экземпляр с is_empty() == True
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_empty_instance_is_empty() -> None:
-    """ProfileSettingsOverrides.empty() produces an instance where is_empty() is True."""
+    """ProfileSettingsOverrides.empty() создаёт экземпляр, для которого is_empty() возвращает True."""
     assert ProfileSettingsOverrides.empty().is_empty() is True
 
 
 # ---------------------------------------------------------------------------
-# 3.8
+# is_empty() при загруженных переопределениях
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_non_empty_is_not_empty(tmp_path: Path) -> None:
-    """is_empty() returns False when overrides have been loaded from a valid file."""
+    """is_empty() возвращает False, если переопределения загружены из корректного файла."""
     path = _write_json(tmp_path, _SINGLE_OVERRIDE)
     overrides = ProfileSettingsOverrides.from_file(path)
 
@@ -164,12 +164,12 @@ def test_profile_overrides_non_empty_is_not_empty(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3.9
+# Слияние нескольких записей для одного профиля
 # ---------------------------------------------------------------------------
 
 
 def test_profile_overrides_multiple_entries_merged(tmp_path: Path) -> None:
-    """Two entries for the same profile name are merged into a single settings dict."""
+    """Две записи для одного имени профиля объединяются в единый словарь настроек."""
     data = {
         "overrides": [
             {

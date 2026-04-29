@@ -1,8 +1,8 @@
-"""Unit tests for autodoc.parser.parsers.manifest_parser.ManifestParser.
+"""Юнит-тесты для autodoc.parser.parsers.manifest_parser.ManifestParser.
 
-Covers: parse, _parse_single_file, _build_releases.
-Real .properties files are read from resources_dir fixture.
-Custom / edge-case content is written to tmp_path.
+Охватывает: parse, _parse_single_file, _build_releases.
+Реальные .properties-файлы читаются из фикстуры resources_dir.
+Пользовательское/граничное содержимое записывается в tmp_path.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import pytest
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 
 # ---------------------------------------------------------------------------
-# Module-level constants
+# Константы уровня модуля
 # ---------------------------------------------------------------------------
 
 TARGET_PLATFORM: str = "2.0"
@@ -43,24 +43,24 @@ VALID_PATCHELF_CONTENT: str = (
 
 
 # ---------------------------------------------------------------------------
-# Helper
+# Вспомогательная функция
 # ---------------------------------------------------------------------------
 
 
 def write_props(tmp_path: Path, filename: str, content: str) -> Path:
-    """Write content to a .properties file in tmp_path and return the path."""
+    """Записывает содержимое в .properties-файл в tmp_path и возвращает путь."""
     p = tmp_path / filename
     p.write_text(content, encoding="utf-8")
     return p
 
 
 # ===========================================================================
-# 2.1 — Happy path: single component, single release
+# Успешный путь: один компонент, один релиз
 # ===========================================================================
 
 
 def test_manifest_parser_parse_single_valid_file(tmp_path: Path) -> None:
-    """ManifestParser returns one component with two profile_builds for a valid file."""
+    """ManifestParser возвращает один компонент с двумя profile_builds для корректного файла."""
     path = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
     components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
     assert len(components) == 1
@@ -69,12 +69,12 @@ def test_manifest_parser_parse_single_valid_file(tmp_path: Path) -> None:
 
 
 # ===========================================================================
-# 2.2 — File without 'name' field is silently skipped
+# Файл без поля 'name' молча пропускается
 # ===========================================================================
 
 
 def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
-    """ManifestParser silently skips a .properties file that has no 'name' key."""
+    """ManifestParser молча пропускает .properties-файл, не содержащий ключ 'name'."""
     path = write_props(tmp_path, "noname.properties", "description= test\n")
     components, warnings = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
     assert len(components) == 0
@@ -82,24 +82,24 @@ def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
 
 
 # ===========================================================================
-# 2.3 — Excluded component is not returned
+# Исключённый компонент не возвращается
 # ===========================================================================
 
 
 def test_manifest_parser_excluded_component_not_returned(tmp_path: Path) -> None:
-    """ManifestParser omits components whose name appears in the excluded list."""
+    """ManifestParser пропускает компоненты, чьё имя присутствует в списке исключений."""
     path = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
     components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=["patchelf"])
     assert len(components) == 0
 
 
 # ===========================================================================
-# 2.4 — Platform version mismatch → no release created
+# Несоответствие версии платформы → релиз не создаётся
 # ===========================================================================
 
 
 def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
-    """ManifestParser returns no components when all platform versions mismatch the target."""
+    """ManifestParser не возвращает компоненты, если все версии платформы не совпадают с целевой."""
     content = (
         "name= libfoo\n"
         "versions.component= 1.0\n"
@@ -112,12 +112,12 @@ def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
 
 
 # ===========================================================================
-# 2.5 — File that does not exist produces a warning
+# Несуществующий файл генерирует предупреждение
 # ===========================================================================
 
 
 def test_manifest_parser_missing_file_produces_warning() -> None:
-    """ManifestParser records a warning and returns no components for a non-existent file."""
+    """ManifestParser записывает предупреждение и не возвращает компоненты для несуществующего файла."""
     missing = Path("nonexistent.properties")
     components, warnings = ManifestParser(TARGET_PLATFORM).parse([missing], excluded=[])
     assert len(components) == 0
@@ -125,14 +125,14 @@ def test_manifest_parser_missing_file_produces_warning() -> None:
 
 
 # ===========================================================================
-# 2.6 — Multiple component versions → multiple releases
+# Несколько версий компонента → несколько релизов
 # ===========================================================================
 
 
 def test_manifest_parser_multiple_component_versions_produce_multiple_releases(
     tmp_path: Path,
 ) -> None:
-    """ManifestParser creates one release per matching component-version / platform pair."""
+    """ManifestParser создаёт один релиз для каждой совпадающей пары компонент-версия / платформа."""
     content = (
         "name= patchelf\n"
         "versions.component= 0.16.1, 0.18.0\n"
@@ -150,14 +150,14 @@ def test_manifest_parser_multiple_component_versions_produce_multiple_releases(
 
 
 # ===========================================================================
-# 2.7 — Channel is extracted from platform version suffix
+# Канал извлекается из суффикса версии платформы
 # ===========================================================================
 
 
 def test_manifest_parser_channel_extracted_from_platform_suffix(
     tmp_path: Path,
 ) -> None:
-    """ManifestParser sets release.channel to the part after the first '-' in the platform version."""
+    """ManifestParser устанавливает release.channel равным части после первого '-' в версии платформы."""
     content = (
         "name= libfoo\n"
         "versions.component= 1.0\n"
@@ -170,14 +170,14 @@ def test_manifest_parser_channel_extracted_from_platform_suffix(
 
 
 # ===========================================================================
-# 2.8 — Platform version without suffix → empty channel
+# Версия платформы без суффикса → пустой канал
 # ===========================================================================
 
 
 def test_manifest_parser_platform_without_suffix_empty_channel(
     tmp_path: Path,
 ) -> None:
-    """ManifestParser sets release.channel to '' when the platform version has no '-' suffix."""
+    """ManifestParser устанавливает release.channel в '', если версия платформы не имеет суффикса '-'."""
     content = (
         "name= libfoo\n"
         "versions.component= 1.0\n"
@@ -190,12 +190,12 @@ def test_manifest_parser_platform_without_suffix_empty_channel(
 
 
 # ===========================================================================
-# 2.9 — git_url is constructed from tfs_git_project and git_repo_name
+# git_url строится из tfs_git_project и git_repo_name
 # ===========================================================================
 
 
 def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
-    """ManifestParser builds release.git_url as '<project>/_git/<repo>'."""
+    """ManifestParser строит release.git_url в виде '<project>/_git/<repo>'."""
     content = (
         "name= openssl\n"
         "versions.component= 1.0\n"
@@ -210,14 +210,14 @@ def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
 
 
 # ===========================================================================
-# 2.10 — Missing profiles key for a version pair → no release
+# Отсутствующий ключ profiles для пары версий → нет релиза
 # ===========================================================================
 
 
 def test_manifest_parser_missing_profiles_key_skips_version_pair(
     tmp_path: Path,
 ) -> None:
-    """ManifestParser skips a version pair that has no matching profiles key."""
+    """ManifestParser пропускает пару версий, для которой нет совпадающего ключа profiles."""
     content = (
         "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
     )
@@ -227,12 +227,12 @@ def test_manifest_parser_missing_profiles_key_skips_version_pair(
 
 
 # ===========================================================================
-# 2.11 — Multiple files parsed → results accumulated
+# Несколько файлов разобрано → результаты накоплены
 # ===========================================================================
 
 
 def test_manifest_parser_multiple_files_accumulated(tmp_path: Path) -> None:
-    """ManifestParser accumulates components from multiple valid files."""
+    """ManifestParser накапливает компоненты из нескольких корректных файлов."""
     path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
     path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
     components, _ = ManifestParser(TARGET_PLATFORM).parse([path_a, path_b], excluded=[])
@@ -240,12 +240,12 @@ def test_manifest_parser_multiple_files_accumulated(tmp_path: Path) -> None:
 
 
 # ===========================================================================
-# 2.12 — Real openssl.properties parses correctly (uses resources_dir)
+# Реальный openssl.properties разбирается корректно (использует resources_dir)
 # ===========================================================================
 
 
 def test_manifest_parser_parses_real_openssl_file(resources_dir: Path) -> None:
-    """ManifestParser correctly parses the real openssl.properties resource file."""
+    """ManifestParser корректно разбирает реальный файл ресурса openssl.properties."""
     props_file = resources_dir / "manifests" / "openssl.properties"
     components, warnings = ManifestParser(TARGET_PLATFORM).parse(
         [props_file], excluded=[]

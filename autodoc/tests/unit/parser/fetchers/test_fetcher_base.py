@@ -1,7 +1,7 @@
 """
-Unit tests for autodoc/parser/fetchers/base.py.
+Юнит-тесты для autodoc/parser/fetchers/base.py.
 
-Covers FetchResult data class and the BaseTFSFetcher two-phase invariant.
+Охватывает датакласс FetchResult и двухфазный инвариант BaseTFSFetcher.
 """
 
 from typing import Any
@@ -10,29 +10,29 @@ from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
 # ---------------------------------------------------------------------------
-# Minimal concrete subclass used only in these tests
+# Минимальный конкретный подкласс, используемый только в этих тестах
 # ---------------------------------------------------------------------------
 
 
 class _ConcreteFetcher(BaseTFSFetcher):
-    """Minimal concrete BaseTFSFetcher subclass for testing the base class invariants."""
+    """Минимальный конкретный подкласс BaseTFSFetcher для тестирования инвариантов базового класса."""
 
     def configure(self, ctx: PipelineContext) -> None:
-        """Store the TFS client from context (standard BaseTFSFetcher pattern)."""
+        """Сохраняет TFS-клиент из контекста (стандартный шаблон BaseTFSFetcher)."""
         self._tfs = ctx.tfs_client
 
     def fetch(self, *args: Any, **kwargs: Any) -> FetchResult:
-        """Return an empty result; not exercised in base-class tests."""
+        """Возвращает пустой результат; не используется в тестах базового класса."""
         return FetchResult(value=[])
 
 
 # ---------------------------------------------------------------------------
-# 3.1 — FetchResult holds value and warnings
+# FetchResult хранит value и warnings
 # ---------------------------------------------------------------------------
 
 
 def test_fetch_result_holds_value_and_warnings() -> None:
-    """FetchResult exposes the provided value and warnings list."""
+    """FetchResult предоставляет переданные value и список warnings."""
     result: FetchResult = FetchResult(value=[1, 2], warnings=["w1"])
 
     assert result.value == [1, 2]
@@ -40,24 +40,24 @@ def test_fetch_result_holds_value_and_warnings() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3.2 — FetchResult default warnings is empty list
+# warnings в FetchResult по умолчанию — пустой список
 # ---------------------------------------------------------------------------
 
 
 def test_fetch_result_default_warnings_empty() -> None:
-    """FetchResult.warnings defaults to an empty list when not supplied."""
+    """FetchResult.warnings по умолчанию является пустым списком, если не задан."""
     result: FetchResult = FetchResult(value="x")
 
     assert result.warnings == []
 
 
 # ---------------------------------------------------------------------------
-# 3.3 — BaseTFSFetcher: _tfs is None before configure is called
+# BaseTFSFetcher: _tfs равен None до вызова configure
 # ---------------------------------------------------------------------------
 
 
 def test_base_tfs_fetcher_tfs_is_none_before_configure() -> None:
-    """_tfs attribute is None immediately after construction, before configure()."""
+    """Атрибут _tfs равен None сразу после создания, до вызова configure()."""
     fetcher = _ConcreteFetcher()
 
     assert fetcher._tfs is None

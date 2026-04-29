@@ -1,9 +1,9 @@
 """
-Unit tests for autodoc/parser/fetchers/manifest_fetcher.py.
+Юнит-тесты для autodoc/parser/fetchers/manifest_fetcher.py.
 
-Strategy: provide fake TFS clients that write real-looking .properties content
-into tmp_dir without network I/O. ManifestParser is NOT mocked — the full
-ManifestFetcher → ManifestParser chain is exercised.
+Стратегия: предоставляются фейковые TFS-клиенты, записывающие реалистичное
+.properties-содержимое в tmp_dir без сетевого ввода/вывода. ManifestParser
+НЕ мокируется — тестируется вся цепочка ManifestFetcher → ManifestParser.
 """
 
 import shutil
@@ -18,11 +18,10 @@ from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.tests.unit.parser.conftest import FakeTFSClient
 
 # ---------------------------------------------------------------------------
-# Shared properties content (platform 2.0-tech, component "openssl")
+# Общее содержимое properties (платформа 2.0-tech, компонент "openssl")
 # ---------------------------------------------------------------------------
 
-_VALID_PROPERTIES: str = """\
-name= openssl
+_VALID_PROPERTIES: str = """name= openssl
 description= Test OpenSSL component
 versions.component= 1.0.0
 versions.platform= 2.0-tech
@@ -33,18 +32,18 @@ git_repo_name= contrib_openssl
 
 
 # ---------------------------------------------------------------------------
-# Local fake clients — defined here, NOT in conftest (per ownership rules)
+# Локальные фейковые клиенты — определены здесь, НЕ в conftest (по правилам владения)
 # ---------------------------------------------------------------------------
 
 
 class WritingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient that writes a .properties file into output_dir on download_properties."""
+    """FakeTFSClient, записывающий .properties-файл в output_dir при вызове download_properties."""
 
     def __init__(self, content: str, filename: str = "test.properties") -> None:
         """
         Args:
-            content: Text to write into the .properties file.
-            filename: Name of the file created inside output_dir.
+            content: Текст для записи в .properties-файл.
+            filename: Имя файла, создаваемого внутри output_dir.
         """
         self._content = content
         self._filename = filename
@@ -57,19 +56,19 @@ class WritingFakeTFSClient(FakeTFSClient):
         output_dir: str,
         version_type=None,
     ) -> None:
-        """Write the configured content into output_dir as a .properties file."""
+        """Записывает настроенное содержимое в output_dir как .properties-файл."""
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
         (out / self._filename).write_text(self._content, encoding="utf-8")
 
 
 class CopyingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient that copies a real .properties file into output_dir."""
+    """FakeTFSClient, копирующий реальный .properties-файл в output_dir."""
 
     def __init__(self, source_file: Path) -> None:
         """
         Args:
-            source_file: Path to the real .properties file to copy.
+            source_file: Путь к реальному .properties-файлу для копирования.
         """
         self._source = source_file
 
@@ -81,14 +80,14 @@ class CopyingFakeTFSClient(FakeTFSClient):
         output_dir: str,
         version_type=None,
     ) -> None:
-        """Copy the source file into output_dir, preserving its filename."""
+        """Копирует исходный файл в output_dir, сохраняя его имя."""
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
         shutil.copy(self._source, out / self._source.name)
 
 
 # ---------------------------------------------------------------------------
-# Helper
+# Вспомогательная функция
 # ---------------------------------------------------------------------------
 
 
@@ -97,7 +96,7 @@ def _make_context(
     tfs_client: FakeTFSClient,
     tmp_path: Path,
 ) -> PipelineContext:
-    """Build a PipelineContext with the given fake TFS client."""
+    """Строит PipelineContext с заданным фейковым TFS-клиентом."""
     return PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",
@@ -106,7 +105,7 @@ def _make_context(
 
 
 # ---------------------------------------------------------------------------
-# 4.1 — Happy path: fetcher returns component from valid .properties content
+# Успешный путь: fetcher возвращает компонент из корректного .properties
 # ---------------------------------------------------------------------------
 
 
@@ -114,7 +113,7 @@ def test_manifest_fetcher_returns_component_on_valid_properties(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """ManifestFetcher returns exactly one component when given valid .properties content."""
+    """ManifestFetcher возвращает ровно один компонент при корректном .properties-содержимом."""
     ctx = _make_context(
         parser_config,
         WritingFakeTFSClient(content=_VALID_PROPERTIES),
@@ -130,7 +129,7 @@ def test_manifest_fetcher_returns_component_on_valid_properties(
 
 
 # ---------------------------------------------------------------------------
-# 4.2 — Excluded component is not returned
+# Исключённый компонент не возвращается
 # ---------------------------------------------------------------------------
 
 
@@ -138,7 +137,7 @@ def test_manifest_fetcher_excludes_named_component(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """ManifestFetcher returns no components when the component name is excluded."""
+    """ManifestFetcher не возвращает компоненты, если имя компонента исключено."""
     ctx = _make_context(
         parser_config,
         WritingFakeTFSClient(content=_VALID_PROPERTIES),
@@ -153,7 +152,7 @@ def test_manifest_fetcher_excludes_named_component(
 
 
 # ---------------------------------------------------------------------------
-# 4.3 — configure stores tfs_client in the fetcher
+# configure сохраняет tfs_client в fetcher
 # ---------------------------------------------------------------------------
 
 
@@ -161,7 +160,7 @@ def test_manifest_fetcher_configure_sets_tfs_client(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """After configure(), the fetcher's internal _tfs reference is not None."""
+    """После configure() внутренняя ссылка _tfs в fetcher не равна None."""
     fake_client = WritingFakeTFSClient(content=_VALID_PROPERTIES)
     ctx = _make_context(parser_config, fake_client, tmp_path)
     fetcher = ManifestFetcher()
@@ -172,7 +171,7 @@ def test_manifest_fetcher_configure_sets_tfs_client(
 
 
 # ---------------------------------------------------------------------------
-# 4.4 — No .properties files in tmp_dir raises ParsingError
+# Отсутствие .properties-файлов в tmp_dir вызывает ParsingError
 # ---------------------------------------------------------------------------
 
 
@@ -181,14 +180,14 @@ def test_manifest_fetcher_no_files_returns_empty(
     tmp_path: Path,
 ) -> None:
     """
-    ManifestFetcher raises ParsingError when download_properties writes no files.
+    ManifestFetcher вызывает ParsingError, когда download_properties не записывает файлы.
 
-    The underlying FakeTFSClient (no-op) produces an empty directory, which the
-    fetcher treats as a fatal configuration or network problem.
+    Базовый FakeTFSClient (заглушка) создаёт пустую директорию, которую
+    fetcher воспринимает как фатальную ошибку конфигурации или сети.
     """
     ctx = _make_context(
         parser_config,
-        FakeTFSClient(),  # no-op: writes nothing
+        FakeTFSClient(),  # заглушка: ничего не записывает
         tmp_path,
     )
     fetcher = ManifestFetcher()
@@ -199,7 +198,7 @@ def test_manifest_fetcher_no_files_returns_empty(
 
 
 # ---------------------------------------------------------------------------
-# 4.5 — Real patchelf.properties file (uses resources_dir fixture)
+# Реальный файл patchelf.properties (использует фикстуру resources_dir)
 # ---------------------------------------------------------------------------
 
 
@@ -208,7 +207,7 @@ def test_manifest_fetcher_with_real_properties_file(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """ManifestFetcher returns components when given a real .properties file."""
+    """ManifestFetcher возвращает компоненты при передаче реального .properties-файла."""
     source = resources_dir / "manifests" / "patchelf.properties"
     ctx = PipelineContext(
         config=parser_config,

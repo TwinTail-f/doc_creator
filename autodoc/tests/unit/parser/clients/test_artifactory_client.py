@@ -1,7 +1,7 @@
 """
-Unit tests for autodoc/parser/clients/artifactory_client.py.
+Юнит-тесты для autodoc/parser/clients/artifactory_client.py.
 
-All HTTP I/O is mocked — no real network calls are made.
+Весь HTTP-ввод/вывод замокан — реальных сетевых вызовов нет.
 """
 
 from unittest.mock import MagicMock
@@ -17,17 +17,17 @@ _EXAMPLE_URL: str = "https://art.example.com/artifactory/conan2/openssl"
 
 
 def _make_artifactory_client(parser_config) -> ArtifactoryClient:
-    """Instantiate ArtifactoryClient from a minimal valid parser config."""
+    """Создаёт ArtifactoryClient из минимальной корректной конфигурации парсера."""
     return ArtifactoryClient(parser_config)
 
 
 # ---------------------------------------------------------------------------
-# 2.1 — head: returns response on success
+# head: возвращает ответ при успехе
 # ---------------------------------------------------------------------------
 
 
 def test_artifactory_client_head_returns_response(mocker, parser_config) -> None:
-    """ArtifactoryClient.head returns the HTTP response on a successful HEAD request."""
+    """ArtifactoryClient.head возвращает HTTP-ответ при успешном HEAD-запросе."""
     client = _make_artifactory_client(parser_config)
     mock_resp = MagicMock(spec=requests.Response)
     mock_resp.status_code = 200
@@ -39,38 +39,38 @@ def test_artifactory_client_head_returns_response(mocker, parser_config) -> None
 
 
 # ---------------------------------------------------------------------------
-# 2.2 — head: SSL verification is disabled at the session level
+# head: проверка SSL отключена на уровне сессии
 # ---------------------------------------------------------------------------
 
 
 def test_artifactory_client_head_disables_ssl_verification(
     parser_config,
 ) -> None:
-    """ArtifactoryClient sets verify=False on the session, disabling SSL verification."""
+    """ArtifactoryClient устанавливает verify=False для сессии, отключая проверку SSL."""
     client = _make_artifactory_client(parser_config)
 
     assert client.session.verify is False
 
 
 # ---------------------------------------------------------------------------
-# 2.3 — Protocol conformance: ArtifactoryClient satisfies IArtifactoryClient
+# Соответствие протоколу: ArtifactoryClient удовлетворяет IArtifactoryClient
 # ---------------------------------------------------------------------------
 
 
 def test_artifactory_client_satisfies_protocol(parser_config) -> None:
-    """ArtifactoryClient structurally satisfies the IArtifactoryClient Protocol."""
+    """ArtifactoryClient структурно удовлетворяет протоколу IArtifactoryClient."""
     client = ArtifactoryClient.__new__(ArtifactoryClient)
 
     assert isinstance(client, IArtifactoryClient)
 
 
 # ---------------------------------------------------------------------------
-# 2.4 — Protocol conformance: TFSClient satisfies ITFSClient
+# Соответствие протоколу: TFSClient удовлетворяет ITFSClient
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_satisfies_protocol(parser_config) -> None:
-    """TFSClient structurally satisfies the ITFSClient Protocol."""
+    """TFSClient структурно удовлетворяет протоколу ITFSClient."""
     client = TFSClient.__new__(TFSClient)
 
     assert isinstance(client, ITFSClient)

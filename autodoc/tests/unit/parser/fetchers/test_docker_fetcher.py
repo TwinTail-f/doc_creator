@@ -1,9 +1,9 @@
 """
-Unit tests for autodoc/parser/fetchers/docker_fetcher.py.
+Юнит-тесты для autodoc/parser/fetchers/docker_fetcher.py.
 
-Strategy: provide a fake TFS client whose get_file_content returns controlled
-YAML content. DockerParser is NOT mocked — the full DockerFetcher → DockerParser
-chain is exercised.
+Стратегия: предоставляется фейковый TFS-клиент, чей get_file_content возвращает
+управляемое содержимое YAML. DockerParser НЕ мокируется — тестируется вся
+цепочка DockerFetcher → DockerParser.
 """
 
 from pathlib import Path
@@ -18,11 +18,11 @@ from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.tests.unit.parser.conftest import FakeTFSClient
 
 # ---------------------------------------------------------------------------
-# Constants
+# Константы
 # ---------------------------------------------------------------------------
 
-# A well-formed TFS URL that contains /_git/ so DockerFetcher does not skip it.
-# query parameters: path (YAML file path) and version (branch prefixed with GB).
+# Корректный TFS URL, содержащий /_git/, чтобы DockerFetcher его не пропустил.
+# параметры запроса: path (путь к YAML-файлу) и version (ветка с префиксом GB).
 _PROFILE_URL: str = (
     "https://tfs.example.com/DEP_Components/_git/platform-profiles"
     "?path=/profiles.yaml&version=GBdevelop"
@@ -39,18 +39,18 @@ archs:
 
 
 # ---------------------------------------------------------------------------
-# Local fake TFS client
+# Локальный фейковый TFS-клиент
 # ---------------------------------------------------------------------------
 
 
 class _ContentFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient that returns a configurable response from get_file_content."""
+    """FakeTFSClient, возвращающий настраиваемый ответ из get_file_content."""
 
     def __init__(self, content: bytes, status_code: int = 200) -> None:
         """
         Args:
-            content: Bytes returned as the response body.
-            status_code: HTTP status code of the response.
+            content: Байты, возвращаемые как тело ответа.
+            status_code: HTTP-код статуса ответа.
         """
         self._content = content
         self._status_code = status_code
@@ -58,7 +58,7 @@ class _ContentFakeTFSClient(FakeTFSClient):
     def get_file_content(
         self, items_url: str, path: str, branch: str, version_type=None
     ) -> requests.Response:
-        """Return a response with the configured status code and content."""
+        """Возвращает ответ с настроенным кодом статуса и содержимым."""
         resp = requests.Response()
         resp.status_code = self._status_code
         resp._content = self._content
@@ -66,17 +66,17 @@ class _ContentFakeTFSClient(FakeTFSClient):
 
 
 class _RaisingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient whose get_file_content raises requests.ConnectionError."""
+    """FakeTFSClient, чей get_file_content вызывает requests.ConnectionError."""
 
     def get_file_content(
         self, items_url: str, path: str, branch: str, version_type=None
     ) -> requests.Response:
-        """Simulate a network-level failure (caught by DockerFetcher)."""
+        """Имитирует сетевой сбой (перехватывается DockerFetcher)."""
         raise requests.ConnectionError("simulated connection error")
 
 
 # ---------------------------------------------------------------------------
-# Helper
+# Вспомогательная функция
 # ---------------------------------------------------------------------------
 
 
@@ -85,7 +85,7 @@ def _make_context(
     tfs_client: FakeTFSClient,
     tmp_path: Path,
 ) -> PipelineContext:
-    """Build a minimal PipelineContext with the given fake TFS client."""
+    """Строит минимальный PipelineContext с заданным фейковым TFS-клиентом."""
     return PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",
@@ -94,7 +94,7 @@ def _make_context(
 
 
 # ---------------------------------------------------------------------------
-# 6.1 — Happy path: Docker links extracted from YAML
+# Успешный путь: Docker-ссылки извлекаются из YAML
 # ---------------------------------------------------------------------------
 
 
@@ -102,7 +102,7 @@ def test_docker_fetcher_extracts_links_from_yaml(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """DockerFetcher returns a docker link for each profile found in the YAML."""
+    """DockerFetcher возвращает docker-ссылку для каждого профиля, найденного в YAML."""
     tfs_client = _ContentFakeTFSClient(content=YAML_CONTENT.encode())
     ctx = _make_context(parser_config, tfs_client, tmp_path)
     fetcher = DockerFetcher()
@@ -116,7 +116,7 @@ def test_docker_fetcher_extracts_links_from_yaml(
 
 
 # ---------------------------------------------------------------------------
-# 6.2 — Empty URLs list returns empty links
+# Пустой список URL возвращает пустую карту ссылок
 # ---------------------------------------------------------------------------
 
 
@@ -124,7 +124,7 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """DockerFetcher.fetch with an empty URL list returns an empty links map."""
+    """DockerFetcher.fetch с пустым списком URL возвращает пустую карту ссылок."""
     tfs_client = FakeTFSClient()
     ctx = _make_context(parser_config, tfs_client, tmp_path)
     fetcher = DockerFetcher()
@@ -136,7 +136,7 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
 
 
 # ---------------------------------------------------------------------------
-# 6.3 — Failed fetch (RequestException) produces empty result
+# Сбой загрузки (RequestException) даёт пустой результат
 # ---------------------------------------------------------------------------
 
 
@@ -145,10 +145,10 @@ def test_docker_fetcher_failed_url_produces_warning(
     tmp_path: Path,
 ) -> None:
     """
-    DockerFetcher skips a URL when get_file_content raises a RequestException.
+    DockerFetcher пропускает URL, когда get_file_content вызывает RequestException.
 
-    The exception is caught internally; the result is an empty links map and
-    the fetcher does not propagate the error.
+    Исключение перехватывается внутри; результат — пустая карта ссылок,
+    ошибка не пробрасывается.
     """
     ctx = _make_context(parser_config, _RaisingFakeTFSClient(), tmp_path)
     fetcher = DockerFetcher()
@@ -160,7 +160,7 @@ def test_docker_fetcher_failed_url_produces_warning(
 
 
 # ---------------------------------------------------------------------------
-# 6.4 — Invalid YAML content produces empty result
+# Некорректное YAML-содержимое даёт пустой результат
 # ---------------------------------------------------------------------------
 
 
@@ -169,10 +169,10 @@ def test_docker_fetcher_invalid_yaml_produces_warning(
     tmp_path: Path,
 ) -> None:
     """
-    DockerFetcher skips a URL when the response body is not valid YAML.
+    DockerFetcher пропускает URL, когда тело ответа не является корректным YAML.
 
-    The YAMLError is caught internally; the result is an empty links map and
-    the fetcher does not propagate the error.
+    YAMLError перехватывается внутри; результат — пустая карта ссылок,
+    ошибка не пробрасывается.
     """
     invalid_yaml: bytes = b"[unclosed: mapping: {"
     tfs_client = _ContentFakeTFSClient(content=invalid_yaml)

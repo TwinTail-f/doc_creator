@@ -1,7 +1,7 @@
 """
-Unit tests for autodoc/parser/clients/tfs_client.py.
+Юнит-тесты для autodoc/parser/clients/tfs_client.py.
 
-All HTTP I/O is mocked — no real network calls are made.
+Весь HTTP-ввод/вывод замокан — реальных сетевых вызовов нет.
 """
 
 import json
@@ -14,7 +14,7 @@ from autodoc.exceptions import NetworkError
 from autodoc.parser.clients.tfs_client import TFSClient
 
 # ---------------------------------------------------------------------------
-# Constants
+# Константы
 # ---------------------------------------------------------------------------
 
 TFS_URL: str = "https://tfs.example.com"
@@ -23,12 +23,12 @@ REMOTE_PATH: str = "/platform/manifests"
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Вспомогательные функции
 # ---------------------------------------------------------------------------
 
 
 def _make_response(status_code: int = 200, content: bytes = b"") -> MagicMock:
-    """Return a mock requests.Response with the given status code and content."""
+    """Возвращает мок requests.Response с заданным кодом статуса и содержимым."""
     mock_resp = MagicMock(spec=requests.Response)
     mock_resp.status_code = status_code
     mock_resp.content = content
@@ -42,17 +42,17 @@ def _make_response(status_code: int = 200, content: bytes = b"") -> MagicMock:
 
 
 def _make_tfs_client(parser_config) -> TFSClient:
-    """Instantiate TFSClient from a minimal valid parser config."""
+    """Создаёт TFSClient из минимальной корректной конфигурации парсера."""
     return TFSClient(parser_config)
 
 
 # ---------------------------------------------------------------------------
-# 1.1 — get_file_content: successful response is returned
+# get_file_content: успешный ответ возвращается
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_get_file_content_returns_response(mocker, parser_config) -> None:
-    """TFSClient.get_file_content returns the HTTP response on success."""
+    """TFSClient.get_file_content возвращает HTTP-ответ при успехе."""
     client = _make_tfs_client(parser_config)
     mock_resp = _make_response(status_code=200, content=b"hello")
     mocker.patch.object(client.session, "get", return_value=mock_resp)
@@ -63,14 +63,14 @@ def test_tfs_client_get_file_content_returns_response(mocker, parser_config) -> 
 
 
 # ---------------------------------------------------------------------------
-# 1.2 — get_file_content: network failure raises NetworkError
+# get_file_content: сетевой сбой вызывает NetworkError
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_get_file_content_raises_network_error_on_failure(
     mocker, parser_config
 ) -> None:
-    """TFSClient.get_file_content wraps RequestException into NetworkError."""
+    """TFSClient.get_file_content оборачивает RequestException в NetworkError."""
     client = _make_tfs_client(parser_config)
     mocker.patch.object(
         client.session, "get", side_effect=requests.RequestException("timeout")
@@ -81,12 +81,12 @@ def test_tfs_client_get_file_content_raises_network_error_on_failure(
 
 
 # ---------------------------------------------------------------------------
-# 1.3 — get_items: parses 'value' list from JSON response
+# get_items: разбирает список 'value' из JSON-ответа
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_get_items_returns_item_list(mocker, parser_config) -> None:
-    """TFSClient.get_items returns the list extracted from the 'value' key."""
+    """TFSClient.get_items возвращает список, извлечённый из ключа 'value'."""
     items = [{"path": "/a.properties"}, {"path": "/b.properties"}]
     mock_resp = _make_response(
         status_code=200, content=json.dumps({"value": items}).encode()
@@ -100,14 +100,14 @@ def test_tfs_client_get_items_returns_item_list(mocker, parser_config) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.4 — get_items: HTTP error raises NetworkError
+# get_items: HTTP-ошибка вызывает NetworkError
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_get_items_raises_network_error_on_http_error(
     mocker, parser_config
 ) -> None:
-    """TFSClient.get_items raises NetworkError when the session raises RequestException."""
+    """TFSClient.get_items вызывает NetworkError, когда сессия бросает RequestException."""
     client = _make_tfs_client(parser_config)
     mocker.patch.object(
         client.session, "get", side_effect=requests.RequestException("server error")
@@ -118,7 +118,7 @@ def test_tfs_client_get_items_raises_network_error_on_http_error(
 
 
 # ---------------------------------------------------------------------------
-# 1.5 — download_properties: downloads .properties files, skips others
+# download_properties: скачивает .properties-файлы, пропускает остальные
 # ---------------------------------------------------------------------------
 
 
@@ -126,9 +126,9 @@ def test_tfs_client_download_properties_downloads_files(
     mocker, parser_config, tmp_path
 ) -> None:
     """
-    download_properties writes .properties files to tmp_path and skips other extensions.
+    download_properties записывает .properties-файлы в tmp_path и пропускает другие расширения.
 
-    The listing response provides two items; only the .properties one is written.
+    Ответ листинга содержит два элемента; записывается только .properties-файл.
     """
     client = _make_tfs_client(parser_config)
 
@@ -158,14 +158,14 @@ def test_tfs_client_download_properties_downloads_files(
 
 
 # ---------------------------------------------------------------------------
-# 1.6 — download_properties: listing failure propagates NetworkError
+# download_properties: сбой листинга пробрасывает NetworkError
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_download_properties_raises_on_listing_failure(
     mocker, parser_config, tmp_path
 ) -> None:
-    """download_properties propagates NetworkError when the listing request fails."""
+    """download_properties пробрасывает NetworkError при сбое запроса листинга."""
     client = _make_tfs_client(parser_config)
     mocker.patch.object(
         client.session,

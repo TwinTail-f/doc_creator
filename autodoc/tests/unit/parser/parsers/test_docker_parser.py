@@ -1,7 +1,7 @@
-"""Unit tests for autodoc.parser.parsers.docker_parser.DockerParser.
+"""Юнит-тесты для autodoc.parser.parsers.docker_parser.DockerParser.
 
-Covers: extract_from_yaml, extract_docker_image, add_aliases.
-All tests operate on in-memory dicts — no I/O required.
+Охватывает: extract_from_yaml, extract_docker_image, add_aliases.
+Все тесты работают с in-memory словарями — ввод/вывод не требуется.
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 from autodoc.parser.parsers.docker_parser import DockerParser, DockerLinksMap
 
 # ---------------------------------------------------------------------------
-# Module-level constants
+# Константы уровня модуля
 # ---------------------------------------------------------------------------
 
 DOCKER_IMAGE: str = "harbor.example.com/debian11:components"
@@ -20,12 +20,12 @@ PROFILE_FLAT: str = "hw-linux-x86_64-gcc10_2"
 
 
 # ===========================================================================
-# 4.1 — extract_from_yaml: plain string docker value
+# extract_from_yaml: docker-значение в виде простой строки
 # ===========================================================================
 
 
 def test_extract_from_yaml_plain_string_docker() -> None:
-    """extract_from_yaml maps the arch key to a plain-string docker image URL."""
+    """extract_from_yaml сопоставляет ключ arch с URL docker-образа в виде простой строки."""
     content: dict = {
         "archs": {
             PROFILE_LINUX: {
@@ -40,12 +40,12 @@ def test_extract_from_yaml_plain_string_docker() -> None:
 
 
 # ===========================================================================
-# 4.2 — extract_from_yaml: docker as dict with 'image' key
+# extract_from_yaml: docker как словарь с ключом 'image'
 # ===========================================================================
 
 
 def test_extract_from_yaml_docker_dict_image_key() -> None:
-    """extract_from_yaml extracts the image URL when docker value is a dict with an 'image' key."""
+    """extract_from_yaml извлекает URL образа, когда docker-значение — словарь с ключом 'image'."""
     content: dict = {
         "archs": {
             PROFILE_LINUX: {
@@ -60,12 +60,12 @@ def test_extract_from_yaml_docker_dict_image_key() -> None:
 
 
 # ===========================================================================
-# 4.3 — extract_from_yaml: 'common' key is skipped
+# extract_from_yaml: ключ 'common' пропускается
 # ===========================================================================
 
 
 def test_extract_from_yaml_skips_common_key() -> None:
-    """extract_from_yaml ignores entries with the reserved 'common' key."""
+    """extract_from_yaml игнорирует записи с зарезервированным ключом 'common'."""
     content: dict = {
         "archs": {
             "common": {"docker": DOCKER_IMAGE},
@@ -77,12 +77,12 @@ def test_extract_from_yaml_skips_common_key() -> None:
 
 
 # ===========================================================================
-# 4.4 — extract_from_yaml: entry without 'docker' key is skipped
+# extract_from_yaml: запись без ключа 'docker' пропускается
 # ===========================================================================
 
 
 def test_extract_from_yaml_skips_entry_without_docker() -> None:
-    """extract_from_yaml skips arch entries that carry no 'docker' field."""
+    """extract_from_yaml пропускает записи arch, не содержащие поле 'docker'."""
     content: dict = {
         "archs": {
             PROFILE_LINUX: {"profile_host": PROFILE_LINUX},
@@ -94,12 +94,12 @@ def test_extract_from_yaml_skips_entry_without_docker() -> None:
 
 
 # ===========================================================================
-# 4.5 — extract_from_yaml: profile_host as list adds alias for each entry
+# extract_from_yaml: profile_host как список добавляет псевдоним для каждой записи
 # ===========================================================================
 
 
 def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
-    """extract_from_yaml registers a docker image for every item in a list profile_host."""
+    """extract_from_yaml регистрирует docker-образ для каждого элемента списка profile_host."""
     content: dict = {
         "archs": {
             "multi-arch": {
@@ -115,12 +115,12 @@ def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
 
 
 # ===========================================================================
-# 4.6 — add_aliases: file with extension adds four distinct entries
+# add_aliases: файл с расширением добавляет четыре различные записи
 # ===========================================================================
 
 
 def test_add_aliases_with_extension_adds_four_entries() -> None:
-    """add_aliases inserts full path, filename, stem, and parent/stem for a nested .jinja name."""
+    """add_aliases добавляет полный путь, имя файла, stem и parent/stem для вложённого .jinja-имени."""
     links: DockerLinksMap = {}
     DockerParser.add_aliases(PROFILE_WITH_PATH, "img:tag", links)
     assert links.get("path/to/profile.jinja") == "img:tag"
@@ -130,12 +130,12 @@ def test_add_aliases_with_extension_adds_four_entries() -> None:
 
 
 # ===========================================================================
-# 4.7 — add_aliases: flat name without slashes
+# add_aliases: плоское имя без слешей
 # ===========================================================================
 
 
 def test_add_aliases_flat_name_adds_entries() -> None:
-    """add_aliases maps a flat (non-nested) name without adding a parent/stem key."""
+    """add_aliases отображает плоское (невложенное) имя без добавления ключа parent/stem."""
     links: DockerLinksMap = {}
     DockerParser.add_aliases(PROFILE_FLAT, "img:tag", links)
     assert links[PROFILE_FLAT] == "img:tag"
@@ -143,23 +143,23 @@ def test_add_aliases_flat_name_adds_entries() -> None:
 
 
 # ===========================================================================
-# 4.8 — add_aliases: empty name does nothing
+# add_aliases: пустое имя ничего не делает
 # ===========================================================================
 
 
 def test_add_aliases_empty_name_does_nothing() -> None:
-    """add_aliases leaves the links dict unchanged when name is an empty string."""
+    """add_aliases оставляет словарь links без изменений, когда name — пустая строка."""
     links: DockerLinksMap = {}
     DockerParser.add_aliases("", "img:tag", links)
     assert links == {}
 
 
 # ===========================================================================
-# 4.9 — extract_docker_image: non-string, non-dict returns empty string
+# extract_docker_image: не строка и не словарь возвращает пустую строку
 # ===========================================================================
 
 
 def test_extract_docker_image_none_returns_empty_string() -> None:
-    """extract_docker_image returns '' when the docker field value is None."""
+    """extract_docker_image возвращает '', если значение поля docker равно None."""
     result = DockerParser.extract_docker_image({"docker": None})
     assert result == ""

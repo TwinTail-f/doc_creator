@@ -1,8 +1,8 @@
 """
-Unit tests for autodoc/parser/fetchers/options_fetcher.py.
+Юнит-тесты для autodoc/parser/fetchers/options_fetcher.py.
 
-Strategy: subclass FakeTFSClient to control what get_items and
-get_file_content return, then verify the OptionsMap built by the fetcher.
+Стратегия: наследуемся от FakeTFSClient, чтобы управлять возвращаемыми
+значениями get_items и get_file_content, затем проверяем OptionsMap.
 """
 
 import json
@@ -18,32 +18,32 @@ from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.tests.unit.parser.conftest import FakeTFSClient
 
 # ---------------------------------------------------------------------------
-# Path constants that satisfy OptionsParser's path filters:
-#   - must end with "options.json"
-#   - must contain "/conan/"
-#   - must contain "/ci-2.0/" for the CI-prefix selection
+# Константы путей, удовлетворяющие фильтрам путей OptionsParser:
+#   - должны заканчиваться на "options.json"
+#   - должны содержать "/conan/"
+#   - должны содержать "/ci-2.0/" для выбора CI-префикса
 # ---------------------------------------------------------------------------
 
 _OPTIONS_PATH: str = "/conan/ci-2.0/tech/options.json"
 
 
 # ---------------------------------------------------------------------------
-# Local fake TFS clients
+# Локальные фейковые TFS-клиенты
 # ---------------------------------------------------------------------------
 
 
 class _ItemsAndContentFakeTFSClient(FakeTFSClient):
     """
-    FakeTFSClient whose get_items and get_file_content return configurable data.
+    FakeTFSClient, чьи get_items и get_file_content возвращают настраиваемые данные.
 
-    Useful for testing the full OptionsFetcher pipeline.
+    Полезен для тестирования всего пайплайна OptionsFetcher.
     """
 
     def __init__(self, items: list, content: bytes) -> None:
         """
         Args:
-            items: List of item dicts returned by get_items.
-            content: Raw bytes returned as response body by get_file_content.
+            items: Список словарей элементов, возвращаемых get_items.
+            content: Сырые байты, возвращаемые как тело ответа get_file_content.
         """
         self._items = items
         self._content = content
@@ -51,13 +51,13 @@ class _ItemsAndContentFakeTFSClient(FakeTFSClient):
     def get_items(
         self, items_url: str, branch: str, recursion=None, version_type=None
     ) -> list:
-        """Return the pre-configured item list."""
+        """Возвращает заранее настроенный список элементов."""
         return self._items
 
     def get_file_content(
         self, items_url: str, path: str, branch: str, version_type=None
     ):
-        """Return a 200 response with the pre-configured content."""
+        """Возвращает ответ 200 с заранее настроенным содержимым."""
         resp = requests.Response()
         resp.status_code = 200
         resp._content = self._content
@@ -65,7 +65,7 @@ class _ItemsAndContentFakeTFSClient(FakeTFSClient):
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Вспомогательные функции
 # ---------------------------------------------------------------------------
 
 
@@ -75,7 +75,7 @@ def _make_component(
     version: str = "3.0.0",
     channel: str = "tech",
 ) -> Component:
-    """Build a minimal Component with one Release."""
+    """Строит минимальный Component с одним Release."""
     release = Release(
         version=version,
         platform="2.0",
@@ -97,7 +97,7 @@ def _make_context(
     tfs_client: FakeTFSClient,
     tmp_path: Path,
 ) -> PipelineContext:
-    """Build a minimal PipelineContext with the given fake TFS client."""
+    """Строит минимальный PipelineContext с заданным фейковым TFS-клиентом."""
     return PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",
@@ -106,7 +106,7 @@ def _make_context(
 
 
 # ---------------------------------------------------------------------------
-# 5.1 — Happy path: options extracted for a component release
+# Успешный путь: опции извлекаются для релиза компонента
 # ---------------------------------------------------------------------------
 
 
@@ -114,7 +114,7 @@ def test_options_fetcher_extracts_options_for_release(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """OptionsFetcher maps (name, version, channel) → parsed options on success."""
+    """OptionsFetcher отображает (name, version, channel) → разобранные опции при успехе."""
     component = _make_component()
     tfs_client = _ItemsAndContentFakeTFSClient(
         items=[{"path": _OPTIONS_PATH, "isFolder": False}],
@@ -132,7 +132,7 @@ def test_options_fetcher_extracts_options_for_release(
 
 
 # ---------------------------------------------------------------------------
-# 5.2 — get_items returns empty list → default options in map
+# get_items возвращает пустой список → опции по умолчанию в карте
 # ---------------------------------------------------------------------------
 
 
@@ -141,10 +141,10 @@ def test_options_fetcher_empty_items_returns_empty_map(
     tmp_path: Path,
 ) -> None:
     """
-    When get_items returns no items, OptionsFetcher inserts a default options entry.
+    Когда get_items не возвращает элементов, OptionsFetcher добавляет запись опций по умолчанию.
 
-    The OptionsParser.pick_options fallback returns {"1": ""} when no channel-
-    specific or global options are available.
+    Запасной вариант OptionsParser.pick_options возвращает {"1": ""}, если нет
+    канало-специфичных или глобальных опций.
     """
     component = _make_component()
     tfs_client = _ItemsAndContentFakeTFSClient(items=[], content=b"{}")
@@ -154,12 +154,12 @@ def test_options_fetcher_empty_items_returns_empty_map(
 
     result = fetcher.fetch([component])
 
-    # No crash; the key exists with the default fallback value.
+    # Без исключений; ключ существует со значением запасного варианта.
     assert ("openssl", "3.0.0", "tech") in result.value
 
 
 # ---------------------------------------------------------------------------
-# 5.3 — Unparseable JSON content is silently skipped
+# Нераспознаваемое JSON-содержимое молча пропускается
 # ---------------------------------------------------------------------------
 
 
@@ -168,10 +168,10 @@ def test_options_fetcher_skips_on_invalid_json(
     tmp_path: Path,
 ) -> None:
     """
-    OptionsFetcher does not raise when get_file_content returns invalid JSON.
+    OptionsFetcher не вызывает исключений, когда get_file_content возвращает некорректный JSON.
 
-    The OptionsParser logs a warning internally and returns an empty options dict.
-    The fetcher continues and returns the default fallback for that release.
+    OptionsParser логирует предупреждение внутри и возвращает пустой словарь опций.
+    Fetcher продолжает работу и возвращает значение по умолчанию для данного релиза.
     """
     component = _make_component()
     tfs_client = _ItemsAndContentFakeTFSClient(
@@ -184,5 +184,5 @@ def test_options_fetcher_skips_on_invalid_json(
 
     result = fetcher.fetch([component])
 
-    # Fetcher must not raise; the release key must still be present.
+    # Fetcher не должен вызывать исключений; ключ релиза должен присутствовать.
     assert ("openssl", "3.0.0", "tech") in result.value
