@@ -157,7 +157,9 @@ class ConfigManager:
             if candidate.exists():
                 return candidate
 
-        available = [item.name for item in self.configs_dir.iterdir() if not item.is_dir()]
+        available = [
+            item.name for item in self.configs_dir.iterdir() if not item.is_dir()
+        ]
         raise ConfigError(
             f'Конфиг "{filename}" не найден в {self.configs_dir}. '
             f"Доступные файлы: {available}. "

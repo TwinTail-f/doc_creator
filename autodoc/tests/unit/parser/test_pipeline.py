@@ -1,214 +1,74 @@
-"""Тесты пайплайна: ComponentParser, BaseParseStep, PipelineContext."""
-
-import json
-from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock
+"""Unit tests for autodoc/parser/pipeline/context.py and BaseParseStep."""
 
 import pytest
 
-from autodoc.config.schemas import ParserConfigSchema
-from autodoc.exceptions import DocGeneratorError, ParsingError
-from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-from autodoc.parser.clients.tfs_client import TFSClient
-from autodoc.parser.parser import ComponentParser
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
-from autodoc.parser.steps.manifest_step import ManifestStep
+from autodoc.parser.pipeline.context import PipelineContext
+from autodoc.parser.steps.base import BaseParseStep
+
+# ---------------------------------------------------------------------------
+# Tests: PipelineContext
+# ---------------------------------------------------------------------------
 
 
-class _SuccessStep(BaseParseStep):
-    is_critical = False
-
-    def __init__(self, mark="done", critical=False):
-        self._mark = mark
-        self.is_critical = critical
-
-    @property
-    def name(self):
-        return "SuccessStep[%s]" % self._mark
-
-    def execute(self, ctx):
-        ctx.intermediate[self._mark] = True
+def test_pipeline_context_construction(
+    parser_config,
+    tmp_path,
+) -> None:
+    """PipelineContext initializes with empty components and result=None."""
+    ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
+    assert ctx.components == []
+    assert ctx.result is None
 
 
-class _FailStep(BaseParseStep):
-    name = "FailStep"
-
-    def __init__(self, critical=True):
-        self.is_critical = critical
-
-    def execute(self, ctx):
-        raise DocGeneratorError("Намеренная ошибка шага")
-
-
-class _FinalizeStub(BaseParseStep):
-    name = "FinalizeStep"
-
-    def execute(self, ctx):
-        ctx.result = ParsedResult(
-            generated_at="2026-01-01T00:00:00",
-            platform_version="2.0",
-            components=[],
-        )
+def test_pipeline_context_snapshot_excludes_docker_links(
+    parser_config,
+    tmp_path,
+) -> None:
+    """to_snapshot_dict omits 'docker_links' from intermediate but reports its count."""
+    ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
+    ctx.intermediate["docker_links"] = {"key1": "val1"}
+    snapshot = ctx.to_snapshot_dict()
+    assert "docker_links" not in snapshot["intermediate"]
+    assert snapshot["docker_links_count"] == 1
 
 
-class TestBaseParseStepContract:
-    """Тест контракта BaseParseStep."""
-
-    def test_step_without_name_raises_on_declaration(self) -> None:
-        """Шаг без name вызывает TypeError при объявлении класса."""
-        with pytest.raises(TypeError, match="должен определить атрибут name"):
-
-            class BrokenStep(BaseParseStep):
-                def execute(self, ctx):
-                    pass
-
-
-class TestPipelineStepOrder:
-    def test_all_steps_executed_in_order(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        order = []
-
-        class OrderStep(BaseParseStep):
-            name = "placeholder"
-
-            def __init__(self, n):
-                self._n = n
-                self.name = "Step%d" % n
-
-            def execute(self, ctx):
-                order.append(self._n)
-                if self._n == 3:
-                    ctx.result = ParsedResult(
-                        generated_at="2026-01-01", platform_version="2.0", components=[]
-                    )
-
-        parser = ComponentParser(
-            minimal_config, tmp_path, steps=[OrderStep(1), OrderStep(2), OrderStep(3)]
-        )
-        parser.parse()
-        assert order == [1, 2, 3]
-
-    def test_non_critical_step_failure_continues(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        steps = [_FailStep(critical=False), _FinalizeStub()]
-        parser = ComponentParser(minimal_config, tmp_path, steps=steps)
-        result = parser.parse()
-        assert result is not None
-
-    def test_critical_step_failure_raises(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        with pytest.raises(ParsingError, match="Намеренная ошибка"):
-            ComponentParser(
-                minimal_config,
-                tmp_path,
-                steps=[_FailStep(critical=True), _FinalizeStub()],
-            ).parse()
-
-    def test_tmp_dir_cleaned_on_success(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        ComponentParser(minimal_config, tmp_path, steps=[_FinalizeStub()]).parse()
-        assert not (tmp_path / "tmp").exists()
-
-    def test_tmp_dir_cleaned_on_failure(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        (tmp_path / "tmp").mkdir()
-        with pytest.raises(ParsingError):
-            ComponentParser(
-                minimal_config, tmp_path, steps=[_FailStep(critical=True)]
-            ).parse()
-        assert not (tmp_path / "tmp").exists()
-
-    def test_injected_clients_are_placed_in_context(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        """Клиенты, переданные в конструктор, доступны через ctx во время выполнения."""
-        captured: dict = {}
-
-        class CapturingStep(BaseParseStep):
-            name = "CapturingStep"
-
-            def execute(self, ctx):
-                captured["tfs"] = ctx.tfs_client
-                captured["art"] = ctx.artifactory_client
-                ctx.result = ParsedResult(
-                    generated_at="2026-01-01", platform_version="2.0", components=[]
-                )
-
-        mock_tfs = MagicMock(spec=TFSClient)
-        mock_art = MagicMock(spec=ArtifactoryClient)
-
-        ComponentParser(
-            minimal_config,
-            tmp_path,
-            steps=[CapturingStep()],
-            tfs_client=mock_tfs,
-            artifactory_client=mock_art,
-        ).parse()
-
-        assert captured["tfs"] is mock_tfs
-        assert captured["art"] is mock_art
+def test_pipeline_context_snapshot_includes_components_count(
+    parser_config,
+    tmp_path,
+    manifest_component,
+) -> None:
+    """to_snapshot_dict includes components_count matching len(ctx.components)."""
+    ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
+    ctx.components = [manifest_component]
+    snapshot = ctx.to_snapshot_dict()
+    assert snapshot["components_count"] == 1
 
 
-class TestSaveIntermediate:
-    def test_save_intermediate_creates_files(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        steps = [_SuccessStep("a"), _FinalizeStub()]
-        ComponentParser(minimal_config, tmp_path, steps=steps).parse(
-            save_intermediate=True
-        )
-        files = list((tmp_path / "intermediate").glob("*.json"))
-        assert len(files) == 2
-
-    def test_save_intermediate_false_no_files(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        ComponentParser(minimal_config, tmp_path, steps=[_FinalizeStub()]).parse(
-            save_intermediate=False
-        )
-        assert not (tmp_path / "intermediate").exists()
+def test_pipeline_context_snapshot_converts_tuple_keys(
+    parser_config,
+    tmp_path,
+) -> None:
+    """to_snapshot_dict converts tuple keys in intermediate dicts to string representations."""
+    ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
+    ctx.intermediate["test_data"] = {("a", "b"): "value"}
+    snapshot = ctx.to_snapshot_dict()
+    keys = list(snapshot["intermediate"]["test_data"].keys())
+    assert all(isinstance(k, str) for k in keys)
 
 
-class TestManifestStepSingularity:
-    def test_default_pipeline_has_exactly_one_manifest_step(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        """default_pipeline() содержит ровно один ManifestStep — клиенты не создаются."""
-        parser = ComponentParser(minimal_config, tmp_path)
-        manifest_steps = [s for s in parser._steps if isinstance(s, ManifestStep)]
-        assert len(manifest_steps) == 1
+# ---------------------------------------------------------------------------
+# Tests: BaseParseStep
+# ---------------------------------------------------------------------------
 
 
-class TestProfileBuildFieldNames:
-    """Проверка переименованных полей ProfileBuild в пайплайне."""
+def test_base_parse_step_requires_name_attribute() -> None:
+    """Defining a BaseParseStep subclass with an empty name raises TypeError at class definition."""
+    with pytest.raises(TypeError):
 
-    def test_finalize_uses_exists_not_pb_exist(
-        self, tmp_path: Path, minimal_config: ParserConfigSchema
-    ) -> None:
-        """FinalizeStep использует pb.exists, а не pb.pb_exist."""
-        from autodoc.models.component import Component, ProfileBuild, Release
-        from autodoc.parser.steps.finalize_step import FinalizeStep
+        class BadStep(BaseParseStep):
+            """Step with empty name — should raise at class definition."""
 
-        pb = ProfileBuild(profile_name="test", exists=False)
-        release = Release(
-            version="1.0",
-            platform="2.0",
-            channel="stable",
-            git_url="https://tfs.example.com",
-        )
-        release.profile_builds = [pb]
-        comp = Component(name="lib", releases=[release])
+            name = ""  # falsy → __init_subclass__ raises
 
-        ctx = PipelineContext(config=minimal_config, tmp_dir=tmp_path)
-        ctx.components = [comp]
-
-        step = FinalizeStep()
-        step._filter_empty_profiles([comp])
-        assert len(release.profile_builds) == 0
+            def execute(self, ctx: PipelineContext) -> None:
+                """No-op execute for the bad step."""

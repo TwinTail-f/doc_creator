@@ -56,4 +56,4 @@ class DockerParser:
         docker_links[path_obj.name] = docker_img
         docker_links[path_obj.stem] = docker_img
         if path_obj.parent != Path("."):
-            docker_links[f"{path_obj.parent}/{path_obj.stem}"] = docker_img
+            docker_links[f"{path_obj.parent.as_posix()}/{path_obj.stem}"] = docker_img

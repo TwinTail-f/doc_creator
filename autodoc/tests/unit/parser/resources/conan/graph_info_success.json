@@ -1,0 +1,34 @@
+{
+  "graph": {
+    "nodes": {
+      "0": {
+        "ref": "conanfile",
+        "name": null,
+        "binary": null,
+        "package_id": null
+      },
+      "1": {
+        "name": "benchmark",
+        "ref": "benchmark/1.9.4.549@platform-2.0/tech",
+        "rrev": "aabbcc1122334455aabbcc1122334455",
+        "binary": "Download",
+        "package_id": "575ea8086554107ae2c0fdbb4909d62390c52b77",
+        "default_options": null,
+        "options_definitions": {
+          "shared": ["True", "False"]
+        },
+        "info": {
+          "settings": {
+            "os": "Linux",
+            "arch": "armv7hf",
+            "compiler": "gcc",
+            "compiler.version": "10"
+          },
+          "options": {
+            "shared": "True"
+          }
+        }
+      }
+    }
+  }
+}

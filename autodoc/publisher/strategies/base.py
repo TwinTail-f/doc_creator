@@ -65,7 +65,7 @@ class BasePublishStrategy(ABC):
     Стратегии без ``_make_transformer`` получают ``kwargs`` без изменений.
     """
 
-    _registry: ClassVar[dict[str, type[BasePublishStrategy]]] = {}
+    _registry: ClassVar[dict[str, type["BasePublishStrategy"]]] = {}
 
     def __init__(
         self,
