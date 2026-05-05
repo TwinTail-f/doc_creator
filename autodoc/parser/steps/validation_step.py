@@ -57,8 +57,7 @@ class ArtifactoryValidationStep(BaseParseStep):
 
         logger.info(f"Удалено {len(dead_variants)} недоступных вариантов (HTTP 404).")
 
-    @staticmethod
-    def _collect_variants(
+    def _collect_variants(self, 
         components: list[Component],
     ) -> list[tuple[ProfileBuild, ConanVariant, str]]:
         """
@@ -84,8 +83,7 @@ class ArtifactoryValidationStep(BaseParseStep):
                             result.append((pb, variant, api_url))
         return result
 
-    @staticmethod
-    def _check_urls_parallel(
+    def _check_urls_parallel(self, 
         variants_to_check: list[tuple[ProfileBuild, ConanVariant, str]],
         client: IArtifactoryClient,
     ) -> list[tuple[ProfileBuild, ConanVariant]]:
@@ -139,8 +137,7 @@ class ArtifactoryValidationStep(BaseParseStep):
 
         return dead
 
-    @staticmethod
-    def _remove_dead_variants(
+    def _remove_dead_variants(self, 
         dead_variants: list[tuple[ProfileBuild, ConanVariant]],
     ) -> None:
         """

@@ -24,7 +24,7 @@ def _parse_option_str(option_str: str) -> dict[str, str]:
     for part in option_str.split(","):
         if "=" in part:
             k, v = part.split("=", 1)
-            key = k.strip().split(":")[-1]
+            key = k.split(":")[-1].strip()
             result[key] = v.strip()
     return result
 

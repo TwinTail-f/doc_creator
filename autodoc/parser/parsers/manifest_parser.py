@@ -176,8 +176,7 @@ class ManifestParser:
 
         return releases
 
-    @staticmethod
-    def _get_profiles_string(props: dict[str, str], c_ver: str, p_ver: str) -> str:
+    def _get_profiles_string(self, props: dict[str, str], c_ver: str, p_ver: str) -> str:
         """Извлекает строку со списком профилей для заданной комбинации версий."""
         key_profiles = f"profiles-{c_ver}-{p_ver}"
         return props.get(key_profiles, "")

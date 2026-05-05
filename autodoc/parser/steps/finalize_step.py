@@ -52,8 +52,7 @@ class FinalizeStep(BaseParseStep):
     # Conan выставляет его для header-only пакетов.
     _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
-    @staticmethod
-    def _compute_header_only_flags(
+    def _compute_header_only_flags(self, 
         components: list[Component],
         profile_definitions: list[ProfileDefinition],
     ) -> None:
@@ -70,7 +69,7 @@ class FinalizeStep(BaseParseStep):
             components: Список компонентов для обработки.
             profile_definitions: Не используется, оставлен для совместимости сигнатуры.
         """
-        null_id = FinalizeStep._NULL_PACKAGE_ID
+        null_id = self._NULL_PACKAGE_ID
 
         for comp in components:
             for release in comp.releases:
@@ -86,8 +85,7 @@ class FinalizeStep(BaseParseStep):
                     variant.package_id == null_id for variant in all_variants
                 )
 
-    @staticmethod
-    def _filter_empty_profiles(components: list[Component]) -> int:
+    def _filter_empty_profiles(self, components: list[Component]) -> int:
         """
         Удаляет записи ``ProfileBuild`` с ``exists=False`` из всех релизов.
 
@@ -107,8 +105,7 @@ class FinalizeStep(BaseParseStep):
                 removed += before - len(release.profile_builds)
         return removed
 
-    @staticmethod
-    def _deduplicate_profile_definitions(
+    def _deduplicate_profile_definitions(self, 
         definitions: list[ProfileDefinition],
     ) -> list[ProfileDefinition]:
         """Дедуплицирует по profile_name, сохраняя последнюю записанную запись."""
@@ -117,8 +114,7 @@ class FinalizeStep(BaseParseStep):
             seen[pd.profile_name] = pd
         return list(seen.values())
 
-    @staticmethod
-    def _build_result(ctx: PipelineContext) -> ParsedResult:
+    def _build_result(self, ctx: PipelineContext) -> ParsedResult:
         """
         Собирает финальный ``ParsedResult`` из контекста пайплайна.
 

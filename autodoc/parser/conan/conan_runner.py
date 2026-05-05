@@ -287,8 +287,7 @@ class Conan2Runner(BaseConanRunner):
         except subprocess.TimeoutExpired:
             logger.warning("Таймаут при очистке кэша.")
 
-    @staticmethod
-    def _extract_error_message(stderr: str) -> str:
+    def _extract_error_message(self, stderr: str) -> str:
         """
         Извлекает релевантное сообщение из stderr Conan.
 

@@ -117,8 +117,8 @@ class ConanTaskBuilder:
 
         return tasks
 
-    @staticmethod
     def _build_cmd(
+        self,
         reference: str,
         profile_name: str,
         opt_str: str,
@@ -166,12 +166,11 @@ class ConanTaskBuilder:
                 opt = raw_opt.strip()
                 if not opt:
                     continue
-                cmd.extend(["-o", ConanTaskBuilder._normalize_option(opt)])
+                cmd.extend(["-o", self._normalize_option(opt)])
 
         return cmd
 
-    @staticmethod
-    def _normalize_option(opt: str) -> str:
+    def _normalize_option(self, opt: str) -> str:
         """
         Нормализует одну опцию Conan до формата ``pkg/*:key=val``.
 

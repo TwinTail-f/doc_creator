@@ -100,6 +100,7 @@ class ConanResultAggregator:
         result.failed = result.total_tasks - result.succeeded
 
         release_deps: dict[tuple[str, str, str], set[str]] = {}
+        release_patches: dict[tuple[str, str, str], set[str]] = {}
 
         release_resolved_options: dict[
             tuple[str, str, str], dict[str, dict[str, Any]]
@@ -113,6 +114,9 @@ class ConanResultAggregator:
             )
             release_deps.setdefault(release_key_pre, set()).update(
                 pb_agg[id(task.pb)].all_dependencies
+            )
+            release_patches.setdefault(release_key_pre, set()).update(
+                pb_agg[id(task.pb)].all_patches
             )
             merged_opts = release_resolved_options.setdefault(release_key_pre, {})
             for opt_id, opts in pb_agg[id(task.pb)].resolved_options_by_id.items():
@@ -154,7 +158,7 @@ class ConanResultAggregator:
                     full_version=fe.full_version,
                     default_options=fe.default_options,
                     total_options=total_options,
-                    patches=fe.patches,
+                    patches=sorted(release_patches.get(release_key, set())),
                     dependencies=sorted(release_deps.get(release_key, set())),
                     artifactory_url=art_url,
                 )
@@ -236,8 +240,7 @@ class ConanResultAggregator:
 
         return list(comp_map.values())
 
-    @staticmethod
-    def _extract_binary_status(data: dict[str, Any] | None, comp_name: str) -> str:
+    def _extract_binary_status(self, data: dict[str, Any] | None, comp_name: str) -> str:
         """
         Извлекает поле ``binary`` целевого узла из JSON-ответа ``conan graph info``.
 
@@ -270,6 +273,7 @@ class _ProfileBuildAggregator:
         "errors",
         "resolved_options_by_id",
         "all_dependencies",
+        "all_patches",
     )
 
     def __init__(self) -> None:
@@ -284,6 +288,7 @@ class _ProfileBuildAggregator:
             errors: Список записей об ошибках (команда → сообщение).
             resolved_options_by_id: option_id → resolved-словарь опций Conan.
             all_dependencies: Объединение зависимостей всех успешных задач.
+            all_patches: Объединение патчей всех успешных задач.
         """
         self.any_success: bool = False
         self.conan_settings: dict[str, Any] = {}
@@ -292,6 +297,7 @@ class _ProfileBuildAggregator:
         self.errors: list[dict[str, Any]] = []
         self.resolved_options_by_id: dict[str, dict[str, Any]] = {}
         self.all_dependencies: set[str] = set()
+        self.all_patches: set[str] = set()
 
     def apply_enrich(self, enrich: ConanEnrichData) -> None:
         """
@@ -315,6 +321,7 @@ class _ProfileBuildAggregator:
             self.resolved_options_by_id[enrich.option_id] = enrich.conan_options
 
         self.all_dependencies.update(enrich.dependencies)
+        self.all_patches.update(enrich.patches)
 
         if enrich.package_id and enrich.package_id not in self.unique_variants:
             self.unique_variants[enrich.package_id] = ConanVariant(

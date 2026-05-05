@@ -24,9 +24,6 @@ def _logical_lines(filepath: Path) -> Generator[str, None, None]:
 
     Yields:
         Логические строки без символа продолжения и без обрамляющих пробелов.
-
-    Raises:
-        OSError: Если файл не найден или недоступен для чтения.
     """
     with filepath.open("r", encoding="utf-8") as f:
         pending = ""
@@ -66,9 +63,6 @@ def read_properties(filepath: Path) -> dict[str, str]:
 
     Returns:
         Словарь ``ключ → значение``. Ключи и значения обрезаются от пробелов.
-
-    Raises:
-        OSError: Если файл не найден или недоступен для чтения.
     """
     props: dict[str, str] = {}
     for line in _logical_lines(filepath):

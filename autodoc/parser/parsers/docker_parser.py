@@ -13,9 +13,9 @@ DockerLinksMap = dict[str, str]
 class DockerParser:
     """Статические методы для разбора YAML-профилей и извлечения Docker-ссылок."""
 
-    @staticmethod
+    @classmethod
     def extract_from_yaml(
-        content: dict[str, Any], docker_links: DockerLinksMap
+        cls, content: dict[str, Any], docker_links: DockerLinksMap
     ) -> None:
         """Обходит раздел archs: YAML-профиля и заполняет маппинг docker_links."""
         archs = content.get("archs", {})
@@ -23,21 +23,21 @@ class DockerParser:
             if key == "common" or not isinstance(val, dict):
                 continue
 
-            docker_img = DockerParser.extract_docker_image(val)
+            docker_img = cls.extract_docker_image(val)
             if not docker_img:
                 continue
 
-            DockerParser.add_aliases(key, docker_img, docker_links)
+            cls.add_aliases(key, docker_img, docker_links)
 
             prof_host = val.get("profile_host")
             if isinstance(prof_host, str):
-                DockerParser.add_aliases(prof_host, docker_img, docker_links)
+                cls.add_aliases(prof_host, docker_img, docker_links)
             elif isinstance(prof_host, list):
                 for ph in prof_host:
-                    DockerParser.add_aliases(ph, docker_img, docker_links)
+                    cls.add_aliases(ph, docker_img, docker_links)
 
-    @staticmethod
-    def extract_docker_image(arch_val: dict[str, Any]) -> str:
+    @classmethod
+    def extract_docker_image(cls, arch_val: dict[str, Any]) -> str:
         """Извлекает URL Docker-образа из словаря значений одной архитектуры."""
         docker_val = arch_val.get("docker")
         if isinstance(docker_val, str):
@@ -46,8 +46,8 @@ class DockerParser:
             return docker_val.get("image", "")
         return ""
 
-    @staticmethod
-    def add_aliases(name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
+    @classmethod
+    def add_aliases(cls, name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
         """Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов."""
         if not name:
             return

@@ -50,7 +50,7 @@ class ConanResultParser:
 
         base_ref, rrev, full_version = self._extract_ref_info(target_node, task.version)
         default_options = self._extract_default_options(target_node)
-        patches = self._extract_patches(target_node, task.version)
+        patches = self._extract_patches(target_node)
         dependencies = self._extract_dependencies(nodes, task.comp_name)
 
         info_dict: dict[str, Any] = target_node.get("info", {})
@@ -86,8 +86,7 @@ class ConanResultParser:
             option_id=task.option_id,
         )
 
-    @staticmethod
-    def _extract_ref_info(
+    def _extract_ref_info(self, 
         node: dict[str, Any],
         fallback_version: str,
     ) -> tuple[str, str, str]:
@@ -122,8 +121,7 @@ class ConanResultParser:
 
         return base_ref, rrev, full_version
 
-    @staticmethod
-    def _extract_default_options(node: dict[str, Any]) -> list[DefaultOptionsSet]:
+    def _extract_default_options(self, node: dict[str, Any]) -> list[DefaultOptionsSet]:
         """Извлекает поле default_options → list[DefaultOptionsSet]."""
         opt_defs: dict[str, Any] = node.get("options_definitions", {}) or {}
         def_opts: dict[str, Any] = node.get("default_options", {}) or {}
@@ -147,26 +145,31 @@ class ConanResultParser:
 
         return result
 
-    @staticmethod
-    def _extract_patches(node: dict[str, Any], version: str) -> list[str]:
+    def _extract_patches(self, node: dict[str, Any]) -> list[str]:
+        """Извлекает имена всех патч-файлов из conandata -> patches.
+
+        Обходит **все** ключи словаря patches (версии, строки вроде "all",
+        "KasperskyOS" и т.п.) и собирает имена файлов без учёта ключа.
+        Дубликаты удаляются с сохранением порядка первого вхождения.
+        """
         patches_dict: dict[str, Any] = node.get("conandata", {}).get("patches", {})
         if not isinstance(patches_dict, dict):
             return []
 
         extracted: list[str] = []
-        for key, patch_list in patches_dict.items():
-            if not (str(version).startswith(str(key)) or not str(key)[0].isdigit()):
+        for patch_list in patches_dict.values():
+            if not isinstance(patch_list, list):
                 continue
-            if isinstance(patch_list, list):
-                for p in patch_list:
-                    patch_file = p.get("patch_file", "")
-                    if patch_file:
-                        extracted.append(Path(patch_file).name)
+            for p in patch_list:
+                if not isinstance(p, dict):
+                    continue
+                patch_file = p.get("patch_file", "")
+                if patch_file:
+                    extracted.append(Path(patch_file).name)
 
         return list(dict.fromkeys(extracted))
 
-    @staticmethod
-    def _extract_dependencies(nodes: dict[str, Any], comp_name: str) -> list[str]:
+    def _extract_dependencies(self, nodes: dict[str, Any], comp_name: str) -> list[str]:
         """Собирает имена всех пакетов из графа зависимостей, кроме самого
         компонента и виртуальной ноды conanfile.
 
@@ -185,8 +188,7 @@ class ConanResultParser:
                     deps.append(dep_name)
         return sorted(set(deps))
 
-    @staticmethod
-    def _build_artifactory_url(
+    def _build_artifactory_url(self, 
         task: ConanTask, full_version: str, rrev: str, package_id: str = ""
     ) -> str:
         """
@@ -215,8 +217,7 @@ class ConanResultParser:
             url += f"/package/{package_id}"
         return url
 
-    @staticmethod
-    def _extract_build_date(node: dict[str, Any]) -> str:
+    def _extract_build_date(self, node: dict[str, Any]) -> str:
         """
         Извлекает дату сборки пакета из поля ``prev_timestamp`` узла.
 

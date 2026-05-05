@@ -1,0 +1,2074 @@
+{
+  "generated_at": "2026-04-28T07:32:28.634185+00:00",
+  "platform_version": "2.0",
+  "profile_definitions": [
+    {
+      "profile_name": "hw-linux-x86_64-gcc10_2",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "gcc",
+        "compiler.cppstd": "17",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.version": "10.2",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-hw/debian11:components"
+    },
+    {
+      "profile_name": "crypto_default_gcc_armv7hf.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv7hf",
+        "compiler": "gcc",
+        "compiler.cppstd": "17",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "aarch32_universal_gcc_11",
+        "compiler.version": "11",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/dep-cryptography/current/jammy:aarch32_universal"
+    },
+    {
+      "profile_name": "crypto_default_gcc_armv8.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv8",
+        "compiler": "gcc",
+        "compiler.cppstd": "17",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "aarch64_universal_gcc_11",
+        "compiler.version": "11",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/dep-cryptography/current/jammy:aarch64_universal"
+    },
+    {
+      "profile_name": "crypto_default_gcc_x86_64.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "gcc",
+        "compiler.toolchain_config_id": "custom_static_gcc_11",
+        "compiler.version": "11",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/dep-cryptography/current/centos:6_10_gcc_11"
+    },
+    {
+      "profile_name": "crypto_default_gcc_x86.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86",
+        "compiler": "gcc",
+        "compiler.cppstd": "17",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "custom_static_gcc_11",
+        "compiler.version": "11",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/dep-cryptography/current/centos:6_10_gcc_11"
+    },
+    {
+      "profile_name": "hw-linux-armv8-gcc10_2",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv8",
+        "compiler": "gcc",
+        "compiler.cppstd": "17",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.version": "10.2",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-hw/debian11:components"
+    },
+    {
+      "profile_name": "mobile-android-armv7.jinja",
+      "conan_settings": {
+        "os": "Android",
+        "os.api_level": "26",
+        "os.ndk_version": "28.2.13676358",
+        "arch": "armv7",
+        "compiler": "clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "c++_shared",
+        "compiler.version": "19",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "mobile-android-armv8.jinja",
+      "conan_settings": {
+        "os": "Android",
+        "os.api_level": "26",
+        "os.ndk_version": "28.2.13676358",
+        "arch": "armv8",
+        "compiler": "clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "c++_shared",
+        "compiler.version": "19",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "mobile-android-x86_64.jinja",
+      "conan_settings": {
+        "os": "Android",
+        "os.api_level": "26",
+        "os.ndk_version": "28.2.13676358",
+        "arch": "x86_64",
+        "compiler": "clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "c++_shared",
+        "compiler.version": "19",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "mobile-android-x86.jinja",
+      "conan_settings": {
+        "os": "Android",
+        "os.api_level": "26",
+        "os.ndk_version": "28.2.13676358",
+        "arch": "x86",
+        "compiler": "clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "c++_shared",
+        "compiler.version": "19",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "mobile-aurora5-aarch64-gcc.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv8",
+        "compiler": "gcc",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "aurora-5",
+        "compiler.version": "12",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/aurora/sdk:5.2.0-x86_64"
+    },
+    {
+      "profile_name": "mobile-aurora5-armv7hf-gcc.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv7hf",
+        "compiler": "gcc",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "aurora-5",
+        "compiler.version": "12",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/aurora/sdk:5.2.0-x86_64"
+    },
+    {
+      "profile_name": "mobile-iphoneos-armv8.jinja",
+      "conan_settings": {
+        "os": "iOS",
+        "os.sdk": "iphoneos",
+        "os.version": "15.6",
+        "arch": "armv8",
+        "compiler": "apple-clang",
+        "compiler.toolchain_config_id": "iphoneos",
+        "compiler.version": "17.0",
+        "compiler.xcode_version": "16.4",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "mobile-kos-aarch64.jinja",
+      "conan_settings": {
+        "os": "KasperskyOS",
+        "arch": "armv8",
+        "compiler": "clang",
+        "compiler.toolchain_config_id": "kos-2.1.2.31",
+        "compiler.version": "13",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/jammy/kos:2.1.2.31"
+    },
+    {
+      "profile_name": "mobile-kos-kisg-x86_64-pc.jinja",
+      "conan_settings": {
+        "os": "KasperskyOS",
+        "arch": "x86_64",
+        "compiler": "clang",
+        "compiler.toolchain_config_id": "kos-kisg-3.1.0.130",
+        "compiler.version": "13",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/kos-kisg:3.1.0.130"
+    },
+    {
+      "profile_name": "mobile-kos-x86_64-pc.jinja",
+      "conan_settings": {
+        "os": "KasperskyOS",
+        "arch": "x86_64",
+        "compiler": "clang",
+        "compiler.toolchain_config_id": "kos-2.1.2.31",
+        "compiler.version": "13",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/jammy/kos:2.1.2.31"
+    },
+    {
+      "profile_name": "mobile-linux-aarch64.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv8",
+        "compiler": "clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libc++",
+        "compiler.toolchain_config_id": "linux-GLIBC_2.39",
+        "compiler.version": "20",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/linux-aarch64:21.1.8-libcxx"
+    },
+    {
+      "profile_name": "mobile-linux-armv7hf.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv7hf",
+        "compiler": "clang",
+        "compiler.toolchain_config_id": "linux-GLIBC_2.39",
+        "compiler.version": "20",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/linux-armhf:21.1.8-libcxx"
+    },
+    {
+      "profile_name": "mobile-linux-e2kv6.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "e2k-v6",
+        "compiler": "gcc",
+        "compiler.toolchain_config_id": "elbrus-v6",
+        "compiler.version": "11.3",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/linux-e2k:1.29.16.e2k-v6.linux-6.1"
+    },
+    {
+      "profile_name": "mobile-linux-riscv64.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "riscv64",
+        "compiler": "clang",
+        "compiler.toolchain_config_id": "linux-GLIBC_2.39",
+        "compiler.version": "20",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/linux-riscv64:21.1.8-libcxx"
+    },
+    {
+      "profile_name": "mobile-linux-x86_64.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libc++",
+        "compiler.toolchain_config_id": "linux-mttc-1.0.2-GLIBC_2.41",
+        "compiler.version": "20",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/linux-x86_64:21.1.8-libcxx"
+    },
+    {
+      "profile_name": "mobile-macos-armv8.jinja",
+      "conan_settings": {
+        "os": "Macos",
+        "os.version": "12.4",
+        "arch": "armv8",
+        "compiler": "apple-clang",
+        "compiler.toolchain_config_id": "macosx",
+        "compiler.version": "17.0",
+        "compiler.xcode_version": "16.4",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "mobile-macos-x86_64.jinja",
+      "conan_settings": {
+        "os": "Macos",
+        "os.version": "12.4",
+        "arch": "x86_64",
+        "compiler": "apple-clang",
+        "compiler.toolchain_config_id": "macosx",
+        "compiler.version": "17.0",
+        "compiler.xcode_version": "16.4",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "mobile-openwrt-armv5el.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv5el",
+        "compiler": "gcc",
+        "compiler.toolchain_config_id": "openwrt-mxs-generic",
+        "compiler.version": "13.3",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/openwrt-mxs-generic:v24.10.1"
+    },
+    {
+      "profile_name": "mobile-openwrt-mips74k.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "mips",
+        "compiler": "gcc",
+        "compiler.toolchain_config_id": "openwrt-bcm47xx-mips74k",
+        "compiler.version": "13.3",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/openwrt-bcm47xx-mips74k:v24.10.1"
+    },
+    {
+      "profile_name": "mobile-windows-x86_64.jinja",
+      "conan_settings": {
+        "os": "Windows",
+        "arch": "x86_64",
+        "compiler": "clang",
+        "compiler.runtime": "dynamic",
+        "compiler.runtime_type": "Release",
+        "compiler.runtime_version": "v144",
+        "compiler.version": "17",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "mobile-windows-x86.jinja",
+      "conan_settings": {
+        "os": "Windows",
+        "arch": "x86",
+        "compiler": "clang",
+        "compiler.runtime": "dynamic",
+        "compiler.runtime_type": "Release",
+        "compiler.runtime_version": "v144",
+        "compiler.version": "17",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "windows-x86-vs2022-md",
+      "conan_settings": {
+        "os": "Windows",
+        "arch": "x86",
+        "compiler": "msvc",
+        "compiler.runtime": "dynamic",
+        "compiler.runtime_type": "Release",
+        "compiler.version": "193",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "hw-linux-armv7-gcc10_2",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv7",
+        "compiler": "gcc",
+        "compiler.version": "10.2",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-hw/debian11:components"
+    },
+    {
+      "profile_name": "linux-x86_64-gcc10_2-instrumented",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "afl-cc",
+        "compiler.mode": "gcc",
+        "compiler.version": "10.2",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-hw/debian11:components_afl_build"
+    },
+    {
+      "profile_name": "crypto_alpine_gcc_aarch64.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/dep-cryptography/current/alpine:aarch64"
+    },
+    {
+      "profile_name": "crypto_alpine_gcc_armv7.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/dep-cryptography/current/alpine:armv7"
+    },
+    {
+      "profile_name": "crypto_alpine_gcc_x86_64.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/dep-cryptography/current/alpine:x86_64"
+    },
+    {
+      "profile_name": "crypto_alpine_gcc_x86.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/dep-cryptography/current/alpine:x86"
+    },
+    {
+      "profile_name": "linux-x86_64-clang11_lto-instrumented",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "afl-cc",
+        "compiler.mode": "lto",
+        "compiler.version": "11",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-hw/debian11:components_afl_build"
+    },
+    {
+      "profile_name": "linux-x86_64-clang11-instrumented",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "x86_64",
+        "compiler": "afl-cc",
+        "compiler.mode": "clang",
+        "compiler.version": "11",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-hw/debian11:components_afl_build"
+    },
+    {
+      "profile_name": "mobile-iphonesimulator-armv8.jinja",
+      "conan_settings": {
+        "os": "iOS",
+        "os.sdk": "iphonesimulator",
+        "os.version": "15.6",
+        "arch": "armv8",
+        "compiler": "apple-clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libc++",
+        "compiler.toolchain_config_id": "iphonesimulator",
+        "compiler.version": "17.0",
+        "compiler.xcode_version": "16.4",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "mobile-iphonesimulator-x86_64.jinja",
+      "conan_settings": {
+        "os": "iOS",
+        "os.sdk": "iphonesimulator",
+        "os.version": "15.6",
+        "arch": "x86_64",
+        "compiler": "apple-clang",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libc++",
+        "compiler.toolchain_config_id": "iphonesimulator",
+        "compiler.version": "17.0",
+        "compiler.xcode_version": "16.4",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "pki-android-armv7.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "pki-android-armv8.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "pki-android-x86.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "pki-android-x86_64.jinja",
+      "conan_settings": {},
+      "docker_image": "harbor.company.com/prod-client-userspace/ubuntu-24.04/clang-21/android-ndk:29.0.14206865"
+    },
+    {
+      "profile_name": "windows-x86_64-vs2022-md",
+      "conan_settings": {
+        "os": "Windows",
+        "arch": "x86_64",
+        "compiler": "msvc",
+        "compiler.runtime": "dynamic",
+        "compiler.runtime_type": "Release",
+        "compiler.version": "193",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "windows-x86_64-vs2022-mt",
+      "conan_settings": {
+        "os": "Windows",
+        "arch": "x86_64",
+        "compiler": "msvc",
+        "compiler.runtime": "static",
+        "compiler.runtime_type": "Release",
+        "compiler.version": "193",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "windows-x86-vs2022-mt",
+      "conan_settings": {
+        "os": "Windows",
+        "arch": "x86",
+        "compiler": "msvc",
+        "compiler.runtime": "static",
+        "compiler.runtime_type": "Release",
+        "compiler.version": "193",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": ""
+    },
+    {
+      "profile_name": "aurora-aarch64-gcc-sdk-5-cc-cxx17.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv8",
+        "compiler": "gcc",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "aurora-5",
+        "compiler.version": "12",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/aurora/sdk:5.2.0-x86_64"
+    },
+    {
+      "profile_name": "aurora-armv7hf-gcc-sdk-5-cc-cxx17.jinja",
+      "conan_settings": {
+        "os": "Linux",
+        "arch": "armv7hf",
+        "compiler": "gcc",
+        "compiler.cppstd": "20",
+        "compiler.libcxx": "libstdc++11",
+        "compiler.toolchain_config_id": "aurora-5",
+        "compiler.version": "12",
+        "build_type": "RelWithDebInfo"
+      },
+      "docker_image": "harbor.company.com/prod-client-userspace/aurora/sdk:5.2.0-x86_64"
+    }
+  ],
+  "components": [
+  	{
+      "name": "apr",
+      "description": "The Apache Portable Runtime (APR) provides a predictable and consistent interface to underlying platform-specific implementations.",
+      "git_project": "DEP_Components",
+      "git_repo": "contrib_apr",
+      "releases": [
+        {
+          "version": "1.7.5",
+          "platform": "2.0",
+          "channel": "fast",
+          "git_url": "DEP_Components/_git/contrib_apr",
+          "conan_reference": "apr/1.7.5.14@platform-2.0/fast",
+          "artifactory_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/apr/1.7.5.14/fast/1974155d48875c4e908664455a565737",
+          "build_option_sets": [
+            {
+              "id": "1",
+              "options": "apr:shared=True",
+              "parsed_options": {
+                "shared": "True"
+              }
+            }
+          ],
+          "default_options": [
+            {
+              "name": "shared",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "fPIC",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "force_apr_uuid",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "source_only",
+              "type": "bool",
+              "default_value": false
+            }
+          ],
+          "patches": [],
+          "dependencies": [],
+          "is_header_only": false,
+          "total_option_sets": [
+            {
+              "id": "1",
+              "options": {
+                "fPIC": "True",
+                "force_apr_uuid": "True",
+                "shared": "True",
+                "source_only": "False"
+              }
+            }
+          ],
+          "profile_builds": [
+            {
+              "profile_name": "crypto_default_gcc_x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "6cb830aef78dff00ca50ddb24b412ba3c5fb2a14",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/apr/1.7.5.14/fast/1974155d48875c4e908664455a565737/package/6cb830aef78dff00ca50ddb24b412ba3c5fb2a14",
+                  "build_date": "2026-01-22T10:14:35.221000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-x86_64-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "7741115342fe6159bd16463d6d349e4c02e33237",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/apr/1.7.5.14/fast/1974155d48875c4e908664455a565737/package/7741115342fe6159bd16463d6d349e4c02e33237",
+                  "build_date": "2026-01-22T10:13:30.980000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86_64-vs2022-mt",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "1b31bbb8675e382f245a7a14f57e0442356d0f42",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/apr/1.7.5.14/fast/1974155d48875c4e908664455a565737/package/1b31bbb8675e382f245a7a14f57e0442356d0f42",
+                  "build_date": "2026-01-22T10:13:44.437000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86-vs2022-mt",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "7321179b9264e39b865fa2f9dd5c85e49223bc4a",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/apr/1.7.5.14/fast/1974155d48875c4e908664455a565737/package/7321179b9264e39b865fa2f9dd5c85e49223bc4a",
+                  "build_date": "2026-01-22T10:13:48.087000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "benchmark",
+      "description": "A microbenchmark support library.",
+      "git_project": "DEP_Components",
+      "git_repo": "contrib_benchmark",
+      "releases": [
+        {
+          "version": "1.9.4",
+          "platform": "2.0",
+          "channel": "tech",
+          "git_url": "DEP_Components/_git/contrib_benchmark",
+          "conan_reference": "benchmark/1.9.4.549@platform-2.0/tech",
+          "artifactory_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6",
+          "build_option_sets": [
+            {
+              "id": "1",
+              "options": "benchmark:shared=True",
+              "parsed_options": {
+                "shared": "True"
+              }
+            },
+            {
+              "id": "2",
+              "options": "benchmark:shared=True, benchmark:strip_binary=True",
+              "parsed_options": {
+                "shared": "True",
+                "strip_binary": "True"
+              }
+            },
+            {
+              "id": "3",
+              "options": "",
+              "parsed_options": {}
+            }
+          ],
+          "default_options": [
+            {
+              "name": "shared",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "fPIC",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "enable_lto",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "enable_exceptions",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "disable_werror",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "strip_binary",
+              "type": "bool",
+              "default_value": false
+            }
+          ],
+          "patches": [],
+          "dependencies": [],
+          "is_header_only": false,
+          "total_option_sets": [
+            {
+              "id": "3",
+              "options": {
+                "disable_werror": "True",
+                "enable_exceptions": "True",
+                "enable_lto": "False",
+                "fPIC": "True",
+                "shared": "False",
+                "strip_binary": "False"
+              }
+            },
+            {
+              "id": "1",
+              "options": {
+                "disable_werror": "True",
+                "enable_exceptions": "True",
+                "enable_lto": "False",
+                "shared": "True",
+                "strip_binary": "False"
+              }
+            },
+            {
+              "id": "2",
+              "options": {
+                "disable_werror": "True",
+                "enable_exceptions": "True",
+                "enable_lto": "False",
+                "shared": "True",
+                "strip_binary": "True"
+              }
+            }
+          ],
+          "profile_builds": [
+            {
+              "profile_name": "crypto_default_gcc_armv7hf.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "bb6856afb77ac305d9fd66255777f2b1249f9ec4",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/bb6856afb77ac305d9fd66255777f2b1249f9ec4",
+                  "build_date": "2025-09-24T05:18:50.426000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "crypto_default_gcc_armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "d8fd897f7272d7aa307c1cbda922d59ada487bdb",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/d8fd897f7272d7aa307c1cbda922d59ada487bdb",
+                  "build_date": "2025-09-24T05:18:57.595000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "crypto_default_gcc_x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "52ef80ada611eb7923d28dd84629e659d649aac5",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/52ef80ada611eb7923d28dd84629e659d649aac5",
+                  "build_date": "2025-09-24T05:19:30.226000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "crypto_default_gcc_x86.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "a80302c1544b51fd87c5c254dd328f4a570da707",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/a80302c1544b51fd87c5c254dd328f4a570da707",
+                  "build_date": "2025-09-24T05:19:17.809000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-armv7-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "b92591eb4386a05f4a37397c179550fab59b6217",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/b92591eb4386a05f4a37397c179550fab59b6217",
+                  "build_date": "2025-09-24T06:23:29.267000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "575ea8086554107ae2c0fdbb4909d62390c52b77",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/575ea8086554107ae2c0fdbb4909d62390c52b77",
+                  "build_date": "2025-09-24T06:24:17.821000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "9f9260d03e2d53e0cd264e0ee5bd28b16b6514fb",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/9f9260d03e2d53e0cd264e0ee5bd28b16b6514fb",
+                  "build_date": "2025-09-24T06:25:12.387000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-armv8-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "84d95ddfaa4888b000c0b5ce00367acb83ed514f",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/84d95ddfaa4888b000c0b5ce00367acb83ed514f",
+                  "build_date": "2025-09-24T06:23:16.794000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "23d49ec8775db9dce5ebf75a4f285f94baaa00a8",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/23d49ec8775db9dce5ebf75a4f285f94baaa00a8",
+                  "build_date": "2025-09-24T06:24:07.193000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "f72abdce98cf94cf73c49244ac7e9d7c2bd98c3d",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/f72abdce98cf94cf73c49244ac7e9d7c2bd98c3d",
+                  "build_date": "2025-09-24T06:25:08.169000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-x86_64-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "6e11ce9cc8ae1e3fae864a083c84f0b0d8e281a8",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/6e11ce9cc8ae1e3fae864a083c84f0b0d8e281a8",
+                  "build_date": "2025-09-24T06:22:58.585000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "5755484a193a8faa3101140c05be512b3ca75a0c",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/5755484a193a8faa3101140c05be512b3ca75a0c",
+                  "build_date": "2025-09-24T06:23:47.322000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "ce22aaa165857b011e9470d5ad2ad83c8df82545",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/ce22aaa165857b011e9470d5ad2ad83c8df82545",
+                  "build_date": "2025-09-24T06:24:46.565000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "linux-x86_64-clang11_lto-instrumented",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "be1f7fa401dcdf278dba8a9dae5be0a8d61b5d6f",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/be1f7fa401dcdf278dba8a9dae5be0a8d61b5d6f",
+                  "build_date": "2025-09-24T05:19:09.171000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "linux-x86_64-clang11-instrumented",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "953b86287cbf7797b2811542abd809a369c3217c",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/953b86287cbf7797b2811542abd809a369c3217c",
+                  "build_date": "2025-09-24T05:19:24.344000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-armv7.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "fbf2d6106ff0da596a8ca6893c075f5914790318",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/fbf2d6106ff0da596a8ca6893c075f5914790318",
+                  "build_date": "2025-09-24T06:21:47.499000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "a296cd7c188af1b9505e46b2035febd4ad19da42",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/a296cd7c188af1b9505e46b2035febd4ad19da42",
+                  "build_date": "2025-09-24T06:21:34.070000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "d724b2d543074e5f9cad372aeec8c089f68a5980",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/d724b2d543074e5f9cad372aeec8c089f68a5980",
+                  "build_date": "2025-09-24T06:20:30.299000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-x86.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "05f627da738b7bcb13e449a0301b69c39408c5b0",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/05f627da738b7bcb13e449a0301b69c39408c5b0",
+                  "build_date": "2025-09-24T05:20:36.683000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-aurora5-aarch64-gcc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "5832c67453eb09d9e129249a9ed30f7c6e1bd641",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/5832c67453eb09d9e129249a9ed30f7c6e1bd641",
+                  "build_date": "2025-09-24T05:24:49.125000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-aurora5-armv7hf-gcc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "289f32005bf855d80f386d3f1df618d8a890e443",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/289f32005bf855d80f386d3f1df618d8a890e443",
+                  "build_date": "2025-09-24T05:24:40.476000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-iphoneos-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "e62d0f8fdc8e102827c7fc540dc77302e0f2ee85",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/e62d0f8fdc8e102827c7fc540dc77302e0f2ee85",
+                  "build_date": "2025-09-24T05:19:05.380000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-iphonesimulator-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "c4110e58d0a3226fcd041f554b76397aa38e5b90",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/c4110e58d0a3226fcd041f554b76397aa38e5b90",
+                  "build_date": "2025-09-24T05:19:58.174000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-iphonesimulator-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "0678e9807698925f7654a93f04b5d33ac2b5cc13",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/0678e9807698925f7654a93f04b5d33ac2b5cc13",
+                  "build_date": "2025-09-24T05:18:54.410000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-kos-aarch64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "8ba2fa77719e9551f6a4c2079f92546f2ad18781",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/8ba2fa77719e9551f6a4c2079f92546f2ad18781",
+                  "build_date": "2025-09-24T06:22:14.264000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-kos-kisg-x86_64-pc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "af678d757d957d8f278de5d6051b503c797bcae1",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/af678d757d957d8f278de5d6051b503c797bcae1",
+                  "build_date": "2025-09-24T05:19:56.195000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-kos-x86_64-pc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "59b3fb944fbeea824925f14cfbe73efcf879b6d2",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/59b3fb944fbeea824925f14cfbe73efcf879b6d2",
+                  "build_date": "2025-09-24T06:23:55.862000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-aarch64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "c7be1de28f55a31699bc1184d67b3764a18d5b8c",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/c7be1de28f55a31699bc1184d67b3764a18d5b8c",
+                  "build_date": "2025-09-24T06:20:31.416000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-armv7hf.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "80d992f8c94ed52faa9d253e22dab6514d748119",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/80d992f8c94ed52faa9d253e22dab6514d748119",
+                  "build_date": "2025-09-24T06:21:10.785000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-e2kv6.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "48c5cc2779d317621c4260bdcd2a4781aad611f5",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/48c5cc2779d317621c4260bdcd2a4781aad611f5",
+                  "build_date": "2025-09-24T06:21:18.332000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "9d15571c6bbdcf78fdf86206d9a042b2d531390a",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/9d15571c6bbdcf78fdf86206d9a042b2d531390a",
+                  "build_date": "2025-09-24T06:22:21.819000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "121db8fab69fe0bb445d26153cd0196eac0fd80b",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/121db8fab69fe0bb445d26153cd0196eac0fd80b",
+                  "build_date": "2025-09-24T06:23:22.458000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-riscv64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "2c53e760b889ad3ba1a443ef4596006b1f882e00",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/2c53e760b889ad3ba1a443ef4596006b1f882e00",
+                  "build_date": "2025-09-24T06:21:58.981000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "6d48c02ac419c0a5ceaa8b9e99a757edbeeb95f2",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/6d48c02ac419c0a5ceaa8b9e99a757edbeeb95f2",
+                  "build_date": "2025-09-24T06:22:46.381000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-macos-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "07cc673cb05ce7b5fe1eb251b9d757dc1500b00c",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/07cc673cb05ce7b5fe1eb251b9d757dc1500b00c",
+                  "build_date": "2025-09-24T05:19:18.553000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-macos-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "3271e0a27b4a7eebc4a1ccd1fe9a15464202a07f",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/3271e0a27b4a7eebc4a1ccd1fe9a15464202a07f",
+                  "build_date": "2025-09-24T05:19:45.577000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-openwrt-armv5el.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "ca5e4290e70be6f0574fda9829bb2a33c7d65344",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/ca5e4290e70be6f0574fda9829bb2a33c7d65344",
+                  "build_date": "2025-09-24T06:22:34.119000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-openwrt-mips74k.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "5ee5b86fb504328a640e780c896afa98f81874e0",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/5ee5b86fb504328a640e780c896afa98f81874e0",
+                  "build_date": "2025-09-24T06:20:52.126000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-windows-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "6cf0dce0ccef43b66d3e91537612afd9d334736b",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/6cf0dce0ccef43b66d3e91537612afd9d334736b",
+                  "build_date": "2025-09-24T05:19:14.612000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-windows-x86.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "ef088b7baf9e74d0f18c7e18988f2f8fabb5381d",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/ef088b7baf9e74d0f18c7e18988f2f8fabb5381d",
+                  "build_date": "2025-09-24T05:18:45.575000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86_64-vs2022-md",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "5db8a0ddd8cacb0913dbc828d5a5d6a4a7b25f2a",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/5db8a0ddd8cacb0913dbc828d5a5d6a4a7b25f2a",
+                  "build_date": "2025-09-24T05:18:16.760000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86_64-vs2022-mt",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "b0feea3e87b1ad549aa018075505144d9a49b5d4",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/b0feea3e87b1ad549aa018075505144d9a49b5d4",
+                  "build_date": "2025-09-24T05:18:20.468000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86-vs2022-md",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "867f9fc52d2b51acf613694edf936e8cc425311f",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/867f9fc52d2b51acf613694edf936e8cc425311f",
+                  "build_date": "2025-09-24T05:18:37.302000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86-vs2022-mt",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "63f1fcf4842de04768feb76b2e3303bec363435d",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/benchmark/1.9.4.549/tech/519064298d1fbae05a6e575fdfdf08e6/package/63f1fcf4842de04768feb76b2e3303bec363435d",
+                  "build_date": "2025-09-24T05:18:19.059000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nlohmann_json",
+      "description": "JSON for Modern C++ parser and generator.",
+      "git_project": "DEP_Components",
+      "git_repo": "contrib_nlohmann_json",
+      "releases": [
+        {
+          "version": "3.9.1",
+          "platform": "2.0",
+          "channel": "slow",
+          "git_url": "DEP_Components/_git/contrib_nlohmann_json",
+          "conan_reference": "nlohmann_json/3.9.1.183@platform-2.0/slow",
+          "artifactory_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/nlohmann_json/3.9.1.183/slow/d9706c4c3cc8fbd6eaf202e54b49e8db",
+          "build_option_sets": [
+            {
+              "id": "1",
+              "options": "",
+              "parsed_options": {}
+            }
+          ],
+          "default_options": [],
+          "patches": [],
+          "dependencies": [],
+          "is_header_only": true,
+          "total_option_sets": [
+            {
+              "id": "1",
+              "options": {}
+            }
+          ],
+          "profile_builds": [
+            {
+              "profile_name": "hw-linux-x86_64-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/nlohmann_json/3.9.1.183/slow/d9706c4c3cc8fbd6eaf202e54b49e8db/package/da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                  "build_date": "2025-09-24T07:11:19.669000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "version": "3.12.0",
+          "platform": "2.0",
+          "channel": "fast",
+          "git_url": "DEP_Components/_git/contrib_nlohmann_json",
+          "conan_reference": "nlohmann_json/3.12.0.182@platform-2.0/fast",
+          "artifactory_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/nlohmann_json/3.12.0.182/fast/dad8c012667c8d63989eed913a43d882",
+          "build_option_sets": [
+            {
+              "id": "1",
+              "options": "",
+              "parsed_options": {}
+            }
+          ],
+          "default_options": [],
+          "patches": [],
+          "dependencies": [],
+          "is_header_only": true,
+          "total_option_sets": [
+            {
+              "id": "1",
+              "options": {}
+            }
+          ],
+          "profile_builds": [
+            {
+              "profile_name": "mobile-windows-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/nlohmann_json/3.12.0.182/fast/dad8c012667c8d63989eed913a43d882/package/da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                  "build_date": "2025-09-24T07:06:53.906000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pcre2",
+      "description": "Perl Compatible Regular Expressions",
+      "git_project": "DEP_Components",
+      "git_repo": "contrib_pcre2",
+      "releases": [
+        {
+          "version": "10.36",
+          "platform": "2.0",
+          "channel": "slow",
+          "git_url": "DEP_Components/_git/contrib_pcre2",
+          "conan_reference": "pcre2/10.36.296@platform-2.0/slow",
+          "artifactory_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb",
+          "build_option_sets": [
+            {
+              "id": "1",
+              "options": "",
+              "parsed_options": {}
+            },
+            {
+              "id": "2",
+              "options": "pcre2:shared=True",
+              "parsed_options": {
+                "shared": "True"
+              }
+            },
+            {
+              "id": "3",
+              "options": "pcre2:shared=True, pcre2:strip_binary=True",
+              "parsed_options": {
+                "shared": "True",
+                "strip_binary": "True"
+              }
+            }
+          ],
+          "default_options": [
+            {
+              "name": "shared",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "fPIC",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2_8",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2_16",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2_32",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2grep",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "with_zlib",
+              "type": "string",
+              "default_value": false
+            },
+            {
+              "name": "with_bzip2",
+              "type": "string",
+              "default_value": false
+            },
+            {
+              "name": "support_jit",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "grep_support_callout_fork",
+              "type": "string",
+              "default_value": false
+            },
+            {
+              "name": "poco_headers",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "disable_werror",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "strip_binary",
+              "type": "bool",
+              "default_value": false
+            }
+          ],
+          "patches": [],
+          "dependencies": [],
+          "is_header_only": false,
+          "total_option_sets": [
+            {
+              "id": "1",
+              "options": {
+                "build_pcre2_16": "True",
+                "build_pcre2_32": "True",
+                "build_pcre2_8": "True",
+                "build_pcre2grep": "False",
+                "disable_werror": "True",
+                "fPIC": "True",
+                "poco_headers": "True",
+                "shared": "False",
+                "strip_binary": "False",
+                "support_jit": "False"
+              }
+            },
+            {
+              "id": "2",
+              "options": {
+                "build_pcre2_16": "True",
+                "build_pcre2_32": "True",
+                "build_pcre2_8": "True",
+                "build_pcre2grep": "False",
+                "disable_werror": "True",
+                "fPIC": "True",
+                "poco_headers": "True",
+                "shared": "True",
+                "strip_binary": "False",
+                "support_jit": "False"
+              }
+            },
+            {
+              "id": "3",
+              "options": {
+                "build_pcre2_16": "True",
+                "build_pcre2_32": "True",
+                "build_pcre2_8": "True",
+                "build_pcre2grep": "False",
+                "disable_werror": "True",
+                "fPIC": "True",
+                "poco_headers": "True",
+                "shared": "True",
+                "strip_binary": "True",
+                "support_jit": "False"
+              }
+            }
+          ],
+          "profile_builds": [
+            {
+              "profile_name": "hw-linux-armv7-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "04b8a87b31c78b6f245f2edc5ef8b9809bb85872",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/04b8a87b31c78b6f245f2edc5ef8b9809bb85872",
+                  "build_date": "2025-09-25T09:45:50.360000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "6b6ecfb5bd0f772e918dfc55cd79470fc295f2bc",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/6b6ecfb5bd0f772e918dfc55cd79470fc295f2bc",
+                  "build_date": "2025-09-25T09:46:49.552000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "8707ad630fded0d2f6a9b060a4642ad6cf2dc8bf",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/8707ad630fded0d2f6a9b060a4642ad6cf2dc8bf",
+                  "build_date": "2025-09-25T09:47:43.074000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-armv8-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "4c1487cfb730660e9f4d029cf66a8c95617e62a6",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/4c1487cfb730660e9f4d029cf66a8c95617e62a6",
+                  "build_date": "2025-09-25T09:45:45.993000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "3d056cf8eb77f651ec9d5e3739478229fb32a15b",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/3d056cf8eb77f651ec9d5e3739478229fb32a15b",
+                  "build_date": "2025-09-25T09:46:40.145000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "57218f2acebac29e44dfcaaaa41409addeba6d02",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/57218f2acebac29e44dfcaaaa41409addeba6d02",
+                  "build_date": "2025-09-25T09:47:32.084000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-x86_64-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "90a9c74d44d1ef66369a0b1ffe866d081583f8f7",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/90a9c74d44d1ef66369a0b1ffe866d081583f8f7",
+                  "build_date": "2025-09-25T09:45:58.642000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "3e2bbfa1d41c45e6ecd0aea424650d61d3dbcbdd",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/3e2bbfa1d41c45e6ecd0aea424650d61d3dbcbdd",
+                  "build_date": "2025-09-25T09:46:47.709000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "ef926933ad9e52df3d6e8ccb89fda842da2281d4",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/ef926933ad9e52df3d6e8ccb89fda842da2281d4",
+                  "build_date": "2025-09-25T09:47:45.153000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            },
+            {
+              "profile_name": "linux-x86_64-gcc10_2-instrumented",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "6924c6ca5919e1c7ea3b3a8bee7bb2193e3605de",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/6924c6ca5919e1c7ea3b3a8bee7bb2193e3605de",
+                  "build_date": "2025-10-03T09:59:45.571000+00:00",
+                  "options_ref": "1"
+                },
+                {
+                  "package_id": "c8e26943af333f409e1db713e24dbb710a615c12",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/c8e26943af333f409e1db713e24dbb710a615c12",
+                  "build_date": "2025-10-03T10:00:52.939000+00:00",
+                  "options_ref": "2"
+                },
+                {
+                  "package_id": "b03b8ccf5205ccaf93a1284804869bca63d1c117",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.36.296/slow/30a2608bc3efd712e88209d39d77aeeb/package/b03b8ccf5205ccaf93a1284804869bca63d1c117",
+                  "build_date": "2025-10-03T10:02:04.869000+00:00",
+                  "options_ref": "3"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "version": "10.46",
+          "platform": "2.0",
+          "channel": "fast",
+          "git_url": "DEP_Components/_git/contrib_pcre2",
+          "conan_reference": "pcre2/10.46.297@platform-2.0/fast",
+          "artifactory_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14",
+          "build_option_sets": [
+            {
+              "id": "1",
+              "options": "",
+              "parsed_options": {}
+            }
+          ],
+          "default_options": [
+            {
+              "name": "shared",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "fPIC",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2_8",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2_16",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2_32",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "build_pcre2grep",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "with_zlib",
+              "type": "string",
+              "default_value": false
+            },
+            {
+              "name": "with_bzip2",
+              "type": "string",
+              "default_value": false
+            },
+            {
+              "name": "support_jit",
+              "type": "bool",
+              "default_value": false
+            },
+            {
+              "name": "grep_support_callout_fork",
+              "type": "string",
+              "default_value": false
+            },
+            {
+              "name": "poco_headers",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "disable_werror",
+              "type": "bool",
+              "default_value": true
+            },
+            {
+              "name": "strip_binary",
+              "type": "bool",
+              "default_value": false
+            }
+          ],
+          "patches": [],
+          "dependencies": [],
+          "is_header_only": false,
+          "total_option_sets": [
+            {
+              "id": "1",
+              "options": {
+                "build_pcre2_16": "True",
+                "build_pcre2_32": "True",
+                "build_pcre2_8": "True",
+                "build_pcre2grep": "False",
+                "disable_werror": "True",
+                "fPIC": "True",
+                "poco_headers": "True",
+                "shared": "False",
+                "strip_binary": "False",
+                "support_jit": "False"
+              }
+            }
+          ],
+          "profile_builds": [
+            {
+              "profile_name": "crypto_default_gcc_x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "41ae1cdc9bde2dfc4e0801f93b633f101bba23c1",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/41ae1cdc9bde2dfc4e0801f93b633f101bba23c1",
+                  "build_date": "2025-09-26T11:06:05.542000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-armv8-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "4c1487cfb730660e9f4d029cf66a8c95617e62a6",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/4c1487cfb730660e9f4d029cf66a8c95617e62a6",
+                  "build_date": "2025-09-26T11:05:16.389000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "hw-linux-x86_64-gcc10_2",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "90a9c74d44d1ef66369a0b1ffe866d081583f8f7",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/90a9c74d44d1ef66369a0b1ffe866d081583f8f7",
+                  "build_date": "2025-09-26T11:04:44.135000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "linux-x86_64-clang11_lto-instrumented",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "c8d860800db1db5c8e7e111bac81f217336c68d1",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/c8d860800db1db5c8e7e111bac81f217336c68d1",
+                  "build_date": "2025-09-26T11:06:58.828000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "linux-x86_64-clang11-instrumented",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "14b35c6503b35cb853fe46b18004f7019bc8a8a0",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/14b35c6503b35cb853fe46b18004f7019bc8a8a0",
+                  "build_date": "2025-09-26T11:06:34.327000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-armv7.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "16a9015f2b73cdd6f89734fe181c285aaea4c474",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/16a9015f2b73cdd6f89734fe181c285aaea4c474",
+                  "build_date": "2025-09-26T11:06:33.852000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "566f1364bf2eb44e13b53e13161cdf719cc82a0f",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/566f1364bf2eb44e13b53e13161cdf719cc82a0f",
+                  "build_date": "2025-09-26T11:07:00.734000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "d231185a176ce016c2fc9e872f3267a138f9363c",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/d231185a176ce016c2fc9e872f3267a138f9363c",
+                  "build_date": "2025-09-26T11:07:04.698000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-android-x86.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "e988e643b3e25e138283be9162d66b4b8776ee4b",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/e988e643b3e25e138283be9162d66b4b8776ee4b",
+                  "build_date": "2025-09-26T11:05:58.837000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-aurora5-aarch64-gcc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "3b2e33748a5aee83f4bb57a04744d141351de484",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/3b2e33748a5aee83f4bb57a04744d141351de484",
+                  "build_date": "2025-09-26T11:10:33.998000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-aurora5-armv7hf-gcc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "84fc920ca2bbd27d92262d3d427267bf16fb5f86",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/84fc920ca2bbd27d92262d3d427267bf16fb5f86",
+                  "build_date": "2025-09-26T11:10:19.655000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-iphoneos-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "7ac1e71a234faa903114f9296b79eb0b355091b2",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/7ac1e71a234faa903114f9296b79eb0b355091b2",
+                  "build_date": "2025-09-26T11:06:06.068000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-kos-aarch64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "cb843c5d4c1067a1c59645f5dc6d83442bcc451b",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/cb843c5d4c1067a1c59645f5dc6d83442bcc451b",
+                  "build_date": "2025-09-26T11:08:02.968000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-kos-kisg-x86_64-pc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "e2d9c17f7ecd81c7f039f21b8eefed9de00cb0f7",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/e2d9c17f7ecd81c7f039f21b8eefed9de00cb0f7",
+                  "build_date": "2025-09-26T11:06:56.397000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-kos-x86_64-pc.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "a0cbff0deb53d90e3f54fb845814ec064fc5b762",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/a0cbff0deb53d90e3f54fb845814ec064fc5b762",
+                  "build_date": "2025-09-26T11:07:48.545000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-aarch64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "25754098353d2aad8c63580ff8f37f6f9785b355",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/25754098353d2aad8c63580ff8f37f6f9785b355",
+                  "build_date": "2025-09-26T11:05:01.513000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-armv7hf.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "9d6d9480618772c6e038e93388e80a3efffffffc",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/9d6d9480618772c6e038e93388e80a3efffffffc",
+                  "build_date": "2025-09-26T11:05:56.348000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-e2kv6.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "2253582d5bbe24545e0b6fa296ceb97ad138ca53",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/2253582d5bbe24545e0b6fa296ceb97ad138ca53",
+                  "build_date": "2025-09-26T11:04:42.477000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-riscv64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "4cf49049fd94581f44a7eb4545f965b83ca72f25",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/4cf49049fd94581f44a7eb4545f965b83ca72f25",
+                  "build_date": "2025-09-26T11:04:58.828000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-linux-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "a25b0397033755a79bfd50773995f85289123b57",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/a25b0397033755a79bfd50773995f85289123b57",
+                  "build_date": "2025-09-26T11:07:00.580000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-macos-armv8.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "bb59f09d0ecef1f7373b2c0aed89ec368858c83d",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/bb59f09d0ecef1f7373b2c0aed89ec368858c83d",
+                  "build_date": "2025-09-26T11:05:47.213000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-macos-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "04b0793bf6f960e9d11405e637e83a298c5b34a8",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/04b0793bf6f960e9d11405e637e83a298c5b34a8",
+                  "build_date": "2025-09-26T11:05:36.829000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-openwrt-armv5el.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "8931652513f88b355094e733dd6c1c357c2bb6cd",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/8931652513f88b355094e733dd6c1c357c2bb6cd",
+                  "build_date": "2025-09-26T11:04:58.458000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-openwrt-mips74k.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "1804cc0f2bea3d70eb7ee662aab77505f900cca8",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/1804cc0f2bea3d70eb7ee662aab77505f900cca8",
+                  "build_date": "2025-09-26T11:04:56.225000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-windows-x86_64.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "f469b1c3c65aa651e0a66e2e128cf8719415a161",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/f469b1c3c65aa651e0a66e2e128cf8719415a161",
+                  "build_date": "2025-09-26T11:08:09.391000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "mobile-windows-x86.jinja",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "723b6626e98a183f5213071b42444f8986bd66f6",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/723b6626e98a183f5213071b42444f8986bd66f6",
+                  "build_date": "2025-09-26T11:06:57.749000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86_64-vs2022-md",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "6dd87e0ef1201aa9133880f8250c7974328d9c1a",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/6dd87e0ef1201aa9133880f8250c7974328d9c1a",
+                  "build_date": "2025-09-26T11:05:34.400000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86_64-vs2022-mt",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "fbb7ced5f76f984e1730f2dceae305efc817fed0",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/fbb7ced5f76f984e1730f2dceae305efc817fed0",
+                  "build_date": "2025-09-26T11:05:32.572000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86-vs2022-md",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "e71be74c665ab6e3d6b016bd06f0afb89c72c4b4",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/e71be74c665ab6e3d6b016bd06f0afb89c72c4b4",
+                  "build_date": "2025-09-26T11:05:36.198000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            },
+            {
+              "profile_name": "windows-x86-vs2022-mt",
+              "exists": true,
+              "variants": [
+                {
+                  "package_id": "41b36294aef0a820c6158466fabde3fde400005a",
+                  "build_url": "https://artifactory.company.com/ui/repos/tree/General/components-conan2/platform-2.0/pcre2/10.46.297/fast/db14ddb503925761db31d4769c69ac14/package/41b36294aef0a820c6158466fabde3fde400005a",
+                  "build_date": "2025-09-26T11:05:35.619000+00:00",
+                  "options_ref": "1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+	]
+}
