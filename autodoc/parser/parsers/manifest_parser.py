@@ -27,15 +27,21 @@ class _FileParseResult:
 class ManifestParser:
     """Преобразует список .properties-файлов в список Component."""
 
-    def __init__(self, target_platform: str) -> None:
+    def __init__(self, target_platform: str, tfs_dep_components_url: str = "") -> None:
         """
         Инициализирует парсер для указанной целевой платформы.
 
         Args:
             target_platform: Версия платформы (например '2.0'), используется
                              для фильтрации релизов манифестов.
+            tfs_dep_components_url: Базовый URL проекта DEP_Components в TFS
+                                    (например ``https://tfs.company.com/tfs/...``)
+                                    без завершающего слэша.
+                                    Если передан — формирует полные ссылки на
+                                    репозиторий в поле ``git_url`` каждого Release.
         """
         self._target_platform = target_platform
+        self._tfs_dep_components_url: str = tfs_dep_components_url.rstrip("/")
         self._executor = ParallelExecutor(
             max_workers=_MANIFEST_MAX_WORKERS,
             log_progress_interval=_MANIFEST_LOG_INTERVAL,
@@ -162,12 +168,22 @@ class ManifestParser:
                     continue
                 channel = p_ver.split("-")[1] if "-" in p_ver else ""
                 profile_list = [p.strip() for p in profiles_str.split(",") if p.strip()]
+                git_repo_part = f"{git_project}/_git/{git_repo}" if git_repo else ""
+                if self._tfs_dep_components_url and git_repo:
+                    full_git_url = (
+                        f"{self._tfs_dep_components_url}/_git/{git_repo}"
+                        f"?path=%2F&version=GBrelease_{c_ver}"
+                    )
+                elif git_repo_part:
+                    full_git_url = git_repo_part
+                else:
+                    full_git_url = ""
                 releases.append(
                     Release(
                         version=c_ver,
                         platform=target_platform,
                         channel=channel,
-                        git_url=f"{git_project}/_git/{git_repo}" if git_repo else "",
+                        git_url=full_git_url,
                         profile_builds=[
                             ProfileBuild(profile_name=prof) for prof in profile_list
                         ],

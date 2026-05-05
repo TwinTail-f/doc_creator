@@ -7,7 +7,7 @@
     <p class="ap-page-desc">{{ data.component.description }}</p>
     <div style="margin-top:12px">
         <span class="ap-git-chip">
-            Git: <strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong>
+            Git: <a href="{{ data.release.git_url }}" class="ap-git-chip-link"><strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong></a>
         </span>
     </div>
 </div>
@@ -263,7 +263,13 @@
                                 <tbody>
                                     {%- for patch in data.release.patches -%}
                                     <tr>
-                                        <td class="ap-cell"><strong>{{ patch }}</strong></td>
+                                        <td class="ap-cell">
+                                            {%- if data.release.git_repo_base_url -%}
+                                            <a href="{{ data.release.git_repo_base_url }}?path=/conan/patches/{{ patch }}&amp;version={{ data.release.git_branch_version }}"><strong>{{ patch }}</strong></a>
+                                            {%- else -%}
+                                            <strong>{{ patch }}</strong>
+                                            {%- endif -%}
+                                        </td>
                                         <td class="ap-cell">—</td>
                                         <td class="ap-cell">—</td>
                                     </tr>

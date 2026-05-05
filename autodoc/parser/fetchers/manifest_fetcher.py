@@ -79,6 +79,9 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
                 "после скачивания из TFS."
             )
 
-        parser = ManifestParser(target_platform=self._platform_version)
+        parser = ManifestParser(
+            target_platform=self._platform_version,
+            tfs_dep_components_url=self._base_url,
+        )
         components, warnings = parser.parse(properties_files, excluded)
         return FetchResult(value=components, warnings=warnings)
