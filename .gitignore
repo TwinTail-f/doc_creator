@@ -51,7 +51,7 @@ configs/confluence_config.yml
 *.log
 
 #zip
-.zip
-.7z
+*.zip
+*.7z
 
 archive
