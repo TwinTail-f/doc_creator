@@ -11,7 +11,8 @@ from typing import Any
 
 import pytest
 
-from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
 
 
 # ---------------------------------------------------------------------------
@@ -114,15 +115,10 @@ class FakeDocumentBuilder:
 # Import domain models
 # ---------------------------------------------------------------------------
 
-from autodoc.models.component import (
-    ConanVariant,
-    ConanInputOptions,
-    Component,
-    DefaultOptionsSet,
-    ProfileBuild,
-    Release,
-    TotalOptionsSet,
-)
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.options import ConanInputOptions, DefaultOptionsSet, TotalOptionsSet
+from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 
 

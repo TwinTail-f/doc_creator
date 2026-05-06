@@ -15,10 +15,10 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
-from autodoc.config.schemas import ConfluenceConfigSchema
+from autodoc.config.confluence_config_schema import ConfluenceConfigSchema
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
-from autodoc.publisher.strategies.base import PublishReport
+from autodoc.publisher.strategies.publish_report import PublishReport
 
 # ---------------------------------------------------------------------------
 # Constants

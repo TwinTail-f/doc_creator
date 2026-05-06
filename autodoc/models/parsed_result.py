@@ -4,7 +4,8 @@
 
 from pydantic import BaseModel, Field
 
-from autodoc.models.component import Component, ProfileDefinition
+from autodoc.models.component import Component
+from autodoc.models.profile_definition import ProfileDefinition
 
 
 class ParsedResult(BaseModel):

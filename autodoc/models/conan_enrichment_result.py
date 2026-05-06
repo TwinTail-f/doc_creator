@@ -1,56 +1,20 @@
 """
-Типы данных результата выполнения Conan graph info.
+Результат обогащения данными Conan, готовый к применению к моделям.
 
-Живут в ``models/`` — разделяются между слоями парсера и энричера
-без привязки к внутренностям пакета ``conan/``.
-
-``ReleaseConanData`` и ``ProfileConanData`` используют типизированные поля
-из ``component.py`` (``DefaultOptionsSet``, ``TotalOptionsSet``, ``ConanVariant``),
-устраняя дублирование промежуточных словарей и необходимость конверсии в
-``DataEnricher``.
+ReleaseConanData      — данные Conan для одного Release.
+ProfileConanData      — данные Conan для одного ProfileBuild.
+ConanEnrichmentResult — итоговый результат выполнения conan graph info.
 """
 
 from dataclasses import dataclass, field
 from typing import Any
 
-from autodoc.models.component import ConanVariant, DefaultOptionsSet, TotalOptionsSet
+from autodoc.models.conan_report import ConanComponentReport
+from autodoc.models.conan_variant import ConanVariant
+from autodoc.models.options import DefaultOptionsSet, TotalOptionsSet
 
-
-@dataclass
-class ConanRawResult:
-    """Сырой результат одного вызова ``conan graph info``."""
-
-    success: bool
-    data: dict[str, Any] | None
-    error: str = ""
-
-
-@dataclass
-class ConanCommandRecord:
-    """Запись об одном выполненном вызове ``conan graph info``."""
-
-    command: str
-    status: str  # "SUCCESS" | "FAILED"
-    error: str = ""
-
-
-@dataclass
-class ConanProfileReport:
-    """Все вызовы conan graph info для одного профиля."""
-
-    profile_name: str
-    commands: list[ConanCommandRecord] = field(default_factory=list)
-
-
-@dataclass
-class ConanComponentReport:
-    """Диагностический отчёт по всем вызовам одного компонента/версии/канала."""
-
-    component: str
-    version: str
-    channel: str
-    # profile_name → отчёт профиля
-    profiles: dict[str, ConanProfileReport] = field(default_factory=dict)
+# Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}
+_ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
 
 
 @dataclass
@@ -87,10 +51,6 @@ class ProfileConanData:
     conan_settings: dict[str, Any]
     exists: bool
     variants: list[ConanVariant]
-
-
-# Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}
-_ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
 
 
 @dataclass

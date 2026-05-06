@@ -3,7 +3,9 @@
 import pytest
 import requests
 
-from autodoc.models.component import Component, ConanVariant, ProfileBuild, Release
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.release import Release
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"

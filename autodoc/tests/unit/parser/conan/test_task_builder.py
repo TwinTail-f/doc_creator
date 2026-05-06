@@ -7,8 +7,11 @@
 
 import pytest
 
-from autodoc.models.component import Component, ProfileBuild, Release
-from autodoc.parser.conan.task_builder import ConanTask, ConanTaskBuilder
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
+from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
 
 # ---------------------------------------------------------------------------
 # Локальные вспомогательные функции / фикстуры

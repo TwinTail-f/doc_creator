@@ -3,10 +3,8 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_transformer import (
-    BaseDataTransformer,
-    _VariantOpts,
-)
+from autodoc.publisher.transformers.base_data_transformer import BaseDataTransformer
+from autodoc.publisher.transformers.passport_link_mixin import _VariantOpts
 
 
 class PassportTransformer(BaseDataTransformer):

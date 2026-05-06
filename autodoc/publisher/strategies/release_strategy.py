@@ -6,11 +6,13 @@ from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
-from autodoc.publisher.transformers.base_transformer import BaseDataTransformer
-from autodoc.publisher.transformers.release_transformer import FullReleaseTransformer
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.publish_report import PublishReport
+from autodoc.publisher.transformers.base_data_transformer import BaseDataTransformer
+from autodoc.publisher.transformers.full_release_transformer import FullReleaseTransformer
 
 _DEFAULT_TEMPLATE: str = "release_doc.jinja2"
 

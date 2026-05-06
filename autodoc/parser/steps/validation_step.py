@@ -6,8 +6,9 @@ import requests
 
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
-from autodoc.models.component import Component, ConanVariant, ProfileBuild
-from autodoc.parser.clients.protocols import IArtifactoryClient
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
 from autodoc.parser.steps.base import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 

@@ -13,20 +13,19 @@
 
 from typing import Any
 
-from autodoc.models.component import ConanVariant, TotalOptionsSet
-from autodoc.models.conan_result import (
-    ConanCommandRecord,
-    ConanComponentReport,
+from autodoc.models.conan_enrichment_result import (
     ConanEnrichmentResult,
-    ConanProfileReport,
-    ConanRawResult,
     ProfileConanData,
     ReleaseConanData,
     _ErrorLog,
 )
+from autodoc.models.conan_raw_result import ConanCommandRecord, ConanRawResult
+from autodoc.models.conan_report import ConanComponentReport, ConanProfileReport
+from autodoc.models.conan_variant import ConanVariant
+from autodoc.models.options import TotalOptionsSet
 from autodoc.parser.conan.result_parser import ConanResultParser
-from autodoc.parser.conan.task_builder import ConanTask
-from autodoc.parser.conan.types import ConanEnrichData
+from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 
 class ConanResultAggregator:

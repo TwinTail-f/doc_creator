@@ -15,7 +15,7 @@ import pytest
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base import BasePublishStrategy
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
 from autodoc.tests.unit.publisher.conftest import FakeConfluenceClient, FakeDocumentBuilder
 

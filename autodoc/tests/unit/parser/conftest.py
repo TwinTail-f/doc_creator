@@ -12,13 +12,10 @@ from pathlib import Path
 import pytest
 import requests
 
-from autodoc.config.schemas import ParserConfigSchema
-from autodoc.models.component import (
-    ConanVariant,
-    Component,
-    ProfileBuild,
-    Release,
-)
+from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.release import Release
 from autodoc.parser.pipeline.context import PipelineContext
 
 # ---------------------------------------------------------------------------

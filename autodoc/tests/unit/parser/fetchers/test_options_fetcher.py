@@ -11,8 +11,10 @@ from unittest.mock import MagicMock
 
 import requests
 
-from autodoc.config.schemas import ParserConfigSchema
-from autodoc.models.component import Component, ProfileBuild, Release
+from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
 from autodoc.parser.fetchers.options_fetcher import OptionsFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.tests.unit.parser.conftest import FakeTFSClient

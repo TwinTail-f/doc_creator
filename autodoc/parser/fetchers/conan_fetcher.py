@@ -19,13 +19,15 @@
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
-from autodoc.models.conan_result import ConanEnrichmentResult
-from autodoc.parser.conan.conan_runner import Conan2Runner, ConanEnvironmentManager
+from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
+from autodoc.parser.conan.conan2_runner import Conan2Runner
+from autodoc.parser.conan.conan_environment_manager import ConanEnvironmentManager
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
-from autodoc.parser.conan.task_builder import ConanTaskBuilder
-from autodoc.parser.fetchers.base import FetchResult, IFetcher
+from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
+from autodoc.parser.fetchers.fetch_result import FetchResult
+from autodoc.parser.fetchers.i_fetcher import IFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 
 _DEFAULT_MAX_WORKERS: int = 64

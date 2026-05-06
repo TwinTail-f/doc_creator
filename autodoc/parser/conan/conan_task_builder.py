@@ -2,50 +2,14 @@
 Построитель задач для Conan graph info.
 """
 
-from dataclasses import dataclass
-
-from autodoc.models.component import Component, ProfileBuild, Release
+from autodoc.models.component import Component
+from autodoc.parser.conan.conan_task import ConanTask
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
 # Шаблон Conan version range с поддержкой pre-release версий
 _CONAN_REF_TEMPLATE: str = (
     "{name}/[~{version},include_prerelease]@platform-{platform}/{channel}"
 )
-
-
-@dataclass(frozen=True)
-class ConanTask:
-    """
-    Единица задачи для одного вызова ``conan graph info``.
-
-    Хранит готовую CLI-команду и ссылки на модели данных,
-    которые будут обогащены после успешного выполнения.
-
-    Attributes:
-        cmd: Готовая CLI-команда для передачи в ``subprocess.run``.
-        comp_name: Имя компонента.
-        version: Версия компонента.
-        channel: Канал (например ``'stable'``).
-        profile_name: Имя профиля сборки Conan.
-        option_id: Идентификатор набора опций.
-        option_str: Строка опций через запятую.
-        target_platform: Целевая платформа.
-        artifactory_base_url: Базовый URL Artifactory для построения ссылок.
-        release: Ссылка на объект ``Release`` для последующего обогащения.
-        pb: Ссылка на объект ``ProfileBuild`` для последующего обогащения.
-    """
-
-    cmd: list[str]
-    comp_name: str
-    version: str
-    channel: str
-    profile_name: str
-    option_id: str
-    option_str: str
-    target_platform: str
-    artifactory_base_url: str
-    release: Release
-    pb: ProfileBuild
 
 
 class ConanTaskBuilder:

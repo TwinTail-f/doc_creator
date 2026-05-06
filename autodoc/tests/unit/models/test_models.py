@@ -7,13 +7,10 @@ from __future__ import annotations
 
 import pytest
 
-from autodoc.models.component import (
-    _parse_option_str,
-    ConanInputOptions,
-    Component,
-    ProfileBuild,
-    Release,
-)
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.options import _parse_option_str, ConanInputOptions
+from autodoc.models.release import Release
 
 # ---------------------------------------------------------------------------
 # Константы уровня модуля

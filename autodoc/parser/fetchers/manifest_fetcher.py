@@ -8,8 +8,9 @@ from pathlib import Path
 from autodoc.exceptions import ParsingError
 from autodoc.models.component import Component
 from autodoc.parser.parsers.manifest_parser import ManifestParser
-from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
-from autodoc.parser.clients.tfs_client import VersionType
+from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
+from autodoc.parser.fetchers.fetch_result import FetchResult
+from autodoc.parser.clients.tfs_client_enums import VersionType
 from autodoc.parser.pipeline.context import PipelineContext
 
 _MANIFESTS_REPO: str = "platform"

@@ -1,12 +1,5 @@
 """
-Абстрактные интерфейсы (Protocol) для инфраструктурных зависимостей паблишера.
-
-Использование ``typing.Protocol`` (структурная типизация) означает, что ни
-``ConfluenceClient``, ни ``DocumentBuilder`` не требуют изменений в коде —
-они удовлетворяют этим интерфейсам неявно.
-
-Стратегии, менеджеры страниц и тесты зависят от этих Protocol-ов,
-а не от конкретных инфраструктурных классов.
+Protocol (structural interface) for Confluence client used by publisher strategies.
 """
 
 from typing import Any, Protocol, runtime_checkable
@@ -60,17 +53,4 @@ class IConfluenceClient(Protocol):
 
     def get_page_body(self, space: str, title: str) -> str:
         """Возвращает тело страницы в Confluence Storage Format или пустую строку."""
-        ...
-
-
-@runtime_checkable
-class IDocumentBuilder(Protocol):
-    """
-    Интерфейс рендеринга Jinja2-шаблонов в HTML.
-
-    ``DocumentBuilder`` удовлетворяет этому интерфейсу структурно.
-    """
-
-    def build(self, template_name: str, view_model: dict[str, Any]) -> str:
-        """Рендерит *template_name* с *view_model* и возвращает HTML-строку."""
         ...

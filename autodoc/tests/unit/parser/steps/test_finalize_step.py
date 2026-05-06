@@ -3,13 +3,10 @@
 import pytest
 
 from autodoc.exceptions import ParsingError
-from autodoc.models.component import (
-    Component,
-    ConanVariant,
-    ProfileBuild,
-    ProfileDefinition,
-    Release,
-)
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.profile_definition import ProfileDefinition
+from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.finalize_step import FinalizeStep
 

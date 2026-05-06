@@ -7,7 +7,7 @@ tests/unit/parser/conftest.py и доступны здесь автоматич�
 
 import pytest
 
-from autodoc.models.component import ConanVariant
+from autodoc.models.conan_variant import ConanVariant
 
 
 @pytest.fixture

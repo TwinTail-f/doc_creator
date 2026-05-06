@@ -10,7 +10,8 @@ import pytest
 import requests
 
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-from autodoc.parser.clients.protocols import IArtifactoryClient, ITFSClient
+from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
+from autodoc.parser.clients.tfs_client_protocol import ITFSClient
 from autodoc.parser.clients.tfs_client import TFSClient
 
 _EXAMPLE_URL: str = "https://art.example.com/artifactory/conan2/openssl"

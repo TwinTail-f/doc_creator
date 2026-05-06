@@ -1,43 +1,17 @@
-"""
-Базовый класс стратегий публикации с Registry-паттерном и PublishReport.
-"""
+"""Abstract base class for publish strategies with Registry pattern."""
 
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from collections.abc import Callable
 from typing import Any, ClassVar
 
 from autodoc.models.parsed_result import ParsedResult
 
-from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.strategies.publish_report import PublishReport
 
 from autodoc.infrastructure.logger import logger
-
-
-@dataclass
-class PublishReport:
-    """
-    Типизированный результат выполнения стратегии публикации.
-
-    Заменяет ``dict[str, Any]`` — контракт проверяется статически.
-
-    Attributes:
-        success: ``True`` если публикация завершилась без ошибок.
-        pages_published: Количество успешно опубликованных страниц.
-        pages_failed: Количество страниц, публикация которых завершилась ошибкой.
-        errors: Список текстовых сообщений об ошибках.
-        failed_pages: Структурированная информация о каждой неудавшейся странице
-                      в формате ``{'page_title': str, 'reason': str}``.
-        details: Подробные записи об успешно опубликованных страницах.
-    """
-
-    success: bool
-    pages_published: int
-    pages_failed: int = 0
-    errors: list[str] = field(default_factory=list)
-    failed_pages: list[dict[str, Any]] = field(default_factory=list)
-    details: list[dict[str, Any]] = field(default_factory=list)
 
 
 class BasePublishStrategy(ABC):
@@ -160,28 +134,12 @@ class BasePublishStrategy(ABC):
         Инкапсулирует общий поток публикации одной страницы для стратегий
         release и profile-centric.
 
-        Этапы:
-        1. Вызов ``transform_fn`` для получения view-model.
-        2. Проверка, что view-model не пустой.
-        3. Запись ключа Space в view-model.
-        4. Опциональный вызов ``inject_links`` для вставки ссылок на паспорта.
-        5. Рендеринг Jinja2-шаблона.
-        6. Публикация страницы через ``ConfluenceClient``.
-        7. Возврат ``PublishReport``.
-
-        Любое исключение из шагов 1–6 перехватывается, логируется и возвращается
-        как неудачный ``PublishReport``.
-
         Args:
             page_title: Заголовок страницы Confluence для создания или обновления.
             template_name: Имя файла Jinja2-шаблона.
-            transform_fn: Callable без аргументов, возвращающий словарь view-model
-                          (обычно ``lambda: transformer.transform(data)``).
-                          Вызывается внутри try-блока, чтобы ошибки трансформера
-                          попадали в ``PublishReport``.
+            transform_fn: Callable без аргументов, возвращающий словарь view-model.
             parent_id: ID родительской страницы Confluence (пустая строка = без родителя).
-            inject_links: Опциональный callable, мутирующий view-model на месте
-                          для добавления ссылок на паспорта. Получает словарь view-model.
+            inject_links: Опциональный callable, мутирующий view-model на месте.
 
         Returns:
             ``PublishReport`` с результатом попытки публикации.
@@ -221,9 +179,6 @@ class BasePublishStrategy(ABC):
             logger.info(f"{page_title} {result['status']} (ID: {result['id']})")
             return PublishReport(success=True, pages_published=1, details=details)
 
-        # Сознательно ловим все исключения: любая ошибка (сеть, рендеринг, API)
-        # при публикации одной страницы должна быть изолирована и зафиксирована,
-        # не прерывая весь рабочий процесс публикации.
         except Exception as e:
             reason = str(e)
             errors.append(reason)
@@ -242,19 +197,15 @@ class BasePublishStrategy(ABC):
         """
         Минимизирует HTML-разметку перед публикацией в Confluence.
 
-        Удаляет HTML-комментарии, схлопывает пробельные символы между тегами
-        и убирает лишние пробелы внутри текста. Применяется ко всем страницам,
-        публикуемым любой из стратегий.
-
         Args:
             html: Исходный HTML-текст шаблона.
 
         Returns:
             Минимизированный HTML без лишних пробелов и комментариев.
         """
-        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)  # удаляем комментарии
-        html = re.sub(r">\s+<", "><", html)  # пробелы между тегами
-        html = re.sub(r"\s{2,}", " ", html)  # схлопываем повторные пробелы
+        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
+        html = re.sub(r">\s+<", "><", html)
+        html = re.sub(r"\s{2,}", " ", html)
         return html.strip()
 
     @abstractmethod

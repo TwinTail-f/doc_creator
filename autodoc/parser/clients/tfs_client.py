@@ -8,31 +8,18 @@
 ``PipelineContext``. Фетчеры получают экземпляр через ``ctx.tfs_client``.
 """
 
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import requests
 
-from autodoc.config.schemas import ParserConfigSchema
+from autodoc.config.parser_config_schema import ParserConfigSchema
 from autodoc.exceptions import NetworkError
-from autodoc.infrastructure.http_client import create_retryable_session
+from autodoc.infrastructure.retryable_session import create_retryable_session
 from autodoc.infrastructure.logger import logger
+from autodoc.parser.clients.tfs_client_enums import RecursionLevel, VersionType
 
-
-class RecursionLevel(str, Enum):
-    """Допустимые уровни рекурсии для TFS Items API."""
-
-    ONE_LEVEL = "OneLevel"
-    FULL = "Full"
-
-
-class VersionType(str, Enum):
-    """Тип версии для versionDescriptor TFS Items API."""
-
-    BRANCH = "branch"
-    TAG = "tag"
-    COMMIT = "commit"
+__all__ = ["TFSClient", "RecursionLevel", "VersionType"]
 
 
 class TFSClient:

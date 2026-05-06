@@ -11,7 +11,8 @@ import yaml
 from autodoc.infrastructure.logger import logger
 from autodoc.parser.parsers.docker_parser import DockerLinksMap
 from autodoc.parser.parsers.docker_parser import DockerParser
-from autodoc.parser.fetchers.base import BaseTFSFetcher, FetchResult
+from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
+from autodoc.parser.fetchers.fetch_result import FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
 # TFS добавляет «GB» как префикс для ссылок на ветки в versionDescriptor

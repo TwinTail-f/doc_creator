@@ -21,7 +21,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from autodoc.config.manager import ConfigManager
-from autodoc.config.schemas import ConfluenceConfigSchema
+from autodoc.config.confluence_config_schema import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -29,7 +29,7 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from autodoc.publisher.publisher import DocumentPublisher
-from autodoc.publisher.strategies.base import PublishReport
+from autodoc.publisher.strategies.publish_report import PublishReport
 
 console = Console()
 
@@ -485,7 +485,8 @@ def config_list(ctx: click.Context) -> None:
 def config_validate(ctx: click.Context, config_file: str) -> None:
     """Валидировать синтаксис конфигурационного файла."""
     from pydantic import ValidationError as PydanticValidationError
-    from autodoc.config.schemas import ParserConfigSchema, ConfluenceConfigSchema
+    from autodoc.config.confluence_config_schema import ConfluenceConfigSchema
+    from autodoc.config.parser_config_schema import ParserConfigSchema
 
     cli_ctx: _CliCtx = ctx.obj["cli"]
 

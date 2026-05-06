@@ -8,7 +8,8 @@ from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.exceptions import ParsingError
 from autodoc.infrastructure.logger import logger
-from autodoc.models.component import Component, ProfileDefinition
+from autodoc.models.component import Component
+from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.base import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext

@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
-from autodoc.config.schemas import ConfluenceConfigSchema
+from autodoc.config.confluence_config_schema import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 

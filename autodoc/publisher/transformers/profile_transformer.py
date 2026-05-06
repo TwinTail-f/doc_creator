@@ -4,7 +4,7 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.release_transformer import BaseReleaseTransformer
+from autodoc.publisher.transformers.base_release_transformer import BaseReleaseTransformer
 
 
 class ProfileCentricTransformer(BaseReleaseTransformer):

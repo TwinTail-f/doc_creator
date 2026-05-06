@@ -8,7 +8,9 @@ from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
-from autodoc.models.component import Component, ProfileBuild, Release
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
 from autodoc.parser.utils.properties_reader import read_properties
 
 _MANIFEST_MAX_WORKERS: int = 32

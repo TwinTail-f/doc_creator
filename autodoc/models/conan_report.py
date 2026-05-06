@@ -1,0 +1,29 @@
+"""
+Диагностические отчёты Conan по профилям и компонентам.
+
+ConanProfileReport   — все вызовы conan graph info для одного профиля.
+ConanComponentReport — отчёт по всем вызовам одного компонента/версии/канала.
+"""
+
+from dataclasses import dataclass, field
+
+from autodoc.models.conan_raw_result import ConanCommandRecord
+
+
+@dataclass
+class ConanProfileReport:
+    """Все вызовы conan graph info для одного профиля."""
+
+    profile_name: str
+    commands: list[ConanCommandRecord] = field(default_factory=list)
+
+
+@dataclass
+class ConanComponentReport:
+    """Диагностический отчёт по всем вызовам одного компонента/версии/канала."""
+
+    component: str
+    version: str
+    channel: str
+    # profile_name → отчёт профиля
+    profiles: dict[str, ConanProfileReport] = field(default_factory=dict)

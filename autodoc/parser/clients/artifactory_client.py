@@ -11,8 +11,8 @@ import warnings
 import requests
 import urllib3
 
-from autodoc.config.schemas import ParserConfigSchema
-from autodoc.infrastructure.http_client import create_retryable_session
+from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.infrastructure.retryable_session import create_retryable_session
 from autodoc.infrastructure.logger import logger
 
 _MAX_RETRIES: int = 1

@@ -14,7 +14,9 @@ from typing import Any
 
 import pytest
 
-from autodoc.models.component import Component, ProfileBuild, Release
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry

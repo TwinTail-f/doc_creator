@@ -10,7 +10,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from autodoc.models.component import DefaultOptionsSet
+from autodoc.models.options import DefaultOptionsSet
 
 
 @dataclass

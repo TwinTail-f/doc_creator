@@ -10,12 +10,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autodoc.models.component import ProfileBuild, Release
-from autodoc.models.conan_result import ConanEnrichmentResult, ConanRawResult
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
+from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
+from autodoc.models.conan_raw_result import ConanRawResult
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
-from autodoc.parser.conan.task_builder import ConanTask
-from autodoc.parser.conan.types import ConanEnrichData
+from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 # ---------------------------------------------------------------------------
 # Вспомогательные функции

@@ -12,9 +12,10 @@ from typing import Any
 
 import pytest
 
-from autodoc.models.component import ProfileBuild, Release
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
 from autodoc.parser.conan.result_parser import ConanResultParser
-from autodoc.parser.conan.task_builder import ConanTask
+from autodoc.parser.conan.conan_task import ConanTask
 
 # ---------------------------------------------------------------------------
 # Локальные фикстуры

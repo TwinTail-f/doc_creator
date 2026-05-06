@@ -9,8 +9,8 @@
 
 from typing import Protocol
 
-from autodoc.config.schemas import ParserConfigSchema
-from autodoc.parser.clients.protocols import ITFSClient
+from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.parser.clients.tfs_client_protocol import ITFSClient
 
 
 class IPipelineContext(Protocol):

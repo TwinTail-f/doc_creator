@@ -1,7 +1,7 @@
 """Менеджер иерархии страниц Confluence."""
 
 from autodoc.infrastructure.logger import logger
-from autodoc.publisher.clients.protocols import IConfluenceClient
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
 
 _CHILDREN_MACRO_ID: str = "8cb4ae85-0212-4b3d-a15f-77899af1f1d7"
 

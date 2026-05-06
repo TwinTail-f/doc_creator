@@ -1,39 +1,11 @@
-"""Трансформеры для документации релизов: полный вид."""
+"""Transformer for the full release documentation view."""
 
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_transformer import (
-    BaseDataTransformer,
-    PassportLinkMixin,
-    _DEFAULT_PASSPORT_PATTERN,
-    _VariantOpts,
-)
-
-
-class BaseReleaseTransformer(PassportLinkMixin, BaseDataTransformer):
-    """
-    Базовый класс трансформеров документации релиза.
-
-    Наследует ``_passport_link()`` из ``PassportLinkMixin``.
-    Конкретные виды реализуют ``transform()``.
-    """
-
-    def __init__(
-        self,
-        include_passport_links: bool = True,
-        passport_page_pattern: str | None = None,
-    ) -> None:
-        """
-        Args:
-            include_passport_links: Добавлять ли ссылки на паспорта компонентов.
-            passport_page_pattern: Шаблон URL паспорта с плейсхолдерами
-                ``{component_name}`` и ``{release_version}``.
-                По умолчанию используется ``_DEFAULT_PASSPORT_PATTERN``.
-        """
-        self._include_passport_links: bool = include_passport_links
-        self._pattern: str | None = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
+from autodoc.publisher.transformers.passport_link_mixin import _VariantOpts
+from autodoc.publisher.transformers.base_release_transformer import BaseReleaseTransformer
 
 
 class FullReleaseTransformer(BaseReleaseTransformer):

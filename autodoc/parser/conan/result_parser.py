@@ -6,9 +6,9 @@ import datetime
 from pathlib import Path
 from typing import Any
 
-from autodoc.models.component import DefaultOptionsSet
-from autodoc.parser.conan.task_builder import ConanTask
-from autodoc.parser.conan.types import ConanEnrichData
+from autodoc.models.options import DefaultOptionsSet
+from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 
 class ConanResultParser:

@@ -8,16 +8,12 @@ apply_conan_results(). Использует фикстуры из unit/parser/co
 
 import pytest
 
-from autodoc.models.component import (
-    ConanInputOptions,
-    ConanVariant,
-    Component,
-    ProfileBuild,
-    ProfileDefinition,
-    Release,
-    TotalOptionsSet,
-)
-from autodoc.models.conan_result import (
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.options import ConanInputOptions, TotalOptionsSet
+from autodoc.models.profile_definition import ProfileDefinition
+from autodoc.models.release import Release
+from autodoc.models.conan_enrichment_result import (
     ConanEnrichmentResult,
     ProfileConanData,
     ReleaseConanData,

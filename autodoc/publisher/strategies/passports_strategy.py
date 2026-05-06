@@ -6,12 +6,14 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.protocols import IConfluenceClient, IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.legacy_content.legacy_service import extract_for_platform
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.utils.publish_queue import PublishQueue
-from autodoc.publisher.strategies.base import BasePublishStrategy, PublishReport
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.publish_report import PublishReport
 from autodoc.publisher.transformers.passport_transformer import PassportTransformer
 
 _DEFAULT_TEMPLATE: str = "component_passport.jinja2"

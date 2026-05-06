@@ -2,12 +2,10 @@
 Единственная точка мутации доменных моделей в пайплайне парсера.
 """
 
-from autodoc.models.component import (
-    ConanInputOptions,
-    Component,
-    ProfileDefinition,
-)
-from autodoc.models.conan_result import ConanEnrichmentResult
+from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
+from autodoc.models.component import Component
+from autodoc.models.options import ConanInputOptions
+from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.types import OptionsMap
 
 
