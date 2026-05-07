@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import requests
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.release import Release

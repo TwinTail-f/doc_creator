@@ -8,8 +8,8 @@ from autodoc.infrastructure.logger import logger
 from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
-from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
-from autodoc.parser.steps.base import BaseParseStep
+from autodoc.interfaces.artifactory_client_protocol import IArtifactoryClient
+from autodoc.interfaces.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 _VALIDATION_MAX_WORKERS: int = 20
@@ -58,7 +58,8 @@ class ArtifactoryValidationStep(BaseParseStep):
 
         logger.info(f"Удалено {len(dead_variants)} недоступных вариантов (HTTP 404).")
 
-    def _collect_variants(self, 
+    def _collect_variants(
+        self,
         components: list[Component],
     ) -> list[tuple[ProfileBuild, ConanVariant, str]]:
         """
@@ -84,7 +85,8 @@ class ArtifactoryValidationStep(BaseParseStep):
                             result.append((pb, variant, api_url))
         return result
 
-    def _check_urls_parallel(self, 
+    def _check_urls_parallel(
+        self,
         variants_to_check: list[tuple[ProfileBuild, ConanVariant, str]],
         client: IArtifactoryClient,
     ) -> list[tuple[ProfileBuild, ConanVariant]]:
@@ -138,7 +140,8 @@ class ArtifactoryValidationStep(BaseParseStep):
 
         return dead
 
-    def _remove_dead_variants(self, 
+    def _remove_dead_variants(
+        self,
         dead_variants: list[tuple[ProfileBuild, ConanVariant]],
     ) -> None:
         """

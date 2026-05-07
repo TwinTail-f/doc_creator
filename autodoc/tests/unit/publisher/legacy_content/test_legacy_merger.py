@@ -14,6 +14,7 @@ Covers parse_page_content_into_sections():
 - Returns {} on empty HTML.
 - Falls back to h2/h3-header parsing with vX.Y version markers.
 """
+
 from __future__ import annotations
 
 from autodoc.publisher.legacy_content.legacy_merger import LegacyContentMerger

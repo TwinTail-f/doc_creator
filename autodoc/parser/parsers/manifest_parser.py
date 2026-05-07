@@ -15,7 +15,9 @@ from autodoc.parser.utils.properties_reader import read_properties
 
 _MANIFEST_MAX_WORKERS: int = 32
 _MANIFEST_LOG_INTERVAL: int = 50
-_PLATFORM_BASE_VERSION: str = "2.0" #временный хардкод для фильтрации релизов по платформе, будет убран с добавлением функционала для парсинга 1.6 и иных
+_PLATFORM_BASE_VERSION: str = (
+    "2.0"  # временный хардкод для фильтрации релизов по платформе, будет убран с добавлением функционала для парсинга 1.6 и иных
+)
 
 
 @dataclass
@@ -195,7 +197,9 @@ class ManifestParser:
 
         return releases
 
-    def _get_profiles_string(self, props: dict[str, str], c_ver: str, p_ver: str) -> str:
+    def _get_profiles_string(
+        self, props: dict[str, str], c_ver: str, p_ver: str
+    ) -> str:
         """Извлекает строку со списком профилей для заданной комбинации версий."""
         key_profiles = f"profiles-{c_ver}-{p_ver}"
         return props.get(key_profiles, "")

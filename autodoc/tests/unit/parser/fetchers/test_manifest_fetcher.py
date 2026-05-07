@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ParsingError
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.pipeline.context import PipelineContext

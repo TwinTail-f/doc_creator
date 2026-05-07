@@ -1,7 +1,6 @@
-"""Mixin that adds passport link support to transformers."""
+"""Mixin that adds passport link support to converters."""
 
 from typing import NamedTuple, Any
-
 
 _DEFAULT_PASSPORT_PATTERN: str | None = None
 """
@@ -27,8 +26,8 @@ class PassportLinkMixin:
     Миксин, добавляющий поддержку ссылок на паспорта компонентов.
 
     Устраняет дублирование одинаковых ``_DEFAULT_PASSPORT_PATTERN`` и
-    ``_passport_link()`` из ``BaseReleaseTransformer`` и
-    ``ProfileCentricTransformer``.
+    ``_passport_link()`` из ``BaseReleaseConverter`` и
+    ``ProfileCentricConverter``.
 
     Классы-наследники должны устанавливать ``_include_passport_links``
     и ``_pattern`` в своём ``__init__`` до первого обращения к методу.

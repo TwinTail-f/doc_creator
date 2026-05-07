@@ -6,6 +6,7 @@ Testing strategy:
 - PassportPageRegistry.load() is mocked when include_passport_links=True.
 - FakeConfluenceClient / FakeDocumentBuilder provide deterministic I/O.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,9 +16,12 @@ import pytest
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
-from autodoc.tests.unit.publisher.conftest import FakeConfluenceClient, FakeDocumentBuilder
+from autodoc.tests.unit.publisher.conftest import (
+    FakeConfluenceClient,
+    FakeDocumentBuilder,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -140,7 +144,9 @@ class TestProfileCentricStrategyExecute:
         )
         strategy.execute()
         publish_calls = [
-            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
+            c
+            for c in publisher_confluence_client.calls
+            if c["method"] == "publish_page"
         ]
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE

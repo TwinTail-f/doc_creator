@@ -1,13 +1,13 @@
-"""Abstract base class for release document transformers."""
+"""Abstract base class for release document converters."""
 
-from autodoc.publisher.transformers.passport_link_mixin import (
+from autodoc.publisher.converters.passport_link_mixin import (
     PassportLinkMixin,
     _DEFAULT_PASSPORT_PATTERN,
 )
-from autodoc.publisher.transformers.base_data_transformer import BaseDataTransformer
+from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 
 
-class BaseReleaseTransformer(PassportLinkMixin, BaseDataTransformer):
+class BaseReleaseConverter(PassportLinkMixin, BaseDataConverter):
     """
     Базовый класс трансформеров документации релиза.
 

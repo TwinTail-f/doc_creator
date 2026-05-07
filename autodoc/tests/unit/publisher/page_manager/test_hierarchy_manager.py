@@ -8,6 +8,7 @@ Covers:
 - Return value is the ID from the second call.
 - Both calls receive the correct space key.
 """
+
 from __future__ import annotations
 
 import pytest

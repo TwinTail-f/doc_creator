@@ -1,14 +1,14 @@
-"""Transformer for the full release documentation view."""
+"""Converter for the full release documentation view."""
 
 from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.passport_link_mixin import _VariantOpts
-from autodoc.publisher.transformers.base_release_transformer import BaseReleaseTransformer
+from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.base_release_converter import BaseReleaseConverter
 
 
-class FullReleaseTransformer(BaseReleaseTransformer):
+class FullReleaseConverter(BaseReleaseConverter):
     """
     Трансформер для полного вида документации релиза.
 

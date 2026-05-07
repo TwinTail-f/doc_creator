@@ -5,8 +5,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from autodoc.parser.fetchers.fetch_result import FetchResult
-from autodoc.parser.pipeline.context import PipelineContext
+from autodoc.models.fetch_result import FetchResult
+from autodoc.interfaces.pipeline_context_protocol import IPipelineContext
 
 
 class IFetcher[T](ABC):
@@ -18,7 +18,7 @@ class IFetcher[T](ABC):
     """
 
     @abstractmethod
-    def configure(self, ctx: PipelineContext) -> None:
+    def configure(self, ctx: IPipelineContext) -> None:
         """
         Инициализирует фетчер данными из контекста пайплайна.
 

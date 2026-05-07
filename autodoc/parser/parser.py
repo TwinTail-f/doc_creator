@@ -8,15 +8,16 @@ from pathlib import Path
 
 from typing import Self
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
-from autodoc.parser.clients.tfs_client_protocol import ITFSClient
+from autodoc.interfaces.artifactory_client_protocol import IArtifactoryClient
+from autodoc.interfaces.tfs_client_protocol import ITFSClient
 from autodoc.parser.clients.tfs_client import TFSClient
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.docker_step import DockerResolveStep
 from autodoc.parser.steps.finalize_step import FinalizeStep

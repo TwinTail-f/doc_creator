@@ -107,7 +107,7 @@ class PassportPageRegistry:
         ничего не делает.
 
         Args:
-            view_model: Словарь, созданный ``ProfileCentricTransformer``.
+            view_model: Словарь, созданный ``ProfileCentricConverter``.
                         Изменяется на месте. Должен содержать ключ ``'space'``.
             passport_pages: Карта, загруженная через ``PassportPageRegistry.load()``.
         """

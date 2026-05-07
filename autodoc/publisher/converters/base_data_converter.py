@@ -1,14 +1,14 @@
-"""Abstract base class for data transformers."""
+"""Abstract base class for data converters."""
 
 from abc import ABC, abstractmethod
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
 from autodoc.publisher.view_models.passports import ConanVariantView
 
 
-class BaseDataTransformer(ABC):
+class BaseDataConverter(ABC):
     """
     Абстрактный базовый класс трансформеров данных.
 
@@ -100,7 +100,7 @@ class BaseDataTransformer(ABC):
         if resolved_opts.install_options_override is not None:
             install_opts = resolved_opts.install_options_override
         else:
-            install_opts = BaseDataTransformer._build_install_options(
+            install_opts = BaseDataConverter._build_install_options(
                 conan_options, component_name
             )
         return ConanVariantView(

@@ -3,10 +3,11 @@ Tests for autodoc.publisher.strategies.passports_strategy.PassportsStrategy.
 
 Testing strategy:
 - PageHierarchyManager.ensure_hierarchy_exists is mocked to return a stable page ID.
-- PassportTransformer.transform is mocked to return a predictable view_model.
+- PassportConverter.transform is mocked to return a predictable view_model.
 - FakeConfluenceClient / FakeDocumentBuilder are used for I/O.
 - execute() is the only public entry point tested (no _try_publish_item/_publish_one).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -21,8 +22,11 @@ from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
-from autodoc.publisher.transformers.passport_transformer import PassportTransformer
-from autodoc.tests.unit.publisher.conftest import FakeConfluenceClient, FakeDocumentBuilder
+from autodoc.publisher.converters.passport_converter import PassportConverter
+from autodoc.tests.unit.publisher.conftest import (
+    FakeConfluenceClient,
+    FakeDocumentBuilder,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -132,7 +136,7 @@ class TestPassportsStrategyExecute:
             return_value=_VERSION_PAGE_ID,
         )
         mocker.patch.object(
-            PassportTransformer,
+            PassportConverter,
             "transform",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )
@@ -143,7 +147,11 @@ class TestPassportsStrategyExecute:
             tmp_path,
         )
         strategy.execute()
-        publish_calls = [c for c in publisher_confluence_client.calls if c["method"] == "publish_page"]
+        publish_calls = [
+            c
+            for c in publisher_confluence_client.calls
+            if c["method"] == "publish_page"
+        ]
         assert len(publish_calls) >= 1
 
     def test_passports_strategy_execute_report_success_when_no_errors(
@@ -161,7 +169,7 @@ class TestPassportsStrategyExecute:
             return_value=_VERSION_PAGE_ID,
         )
         mocker.patch.object(
-            PassportTransformer,
+            PassportConverter,
             "transform",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )
@@ -227,7 +235,9 @@ class TestPassportsStrategyExecute:
                 raise RuntimeError("simulated first failure")
             return dict(_STUB_TRANSFORM_RESULT)
 
-        mocker.patch.object(PassportTransformer, "transform", side_effect=transform_side_effect)
+        mocker.patch.object(
+            PassportConverter, "transform", side_effect=transform_side_effect
+        )
         strategy = make_passports_strategy(
             publisher_confluence_client,
             publisher_document_builder,
@@ -253,7 +263,7 @@ class TestPassportsStrategyExecute:
             return_value=_VERSION_PAGE_ID,
         )
         mocker.patch.object(
-            PassportTransformer,
+            PassportConverter,
             "transform",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )
@@ -281,7 +291,7 @@ class TestPassportsStrategyExecute:
             return_value=_VERSION_PAGE_ID,
         )
         mocker.patch.object(
-            PassportTransformer,
+            PassportConverter,
             "transform",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )

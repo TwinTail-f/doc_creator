@@ -3,11 +3,11 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_data_transformer import BaseDataTransformer
-from autodoc.publisher.transformers.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.base_data_converter import BaseDataConverter
+from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
 
 
-class PassportTransformer(BaseDataTransformer):
+class PassportConverter(BaseDataConverter):
     """
     Трансформер для подробной документации (паспорта) конкретного компонента.
 
@@ -45,9 +45,7 @@ class PassportTransformer(BaseDataTransformer):
         """
         comp = next((c for c in data.components if c.name == component_name), None)
         if not comp:
-            raise ValueError(
-                f"PassportTransformer: компонент {component_name} не найден"
-            )
+            raise ValueError(f"PassportConverter: компонент {component_name} не найден")
         return comp
 
     @staticmethod
@@ -71,7 +69,7 @@ class PassportTransformer(BaseDataTransformer):
         )
         if not rel:
             raise ValueError(
-                f"PassportTransformer: версия {release_version} "
+                f"PassportConverter: версия {release_version} "
                 f"для {component.name} не найдена"
             )
         return rel

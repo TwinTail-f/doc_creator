@@ -11,7 +11,7 @@ import warnings
 import requests
 import urllib3
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.infrastructure.retryable_session import create_retryable_session
 from autodoc.infrastructure.logger import logger
 

@@ -1,4 +1,4 @@
-"""Unit tests for ProfileCentricTransformer."""
+"""Unit tests for ProfileCentricConverter."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
+from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -40,27 +40,23 @@ def result_with_header_only_unique_profile(
     patched_comp = original_comp.model_copy(
         update={"releases": [original_comp.releases[0], patched_header]}
     )
-    components = [patched_comp] + list(
-        publisher_multi_component_result.components[1:]
-    )
+    components = [patched_comp] + list(publisher_multi_component_result.components[1:])
     return publisher_multi_component_result.model_copy(
         update={"components": components}
     )
 
 
-# ── ProfileCentricTransformer ─────────────────────────────────────────────────
+# ── ProfileCentricConverter ─────────────────────────────────────────────────
 
 
-class TestProfileCentricTransformer:
-    """Tests for ProfileCentricTransformer.transform()."""
+class TestProfileCentricConverter:
+    """Tests for ProfileCentricConverter.transform()."""
 
     def test_profile_centric_transform_returns_profiles_list(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """result['profiles'] is a non-empty list."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         assert len(result["profiles"]) > 0
 
@@ -68,9 +64,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """Each profile entry contains all mandatory keys."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         profile = result["profiles"][0]
         required_keys = {
@@ -88,9 +82,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """profile['os'] is read from conan_settings['os'] of the matching ProfileDefinition."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         assert result["profiles"][0]["os"] == OS_LINUX
 
@@ -98,9 +90,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """profile['docker_url'] matches the docker_image of the matching ProfileDefinition."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         assert result["profiles"][0]["docker_url"] == DOCKER_IMAGE
 
@@ -108,9 +98,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """Both openssl and zlib appear under the 'tech' channel of the profile."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         channels = result["profiles"][0]["channels"]
         assert len(channels[CHANNEL_TECH]) == 2
@@ -119,9 +107,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """Components within a channel are sorted alphabetically by name."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         tech_entries = result["profiles"][0]["channels"][CHANNEL_TECH]
         names = [e["name"] for e in tech_entries]
@@ -131,9 +117,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """Each component entry includes 'reference' and 'url' fields."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
         assert "reference" in comp_entry
@@ -143,9 +127,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """passport_link is None when no passport_page_pattern is configured."""
-        result = ProfileCentricTransformer().transform(
-            publisher_multi_component_result
-        )
+        result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
         comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
         assert comp_entry["passport_link"] is None
@@ -154,11 +136,11 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """passport_link is built from the pattern when include_passport_links=True."""
-        transformer = ProfileCentricTransformer(
+        converter = ProfileCentricConverter(
             include_passport_links=True,
             passport_page_pattern=PASSPORT_PATTERN_SHORT,
         )
-        result = transformer.transform(publisher_multi_component_result)
+        result = converter.transform(publisher_multi_component_result)
 
         tech_entries = result["profiles"][0]["channels"][CHANNEL_TECH]
         openssl_entry = next(e for e in tech_entries if e["name"] == COMP_NAME)
@@ -168,7 +150,7 @@ class TestProfileCentricTransformer:
         self, result_with_header_only_unique_profile: ParsedResult
     ) -> None:
         """A profile referenced only from header-only releases is absent from result['profiles']."""
-        result = ProfileCentricTransformer().transform(
+        result = ProfileCentricConverter().transform(
             result_with_header_only_unique_profile
         )
 
@@ -179,7 +161,7 @@ class TestProfileCentricTransformer:
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
         """result['include_passport_links'] reflects the constructor parameter."""
-        result = ProfileCentricTransformer(include_passport_links=False).transform(
+        result = ProfileCentricConverter(include_passport_links=False).transform(
             publisher_multi_component_result
         )
 

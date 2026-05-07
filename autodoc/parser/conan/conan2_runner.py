@@ -11,8 +11,8 @@ from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.conan_raw_result import ConanRawResult
-from autodoc.parser.conan.base_conan_runner import BaseConanRunner
-from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.interfaces.base_conan_runner import BaseConanRunner
+from autodoc.models.conan_task import ConanTask
 
 
 class Conan2Runner(BaseConanRunner):

@@ -98,4 +98,3 @@ class ParserConfigSchema(BaseModel):
         le=10.0,
         description="Множитель для exponential backoff (1 с, затем 2, 4, 8…)",
     )
-

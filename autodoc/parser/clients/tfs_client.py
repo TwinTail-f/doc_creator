@@ -13,7 +13,7 @@ from typing import Any
 
 import requests
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import NetworkError
 from autodoc.infrastructure.retryable_session import create_retryable_session
 from autodoc.infrastructure.logger import logger

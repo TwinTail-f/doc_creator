@@ -4,10 +4,10 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.base_release_transformer import BaseReleaseTransformer
+from autodoc.publisher.converters.base_release_converter import BaseReleaseConverter
 
 
-class ProfileCentricTransformer(BaseReleaseTransformer):
+class ProfileCentricConverter(BaseReleaseConverter):
     """
     Трансформер для профиль-центричного вида.
 

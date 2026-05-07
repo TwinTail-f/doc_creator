@@ -6,6 +6,7 @@ Testing strategy:
 - PassportPageRegistry.load() is mocked when include_passport_links=True.
 - FakeConfluenceClient / FakeDocumentBuilder provide deterministic I/O.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,10 +16,13 @@ import pytest
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
-from autodoc.publisher.transformers.full_release_transformer import FullReleaseTransformer
-from autodoc.tests.unit.publisher.conftest import FakeConfluenceClient, FakeDocumentBuilder
+from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.tests.unit.publisher.conftest import (
+    FakeConfluenceClient,
+    FakeDocumentBuilder,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -81,7 +85,9 @@ class TestReleaseStrategyExecute:
         )
         strategy.execute()
         publish_calls = [
-            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
+            c
+            for c in publisher_confluence_client.calls
+            if c["method"] == "publish_page"
         ]
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE
@@ -173,21 +179,21 @@ class TestReleaseStrategyExecute:
 
 
 # ---------------------------------------------------------------------------
-# _make_transformer / registry tests
+# _make_converter / registry tests
 # ---------------------------------------------------------------------------
 
 
-class TestReleaseStrategyTransformer:
-    """Tests for ReleasePageStrategy factory and transformer wiring."""
+class TestReleaseStrategyConverter:
+    """Tests for ReleasePageStrategy factory and converter wiring."""
 
-    def test_release_make_transformer_creates_full_release_transformer(
+    def test_release_make_converter_creates_full_release_converter(
         self,
         publisher_confluence_client: FakeConfluenceClient,
         publisher_document_builder: FakeDocumentBuilder,
         publisher_parsed_result: ParsedResult,
         tmp_path: Path,
     ) -> None:
-        """BasePublishStrategy.create('release', ...) wires a FullReleaseTransformer."""
+        """BasePublishStrategy.create('release', ...) wires a FullReleaseConverter."""
         strategy = BasePublishStrategy.create(
             "release",
             confluence_client=publisher_confluence_client,
@@ -199,7 +205,7 @@ class TestReleaseStrategyTransformer:
             data_dir=tmp_path,
             include_passport_links=False,
         )
-        assert isinstance(strategy._transformer, FullReleaseTransformer)
+        assert isinstance(strategy._converter, FullReleaseConverter)
 
     def test_release_strategy_registered_as_release(self) -> None:
         """'release' is present in available_strategies()."""

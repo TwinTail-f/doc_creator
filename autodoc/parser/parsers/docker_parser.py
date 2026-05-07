@@ -47,7 +47,9 @@ class DockerParser:
         return ""
 
     @classmethod
-    def add_aliases(cls, name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
+    def add_aliases(
+        cls, name: str, docker_img: str, docker_links: DockerLinksMap
+    ) -> None:
         """Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов."""
         if not name:
             return

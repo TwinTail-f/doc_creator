@@ -1,4 +1,4 @@
-"""Unit tests for PassportTransformer."""
+"""Unit tests for PassportConverter."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.transformers.passport_transformer import PassportTransformer
+from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ UNKNOWN_VERSION: str = "9.9.9"
 
 
 @pytest.fixture
-def transformer_parsed_result_missing_profile(
+def converter_parsed_result_missing_profile(
     publisher_parsed_result: ParsedResult,
 ) -> ParsedResult:
     """ParsedResult where one ProfileBuild references a profile_name absent from profile_definitions."""
@@ -42,43 +42,39 @@ def transformer_parsed_result_missing_profile(
         update={"profile_builds": original_release.profile_builds + [unknown_pb]}
     )
     original_comp = publisher_parsed_result.components[0]
-    patched_comp = original_comp.model_copy(
-        update={"releases": [patched_release]}
-    )
-    return publisher_parsed_result.model_copy(
-        update={"components": [patched_comp]}
-    )
+    patched_comp = original_comp.model_copy(update={"releases": [patched_release]})
+    return publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
 
-# ── PassportTransformer ───────────────────────────────────────────────────────
+# ── PassportConverter ───────────────────────────────────────────────────────
 
 
-class TestPassportTransformer:
-    """Tests for PassportTransformer.transform()."""
+class TestPassportConverter:
+    """Tests for PassportConverter.transform()."""
 
     def test_passport_transform_raises_on_unknown_component(
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """transform() raises ValueError when the requested component does not exist."""
-        transformer = PassportTransformer(UNKNOWN_COMPONENT, RELEASE_VERSION)
+        converter = PassportConverter(UNKNOWN_COMPONENT, RELEASE_VERSION)
 
         with pytest.raises(ValueError):
-            transformer.transform(publisher_parsed_result)
+            converter.transform(publisher_parsed_result)
 
     def test_passport_transform_raises_on_unknown_version(
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """transform() raises ValueError when the release version is not found."""
-        transformer = PassportTransformer(COMP_NAME, UNKNOWN_VERSION)
+        converter = PassportConverter(COMP_NAME, UNKNOWN_VERSION)
 
         with pytest.raises(ValueError):
-            transformer.transform(publisher_parsed_result)
+            converter.transform(publisher_parsed_result)
 
     def test_passport_transform_returns_platform_version(
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """result['platform_version'] matches the platform_version of the ParsedResult."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -88,7 +84,7 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """result['component'] contains the component's name and description."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -99,7 +95,7 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """result['release']['version'] matches the requested release version."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -109,7 +105,7 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """result['release']['channel'] matches the release's channel."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -118,8 +114,8 @@ class TestPassportTransformer:
     def test_passport_transform_legacy_contents_is_empty_dict(
         self, publisher_parsed_result: ParsedResult
     ) -> None:
-        """result['legacy_contents'] is always an empty dict from the transformer."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        """result['legacy_contents'] is always an empty dict from the converter."""
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -129,7 +125,7 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """Profile builds are enriched with docker_image from ProfileDefinition."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -139,17 +135,19 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """Profile builds are enriched with conan_settings from ProfileDefinition."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
-        assert result["release"]["profile_builds"][0]["conan_settings"]["os"] == OS_LINUX
+        assert (
+            result["release"]["profile_builds"][0]["conan_settings"]["os"] == OS_LINUX
+        )
 
     def test_passport_transform_variants_are_conan_variant_views(
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """Each variant in profile_builds is a ConanVariantView instance."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -160,7 +158,7 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """Variant conan_options are resolved via options_ref → TotalOptionsSet.options."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -171,7 +169,7 @@ class TestPassportTransformer:
         self, publisher_parsed_result: ParsedResult
     ) -> None:
         """Variant install_options are built from the matching ConanInputOptions entry."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
             publisher_parsed_result
         )
 
@@ -179,11 +177,11 @@ class TestPassportTransformer:
         assert f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" in variant.install_options
 
     def test_passport_transform_profile_build_missing_profile_definition(
-        self, transformer_parsed_result_missing_profile: ParsedResult
+        self, converter_parsed_result_missing_profile: ParsedResult
     ) -> None:
         """A ProfileBuild with an absent profile_name yields docker_image='' and conan_settings={}."""
-        result = PassportTransformer(COMP_NAME, RELEASE_VERSION).transform(
-            transformer_parsed_result_missing_profile
+        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
+            converter_parsed_result_missing_profile
         )
 
         unknown_pb = next(

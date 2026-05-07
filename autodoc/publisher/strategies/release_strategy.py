@@ -6,13 +6,13 @@ from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
+from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
+from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
-from autodoc.publisher.strategies.publish_report import PublishReport
-from autodoc.publisher.transformers.base_data_transformer import BaseDataTransformer
-from autodoc.publisher.transformers.full_release_transformer import FullReleaseTransformer
+from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
+from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.converters.base_data_converter import BaseDataConverter
+from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 
 _DEFAULT_TEMPLATE: str = "release_doc.jinja2"
 
@@ -25,7 +25,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
     если файл ``passport_pages.json`` был создан предшествующим запуском
     ``PassportsStrategy``.
 
-    Трансформер строится фабрикой через ``_make_transformer``. Значение
+    Трансформер строится фабрикой через ``_make_converter``. Значение
     ``include_passport_links`` попадает и в трансформер (управляет
     генерацией URL-паттернов), и в стратегию (управляет загрузкой реестра
     и инжекцией ссылок из ``passport_pages.json``).
@@ -38,7 +38,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         parsed_data: ParsedResult,
         space: str,
         page_title: str,
-        transformer: BaseDataTransformer | None = None,
+        converter: BaseDataConverter | None = None,
         template_name: str = _DEFAULT_TEMPLATE,
         parent_id: str | None = None,
         include_passport_links: bool = True,
@@ -51,8 +51,8 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
             page_title: Заголовок страницы релиза.
-            transformer: Экземпляр трансформера данных. Если ``None`` —
-                         создаётся автоматически как ``FullReleaseTransformer``
+            converter: Экземпляр трансформера данных. Если ``None`` —
+                         создаётся автоматически как ``FullReleaseConverter``
                          с учётом ``include_passport_links``.
                          Передача готового экземпляра упрощает тестирование.
             template_name: Имя Jinja2-шаблона. По умолчанию ``release_doc.jinja2``.
@@ -61,7 +61,7 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
             include_passport_links: Если ``True``, вставляет ссылки на паспорта
                                     компонентов из ``passport_pages.json``.
                                     Должно совпадать со значением, переданным
-                                    в трансформер — ``_make_transformer`` это гарантирует.
+                                    в трансформер — ``_make_converter`` это гарантирует.
             data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
 
         Raises:
@@ -78,14 +78,14 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
         self._parent_id: str | None = parent_id
         self._include_passport_links: bool = include_passport_links
         self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
-        self._transformer: BaseDataTransformer = transformer or FullReleaseTransformer(
+        self._converter: BaseDataConverter = converter or FullReleaseConverter(
             include_passport_links=include_passport_links,
         )
 
     @classmethod
-    def _make_transformer(cls, kwargs: dict[str, Any]) -> BaseDataTransformer:
+    def _make_converter(cls, kwargs: dict[str, Any]) -> BaseDataConverter:
         """
-        Строит ``FullReleaseTransformer`` из kwargs перед вызовом ``__init__``.
+        Строит ``FullReleaseConverter`` из kwargs перед вызовом ``__init__``.
 
         ``passport_page_pattern`` извлекается (pop) — стратегия его не принимает.
         ``include_passport_links`` читается через ``.get()`` и остаётся в kwargs,
@@ -97,16 +97,16 @@ class ReleasePageStrategy(BasePublishStrategy, strategy_type="release"):
             kwargs: Прямая ссылка на словарь аргументов из ``create()``.
 
         Returns:
-            Готовый ``FullReleaseTransformer``.
+            Готовый ``FullReleaseConverter``.
         """
-        return FullReleaseTransformer(
+        return FullReleaseConverter(
             include_passport_links=kwargs.get("include_passport_links", True),
             passport_page_pattern=kwargs.pop("passport_page_pattern", None),
         )
 
     def _build_view_model(self) -> dict[str, Any]:
         """Трансформирует данные парсера в view-model для шаблона релиза."""
-        return self._transformer.transform(self._data)
+        return self._converter.transform(self._data)
 
     def _inject_passport_links(
         self,

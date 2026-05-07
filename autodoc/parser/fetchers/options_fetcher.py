@@ -11,8 +11,8 @@ from autodoc.infrastructure.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.models.types import OptionsMap
 from autodoc.parser.parsers.options_parser import OptionsParser
-from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
-from autodoc.parser.fetchers.fetch_result import FetchResult
+from autodoc.interfaces.base_tfs_fetcher import BaseTFSFetcher
+from autodoc.models.fetch_result import FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
 _OPTIONS_MAX_WORKERS: int = 64

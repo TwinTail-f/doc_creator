@@ -21,7 +21,7 @@ from typing import Any
 import requests
 import urllib3
 
-from autodoc.config.confluence_config_schema import ConfluenceConfigSchema
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
 from autodoc.infrastructure.retryable_session import (
     RetryableSession,

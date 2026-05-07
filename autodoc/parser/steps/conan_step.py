@@ -3,9 +3,9 @@
 from autodoc.infrastructure.logger import logger
 from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.enrichment.data_enricher import DataEnricher
-from autodoc.parser.fetchers.i_fetcher import IFetcher
+from autodoc.interfaces.i_fetcher import IFetcher
 from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
-from autodoc.parser.steps.base import BaseParseStep
+from autodoc.interfaces.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 

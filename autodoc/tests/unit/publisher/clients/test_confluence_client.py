@@ -6,6 +6,7 @@ Testing strategy:
 - The mock_session object returned provides controllable get/post/put responses.
 - minimal_confluence_config fixture comes from tests/conftest.py.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,7 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
-from autodoc.config.confluence_config_schema import ConfluenceConfigSchema
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
@@ -76,7 +77,9 @@ class TestFindPage:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """find_page returns None when the API returns an empty results list."""
-        confluence_client._mock_session.get.return_value = _make_response({"results": []})
+        confluence_client._mock_session.get.return_value = _make_response(
+            {"results": []}
+        )
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is None
 
@@ -106,7 +109,9 @@ class TestGetPageBody:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """get_page_body returns '' when the page does not exist."""
-        confluence_client._mock_session.get.return_value = _make_response({"results": []})
+        confluence_client._mock_session.get.return_value = _make_response(
+            {"results": []}
+        )
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == ""
 
@@ -143,9 +148,7 @@ class TestPublishPage:
         confluence_client._mock_session.get.return_value = find_resp
         confluence_client._mock_session.post.return_value = create_resp
 
-    def _setup_existing_page(
-        self, confluence_client: ConfluenceClient
-    ) -> None:
+    def _setup_existing_page(self, confluence_client: ConfluenceClient) -> None:
         """Configure the mock so find_page returns an existing page and update succeeds."""
         existing = {
             "id": PAGE_ID,
@@ -233,8 +236,12 @@ class TestGetOrCreatePage:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """Creates the page and returns the new ID when the page doesn't exist."""
-        confluence_client._mock_session.get.return_value = _make_response({"results": []})
-        confluence_client._mock_session.post.return_value = _make_response({"id": PAGE_ID})
+        confluence_client._mock_session.get.return_value = _make_response(
+            {"results": []}
+        )
+        confluence_client._mock_session.post.return_value = _make_response(
+            {"id": PAGE_ID}
+        )
         result = confluence_client.get_or_create_page(
             space=SPACE, title=PAGE_TITLE, parent_id=PARENT_ID
         )

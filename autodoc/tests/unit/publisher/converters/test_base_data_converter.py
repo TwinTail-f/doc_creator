@@ -1,14 +1,14 @@
-"""Unit tests for BaseDataTransformer static helpers and PassportLinkMixin."""
+"""Unit tests for BaseDataConverter static helpers and PassportLinkMixin."""
 
 from __future__ import annotations
 
 import pytest
 
 from autodoc.models.conan_variant import ConanVariant
-from autodoc.publisher.transformers.base_data_transformer import BaseDataTransformer
-from autodoc.publisher.transformers.passport_link_mixin import _VariantOpts
-from autodoc.publisher.transformers.passport_transformer import PassportTransformer
-from autodoc.publisher.transformers.full_release_transformer import FullReleaseTransformer
+from autodoc.publisher.converters.base_data_converter import BaseDataConverter
+from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.passport_converter import PassportConverter
+from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -42,15 +42,15 @@ def sample_variant() -> ConanVariant:
     )
 
 
-# ── BaseDataTransformer ────────────────────────────────────────────────────────
+# ── BaseDataConverter ────────────────────────────────────────────────────────
 
 
 class TestBuildInstallOptions:
-    """Tests for BaseDataTransformer._build_install_options static method."""
+    """Tests for BaseDataConverter._build_install_options static method."""
 
     def test_build_install_options_empty_dict_returns_empty_string(self) -> None:
         """Empty options dict produces an empty string."""
-        result = PassportTransformer._build_install_options({}, COMP_NAME)
+        result = PassportConverter._build_install_options({}, COMP_NAME)
 
         assert result == ""
 
@@ -58,7 +58,7 @@ class TestBuildInstallOptions:
         self,
     ) -> None:
         """A bare key without ':' is qualified as 'component_name/*:key=val'."""
-        result = PassportTransformer._build_install_options(
+        result = PassportConverter._build_install_options(
             {OPT_KEY_SHARED: "True"}, COMP_NAME
         )
 
@@ -66,7 +66,7 @@ class TestBuildInstallOptions:
 
     def test_build_install_options_preserves_qualified_key(self) -> None:
         """A key already containing '/*:' is not double-qualified."""
-        result = PassportTransformer._build_install_options(
+        result = PassportConverter._build_install_options(
             {"icu/*:shared": "True"}, COMP_NAME
         )
 
@@ -74,7 +74,7 @@ class TestBuildInstallOptions:
 
     def test_build_install_options_multiple_options_joined_by_space(self) -> None:
         """Multiple options are joined by a single space, each with its own '-o' flag."""
-        result = PassportTransformer._build_install_options(
+        result = PassportConverter._build_install_options(
             {OPT_KEY_SHARED: "True", OPT_KEY_FPIC: "True"}, COMP_NAME
         )
 
@@ -83,7 +83,7 @@ class TestBuildInstallOptions:
 
     def test_build_install_options_dep_key_with_colon_not_modified(self) -> None:
         """A dependency key like 'icu:opt' is qualified to 'icu/*:opt' without duplication."""
-        result = PassportTransformer._build_install_options(
+        result = PassportConverter._build_install_options(
             {"icu:data_packaging": "static"}, COMP_NAME
         )
 
@@ -91,23 +91,23 @@ class TestBuildInstallOptions:
 
 
 class TestBuildInstallOptionsFromString:
-    """Tests for BaseDataTransformer._build_install_options_from_string static method."""
+    """Tests for BaseDataConverter._build_install_options_from_string static method."""
 
     def test_build_install_options_from_string_empty_returns_empty(self) -> None:
         """An empty string input produces an empty string."""
-        result = PassportTransformer._build_install_options_from_string("")
+        result = PassportConverter._build_install_options_from_string("")
 
         assert result == ""
 
     def test_build_install_options_from_string_whitespace_returns_empty(self) -> None:
         """A whitespace-only string produces an empty string."""
-        result = PassportTransformer._build_install_options_from_string("   ")
+        result = PassportConverter._build_install_options_from_string("   ")
 
         assert result == ""
 
     def test_build_install_options_from_string_single_option(self) -> None:
         """A single 'pkg/*:key=val' entry is wrapped with a single '-o' flag."""
-        result = PassportTransformer._build_install_options_from_string(
+        result = PassportConverter._build_install_options_from_string(
             f"{COMP_NAME}/*:{OPT_KEY_SHARED}=True"
         )
 
@@ -118,7 +118,7 @@ class TestBuildInstallOptionsFromString:
         options = (
             f"{COMP_NAME}/*:{OPT_KEY_SHARED}=True, {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
         )
-        result = PassportTransformer._build_install_options_from_string(options)
+        result = PassportConverter._build_install_options_from_string(options)
 
         assert result == (
             f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
@@ -129,7 +129,7 @@ class TestBuildInstallOptionsFromString:
         self,
     ) -> None:
         """An option with 'pkg:key=val' (no '/*') is qualified to 'pkg/*:key=val'."""
-        result = PassportTransformer._build_install_options_from_string(
+        result = PassportConverter._build_install_options_from_string(
             f"{COMP_NAME}:{OPT_KEY_SHARED}=True"
         )
 
@@ -143,7 +143,7 @@ class TestBuildInstallOptionsFromString:
             f"  {COMP_NAME}/*:{OPT_KEY_SHARED}=True  ,"
             f"  {COMP_NAME}/*:{OPT_KEY_FPIC}=True  "
         )
-        result = PassportTransformer._build_install_options_from_string(options)
+        result = PassportConverter._build_install_options_from_string(options)
 
         assert result == (
             f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
@@ -152,13 +152,13 @@ class TestBuildInstallOptionsFromString:
 
 
 class TestBuildVariantView:
-    """Tests for BaseDataTransformer._build_variant_view static method."""
+    """Tests for BaseDataConverter._build_variant_view static method."""
 
     def test_build_variant_view_maps_fields_from_variant(
         self, sample_variant: ConanVariant
     ) -> None:
         """package_id and build_url from ConanVariant appear in the resulting view."""
-        view = PassportTransformer._build_variant_view(sample_variant, COMP_NAME)
+        view = PassportConverter._build_variant_view(sample_variant, COMP_NAME)
 
         assert view.package_id == VARIANT_PKG_ID
         assert view.build_url == VARIANT_BUILD_URL
@@ -168,7 +168,7 @@ class TestBuildVariantView:
     ) -> None:
         """conan_options from _VariantOpts are passed through to the view model."""
         opts = _VariantOpts(conan_options={OPT_KEY_SHARED: "True"})
-        view = PassportTransformer._build_variant_view(sample_variant, COMP_NAME, opts)
+        view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
         assert view.conan_options == {OPT_KEY_SHARED: "True"}
 
@@ -176,7 +176,7 @@ class TestBuildVariantView:
         self, sample_variant: ConanVariant
     ) -> None:
         """When opts is None the view model's conan_options is an empty dict."""
-        view = PassportTransformer._build_variant_view(sample_variant, COMP_NAME, None)
+        view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, None)
 
         assert view.conan_options == {}
 
@@ -185,7 +185,7 @@ class TestBuildVariantView:
     ) -> None:
         """install_options_override is written verbatim to view.install_options."""
         opts = _VariantOpts(conan_options={}, install_options_override=INSTALL_OVERRIDE)
-        view = PassportTransformer._build_variant_view(sample_variant, COMP_NAME, opts)
+        view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
         assert view.install_options == INSTALL_OVERRIDE
 
@@ -196,7 +196,7 @@ class TestBuildVariantView:
         opts = _VariantOpts(
             conan_options={OPT_KEY_SHARED: "True"}, install_options_override=None
         )
-        view = PassportTransformer._build_variant_view(sample_variant, COMP_NAME, opts)
+        view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
         assert view.install_options == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
 
@@ -205,45 +205,45 @@ class TestBuildVariantView:
 
 
 class TestPassportLinkMixin:
-    """Tests for PassportLinkMixin via FullReleaseTransformer (concrete subclass)."""
+    """Tests for PassportLinkMixin via FullReleaseConverter (concrete subclass)."""
 
     def test_passport_link_returns_none_if_include_links_false(self) -> None:
         """_passport_link returns None when include_passport_links=False."""
-        transformer = FullReleaseTransformer(
+        converter = FullReleaseConverter(
             include_passport_links=False,
             passport_page_pattern=PASSPORT_PATTERN,
         )
 
-        assert transformer._passport_link(COMP_NAME, RELEASE_VERSION) is None
+        assert converter._passport_link(COMP_NAME, RELEASE_VERSION) is None
 
     def test_passport_link_returns_none_if_pattern_is_none(self) -> None:
         """_passport_link returns None when passport_page_pattern is None."""
-        transformer = FullReleaseTransformer(
+        converter = FullReleaseConverter(
             include_passport_links=True,
             passport_page_pattern=None,
         )
 
-        assert transformer._passport_link(COMP_NAME, RELEASE_VERSION) is None
+        assert converter._passport_link(COMP_NAME, RELEASE_VERSION) is None
 
     def test_passport_link_formats_pattern_with_component_and_version(self) -> None:
         """_passport_link substitutes component_name and release_version into the pattern."""
-        transformer = FullReleaseTransformer(
+        converter = FullReleaseConverter(
             include_passport_links=True,
             passport_page_pattern=PASSPORT_PATTERN,
         )
 
         assert (
-            transformer._passport_link(COMP_NAME, RELEASE_VERSION)
+            converter._passport_link(COMP_NAME, RELEASE_VERSION)
             == f"/pages/{COMP_NAME}/{RELEASE_VERSION}"
         )
 
     def test_passport_link_replaces_spaces_with_plus(self) -> None:
         """Spaces in component name and version are replaced with '+' in the link."""
-        transformer = FullReleaseTransformer(
+        converter = FullReleaseConverter(
             include_passport_links=True,
             passport_page_pattern=PASSPORT_PATTERN,
         )
 
-        result = transformer._passport_link("my lib", "1.0 beta")
+        result = converter._passport_link("my lib", "1.0 beta")
 
         assert result == "/pages/my+lib/1.0+beta"

@@ -8,6 +8,7 @@ Covers:
 - Returns {} when only the current platform section exists.
 - Works correctly with the h1-header legacy format.
 """
+
 from __future__ import annotations
 
 from autodoc.publisher.legacy_content.legacy_service import extract_for_platform

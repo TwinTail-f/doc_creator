@@ -3,7 +3,7 @@
 """
 
 from autodoc.models.component import Component
-from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.models.conan_task import ConanTask
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
 # Шаблон Conan version range с поддержкой pre-release версий

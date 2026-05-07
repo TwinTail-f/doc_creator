@@ -6,15 +6,15 @@ from typing import Any
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
+from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
+from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.legacy_content.legacy_service import extract_for_platform
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.utils.publish_queue import PublishQueue
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
-from autodoc.publisher.strategies.publish_report import PublishReport
-from autodoc.publisher.transformers.passport_transformer import PassportTransformer
+from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
+from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.converters.passport_converter import PassportConverter
 
 _DEFAULT_TEMPLATE: str = "component_passport.jinja2"
 _DEFAULT_BATCH_SIZE: int = 2
@@ -41,7 +41,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
     Для каждой пары компонент × релиз выполняет:
       1. Обеспечивает существование иерархии (Корень → Компонент → Версия).
       2. Получает и фильтрует legacy-контент существующей страницы.
-      3. Трансформирует данные через ``PassportTransformer``.
+      3. Трансформирует данные через ``PassportConverter``.
       4. Рендерит Jinja2-шаблон (legacy-секции передаются в view-model).
       5. Публикует страницу.
 
@@ -219,8 +219,8 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         page_title = self._make_page_title(comp_name, release_version)
         existing_html = self._fetch_existing_body(page_title)
 
-        transformer = PassportTransformer(comp_name, release_version)
-        view_model = transformer.transform(self._data)
+        converter = PassportConverter(comp_name, release_version)
+        view_model = converter.transform(self._data)
         platform_version = view_model.get("platform_version", "")
 
         # Извлекаем legacy-секции других платформ, чтобы не потерять их

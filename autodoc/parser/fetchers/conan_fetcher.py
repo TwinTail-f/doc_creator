@@ -26,8 +26,8 @@ from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
-from autodoc.parser.fetchers.fetch_result import FetchResult
-from autodoc.parser.fetchers.i_fetcher import IFetcher
+from autodoc.models.fetch_result import FetchResult
+from autodoc.interfaces.i_fetcher import IFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 
 _DEFAULT_MAX_WORKERS: int = 64

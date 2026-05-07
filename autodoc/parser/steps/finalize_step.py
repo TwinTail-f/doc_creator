@@ -11,7 +11,7 @@ from autodoc.infrastructure.logger import logger
 from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.steps.base import BaseParseStep
+from autodoc.interfaces.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 
@@ -53,7 +53,8 @@ class FinalizeStep(BaseParseStep):
     # Conan выставляет его для header-only пакетов.
     _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
-    def _compute_header_only_flags(self, 
+    def _compute_header_only_flags(
+        self,
         components: list[Component],
         profile_definitions: list[ProfileDefinition],
     ) -> None:
@@ -106,7 +107,8 @@ class FinalizeStep(BaseParseStep):
                 removed += before - len(release.profile_builds)
         return removed
 
-    def _deduplicate_profile_definitions(self, 
+    def _deduplicate_profile_definitions(
+        self,
         definitions: list[ProfileDefinition],
     ) -> list[ProfileDefinition]:
         """Дедуплицирует по profile_name, сохраняя последнюю записанную запись."""

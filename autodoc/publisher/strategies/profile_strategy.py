@@ -6,12 +6,12 @@ from pathlib import Path
 
 from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
+from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
+from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
-from autodoc.publisher.strategies.publish_report import PublishReport
-from autodoc.publisher.transformers.profile_transformer import ProfileCentricTransformer
+from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
+from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 
 _DEFAULT_TEMPLATE: str = "profile_centric.jinja2"
 
@@ -25,7 +25,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
     ``PassportPageRegistry.inject_links_for_profiles()`` — идентично тому,
     как ``ReleasePageStrategy`` делает это для стандартного вида через
     ``PassportPageRegistry.inject_links()``.
-    ``ProfileCentricTransformer`` генерирует ``passport_link`` через
+    ``ProfileCentricConverter`` генерирует ``passport_link`` через
     ``PassportLinkMixin._passport_link()``; реальное значение
     ``/spaces/{space}/pages/{page_id}`` подставляется после шага инжекции.
     """
@@ -37,7 +37,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         parsed_data: ParsedResult,
         space: str,
         page_title: str,
-        transformer: ProfileCentricTransformer | None = None,
+        converter: ProfileCentricConverter | None = None,
         template_name: str = _DEFAULT_TEMPLATE,
         parent_id: str | None = None,
         include_passport_links: bool = True,
@@ -51,7 +51,7 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
             page_title: Заголовок страницы.
-            transformer: Готовый экземпляр ``ProfileCentricTransformer``.
+            converter: Готовый экземпляр ``ProfileCentricConverter``.
                          Если ``None`` — создаётся автоматически из
                          ``include_passport_links`` и ``passport_page_pattern``.
                          Передача готового экземпляра упрощает тестирование.
@@ -80,17 +80,17 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
         self._parent_id: str | None = parent_id
         self._include_passport_links: bool = include_passport_links
         self._registry: PassportPageRegistry = PassportPageRegistry(data_dir)
-        self._transformer: ProfileCentricTransformer = transformer or (
-            ProfileCentricTransformer(
+        self._converter: ProfileCentricConverter = converter or (
+            ProfileCentricConverter(
                 include_passport_links=include_passport_links,
                 passport_page_pattern=passport_page_pattern,
             )
         )
 
     @classmethod
-    def _make_transformer(cls, kwargs: dict[str, Any]) -> ProfileCentricTransformer:
+    def _make_converter(cls, kwargs: dict[str, Any]) -> ProfileCentricConverter:
         """
-        Строит ``ProfileCentricTransformer`` из kwargs перед вызовом ``__init__``.
+        Строит ``ProfileCentricConverter`` из kwargs перед вызовом ``__init__``.
 
         Оба ключа читаются через ``.get()`` и остаются в ``kwargs``, чтобы
         стратегия и трансформер использовали одни и те же значения:
@@ -103,16 +103,16 @@ class ProfileCentricStrategy(BasePublishStrategy, strategy_type="profile_centric
             kwargs: Прямая ссылка на словарь аргументов из ``create()``.
 
         Returns:
-            Готовый ``ProfileCentricTransformer``.
+            Готовый ``ProfileCentricConverter``.
         """
-        return ProfileCentricTransformer(
+        return ProfileCentricConverter(
             include_passport_links=kwargs.get("include_passport_links", True),
             passport_page_pattern=kwargs.get("passport_page_pattern", None),
         )
 
     def _build_view_model(self) -> dict[str, Any]:
         """Трансформирует данные парсера в view-model для профиль-центричного шаблона."""
-        return self._transformer.transform(self._data)
+        return self._converter.transform(self._data)
 
     def _inject_passport_links(
         self,

@@ -2,6 +2,7 @@
 Publisher-specific fixtures and stubs.
 Do not touch for the Parser agent. Do not duplicate minimal_confluence_config from tests/conftest.py.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,9 +12,8 @@ from typing import Any
 
 import pytest
 
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
-
+from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
+from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
 
 # ---------------------------------------------------------------------------
 # Fake classes (implement Protocol interfaces without inheritance)
@@ -120,7 +120,6 @@ from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.options import ConanInputOptions, DefaultOptionsSet, TotalOptionsSet
 from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
-
 
 PUBLISHER_RESOURCES_DIR: Path = (
     Path(__file__).parent.parent.parent / "resources" / "parsed_data"

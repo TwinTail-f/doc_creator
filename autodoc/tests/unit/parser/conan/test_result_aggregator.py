@@ -16,7 +16,7 @@ from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.models.conan_raw_result import ConanRawResult
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
-from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 # ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from autodoc.parser.pipeline.context import PipelineContext
+from autodoc.interfaces.pipeline_context_protocol import IPipelineContext
 
 
 class BaseParseStep(ABC):
@@ -30,7 +30,7 @@ class BaseParseStep(ABC):
             raise TypeError(f"{cls.__name__} должен определить атрибут name")
 
     @abstractmethod
-    def execute(self, ctx: PipelineContext) -> None:
+    def execute(self, ctx: IPipelineContext) -> None:
         """
         Выполняет логику шага.
 

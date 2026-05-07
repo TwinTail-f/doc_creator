@@ -11,6 +11,7 @@ Covers:
 - extract_platform_versions() skips tabs that have no extractable content.
 - extract_platform_versions() de-duplicates tabs with identical names.
 """
+
 from __future__ import annotations
 
 from autodoc.publisher.legacy_content.legacy_extractor import LegacyContentExtractor

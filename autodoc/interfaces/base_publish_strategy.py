@@ -7,9 +7,9 @@ from typing import Any, ClassVar
 
 from autodoc.models.parsed_result import ParsedResult
 
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
-from autodoc.publisher.strategies.publish_report import PublishReport
+from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
+from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
+from autodoc.models.publish_report import PublishReport
 
 from autodoc.infrastructure.logger import logger
 
@@ -26,9 +26,9 @@ class BasePublishStrategy(ABC):
     ``_space`` — инициализируются в ``__init__`` и доступны всем подклассам.
     Подклассы не должны их переопределять.
 
-    **Контракт построения трансформера.**
-    Стратегия, которой нужен трансформер, создаваемый фабрикой, объявляет
-    classmethod ``_make_transformer(cls, kwargs: dict)``. Метод получает
+    **Контракт построения конвертера.**
+    Стратегия, которой нужен конвертер, создаваемый фабрикой, объявляет
+    classmethod ``_make_converter(cls, kwargs: dict)``. Метод получает
     прямую ссылку на ``kwargs`` и может:
 
     - ``pop()`` ключи, которые нужны только трансформеру и не принимаются
@@ -36,7 +36,7 @@ class BasePublishStrategy(ABC):
     - ``get()`` ключи, которые должны попасть и в трансформер, и в стратегию
       (они остаются в ``kwargs``).
 
-    Стратегии без ``_make_transformer`` получают ``kwargs`` без изменений.
+    Стратегии без ``_make_converter`` получают ``kwargs`` без изменений.
     """
 
     _registry: ClassVar[dict[str, type["BasePublishStrategy"]]] = {}
@@ -85,12 +85,12 @@ class BasePublishStrategy(ABC):
         """
         Создаёт экземпляр стратегии по типу через Registry.
 
-        Если стратегия объявляет classmethod ``_make_transformer(cls, kwargs)``,
-        и ``transformer`` ещё не передан в ``kwargs``, вызывает его для
+        Если стратегия объявляет classmethod ```_make_converter```,
+        и ``converter`` ещё не передан в ``kwargs``, вызывает его для
         построения трансформера. Метод получает прямую ссылку на ``kwargs``
         и может удалять из него ключи, которые не нужны конструктору стратегии.
 
-        Для стратегий без ``_make_transformer`` ``kwargs`` передаётся
+        Для стратегий без ``_make_converter`` ``kwargs`` передаётся
         в конструктор без изменений.
 
         Args:
@@ -110,9 +110,9 @@ class BasePublishStrategy(ABC):
 
         strategy_cls = cls._registry[strategy_type]
 
-        make_transformer = getattr(strategy_cls, "_make_transformer", None)
-        if make_transformer is not None and "transformer" not in kwargs:
-            kwargs["transformer"] = make_transformer(kwargs)
+        make_converter = getattr(strategy_cls, "_make_converter", None)
+        if make_converter is not None and "converter" not in kwargs:
+            kwargs["converter"] = make_converter(kwargs)
 
         logger.debug(f"Создаём {strategy_cls.__name__} для типа {strategy_type}")
         return strategy_cls(**kwargs)

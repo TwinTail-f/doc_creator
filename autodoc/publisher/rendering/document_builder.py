@@ -37,8 +37,10 @@ class DocumentBuilder:
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(rendering_dir))
         )
-        #в XML символ & в значениях атрибутов обязателен к экранированию как &amp
-        self._env.filters["xmlattr"] = lambda s: str(s).replace("&", "&amp;").replace('"', "&quot;")
+        # в XML символ & в значениях атрибутов обязателен к экранированию как &amp
+        self._env.filters["xmlattr"] = (
+            lambda s: str(s).replace("&", "&amp;").replace('"', "&quot;")
+        )
         logger.info(f"Инициализирован: {rendering_dir}")
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:

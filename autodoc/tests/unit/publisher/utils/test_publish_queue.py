@@ -1,4 +1,5 @@
 """Tests for autodoc.publisher.utils.publish_queue.PublishQueue."""
+
 from __future__ import annotations
 
 import pytest

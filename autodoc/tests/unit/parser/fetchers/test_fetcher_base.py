@@ -6,8 +6,8 @@
 
 from typing import Any
 
-from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
-from autodoc.parser.fetchers.fetch_result import FetchResult
+from autodoc.interfaces.base_tfs_fetcher import BaseTFSFetcher
+from autodoc.models.fetch_result import FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
 # ---------------------------------------------------------------------------

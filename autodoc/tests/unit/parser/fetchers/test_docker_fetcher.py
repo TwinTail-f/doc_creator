@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 import requests
 import yaml
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.parser.fetchers.docker_fetcher import DockerFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.tests.unit.parser.conftest import FakeTFSClient

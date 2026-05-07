@@ -10,7 +10,7 @@ import pytest
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
-from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
 
 # ---------------------------------------------------------------------------

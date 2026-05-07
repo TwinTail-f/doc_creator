@@ -18,6 +18,7 @@ Covers:
 - inject_links_for_profiles() is a no-op when the view_model lacks a 'profiles' key.
 - inject_links_for_profiles() is a no-op when passport_pages is empty.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,9 +34,7 @@ from autodoc.publisher.page_manager.passport_registry import PassportPageRegistr
 # ---------------------------------------------------------------------------
 
 _PAGES_MAP: dict[str, Any] = {
-    "openssl": {
-        "1.0.0": {"page_id": "p1", "page_title": "openssl 1.0.0", "version": 1}
-    }
+    "openssl": {"1.0.0": {"page_id": "p1", "page_title": "openssl 1.0.0", "version": 1}}
 }
 
 _REGISTRY_FILE: str = "passport_pages.json"
@@ -165,23 +164,21 @@ def test_save_then_load_roundtrip(tmp_path: Path) -> None:
 def test_inject_links_adds_passport_versions_to_component(tmp_path: Path) -> None:
     """inject_links() sets passport_versions on a matched component."""
     view_model: dict[str, Any] = {
-        "components": [
-            {"name": "openssl", "releases": [{"version": "1.0.0"}]}
-        ]
+        "components": [{"name": "openssl", "releases": [{"version": "1.0.0"}]}]
     }
     passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
 
     PassportPageRegistry.inject_links(view_model, passport_pages)
 
-    assert view_model["components"][0]["passport_versions"]["1.0.0"]["page_id"] == PAGE_ID
+    assert (
+        view_model["components"][0]["passport_versions"]["1.0.0"]["page_id"] == PAGE_ID
+    )
 
 
 def test_inject_links_skips_versions_not_in_releases(tmp_path: Path) -> None:
     """inject_links() includes only versions present in the component's releases."""
     view_model: dict[str, Any] = {
-        "components": [
-            {"name": "openssl", "releases": [{"version": "1.0.0"}]}
-        ]
+        "components": [{"name": "openssl", "releases": [{"version": "1.0.0"}]}]
     }
     passport_pages: dict[str, Any] = {
         "openssl": {

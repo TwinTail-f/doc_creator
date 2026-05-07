@@ -17,23 +17,6 @@ from autodoc.models.options import ConanInputOptions, DefaultOptionsSet, TotalOp
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.release import Release
-
-__all__ = [
-    "Component",
-    "ConanInputOptions",
-    "ConanVariant",
-    "DefaultOptionsSet",
-    "ParsedResult",
-    "ProfileBuild",
-    "ProfileDefinition",
-    "Release",
-    "TotalOptionsSet",
-    # conan_result split
-    "ConanRawResult",
-    "ConanCommandRecord",
-    "ConanProfileReport",
-    "ConanComponentReport",
-    "ReleaseConanData",
-    "ProfileConanData",
-    "ConanEnrichmentResult",
-]
+from autodoc.models.fetch_result import FetchResult
+from autodoc.models.conan_task import ConanTask
+from autodoc.models.publish_report import PublishReport

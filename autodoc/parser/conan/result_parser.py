@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from autodoc.models.options import DefaultOptionsSet
-from autodoc.parser.conan.conan_task import ConanTask
+from autodoc.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 
@@ -86,7 +86,8 @@ class ConanResultParser:
             option_id=task.option_id,
         )
 
-    def _extract_ref_info(self, 
+    def _extract_ref_info(
+        self,
         node: dict[str, Any],
         fallback_version: str,
     ) -> tuple[str, str, str]:
@@ -188,8 +189,8 @@ class ConanResultParser:
                     deps.append(dep_name)
         return sorted(set(deps))
 
-    def _build_artifactory_url(self, 
-        task: ConanTask, full_version: str, rrev: str, package_id: str = ""
+    def _build_artifactory_url(
+        self, task: ConanTask, full_version: str, rrev: str, package_id: str = ""
     ) -> str:
         """
         Строит URL пакета в Artifactory для данного варианта сборки.

@@ -3,14 +3,15 @@ Tests for:
 - autodoc.publisher.strategies.base.BasePublishStrategy (registry, _minify_html, _publish_single_page)
 - autodoc.publisher.strategies.base.PublishReport
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 import pytest
 
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
-from autodoc.publisher.strategies.publish_report import PublishReport
+from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
+from autodoc.models.publish_report import PublishReport
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -70,38 +71,40 @@ class TestRegistry:
         assert _STUB_TYPE in strategies
         assert strategies == sorted(strategies)
 
-    def test_create_calls_make_transformer_if_defined(
+    def test_create_calls_make_converter_if_defined(
         self,
         publisher_confluence_client: Any,
         publisher_document_builder: Any,
         publisher_parsed_result: Any,
         mocker: Any,
     ) -> None:
-        """If the strategy declares _make_transformer, create() calls it."""
+        """If the strategy declares _make_converter, create() calls it."""
         sentinel = object()
 
-        class _TransformerStrategy(BasePublishStrategy, strategy_type="__test_transformer__"):
-            """Strategy with _make_transformer for testing create() factory logic."""
+        class _ConverterStrategy(
+            BasePublishStrategy, strategy_type="__test_converter__"
+        ):
+            """Strategy with _make_converter for testing create() factory logic."""
 
-            def __init__(self, transformer: Any = None, **kwargs: Any) -> None:
+            def __init__(self, converter: Any = None, **kwargs: Any) -> None:
                 super().__init__(**kwargs)
-                self._transformer = transformer
+                self._converter = converter
 
             @classmethod
-            def _make_transformer(cls, kwargs: dict) -> Any:
+            def _make_converter(cls, kwargs: dict) -> Any:
                 return sentinel
 
             def execute(self) -> PublishReport:
                 return PublishReport(success=True, pages_published=0)
 
         instance = BasePublishStrategy.create(
-            "__test_transformer__",
+            "__test_converter__",
             confluence_client=publisher_confluence_client,
             document_builder=publisher_document_builder,
             parsed_data=publisher_parsed_result,
             space="TEST",
         )
-        assert instance._transformer is sentinel
+        assert instance._converter is sentinel
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +270,11 @@ class TestPublishSinglePage:
             transform_fn=lambda: {"key": "val"},
             parent_id=_PARENT_ID,
         )
-        publish_calls = [c for c in publisher_confluence_client.calls if c["method"] == "publish_page"]
+        publish_calls = [
+            c
+            for c in publisher_confluence_client.calls
+            if c["method"] == "publish_page"
+        ]
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE
 
@@ -276,6 +283,7 @@ class TestPublishSinglePage:
         strategy_stub: _StubStrategy,
     ) -> None:
         """If transform_fn raises, the result is a failure report."""
+
         def bad_transform() -> dict:
             raise ValueError("transform failed")
 
@@ -294,6 +302,7 @@ class TestPublishSinglePage:
         publisher_confluence_client: Any,
     ) -> None:
         """If publish_page raises RuntimeError, result is a failure report."""
+
         def raise_runtime(*args: Any, **kwargs: Any) -> None:
             raise RuntimeError("network error")
 

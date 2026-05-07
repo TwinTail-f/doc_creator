@@ -15,12 +15,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from autodoc.config.parser_config_schema import ParserConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
-from autodoc.parser.clients.tfs_client_protocol import ITFSClient
+from autodoc.interfaces.artifactory_client_protocol import IArtifactoryClient
+from autodoc.interfaces.tfs_client_protocol import ITFSClient
 
 
 @dataclass
