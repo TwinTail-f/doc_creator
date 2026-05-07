@@ -50,7 +50,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
         self._tfs = ctx.tfs_client
-        self._base_url = ctx.config.tfs_dep_components_url.rstrip("/")
+        self._base_url = ctx.config.tfs_collection_url.rstrip("/")
 
     def fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
@@ -79,20 +79,21 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
 
         for comp in components:
             repo_name = comp.git_repo
+            git_project = comp.git_project
             if not repo_name:
                 fetch_warnings.append(f"{comp.name} без git_repo, пропуск")
                 continue
             for release in comp.releases:
                 branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
-                cache_key = f"{repo_name}_{branch}"
+                cache_key = f"{git_project}_{repo_name}_{branch}"
                 if cache_key not in seen:
                     seen.add(cache_key)
                     unique_keys.append(cache_key)
-                    unique_pairs.append((repo_name, branch))
+                    unique_pairs.append((git_project, repo_name, branch))
 
         # Скачиваем все уникальные комбинации repo/branch параллельно.
         raw_results = self._executor.execute(
-            lambda pair: self._fetch_options_for_repo(pair[0], pair[1]),
+            lambda pair: self._fetch_options_for_repo(pair[0], pair[1], pair[2]),
             unique_pairs,
             task_label="репозиториев",
         )
@@ -110,7 +111,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 continue
             for release in comp.releases:
                 branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
-                cache_key = f"{comp.git_repo}_{branch}"
+                cache_key = f"{comp.git_project}_{comp.git_repo}_{branch}"
                 chosen = OptionsParser.pick_options(
                     options_cache[cache_key], release.channel
                 )
@@ -119,11 +120,14 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         logger.info(f"Завершён. Собрано опций для {len(result)} релизов.")
         return FetchResult(value=result, warnings=fetch_warnings)
 
-    def _fetch_options_for_repo(self, repo_name: str, branch: str) -> dict[str, Any]:
+    def _fetch_options_for_repo(
+        self, git_project: str, repo_name: str, branch: str
+    ) -> dict[str, Any]:
         """
         Скачивает все options.json для репозитория и возвращает структуру данных.
 
         Args:
+            git_project: Имя проекта TFS/Git (например DEP_Components или PRG_Quant).
             repo_name: Имя git-репозитория компонента.
             branch: Ветка, соответствующая версии релиза.
 
@@ -131,7 +135,9 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             Словарь с ключами ``'global'`` и ``'channels'``.
         """
         repo_data: dict[str, Any] = {"global": {}, "channels": {}}
-        items_url = f"{self._base_url}/_apis/git/repositories/{repo_name}/items"
+        items_url = (
+            f"{self._base_url}/{git_project}/_apis/git/repositories/{repo_name}/items"
+        )
 
         try:
             items = self._tfs.get_items(items_url, branch)

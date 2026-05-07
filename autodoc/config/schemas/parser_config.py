@@ -45,9 +45,9 @@ class ParserConfigSchema(BaseModel):
         validate_default=True,
         description="PAT-токен Artifactory",
     )
-    tfs_dep_components_url: str = Field(
+    tfs_collection_url: str = Field(
         ...,
-        description="Базовый URL проекта DEP_Components в TFS",
+        description="Базовый URL коллекции TFS без завершающего слэша (например https://tfs.company.com/tfs/companytc1)",
     )
     manifests_remotes_path: str = Field(
         ...,

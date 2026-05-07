@@ -32,21 +32,20 @@ class _FileParseResult:
 class ManifestParser:
     """Преобразует список .properties-файлов в список Component."""
 
-    def __init__(self, target_platform: str, tfs_dep_components_url: str = "") -> None:
+    def __init__(self, target_platform: str, tfs_collection_url: str = "") -> None:
         """
         Инициализирует парсер для указанной целевой платформы.
 
         Args:
             target_platform: Версия платформы (например '2.0'), используется
                              для фильтрации релизов манифестов.
-            tfs_dep_components_url: Базовый URL проекта DEP_Components в TFS
-                                    (например ``https://tfs.company.com/tfs/...``)
-                                    без завершающего слэша.
-                                    Если передан — формирует полные ссылки на
-                                    репозиторий в поле ``git_url`` каждого Release.
+            tfs_collection_url: Базовый URL коллекции TFS
+                                 формирует полные ссылки на
+                                 репозиторий в поле ``git_url`` каждого Release,
+                                 с учётом ``tfs_git_project`` из манифеста.
         """
         self._target_platform = _PLATFORM_BASE_VERSION
-        self._tfs_dep_components_url: str = tfs_dep_components_url.rstrip("/")
+        self._tfs_collection_url: str = tfs_collection_url.rstrip("/")
         self._executor = ParallelExecutor(
             max_workers=_MANIFEST_MAX_WORKERS,
             log_progress_interval=_MANIFEST_LOG_INTERVAL,
@@ -174,9 +173,9 @@ class ManifestParser:
                 channel = p_ver.split("-")[1] if "-" in p_ver else ""
                 profile_list = [p.strip() for p in profiles_str.split(",") if p.strip()]
                 git_repo_part = f"{git_project}/_git/{git_repo}" if git_repo else ""
-                if self._tfs_dep_components_url and git_repo:
+                if self._tfs_collection_url and git_project and git_repo:
                     full_git_url = (
-                        f"{self._tfs_dep_components_url}/_git/{git_repo}"
+                        f"{self._tfs_collection_url}/{git_project}/_git/{git_repo}"
                         f"?path=%2F&version=GBrelease_{c_ver}"
                     )
                 elif git_repo_part:

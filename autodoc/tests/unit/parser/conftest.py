@@ -33,7 +33,7 @@ def parser_config() -> ParserConfigSchema:
         username="testuser",
         tfs_token="test-tfs-pat-token",
         artifactory_token="test-art-token",
-        tfs_dep_components_url="https://tfs.example.com/DEP_Components",
+        tfs_collection_url="https://tfs.example.com",
         manifests_remotes_path="/platform/manifests",
         conan_config_url="https://art.example.com/conan-config.zip",
     )

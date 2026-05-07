@@ -14,6 +14,7 @@ from autodoc.parser.clients.tfs_client_enums import VersionType
 from autodoc.parser.pipeline.context import PipelineContext
 
 _MANIFESTS_REPO: str = "platform"
+_MANIFESTS_PROJECT: str = "DEP_Components"
 
 
 class ManifestFetcher(BaseTFSFetcher[list[Component]]):
@@ -42,7 +43,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
         self._tfs = ctx.tfs_client
-        self._base_url = ctx.config.tfs_dep_components_url.rstrip("/")
+        self._base_url = ctx.config.tfs_collection_url.rstrip("/")
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
         self._platform_version = ctx.config.platform_version
@@ -64,7 +65,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         """
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
-        items_url = f"{self._base_url}/_apis/git/repositories/{_MANIFESTS_REPO}/items"
+        items_url = f"{self._base_url}/{_MANIFESTS_PROJECT}/_apis/git/repositories/{_MANIFESTS_REPO}/items"
         self._tfs.download_properties(
             items_url=items_url,
             remote_path=self._manifests_remotes_path,
@@ -82,7 +83,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
 
         parser = ManifestParser(
             target_platform=self._platform_version,
-            tfs_dep_components_url=self._base_url,
+            tfs_collection_url=self._base_url,
         )
         components, warnings = parser.parse(properties_files, excluded)
         return FetchResult(value=components, warnings=warnings)
