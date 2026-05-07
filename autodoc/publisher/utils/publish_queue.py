@@ -3,7 +3,7 @@
 import time
 from collections.abc import Callable
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _DEFAULT_BATCH_SIZE: int = 4
 _DEFAULT_BATCH_DELAY: float = 5.0

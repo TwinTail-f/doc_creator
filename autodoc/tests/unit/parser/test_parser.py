@@ -9,7 +9,7 @@ from autodoc.exceptions import ParsingError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
-from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 # ---------------------------------------------------------------------------

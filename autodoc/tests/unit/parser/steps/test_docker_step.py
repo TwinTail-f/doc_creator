@@ -2,7 +2,7 @@
 
 import pytest
 
-from autodoc.models.fetch_result import FetchResult
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.docker_step import DockerResolveStep
 
 DockerLinksMap = dict[str, str]

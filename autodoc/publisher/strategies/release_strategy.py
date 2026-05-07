@@ -4,13 +4,13 @@ from typing import Any
 
 from pathlib import Path
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
-from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
-from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.models.publish_report import PublishReport
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 

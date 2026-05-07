@@ -9,7 +9,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from autodoc.interfaces.pipeline_context_protocol import IPipelineContext
+from autodoc.parser.pipeline.context_protocol import IPipelineContext
 
 
 class BaseParseStep(ABC):

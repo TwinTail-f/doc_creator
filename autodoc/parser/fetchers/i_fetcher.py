@@ -5,8 +5,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from autodoc.models.fetch_result import FetchResult
-from autodoc.interfaces.pipeline_context_protocol import IPipelineContext
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
+from autodoc.parser.pipeline.context_protocol import IPipelineContext
 
 
 class IFetcher[T](ABC):

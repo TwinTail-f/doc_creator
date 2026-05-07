@@ -23,11 +23,11 @@ import urllib3
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import PublishError
-from autodoc.infrastructure.retryable_session import (
+from autodoc.common.retryable_session import (
     RetryableSession,
     create_retryable_session,
 )
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _RETRY_COUNT: int = 3
 _BACKOFF_FACTOR: float = 1.0

@@ -4,8 +4,8 @@
 
 from abc import ABC, abstractmethod
 
-from autodoc.models.conan_raw_result import ConanRawResult
-from autodoc.models.conan_task import ConanTask
+from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
+from autodoc.parser.conan.models.conan_task import ConanTask
 
 
 class BaseConanRunner(ABC):

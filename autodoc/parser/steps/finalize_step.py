@@ -7,11 +7,11 @@ import datetime
 from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.exceptions import ParsingError
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 

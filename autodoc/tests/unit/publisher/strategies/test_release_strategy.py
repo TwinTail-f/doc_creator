@@ -16,7 +16,7 @@ import pytest
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.tests.unit.publisher.conftest import (

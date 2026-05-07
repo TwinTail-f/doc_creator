@@ -6,7 +6,7 @@
 import json
 from typing import Any
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _CI_DIR_V2: str = "/ci-2.0/"
 _CI_DIR_V1_6: str = "/ci-1.6/"

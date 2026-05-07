@@ -1,10 +1,10 @@
 """Шаг пайплайна: загрузка и парсинг манифестов компонентов."""
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
-from autodoc.interfaces.i_fetcher import IFetcher
-from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.fetchers.i_fetcher import IFetcher
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 

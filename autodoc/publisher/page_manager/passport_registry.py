@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _DEFAULT_DATA_DIR: Path = Path("data")
 _REGISTRY_FILENAME: str = "passport_pages.json"

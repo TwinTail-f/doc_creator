@@ -8,11 +8,11 @@ from urllib.parse import parse_qs, urlparse
 import requests
 import yaml
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.parser.parsers.docker_parser import DockerLinksMap
 from autodoc.parser.parsers.docker_parser import DockerParser
-from autodoc.interfaces.base_tfs_fetcher import BaseTFSFetcher
-from autodoc.models.fetch_result import FetchResult
+from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
 # TFS добавляет «GB» как префикс для ссылок на ветки в versionDescriptor

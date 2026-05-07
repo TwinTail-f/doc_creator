@@ -9,7 +9,7 @@ ConanEnrichmentResult — итоговый результат выполнени
 from dataclasses import dataclass, field
 from typing import Any
 
-from autodoc.models.conan_report import ConanComponentReport
+from autodoc.parser.conan.models.conan_report import ConanComponentReport
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.options import DefaultOptionsSet, TotalOptionsSet
 

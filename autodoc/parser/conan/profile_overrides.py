@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Self
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 
 class ProfileSettingsOverrides:

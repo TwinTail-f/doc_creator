@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 
 class ConanEnvironmentManager:

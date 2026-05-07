@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
 from autodoc.publisher.converters.base_release_converter import BaseReleaseConverter

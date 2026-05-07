@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from autodoc.models.options import DefaultOptionsSet
-from autodoc.models.conan_task import ConanTask
+from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 

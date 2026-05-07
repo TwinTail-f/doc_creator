@@ -15,8 +15,8 @@ import requests
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import NetworkError
-from autodoc.infrastructure.retryable_session import create_retryable_session
-from autodoc.infrastructure.logger import logger
+from autodoc.common.retryable_session import create_retryable_session
+from autodoc.common.logger import logger
 from autodoc.parser.clients.tfs_client_enums import RecursionLevel, VersionType
 
 __all__ = ["TFSClient", "RecursionLevel", "VersionType"]

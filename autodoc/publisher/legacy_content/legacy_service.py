@@ -1,6 +1,6 @@
 """Утилиты для извлечения и слияния legacy-контента платформ."""
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.publisher.legacy_content.legacy_extractor import LegacyContentExtractor
 
 _PLATFORM_LABEL_PREFIX: str = "Платформа "

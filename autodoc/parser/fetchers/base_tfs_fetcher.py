@@ -4,9 +4,9 @@
 
 from abc import abstractmethod
 
-from autodoc.interfaces.tfs_client_protocol import ITFSClient
-from autodoc.interfaces.i_fetcher import IFetcher
-from autodoc.interfaces.pipeline_context_protocol import IPipelineContext
+from autodoc.parser.clients.tfs_client_protocol import ITFSClient
+from autodoc.parser.fetchers.i_fetcher import IFetcher
+from autodoc.parser.pipeline.context_protocol import IPipelineContext
 
 
 class BaseTFSFetcher[T](IFetcher[T]):

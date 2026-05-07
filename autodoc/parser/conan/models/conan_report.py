@@ -7,7 +7,7 @@ ConanComponentReport — отчёт по всем вызовам одного к
 
 from dataclasses import dataclass, field
 
-from autodoc.models.conan_raw_result import ConanCommandRecord
+from autodoc.parser.conan.models.conan_raw_result import ConanCommandRecord
 
 
 @dataclass

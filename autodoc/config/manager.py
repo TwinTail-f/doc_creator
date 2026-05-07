@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _TConfig = TypeVar("_TConfig")
 

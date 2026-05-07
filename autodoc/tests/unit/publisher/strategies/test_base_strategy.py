@@ -10,8 +10,8 @@ from typing import Any
 
 import pytest
 
-from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
-from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 # ---------------------------------------------------------------------------
 # Constants

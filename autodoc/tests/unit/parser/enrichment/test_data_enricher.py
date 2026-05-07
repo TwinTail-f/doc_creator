@@ -13,7 +13,7 @@ from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.options import ConanInputOptions, TotalOptionsSet
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.release import Release
-from autodoc.models.conan_enrichment_result import (
+from autodoc.parser.conan.models.conan_enrichment_result import (
     ConanEnrichmentResult,
     ProfileConanData,
     ReleaseConanData,

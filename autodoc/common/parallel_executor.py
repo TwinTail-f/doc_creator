@@ -9,7 +9,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections.abc import Callable
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _DEFAULT_LOG_PROGRESS_INTERVAL: int = 50
 

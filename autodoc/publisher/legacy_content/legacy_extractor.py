@@ -2,7 +2,7 @@
 
 import re
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.publisher.legacy_content._html_utils import (
     PLATFORM_VERSION_RE,
     extract_platform_h1_sections,

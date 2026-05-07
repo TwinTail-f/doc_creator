@@ -2,11 +2,11 @@
 Шаг пайплайна: сбор Docker-ссылок и их применение к профилям сборки.
 """
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
-from autodoc.interfaces.i_fetcher import IFetcher
-from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.fetchers.i_fetcher import IFetcher
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 

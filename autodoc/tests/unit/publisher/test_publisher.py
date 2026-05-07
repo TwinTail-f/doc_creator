@@ -19,7 +19,7 @@ from pytest_mock import MockerFixture
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
-from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 # ---------------------------------------------------------------------------
 # Constants

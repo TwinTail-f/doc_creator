@@ -1,11 +1,11 @@
 """Шаг пайплайна: обогащение компонентов данными Conan graph info."""
 
-from autodoc.infrastructure.logger import logger
-from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
+from autodoc.common.logger import logger
+from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.enrichment.data_enricher import DataEnricher
-from autodoc.interfaces.i_fetcher import IFetcher
+from autodoc.parser.fetchers.i_fetcher import IFetcher
 from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
-from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
 

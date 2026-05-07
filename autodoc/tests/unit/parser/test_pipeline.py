@@ -3,7 +3,7 @@
 import pytest
 
 from autodoc.parser.pipeline.context import PipelineContext
-from autodoc.interfaces.base_parse_step import BaseParseStep
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 
 # ---------------------------------------------------------------------------
 # Тесты: PipelineContext

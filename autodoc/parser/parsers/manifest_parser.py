@@ -6,8 +6,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from autodoc.infrastructure.logger import logger
-from autodoc.infrastructure.parallel_executor import ParallelExecutor
+from autodoc.common.logger import logger
+from autodoc.common.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release

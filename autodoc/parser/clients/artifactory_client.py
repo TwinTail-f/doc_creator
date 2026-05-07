@@ -12,8 +12,8 @@ import requests
 import urllib3
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
-from autodoc.infrastructure.retryable_session import create_retryable_session
-from autodoc.infrastructure.logger import logger
+from autodoc.common.retryable_session import create_retryable_session
+from autodoc.common.logger import logger
 
 _MAX_RETRIES: int = 1
 

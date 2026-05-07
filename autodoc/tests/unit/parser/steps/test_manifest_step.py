@@ -3,7 +3,7 @@
 import pytest
 
 from autodoc.models.component import Component
-from autodoc.models.fetch_result import FetchResult
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.manifest_step import ManifestStep
 
 # ---------------------------------------------------------------------------

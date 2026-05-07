@@ -3,7 +3,7 @@
 import pytest
 
 from autodoc.models.types import OptionsMap
-from autodoc.models.fetch_result import FetchResult
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.options_step import OptionsResolveStep
 
 # ---------------------------------------------------------------------------

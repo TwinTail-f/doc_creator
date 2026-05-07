@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import Any
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
-from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
-from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
-from autodoc.interfaces.base_publish_strategy import BasePublishStrategy
-from autodoc.models.publish_report import PublishReport
+from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.models.publish_report import PublishReport
 from autodoc.publisher.strategies import (
     passports_strategy,
     profile_strategy,

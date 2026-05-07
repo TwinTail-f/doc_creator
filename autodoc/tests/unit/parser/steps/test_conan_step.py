@@ -2,8 +2,8 @@
 
 import pytest
 
-from autodoc.models.conan_enrichment_result import ConanEnrichmentResult
-from autodoc.models.fetch_result import FetchResult
+from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 # ---------------------------------------------------------------------------

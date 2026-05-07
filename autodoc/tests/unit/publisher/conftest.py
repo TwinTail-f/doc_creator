@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from autodoc.interfaces.confluence_client_protocol import IConfluenceClient
-from autodoc.interfaces.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
 
 # ---------------------------------------------------------------------------
 # Fake classes (implement Protocol interfaces without inheritance)

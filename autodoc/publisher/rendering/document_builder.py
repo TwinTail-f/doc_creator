@@ -5,7 +5,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, TemplateError, TemplateNotFound
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 
 class DocumentBuilder:

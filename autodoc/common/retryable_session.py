@@ -8,7 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 
 _RETRY_STATUS_CODES: tuple[int, ...] = (
     http.HTTPStatus.REQUEST_TIMEOUT.value,  # 408
