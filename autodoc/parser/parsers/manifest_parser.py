@@ -15,9 +15,8 @@ from autodoc.parser.utils.properties_reader import read_properties
 
 _MANIFEST_MAX_WORKERS: int = 32
 _MANIFEST_LOG_INTERVAL: int = 50
-_PLATFORM_BASE_VERSION: str = (
-    "2.0"  # временный хардкод для фильтрации релизов по платформе, будет убран с добавлением функционала для парсинга 1.6 и иных
-)
+# временный хардкод для фильтрации релизов по платформе в манифестах, будет убран с добавлением функционала для парсинга 1.6 и иных
+_PLATFORM_BASE_VERSION: str = "2.0"
 
 
 @dataclass
