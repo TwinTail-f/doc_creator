@@ -85,7 +85,7 @@ class ConanTaskBuilder:
         self,
         reference: str,
         profile_name: str,
-        opt_str: str,
+        opt_str: str = "",
         extra_settings: dict[str, str] | None = None,
     ) -> list[str]:
         """

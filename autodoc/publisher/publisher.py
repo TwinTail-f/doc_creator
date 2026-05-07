@@ -12,6 +12,7 @@ from autodoc.publisher.clients.document_builder_protocol import IDocumentBuilder
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.publish_report import PublishReport
+from autodoc.publisher.strategies import passports_strategy, profile_strategy, release_strategy
 
 _DEFAULT_DATA_DIR: Path = Path("data")
 _DEFAULT_PASSPORT_TEMPLATE: str = "component_passport.jinja2"

@@ -15,6 +15,7 @@ from autodoc.parser.utils.properties_reader import read_properties
 
 _MANIFEST_MAX_WORKERS: int = 32
 _MANIFEST_LOG_INTERVAL: int = 50
+_PLATFORM_BASE_VERSION: str = "2.0" #временный хардкод для фильтрации релизов по платформе, будет убран с добавлением функционала для парсинга 1.6 и иных
 
 
 @dataclass
@@ -42,7 +43,7 @@ class ManifestParser:
                                     Если передан — формирует полные ссылки на
                                     репозиторий в поле ``git_url`` каждого Release.
         """
-        self._target_platform = target_platform
+        self._target_platform = _PLATFORM_BASE_VERSION
         self._tfs_dep_components_url: str = tfs_dep_components_url.rstrip("/")
         self._executor = ParallelExecutor(
             max_workers=_MANIFEST_MAX_WORKERS,

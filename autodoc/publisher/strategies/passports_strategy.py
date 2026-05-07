@@ -229,7 +229,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         target_platform = (
             self._target_release_version
             if self._target_release_version
-            else f"Платформа {platform_version}"
+            else f"Platform {platform_version}"
         )
         view_model["target_platform"] = target_platform
         view_model["legacy_contents"] = legacy_contents
