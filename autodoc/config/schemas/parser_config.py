@@ -57,6 +57,16 @@ class ParserConfigSchema(BaseModel):
         ..., description="URL zip-архива конфигурации Conan в Artifactory"
     )
 
+    platform_base_version: str = Field(
+        default="2.0",
+        description=(
+            "Базовая версия платформы (например \"2.0\" для релизов 2.x, "
+            "\"1.6\" для релизов 1.6.x). "
+            "Используется для фильтрации манифестов"
+            "и построения команд conan graph info."
+        ),
+    )
+
     # Опциональные поля
     artifactory_components_conan2_url: str = Field(
         default="",

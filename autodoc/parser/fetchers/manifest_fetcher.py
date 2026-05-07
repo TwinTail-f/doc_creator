@@ -31,6 +31,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._manifests_remotes_path: str = ""
         self._platform_branch_name: str = ""
         self._platform_version: str = ""
+        self._platform_base_version: str = ""
         self._platform_ref_type: VersionType = VersionType.BRANCH
 
     def configure(self, ctx: PipelineContext) -> None:
@@ -47,6 +48,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
         self._platform_version = ctx.config.platform_version
+        self._platform_base_version = ctx.config.platform_base_version
         self._platform_ref_type = VersionType(ctx.config.platform_ref_type)
 
     def fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
@@ -82,7 +84,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             )
 
         parser = ManifestParser(
-            target_platform=self._platform_version,
+            target_platform=self._platform_base_version,
             tfs_collection_url=self._base_url,
         )
         components, warnings = parser.parse(properties_files, excluded)

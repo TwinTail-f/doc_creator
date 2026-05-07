@@ -1,3 +1,5 @@
+conan_fetcher.py
+
 """
 Фетчер данных Conan graph info.
 
@@ -68,7 +70,7 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
             ctx: Контекст пайплайна с валидированной конфигурацией.
         """
         self._timeout = ctx.config.conan_command_timeout
-        self._platform_version = ctx.config.platform_version
+        self._platform_version = ctx.config.platform_base_version
         self._artifactory_base_url = (
             ctx.config.artifactory_components_conan2_url or ""
         ).rstrip("/")
