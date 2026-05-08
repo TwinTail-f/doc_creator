@@ -1,282 +1,110 @@
 """Слияние legacy-контента платформ с новым сгенерированным контентом."""
 
-import re
+__all__ = ["parse_page_content_into_sections", "merge_by_tabs"]
+
+import re as _re
 
 from autodoc.common.logger import logger
 from autodoc.publisher.legacy_content._html_utils import (
-    extract_platform_h1_sections,
+    parse_page_sections,
 )
 
-_VERSION_HEADER_PATTERN: str = r"<h[2-3]>.*?([vV][\d.]+).*?</h[2-3]>"
-_UNKNOWN_SECTION_KEY: str = "unknown"
-
-_TAG_TAB: str = '<ac:structured-macro ac:name="tab">'
-_TAG_TAB_PANE: str = '<ac:structured-macro ac:name="tab-pane">'
 _TAG_TABS_GROUP: str = '<ac:structured-macro ac:name="tabs-group">'
-_TAG_PARAM_NAME_OPEN: str = '<ac:parameter ac:name="name">'
-_TAG_PARAM_CLOSE: str = "</ac:parameter>"
-_TAG_BODY_OPEN: str = "<ac:rich-text-body>"
-_TAG_BODY_CLOSE: str = "</ac:rich-text-body>"
 
-# Шаг смещения при пропуске нераспознанного фрагмента в цикле разбора вкладок.
-_PARSE_SKIP_STEP: int = 10
+_VERSION_SORT_RE = _re.compile(r"(\d+)")
 
 
-class LegacyContentMerger:
+def _version_sort_key(item: tuple[str, str]) -> list[int]:
+    """Converts version string segments to ints for correct numeric ordering."""
+    return [int(x) for x in _VERSION_SORT_RE.findall(item[0])]
+
+
+def parse_page_content_into_sections(html: str) -> dict[str, str]:
     """
-    Объединяет legacy-контент платформ с новым сгенерированным контентом.
+    Разбирает HTML существующей страницы на секции по версиям платформы.
 
-    Сохраняет разделы старых платформ и добавляет раздел новой платформы
-    в финальный вывод. Организация через вкладки Confluence (tabs-group/tab).
+    Delegates to ``parse_page_sections`` from ``_html_utils``,
+    which tries tab format first, then ``<h1>Platform X.Y</h1>`` headers,
+    then h2/h3 headers with ``vX.Y`` markers as a final fallback.
 
-    Все методы статические — объект не хранит состояния.
+    Args:
+        html: HTML страницы Confluence (Confluence Storage Format).
+
+    Returns:
+        Словарь ``{имя_версии: html_контент}``.
     """
+    if not html:
+        return {}
 
-    @staticmethod
-    def parse_page_content_into_sections(html: str) -> dict[str, str]:
-        """
-        Разбирает HTML существующей страницы на секции по версиям платформы.
+    logger.debug("Разбор страницы на секции версий")
 
-        Сначала пробует формат вкладок (``ac:structured-macro ac:name="tab"``
-        или ``"tab-pane"``). Если вкладки не найдены — fallback на заголовки
-        h2/h3 с версионным маркером вида ``v1.2`` или ``V1.2``.
+    sections = parse_page_sections(html)
+    if sections:
+        logger.debug(f"Разобрано {len(sections)} секций")
+    return sections
 
-        Args:
-            html: HTML страницы Confluence (Confluence Storage Format).
 
-        Returns:
-            Словарь ``{имя_версии: html_контент}``.
-        """
-        logger.debug("Разбор страницы на секции версий")
-        sections: dict[str, str] = {}
+def merge_by_tabs(
+    new_html: str,
+    legacy_contents: dict[str, str],
+    current_platform: str,
+) -> str:
+    """
+    Объединяет новый контент с legacy-секциями платформ через вкладки Confluence.
 
-        if _TAG_TAB_PANE in html or _TAG_TAB in html:
-            sections = LegacyContentMerger._parse_tab_sections(html)
-            if sections:
-                return sections
+    Если новый HTML уже содержит макрос ``tabs-group`` (т.е. Jinja2-шаблон
+    сам управляет вкладками), возвращает ``new_html`` без изменений во
+    избежание двойного оборачивания.
 
-        return LegacyContentMerger._parse_header_sections(html)
+    Порядок вкладок: текущая платформа идёт первой, остальные — в обратном
+    алфавитном порядке (чтобы более новые версии шли раньше).
 
-    @staticmethod
-    def _parse_tab_sections(html: str) -> dict[str, str]:
-        """
-        Разбирает HTML на секции по вкладкам Confluence.
+    Args:
+        new_html: Свежеотрендеренный HTML для текущей платформы.
+        legacy_contents: Словарь ``{имя_платформы: html}`` для старых платформ.
+        current_platform: Отображаемое имя вкладки текущей платформы
+                          (например ``'Платформа 2.2'``).
 
-        Ищет вкладки формата ``ac:tab`` и ``ac:tab-pane``, извлекает
-        имя вкладки и её rich-text-body с учётом вложенности.
+    Returns:
+        HTML со всеми платформами, обёрнутый в макрос ``tabs-group``,
+        или ``new_html`` без изменений если вкладки уже есть в шаблоне.
+    """
+    if not legacy_contents:
+        logger.debug("Нет legacy-контента, возврат нового HTML")
+        return new_html
 
-        Args:
-            html: HTML страницы в Confluence Storage Format.
+    if _TAG_TABS_GROUP in new_html:
+        logger.info("Шаблон уже содержит tabs-group, пропуск оборачивания")
+        return new_html
 
-        Returns:
-            Словарь ``{имя_вкладки: html_контент}`` или пустой словарь,
-            если вкладки не удалось распознать.
-        """
-        logger.debug("Обнаружены вкладки, разбор по вкладкам")
-        sections: dict[str, str] = {}
-        curr_idx = 0
+    tabs_html = _TAG_TABS_GROUP + "\n"
+    tabs_html += _render_tab(current_platform, new_html)
 
-        while curr_idx < len(html):
-            idx_tab = html.find(_TAG_TAB, curr_idx)
-            idx_pane = html.find(_TAG_TAB_PANE, curr_idx)
-            candidates = [i for i in (idx_tab, idx_pane) if i != -1]
-            if not candidates:
-                break
-            start_idx = min(candidates)
+    for version_name, content in sorted(legacy_contents.items(), key=_version_sort_key, reverse=True):
+        if version_name.lower() != current_platform.lower():
+            tabs_html += _render_tab(version_name, content)
 
-            name_start = html.find(_TAG_PARAM_NAME_OPEN, start_idx)
-            if name_start == -1:
-                curr_idx = start_idx + _PARSE_SKIP_STEP
-                continue
-            name_end = html.find(_TAG_PARAM_CLOSE, name_start)
-            if name_end == -1:
-                curr_idx = start_idx + _PARSE_SKIP_STEP
-                continue
+    tabs_html += "</ac:structured-macro>"
+    logger.info(
+        f"Объединено {len(legacy_contents)} legacy-секций с новым контентом"
+    )
+    return tabs_html
 
-            platform_name = html[
-                name_start + len(_TAG_PARAM_NAME_OPEN) : name_end
-            ].strip()
 
-            body_start = html.find(_TAG_BODY_OPEN, name_end)
-            if body_start == -1:
-                curr_idx = name_end
-                continue
+def _render_tab(name: str, content: str) -> str:
+    """
+    Формирует HTML одной вкладки Confluence.
 
-            content, search_idx = LegacyContentMerger._extract_body_content(
-                html, body_start
-            )
+    Args:
+        name: Отображаемое имя вкладки.
+        content: HTML-содержимое вкладки.
 
-            if content and platform_name:
-                sections[platform_name] = content
-
-            curr_idx = (
-                search_idx if search_idx > body_start else body_start + _PARSE_SKIP_STEP
-            )
-
-        if sections:
-            logger.debug(f"Разобрано {len(sections)} секций из вкладок")
-        return sections
-
-    @staticmethod
-    def _extract_body_content(html: str, body_start: int) -> tuple[str, int]:
-        """
-        Извлекает содержимое ``<ac:rich-text-body>`` с учётом вложенности.
-
-        Использует счётчик глубины ``depth`` для корректной балансировки
-        вложенных тегов ``<ac:rich-text-body>`` / ``</ac:rich-text-body>``.
-
-        Args:
-            html: Полный HTML документа.
-            body_start: Индекс открывающего тега ``<ac:rich-text-body>``.
-
-        Returns:
-            Кортеж ``(content, end_idx)``:
-            - ``content``: строка содержимого без обрамляющих тегов,
-              пустая строка если найти границы не удалось.
-            - ``end_idx``: индекс за закрывающим тегом, используется как
-              следующая позиция поиска в вызывающем цикле.
-        """
-        depth = 0
-        search_idx = body_start
-
-        while search_idx < len(html):
-            next_open = html.find(_TAG_BODY_OPEN, search_idx)
-            next_close = html.find(_TAG_BODY_CLOSE, search_idx)
-
-            if next_close == -1:
-                break
-
-            if next_open != -1 and next_open < next_close:
-                depth += 1
-                search_idx = next_open + len(_TAG_BODY_OPEN)
-            else:
-                depth -= 1
-                search_idx = next_close + len(_TAG_BODY_CLOSE)
-                if depth == 0:
-                    content = html[
-                        body_start + len(_TAG_BODY_OPEN) : next_close
-                    ].strip()
-                    return content, search_idx
-
-        return "", search_idx
-
-    @staticmethod
-    def _parse_header_sections(html: str) -> dict[str, str]:
-        """
-        Разбирает HTML на секции по заголовкам.
-
-        Пробует два формата в порядке приоритета:
-
-        1. **Заголовки ``<h1>Platform X.Y</h1>``** — делегирует в
-           ``_html_utils.extract_platform_h1_sections``.
-
-        2. **Заголовки h2/h3 с маркером ``vX.Y``** — исторический fallback.
-
-        Args:
-            html: HTML страницы в Confluence Storage Format.
-
-        Returns:
-            Словарь ``{имя_версии: html_контент}``.
-        """
-        logger.debug("Вкладки не найдены, разбор по заголовкам")
-
-        # Попытка 1: <h1>Platform X.Y</h1> — делегируем в общую утилиту
-        platform_sections = extract_platform_h1_sections(html)
-        if platform_sections:
-            logger.debug(
-                f"Разобрано {len(platform_sections)} секций из заголовков h1 Platform"
-            )
-            return platform_sections
-
-        # Попытка 2: h2/h3 с маркером vX.Y (исторический fallback)
-        logger.debug("h1 Platform-заголовки не найдены, разбор по h2/h3 с версией vX.Y")
-        sections: dict[str, str] = {}
-        current_version = _UNKNOWN_SECTION_KEY
-        current_content: list[str] = []
-
-        for line in html.split("\n"):
-            version_match = re.search(_VERSION_HEADER_PATTERN, line)
-            if version_match:
-                if current_content:
-                    sections[current_version] = "\n".join(current_content).strip()
-                    current_content = []
-                current_version = version_match.group(1)
-            current_content.append(line)
-
-        if current_content:
-            sections[current_version] = "\n".join(current_content).strip()
-
-        if (
-            _UNKNOWN_SECTION_KEY in sections
-            and not sections[_UNKNOWN_SECTION_KEY].strip()
-        ):
-            del sections[_UNKNOWN_SECTION_KEY]
-
-        logger.debug(f"Разобрано {len(sections)} секций из заголовков h2/h3")
-        return sections
-
-    @staticmethod
-    def merge_by_tabs(
-        new_html: str,
-        legacy_contents: dict[str, str],
-        current_platform: str,
-    ) -> str:
-        """
-        Объединяет новый контент с legacy-секциями платформ через вкладки Confluence.
-
-        Если новый HTML уже содержит макрос ``tabs-group`` (т.е. Jinja2-шаблон
-        сам управляет вкладками), возвращает ``new_html`` без изменений во
-        избежание двойного оборачивания.
-
-        Порядок вкладок: текущая платформа идёт первой, остальные — в обратном
-        алфавитном порядке (чтобы более новые версии шли раньше).
-
-        Args:
-            new_html: Свежеотрендеренный HTML для текущей платформы.
-            legacy_contents: Словарь ``{имя_платформы: html}`` для старых платформ.
-            current_platform: Отображаемое имя вкладки текущей платформы
-                              (например ``'Платформа 2.2'``).
-
-        Returns:
-            HTML со всеми платформами, обёрнутый в макрос ``tabs-group``,
-            или ``new_html`` без изменений если вкладки уже есть в шаблоне.
-        """
-        if not legacy_contents:
-            logger.debug("Нет legacy-контента, возврат нового HTML")
-            return new_html
-
-        if _TAG_TABS_GROUP in new_html:
-            logger.info("Шаблон уже содержит tabs-group, пропуск оборачивания")
-            return new_html
-
-        tabs_html = _TAG_TABS_GROUP + "\n"
-        tabs_html += LegacyContentMerger._render_tab(current_platform, new_html)
-
-        for version_name, content in sorted(legacy_contents.items(), reverse=True):
-            if version_name.lower() != current_platform.lower():
-                tabs_html += LegacyContentMerger._render_tab(version_name, content)
-
-        tabs_html += "</ac:structured-macro>"
-        logger.info(
-            f"объединено {len(legacy_contents)} legacy-секций с новым контентом"
-        )
-        return tabs_html
-
-    @staticmethod
-    def _render_tab(name: str, content: str) -> str:
-        """
-        Формирует HTML одной вкладки Confluence.
-
-        Args:
-            name: Отображаемое имя вкладки.
-            content: HTML-содержимое вкладки.
-
-        Returns:
-            Строка с разметкой вкладки ``ac:structured-macro ac:name="tab"``.
-        """
-        return (
-            '  <ac:structured-macro ac:name="tab">\n'
-            f'    <ac:parameter ac:name="name">{name}</ac:parameter>\n'
-            f"    <ac:rich-text-body>\n      {content}\n    </ac:rich-text-body>\n"
-            "  </ac:structured-macro>\n"
-        )
+    Returns:
+        Строка с разметкой вкладки ``ac:structured-macro ac:name="tab"``.
+    """
+    return (
+        '  <ac:structured-macro ac:name="tab">\n'
+        f'    <ac:parameter ac:name="name">{name}</ac:parameter>\n'
+        f"    <ac:rich-text-body>\n      {content}\n    </ac:rich-text-body>\n"
+        "  </ac:structured-macro>\n"
+    )
