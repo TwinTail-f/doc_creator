@@ -1,7 +1,7 @@
 """
 Базовые типы шагов пайплайна парсера: контекст и абстрактный шаг.
 
-Абстракции фетчеров (``FetchResult``, ``IFetcher``, ``BaseTFSFetcher``) намеренно
+Абстракции фетчеров (``FetchResult``, ``FetcherBase``, ``BaseTFSFetcher``) намеренно
 вынесены в ``autodoc.parser.fetchers.base`` — они относятся к слою загрузки данных,
 а не к слою шагов.
 """
@@ -9,7 +9,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from autodoc.parser.pipeline.context_protocol import IPipelineContext
+from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
 
 
 class BaseParseStep(ABC):
@@ -30,7 +30,7 @@ class BaseParseStep(ABC):
             raise TypeError(f"{cls.__name__} должен определить атрибут name")
 
     @abstractmethod
-    def execute(self, ctx: IPipelineContext) -> None:
+    def execute(self, ctx: PipelineContextProtocol) -> None:
         """
         Выполняет логику шага.
 

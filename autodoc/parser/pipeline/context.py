@@ -20,7 +20,7 @@ from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
-from autodoc.parser.clients.tfs_client_protocol import ITFSClient
+from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
 
 
 @dataclass
@@ -39,7 +39,7 @@ class PipelineContext:
     Attributes:
         config: Валидированная конфигурация парсера.
         tmp_dir: Временная директория для промежуточных файлов.
-        tfs_client: Реализация ``ITFSClient``, внедряется ``ComponentParser`` перед запуском пайплайна.
+        tfs_client: Реализация ``TFSClientProtocol``, внедряется ``ComponentParser`` перед запуском пайплайна.
         artifactory_client: Реализация ``IArtifactoryClient``, внедряется ``ComponentParser``.
         components: Список компонентов, накапливаемый шагами пайплайна.
         result: Финальный результат, заполняется ``FinalizeStep``.
@@ -48,7 +48,7 @@ class PipelineContext:
 
     config: ParserConfigSchema
     tmp_dir: Path
-    tfs_client: ITFSClient | None = None
+    tfs_client: TFSClientProtocol | None = None
     artifactory_client: IArtifactoryClient | None = None
     components: list[Component] = field(default_factory=list)
     result: ParsedResult | None = None

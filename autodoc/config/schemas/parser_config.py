@@ -47,7 +47,7 @@ class ParserConfigSchema(BaseModel):
     )
     tfs_collection_url: str = Field(
         ...,
-        description="Базовый URL коллекции TFS без завершающего слэша (например https://tfs.company.com/tfs/companytc1)",
+        description="Базовый URL коллекции TFS",
     )
     manifests_remotes_path: str = Field(
         ...,

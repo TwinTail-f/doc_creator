@@ -11,7 +11,7 @@ import requests
 
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
-from autodoc.parser.clients.tfs_client_protocol import ITFSClient
+from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
 from autodoc.parser.clients.tfs_client import TFSClient
 
 _EXAMPLE_URL: str = "https://art.example.com/artifactory/conan2/openssl"
@@ -66,12 +66,12 @@ def test_artifactory_client_satisfies_protocol(parser_config) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Соответствие протоколу: TFSClient удовлетворяет ITFSClient
+# Соответствие протоколу: TFSClient удовлетворяет TFSClientProtocol
 # ---------------------------------------------------------------------------
 
 
 def test_tfs_client_satisfies_protocol(parser_config) -> None:
-    """TFSClient структурно удовлетворяет протоколу ITFSClient."""
+    """TFSClient структурно удовлетворяет протоколу TFSClientProtocol."""
     client = TFSClient.__new__(TFSClient)
 
-    assert isinstance(client, ITFSClient)
+    assert isinstance(client, TFSClientProtocol)

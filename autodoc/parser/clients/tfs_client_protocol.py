@@ -2,13 +2,12 @@
 Протокол (structural interface) для TFS-клиента.
 """
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 
 import requests
 
 
-@runtime_checkable
-class ITFSClient(Protocol):
+class TFSClientProtocol(Protocol):
     """
     Интерфейс для чтения файлов и листинга директорий из TFS.
 

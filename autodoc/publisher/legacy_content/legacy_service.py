@@ -6,16 +6,6 @@ module. Internal modules (legacy_extractor, legacy_merger, _html_utils) are
 implementation details and subject to change.
 """
 
-__all__ = ["extract_for_platform"]
-
-from autodoc.common.logger import logger
-from autodoc.publisher.legacy_content.legacy_extractor import extract_platform_versions
-
-
-def extract_for_platform(
-    existing_html: str,
-    current_platform_version: str,
-) -> dict[str, str]:
     """
     Извлекает все legacy-секции платформ, кроме текущей.
 

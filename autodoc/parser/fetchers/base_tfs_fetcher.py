@@ -4,12 +4,12 @@
 
 from abc import abstractmethod
 
-from autodoc.parser.clients.tfs_client_protocol import ITFSClient
-from autodoc.parser.fetchers.i_fetcher import IFetcher
-from autodoc.parser.pipeline.context_protocol import IPipelineContext
+from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
+from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
 
 
-class BaseTFSFetcher[T](IFetcher[T]):
+class BaseTFSFetcher[T](FetcherBase[T]):
     """
     Базовый фетчер с отложенным доступом к ``TFSClient``-синглтону.
 
@@ -18,7 +18,16 @@ class BaseTFSFetcher[T](IFetcher[T]):
 
     def __init__(self) -> None:
         """Инициализирует фетчер; ``_tfs`` заполняется в методе ``configure()``."""
-        self._tfs: ITFSClient | None = None
+        self._tfs: TFSClientProtocol | None = None
 
     @abstractmethod
-    def configure(self, ctx: IPipelineContext) -> None: ...
+    def configure(self, ctx: PipelineContextProtocol) -> None:
+        """
+        Инициализирует фетчер данными из контекста пайплайна.
+
+        Должен вызываться перед ``fetch()``. Реализация извлекает нужные
+        поля из ``ctx.config`` и ``ctx.tfs_client``.
+
+        Args:
+            ctx: Контекст пайплайна с конфигурацией и TFS-клиентом.
+        """

@@ -6,10 +6,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
-from autodoc.parser.pipeline.context_protocol import IPipelineContext
+from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
 
 
-class IFetcher[T](ABC):
+class FetcherBase[T](ABC):
     """
     Интерфейс двухфазового фетчера: ``configure()`` → ``fetch()``.
 
@@ -18,7 +18,7 @@ class IFetcher[T](ABC):
     """
 
     @abstractmethod
-    def configure(self, ctx: IPipelineContext) -> None:
+    def configure(self, ctx: PipelineContextProtocol) -> None:
         """
         Инициализирует фетчер данными из контекста пайплайна.
 

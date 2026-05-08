@@ -10,10 +10,10 @@
 from typing import Protocol
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
-from autodoc.parser.clients.tfs_client_protocol import ITFSClient
+from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
 
 
-class IPipelineContext(Protocol):
+class PipelineContextProtocol(Protocol):
     """
     Минимальный интерфейс контекста пайплайна, необходимый фетчерам.
 
@@ -25,4 +25,4 @@ class IPipelineContext(Protocol):
     """
 
     config: ParserConfigSchema
-    tfs_client: ITFSClient | None
+    tfs_client: TFSClientProtocol | None

@@ -207,7 +207,10 @@ class ManifestParser:
         return releases
 
     def _get_profiles_string(
-        self, props: dict[str, str], c_ver: str, p_ver: str
+        self,
+        props: dict[str, str],
+        c_ver: str,
+        p_ver: str,
     ) -> str:
         """Извлекает строку со списком профилей для заданной комбинации версий."""
         key_profiles = f"profiles-{c_ver}-{p_ver}"

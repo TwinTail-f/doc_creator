@@ -9,8 +9,7 @@ from typing import Any, TypeVar
 import yaml
 from pydantic import ValidationError
 
-from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.config.schemas.parser_config import ParserConfigSchema
+from autodoc.config.schemas import ConfluenceConfigSchema, ParserConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.common.logger import logger
 
