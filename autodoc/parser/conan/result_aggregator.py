@@ -19,8 +19,14 @@ from autodoc.parser.conan.models.conan_enrichment_result import (
     ReleaseConanData,
     _ErrorLog,
 )
-from autodoc.parser.conan.models.conan_raw_result import ConanCommandRecord, ConanRawResult
-from autodoc.parser.conan.models.conan_report import ConanComponentReport, ConanProfileReport
+from autodoc.parser.conan.models.conan_raw_result import (
+    ConanCommandRecord,
+    ConanRawResult,
+)
+from autodoc.parser.conan.models.conan_report import (
+    ConanComponentReport,
+    ConanProfileReport,
+)
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.options import TotalOptionsSet
 from autodoc.parser.conan.result_parser import ConanResultParser

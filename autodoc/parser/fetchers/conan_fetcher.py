@@ -1,5 +1,3 @@
-conan_fetcher.py
-
 """
 Фетчер данных Conan graph info.
 

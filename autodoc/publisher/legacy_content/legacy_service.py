@@ -40,7 +40,9 @@ def extract_for_platform(
     filtered = {
         k: v
         for k, v in all_sections.items()
-        if not (k == current_platform_version or k.endswith(f" {current_platform_version}"))
+        if not (
+            k == current_platform_version or k.endswith(f" {current_platform_version}")
+        )
     }
 
     logger.debug(

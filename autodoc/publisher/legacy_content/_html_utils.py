@@ -50,8 +50,8 @@ class _H1Section(NamedTuple):
     """Внутренняя запись одного разобранного элемента h1."""
 
     tag_start: int  # индекс открывающего тега <h1...>
-    tag_end: int    # индекс сразу после закрывающего </h1>
-    text: str       # внутренний текст h1 (теги удалены)
+    tag_end: int  # индекс сразу после закрывающего </h1>
+    text: str  # внутренний текст h1 (теги удалены)
 
 
 def find_h1_sections(html: str) -> list[_H1Section]:
@@ -238,10 +238,7 @@ def _parse_h2_version_sections(html: str) -> dict[str, str]:
     if current_content:
         sections[current_version] = "\n".join(current_content).strip()
 
-    if (
-        _UNKNOWN_SECTION_KEY in sections
-        and not sections[_UNKNOWN_SECTION_KEY].strip()
-    ):
+    if _UNKNOWN_SECTION_KEY in sections and not sections[_UNKNOWN_SECTION_KEY].strip():
         del sections[_UNKNOWN_SECTION_KEY]
 
     return sections

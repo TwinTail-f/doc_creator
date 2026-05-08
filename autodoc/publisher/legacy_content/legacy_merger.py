@@ -80,14 +80,14 @@ def merge_by_tabs(
     tabs_html = _TAG_TABS_GROUP + "\n"
     tabs_html += _render_tab(current_platform, new_html)
 
-    for version_name, content in sorted(legacy_contents.items(), key=_version_sort_key, reverse=True):
+    for version_name, content in sorted(
+        legacy_contents.items(), key=_version_sort_key, reverse=True
+    ):
         if version_name.lower() != current_platform.lower():
             tabs_html += _render_tab(version_name, content)
 
     tabs_html += "</ac:structured-macro>"
-    logger.info(
-        f"Объединено {len(legacy_contents)} legacy-секций с новым контентом"
-    )
+    logger.info(f"Объединено {len(legacy_contents)} legacy-секций с новым контентом")
     return tabs_html
 
 
