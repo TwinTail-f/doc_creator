@@ -28,10 +28,17 @@ INNER_TAG_RE: re.Pattern[str] = re.compile(r"<[^>]+>")
 # Используется только внутри модуля для фильтрации Platform-заголовков.
 _PLATFORM_VERSION_RE: re.Pattern[str] = re.compile(r"Platform\s+[\d.]+")
 
-# Находит имя/заголовок вкладки в любом <ac:parameter ac:name="name|title">.
+# Находит имя вкладки через <ac:parameter ac:name="name">.
+# Намеренно не матчит ac:name="title" — это атрибут expand-макросов, а не вкладок.
 _TAB_NAME_RE: re.Pattern[str] = re.compile(
-    r'<ac:parameter ac:name="(?:name|title)">([^<]+)</ac:parameter>'
+    r'<ac:parameter ac:name="name">([^<]+)</ac:parameter>'
 )
+
+# Маркеры настоящих tab-макросов Confluence (используются в guard-проверке).
+# Не содержат закрывающего '>' — Confluence при сохранении добавляет атрибуты
+# ac:schema-version и ac:macro-id, поэтому полное совпадение с '>' не работает.
+_TAG_TAB: str = '<ac:structured-macro ac:name="tab"'
+_TAG_TAB_PANE: str = '<ac:structured-macro ac:name="tab-pane"'
 
 # ---------------------------------------------------------------------------
 # Rich-text-body constants (используются внутри модуля и в legacy_extractor)
@@ -183,6 +190,12 @@ def extract_tab_sections(html: str) -> dict[str, str]:
         Пустой словарь, если вкладок нет или ``html`` пуст.
     """
     if not html:
+        return {}
+
+    # Guard: не обрабатывать как вкладки, если в HTML нет настоящих tab-макросов.
+    # Без этой проверки другие макросы с <ac:parameter ac:name="title"> (например
+    # expand) ложно распознаются как вкладки и мешают fallback на h1-секции.
+    if _TAG_TAB not in html and _TAG_TAB_PANE not in html:
         return {}
 
     # Single pass: collect unique (name, start_position) in document order
