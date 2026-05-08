@@ -18,7 +18,6 @@ from autodoc.publisher.strategies import (
     release_strategy,
 )
 
-_DEFAULT_DATA_DIR: Path = Path("data")
 _DEFAULT_PASSPORT_TEMPLATE: str = "component_passport.jinja2"
 
 
@@ -54,7 +53,7 @@ class DocumentPublisher:
         self._config: ConfluenceConfigSchema = confluence_config
         self._client: IConfluenceClient = ConfluenceClient(confluence_config)
         self._builder: IDocumentBuilder = DocumentBuilder(rendering_dir)
-        self._data_dir: Path = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
+        self._data_dir: Path = data_dir if data_dir is not None else Path("data")
         logger.info("Инициализирован")
 
     def publish(
@@ -148,7 +147,6 @@ class DocumentPublisher:
             template_name=release_template_name,
             parent_id=release_parent_id,
             include_passport_links=include_passport_links,
-            target_release_version=self._config.target_release_version,
         )
 
         return PublishReport(

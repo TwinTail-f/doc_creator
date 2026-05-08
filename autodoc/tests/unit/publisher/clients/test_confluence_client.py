@@ -247,3 +247,29 @@ class TestGetOrCreatePage:
         )
         assert result == PAGE_ID
         confluence_client._mock_session.post.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — timeout forwarding test
+# ---------------------------------------------------------------------------
+
+
+class TestTimeoutForwarding:
+    """Tests that confluence_request_timeout reaches the HTTP session."""
+
+    def test_confluence_client_passes_timeout_to_session(
+        self, minimal_confluence_config: dict, mocker: Any
+    ) -> None:
+        """ConfluenceClient forwards confluence_request_timeout to create_retryable_session."""
+        custom_timeout = 99
+        cfg = dict(minimal_confluence_config)
+        cfg["confluence_request_timeout"] = custom_timeout
+        config = ConfluenceConfigSchema(**cfg)
+
+        mock_create = mocker.patch(
+            "autodoc.publisher.clients.confluence_client.create_retryable_session",
+            return_value=mocker.MagicMock(),
+        )
+        ConfluenceClient(config)
+        _, kwargs = mock_create.call_args
+        assert kwargs.get("timeout") == custom_timeout

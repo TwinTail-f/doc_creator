@@ -5,8 +5,8 @@ from collections.abc import Callable
 
 from autodoc.common.logger import logger
 
-_DEFAULT_BATCH_SIZE: int = 4
-_DEFAULT_BATCH_DELAY: float = 5.0
+_DEFAULT_BATCH_SIZE: int = 10
+_DEFAULT_BATCH_DELAY: float = 0.0
 
 
 class PublishQueue:

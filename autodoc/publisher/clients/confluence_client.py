@@ -78,7 +78,6 @@ class ConfluenceClient:
 
         self._base_url: str = config.url.rstrip("/")
         self._space: str = config.space
-        self._timeout: int = config.confluence_request_timeout
         self._session: RetryableSession = self._build_session(config)
 
         logger.debug(f"Инициализирован: {self._base_url} (space={self._space})")
@@ -533,6 +532,7 @@ class ConfluenceClient:
             bearer=True,
             max_retries=_RETRY_COUNT,
             backoff_factor=_BACKOFF_FACTOR,
+            timeout=config.confluence_request_timeout,
         )
         session.verify = config.verify_ssl
         if not config.verify_ssl:

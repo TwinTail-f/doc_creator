@@ -24,10 +24,6 @@ class ConfluenceConfigSchema(BaseModel):
         description="Ключ Space в Confluence",
     )
 
-    username: str | None = Field(
-        default=None,
-        description="Имя пользователя (legacy-аутентификация, не используется при PAT)",
-    )
     verify_ssl: bool = Field(
         default=True,
         description="Проверять SSL-сертификаты",
@@ -75,7 +71,4 @@ class ConfluenceConfigSchema(BaseModel):
         description='Подпись текущего релиза (например "Platform 2.2"). '
         "Используется в заголовке паспортов и метке вкладки релиза.",
     )
-    preserve_legacy_platforms: list[str] = Field(
-        default_factory=list,
-        description="Список имён старых платформ, контент которых нужно сохранить",
-    )
+

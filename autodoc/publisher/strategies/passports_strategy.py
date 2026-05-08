@@ -17,8 +17,6 @@ from autodoc.publisher.strategies.models.publish_report import PublishReport
 from autodoc.publisher.converters.passport_converter import PassportConverter
 
 _DEFAULT_TEMPLATE: str = "component_passport.jinja2"
-_DEFAULT_BATCH_SIZE: int = 2
-_DEFAULT_BATCH_DELAY: float = 5.0
 
 
 @dataclass
@@ -60,8 +58,8 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         root_page_id: str,
         template_name: str = _DEFAULT_TEMPLATE,
         data_dir: Path | None = None,
-        batch_size: int = _DEFAULT_BATCH_SIZE,
-        batch_delay_seconds: float = _DEFAULT_BATCH_DELAY,
+        batch_size: int = 10,
+        batch_delay_seconds: float = 0.0,
         target_release_version: str = "",
     ) -> None:
         """

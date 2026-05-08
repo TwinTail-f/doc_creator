@@ -371,6 +371,9 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
             parsed_data=parsed_data,
             root_page_id=target_root,
             template_name=_PASSPORT_TEMPLATE,
+            batch_size=conf_config.publish_batch_size,
+            batch_delay_seconds=conf_config.publish_batch_delay_seconds,
+            target_release_version=conf_config.target_release_version,
         )
 
         _print_publish_result(result)
