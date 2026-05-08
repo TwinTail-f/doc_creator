@@ -59,12 +59,12 @@ class DocumentBuilder:
             TemplateNotFound: Если шаблон не найден в директории.
             TemplateError: Если рендеринг завершился с ошибкой.
         """
-        logger.debug(f'Рендеринг шаблона "{template_name}"')
+        logger.debug(f"Рендеринг шаблона \"{template_name}\"")
         try:
             template = self._env.get_template(f"templates/{template_name}")
             html = template.render(data=view_model)
-            logger.info(f'Шаблон "{template_name}" отрендерен')
+            logger.info(f"Шаблон \"{template_name}\" отрендерен")
             return html
         except (TemplateNotFound, TemplateError) as e:
-            logger.error(f'Ошибка рендеринга "{template_name}": {e}')
+            logger.error(f"Ошибка рендеринга \"{template_name}\": {e}")
             raise

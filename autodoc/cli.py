@@ -23,13 +23,13 @@ from rich.table import Table
 from autodoc.config.manager import ConfigManager
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError
-from autodoc.common.logger import logger
+from autodoc.infrastructure.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from autodoc.publisher.publisher import DocumentPublisher
-from autodoc.publisher.strategies.models.publish_report import PublishReport
+from autodoc.models.publish_report import PublishReport
 
 console = Console()
 
@@ -213,7 +213,7 @@ def _load_parsed_data(base_dir: Path) -> ParsedResult:
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
         console.print(
-            "❌ Файл parsed_data.json не найден. Сначала запустите " '"parse".',
+            "❌ Файл parsed_data.json не найден. Сначала запустите " "\"parse\"",
             style="red bold",
         )
         sys.exit(1)

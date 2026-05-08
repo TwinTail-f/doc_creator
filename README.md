@@ -36,29 +36,58 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 
 | Поле | Описание |
 |------|----------|
-| `platform_version` | Версия платформы, например `"2.0"` |
-| `platform_branch_name` | Ветка в TFS, например `"develop"` |
-| `tfs_username` | Имя пользователя TFS |
-| `tfs_token` | Personal Access Token (PAT) |
-| `tfs_dep_components_url` | Базовый URL проекта DEP_Components в TFS |
+| `platform_version` | Версия платформы, например `"2.2"` |
+| `platform_branch_name` | Ветка или тег в TFS, например `"develop"` |
+| `username` | Имя пользователя TFS / Artifactory |
+| `tfs_token` | Personal Access Token (PAT) для TFS |
+| `tfs_collection_url` | Базовый URL коллекции TFS, например `"https://tfs.company.com/tfs/DefaultCollection"` |
 | `manifests_remotes_path` | Путь к директории с манифестами в репозитории |
+| `conan_config_url` | URL zip-архива конфигурации Conan в Artifactory |
+| `artifactory_token` | PAT-токен Artifactory |
 
-#### Credentials Artifactory (для валидации ссылок на сборки)
+#### Опциональные поля `parser_config.json`
 
-Два способа — приоритет у конфига:
+| Поле | По умолчанию | Описание |
+|------|-------------|----------|
+| `platform_base_version` | `"2.0"` | Базовая версия платформы, используется для фильтрации манифестов |
+| `platform_ref_type` | `"branch"` | Тип ссылки в TFS: `"branch"`, `"tag"` или `"commit"` |
+| `artifactory_components_conan2_url` | `""` | URL Artifactory для Conan 2 пакетов |
+| `profiles_urls` | `[]` | Список URL на YAML-файлы профилей сборки |
+| `component_filter_mode` | `"exclude"` | Режим фильтрации компонентов: `"exclude"` или `"include"` (см. ниже) |
+| `component_names` | `[]` | Список имён компонентов для фильтрации (см. ниже) |
+| `tfs_request_timeout` | `15` | Тайм-аут HTTP-запросов к TFS (секунды) |
+| `conan_command_timeout` | `300` | Тайм-аут выполнения команд Conan (секунды) |
+| `max_retries` | `3` | Максимальное количество retry-попыток |
+| `retry_backoff_factor` | `2.0` | Множитель для exponential backoff |
+
+#### Фильтрация компонентов
+
+Два поля управляют тем, какие компоненты попадут в обработку:
+
+**`component_filter_mode`** — определяет режим работы:
+- `"exclude"` *(по умолчанию)* — обрабатываются все компоненты, **кроме** перечисленных в `component_names`
+- `"include"` — обрабатываются **только** компоненты, перечисленные в `component_names`
+
+**`component_names`** — список имён компонентов (значение поля `name` из `.properties`-файла манифеста, точное совпадение).
+
+Примеры:
 
 ```json
-{
-  "artifactory_username": "your_user",
-  "artifactory_password": "your_password"
-}
+// Пропустить два компонента, остальные обработать
+"component_filter_mode": "exclude",
+"component_names": ["sqlite3", "apr-util"]
 ```
 
-или через переменные окружения:
+```json
+// Обработать только эти два компонента, остальные пропустить
+"component_filter_mode": "include",
+"component_names": ["openssl", "zlib"]
+```
 
-```bash
-export GET_USR=your_user
-export GET_PWD=your_password
+```json
+// Оба поля пустые / не указаны — обрабатываются все компоненты
+"component_filter_mode": "exclude",
+"component_names": []
 ```
 
 #### Обязательные поля `confluence_config.json`
@@ -68,6 +97,21 @@ export GET_PWD=your_password
 | `url` | Базовый URL Confluence, например `"https://confluence.example.com"` |
 | `token` | Atlassian API-токен |
 | `space` | Ключ пространства в Confluence |
+
+#### Опциональные поля `confluence_config.json`
+
+| Поле | По умолчанию | Описание |
+|------|-------------|----------|
+| `username` | — | Имя пользователя (только для legacy-аутентификации, при PAT не нужен) |
+| `verify_ssl` | `true` | Проверять SSL-сертификаты |
+| `parent_id` | — | ID родительской страницы для релизной документации |
+| `page_title` | `"Сборки компонентов Платформы"` | Заголовок главной страницы релиза |
+| `passports_root_parent_id` | — | ID корневой страницы для иерархии паспортов |
+| `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
+| `preserve_legacy_platforms` | `[]` | Список старых платформ, контент которых нужно сохранить при обновлении паспортов |
+| `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
+| `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
+| `publish_batch_delay_seconds` | `0.0` | Задержка между пакетами (секунды). Увеличьте при перегрузке сервера |
 
 ---
 
@@ -79,45 +123,106 @@ export GET_PWD=your_password
 python -m autodoc.cli parse
 ```
 
-Результат сохраняется в `data/parsed_data.json`.
-
-#### Публикация итоговой страницы релиза
+Результат сохраняется в `data/parsed_data.json`. Все последующие команды `publish` читают этот файл.
 
 ```bash
-python -m autodoc.cli publish release --view full --page-title "Платформа 2.0"
+# Пропустить тяжёлые шаги для быстрой отладки
+python -m autodoc.cli parse --skip-conan --skip-validation
+
+# Сохранять снимок состояния после каждого шага пайплайна
+python -m autodoc.cli parse --save-intermediate
+```
+
+#### Публикация релизной документации (вид от компонентов)
+
+```bash
+python -m autodoc.cli publish release
+
+# Переопределить заголовок страницы
+python -m autodoc.cli publish release --page-title "Платформа 2.2"
+
+# Без ссылок на паспорта компонентов
+python -m autodoc.cli publish release --no-passport-links
+```
+
+#### Публикация профиль-центричной документации (вид от профилей сборки)
+
+```bash
+python -m autodoc.cli publish profile
+
+python -m autodoc.cli publish profile --page-title "Профили 2.2" --no-passport-links
 ```
 
 #### Публикация паспортов компонентов
 
 ```bash
-python -m autodoc.cli publish passports --root-page <PAGE_ID>
+# ID корневой страницы берётся из passports_root_parent_id конфига
+python -m autodoc.cli publish passports
+
+# Или передать явно
+python -m autodoc.cli publish passports --root-page 987654321
 ```
 
-#### Паспорта + итоговая страница за один вызов
+#### Паспорта + релизная страница за один вызов
 
 ```bash
-python -m autodoc.cli publish all --root-page <PAGE_ID> --page-title "Платформа 2.0"
+python -m autodoc.cli publish all --root-page 987654321 --page-title "Платформа 2.2"
+```
+
+#### Утилиты
+
+```bash
+# Список конфигурационных файлов в configs/
+python -m autodoc.cli config list
+
+# Валидация конфига (автоматически определяет схему — parser или confluence)
+python -m autodoc.cli config validate parser_config.json
+
+# Версия и список возможностей
+python -m autodoc.cli info
 ```
 
 ---
 
-## Дополнительные флаги
+## Флаги CLI
+
+### Глобальные флаги (перед командой)
+
+| Флаг | Описание |
+|------|----------|
+| `--base-dir` | Корневая директория проекта (по умолчанию — текущая) |
+| `--configs-dir` | Директория с конфигами (по умолчанию `<base-dir>/configs`) |
+| `-v`, `--verbose` | Подробный вывод логов |
 
 ### `parse`
 
 | Флаг | Описание |
 |------|----------|
+| `--config` | Имя файла конфига парсера (по умолчанию ищется автоматически) |
 | `--save-intermediate` | Сохранять JSON-снапшоты состояния после каждого шага пайплайна |
-| `--skip-conan` | Пропустить шаг Conan graph info (полезно для быстрой отладки) |
+| `--skip-conan` | Пропустить шаг Conan graph info |
 | `--skip-validation` | Пропустить HTTP-проверку ссылок в Artifactory |
 
-### `publish release`
+### `publish release` и `publish profile`
 
 | Флаг | Описание |
 |------|----------|
-| `--view` | Вид документа: `full` (по умолчанию), `minimal`, `profile_centric`, `combined` |
 | `--page-title` | Заголовок страницы (переопределяет `page_title` из конфига) |
-| `--no-passport-links` | Отключить ссылки на паспорта компонентов |
+| `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
+
+### `publish passports`
+
+| Флаг | Описание |
+|------|----------|
+| `--root-page` | ID корневой страницы иерархии паспортов (переопределяет `passports_root_parent_id` из конфига) |
+
+### `publish all`
+
+| Флаг | Описание |
+|------|----------|
+| `--root-page` | ID корневой страницы паспортов |
+| `--page-title` | Заголовок итоговой релизной страницы |
+| `--no-passport-links` | Не вставлять ссылки на паспорта в релизную страницу |
 
 ---
 
@@ -139,19 +244,17 @@ ManifestStep → OptionsResolveStep → ConanEnrichStep
 ```
 
 Каждый шаг — изолированный объект, общается с остальными только через `PipelineContext`.
-Шаги `--skip-conan` и `--skip-validation` убираются из пайплайна при передаче флага.
+`ConanEnrichStep` и `ArtifactoryValidationStep` убираются из пайплайна при передаче флагов `--skip-conan` / `--skip-validation`.
 
-**Стратегии публикации** регистрируются через Python-метакласс и создаются по строковому ключу:
+**Стратегии публикации** регистрируются через Python-метакласс (`__init_subclass__`) и создаются по строковому ключу фабричным методом `BasePublishStrategy.create()`:
 
-| Ключ | Описание |
-|------|----------|
-| `full_release` | Полная документация релиза |
-| `minimal_release` | Без вариантов сборки |
-| `profile_centric` | Вид по профилям сборки |
-| `full_combined` | Компоненты + профили на одной странице |
-| `passports` | Иерархия паспортов компонентов |
+| Стратегия | Команда CLI | Описание |
+|-----------|-------------|----------|
+| `release` | `publish release` | Одна страница: все компоненты с их релизами и профилями |
+| `profile_centric` | `publish profile` | Одна страница: вид по профилям сборки → каналам → компонентам |
+| `passports` | `publish passports` | Иерархия страниц: Корень → Компонент → Версия |
 
-Подробное описание архитектуры и всех классов: см. `ARCHITECTURE.md`.
+`publish all` последовательно выполняет `passports`, затем `release` — после первого шага генерируется карта ID страниц паспортов, которую `release` использует для вставки ссылок.
 
 ---
 
@@ -170,7 +273,7 @@ configs/
 
 ## Шаблоны
 
-Jinja2-шаблоны для страниц Confluence хранятся в `autodoc/publisher/rendering/autodoc/publisher/rendering/templates/`.
+Jinja2-шаблоны для страниц Confluence хранятся в `autodoc/publisher/rendering/templates/`.
 Используется Confluence Storage Format (AUI-макросы, вкладки).
 
 ```

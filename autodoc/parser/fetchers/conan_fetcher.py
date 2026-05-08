@@ -82,7 +82,7 @@ class ConanFetcher(IFetcher[ConanEnrichmentResult]):
             self._profile_overrides = ProfileSettingsOverrides.from_file(overrides_path)
             if not self._profile_overrides.is_empty():
                 logger.info(
-                    f"ConanFetcher: загружены переопределения настроек профилей из '{overrides_path}'."
+                    f"ConanFetcher: загружены переопределения настроек профилей из \"{overrides_path}\"."
                 )
         else:
             self._profile_overrides = ProfileSettingsOverrides.empty()
