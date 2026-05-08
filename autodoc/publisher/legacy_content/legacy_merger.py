@@ -1,5 +1,18 @@
 """Слияние legacy-контента платформ с новым сгенерированным контентом."""
 
+import re as _re
+
+from autodoc.common.logger import logger
+from autodoc.publisher.legacy_content._html_utils import (
+    parse_page_sections,
+)
+
+_TAG_TABS_GROUP: str = '<ac:structured-macro ac:name="tabs-group">'
+
+_VERSION_SORT_RE = _re.compile(r"(\d+)")
+
+
+def _version_sort_key(item: tuple[str, str]) -> list[int]:
     """Converts version string segments to ints for correct numeric ordering."""
     return [int(x) for x in _VERSION_SORT_RE.findall(item[0])]
 
