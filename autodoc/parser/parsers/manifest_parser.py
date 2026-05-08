@@ -89,7 +89,7 @@ class ManifestParser:
 
         logger.info(
             f"обработано {parsed_count} компонентов, "
-            f"отфильтровано (режим \"{filter_mode}\"): {excluded_count}"
+            f'отфильтровано (режим "{filter_mode}"): {excluded_count}'
         )
         return components, warnings
 
@@ -127,7 +127,7 @@ class ManifestParser:
 
         name = props.get("name", "")
         if not name:
-            logger.debug(f"Пропуск {filepath.name} — отсутствует поле \"name\"")
+            logger.debug(f'Пропуск {filepath.name} — отсутствует поле "name"')
             return _FileParseResult()
 
         if filter_mode == "exclude":

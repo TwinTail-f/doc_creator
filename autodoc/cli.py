@@ -213,7 +213,7 @@ def _load_parsed_data(base_dir: Path) -> ParsedResult:
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
         console.print(
-            "❌ Файл parsed_data.json не найден. Сначала запустите " "\"parse\"",
+            "❌ Файл parsed_data.json не найден. Сначала запустите " '"parse"',
             style="red bold",
         )
         sys.exit(1)

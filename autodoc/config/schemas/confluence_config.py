@@ -72,7 +72,7 @@ class ConfluenceConfigSchema(BaseModel):
     )
     target_release_version: str = Field(
         default="Platform 2.2",
-        description="Подпись текущего релиза (например \"Platform 2.2\"). "
+        description='Подпись текущего релиза (например "Platform 2.2"). '
         "Используется в заголовке паспортов и метке вкладки релиза.",
     )
     preserve_legacy_platforms: list[str] = Field(

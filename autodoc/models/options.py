@@ -47,10 +47,10 @@ class ConanInputOptions(BaseModel):
     для единообразного представления в итоговом JSON.
     """
 
-    id: str = Field(..., description="Идентификатор набора опций (например \"1\", \"2\")")
+    id: str = Field(..., description='Идентификатор набора опций (например "1", "2")')
     options: str = Field(
         default="",
-        description="Строка опций (например \"component:shared=False, component:fPIC=True\")",
+        description='Строка опций (например "component:shared=False, component:fPIC=True")',
     )
     parsed_options: dict[str, str] = Field(
         default_factory=dict,
@@ -71,7 +71,7 @@ class TotalOptionsSet(BaseModel):
 
     id: str = Field(
         ...,
-        description="Идентификатор набора опций, совпадает с ConanInputOptions.id (например \"1\", \"2\")",
+        description='Идентификатор набора опций, совпадает с ConanInputOptions.id (например "1", "2")',
     )
     options: dict[str, Any] = Field(
         default_factory=dict,

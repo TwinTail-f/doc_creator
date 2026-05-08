@@ -15,7 +15,7 @@ class Release(BaseModel):
 
     version: str = Field(..., description="Версия компонента")
     platform: str = Field(..., description="Целевая платформа")
-    channel: str = Field(..., description="Conan-канал (например \"fast\")")
+    channel: str = Field(..., description='Conan-канал (например "fast")')
     git_url: str = Field(..., description="URL репозитория в Git/TFS")
 
     conan_reference: str = Field(

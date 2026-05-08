@@ -14,15 +14,15 @@ class ParserConfigSchema(BaseModel):
     # Обязательные поля
     platform_version: str = Field(
         ...,
-        description="Версия платформы (например \"2.0\")",
+        description='Версия платформы (например "2.0")',
     )
     platform_branch_name: str = Field(
         ...,
-        description="Ветка или тег в репозитории (например \"develop\" или \"0\")",
+        description='Ветка или тег в репозитории (например "develop" или "0")',
     )
     platform_ref_type: Literal["branch", "tag", "commit"] = Field(
         default="branch",
-        description="Тип версии: \"branch\" (по умолчанию), \"tag\" или \"commit\"",
+        description='Тип версии: "branch" (по умолчанию), "tag" или "commit"',
     )
     username: str = Field(
         ...,
@@ -60,8 +60,8 @@ class ParserConfigSchema(BaseModel):
     platform_base_version: str = Field(
         default="2.0",
         description=(
-            "Базовая версия платформы (например \"2.0\" для релизов 2.x, "
-            "\"1.6\" для релизов 1.6.x). "
+            'Базовая версия платформы (например "2.0" для релизов 2.x, '
+            '"1.6" для релизов 1.6.x). '
             "Используется для фильтрации манифестов"
             "и построения команд conan graph info."
         ),
@@ -98,8 +98,8 @@ class ParserConfigSchema(BaseModel):
         default="exclude",
         description=(
             "Режим фильтрации компонентов: "
-            "\"exclude\" — исключить перечисленные компоненты (чёрный список, по умолчанию); "
-            "\"include\" — обрабатывать только перечисленные компоненты (белый список)."
+            '"exclude" — исключить перечисленные компоненты (чёрный список, по умолчанию); '
+            '"include" — обрабатывать только перечисленные компоненты (белый список).'
         ),
     )
 

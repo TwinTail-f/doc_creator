@@ -74,7 +74,7 @@ class ConanEnvironmentManager:
 
     def _login_remote(self, env: dict[str, str]) -> None:
         """Авторизуется в Conan remote через ``conan remote login``."""
-        logger.info(f"Авторизуемся в Conan remote \"{self._CONAN_REMOTE_NAME}\" …")
+        logger.info(f'Авторизуемся в Conan remote "{self._CONAN_REMOTE_NAME}" …')
         result = subprocess.run(
             [
                 "conan",
@@ -96,7 +96,7 @@ class ConanEnvironmentManager:
             raise RuntimeError(
                 f"conan remote login завершился с ошибкой (код {result.returncode}): {error}"
             )
-        logger.info(f"Авторизация в \"{self._CONAN_REMOTE_NAME}\" прошла успешно.")
+        logger.info(f'Авторизация в "{self._CONAN_REMOTE_NAME}" прошла успешно.')
 
     def _install_config(self, env: dict[str, str]) -> None:
         """Устанавливает конфигурацию Conan из Artifactory через ``conan config install``."""

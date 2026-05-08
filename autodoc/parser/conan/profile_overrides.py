@@ -164,13 +164,13 @@ class ProfileSettingsOverrides:
         overrides_list = raw.get("overrides")
         if not overrides_list:
             logger.debug(
-                f"profile_settings_overrides ({source}): секция \"overrides\" пуста или отсутствует."
+                f'profile_settings_overrides ({source}): секция "overrides" пуста или отсутствует.'
             )
             return cls.empty()
 
         if not isinstance(overrides_list, list):
             logger.warning(
-                f"profile_settings_overrides ({source}): \"overrides\" должен быть списком. "
+                f'profile_settings_overrides ({source}): "overrides" должен быть списком. '
                 "Переопределения не будут применены."
             )
             return cls.empty()
@@ -188,13 +188,13 @@ class ProfileSettingsOverrides:
 
             if not isinstance(profiles, list) or not profiles:
                 logger.warning(
-                    f"profile_settings_overrides ({source}): запись [{idx}] не содержит список \"profiles\", пропускается."
+                    f'profile_settings_overrides ({source}): запись [{idx}] не содержит список "profiles", пропускается.'
                 )
                 continue
 
             if not isinstance(settings, dict) or not settings:
                 logger.warning(
-                    f"profile_settings_overrides ({source}): запись [{idx}] не содержит \"settings\", пропускается."
+                    f'profile_settings_overrides ({source}): запись [{idx}] не содержит "settings", пропускается.'
                 )
                 continue
 
@@ -210,7 +210,7 @@ class ProfileSettingsOverrides:
                     # Мёржим: последующие записи дополняют/перезаписывают предыдущие
                     mapping[profile].update(settings)
                     logger.debug(
-                        f"profile_settings_overrides: профиль \"{profile}\" уже описан, настройки объединены."
+                        f'profile_settings_overrides: профиль "{profile}" уже описан, настройки объединены.'
                     )
                 else:
                     mapping[profile] = dict(settings)
