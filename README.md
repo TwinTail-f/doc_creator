@@ -55,6 +55,7 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 | `profiles_urls` | `[]` | Список URL на YAML-файлы профилей сборки |
 | `component_filter_mode` | `"exclude"` | Режим фильтрации компонентов: `"exclude"` или `"include"` (см. ниже) |
 | `component_names` | `[]` | Список имён компонентов для фильтрации (см. ниже) |
+| `profile_settings_overrides_file` | — | Путь к файлу переопределений настроек Conan-профилей (см. ниже) |
 | `tfs_request_timeout` | `15` | Тайм-аут HTTP-запросов к TFS (секунды) |
 | `conan_command_timeout` | `300` | Тайм-аут выполнения команд Conan (секунды) |
 | `max_retries` | `3` | Максимальное количество retry-попыток |
@@ -90,6 +91,42 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 "component_names": []
 ```
 
+#### Переопределения настроек Conan-профилей (опционально)
+
+Некоторые Jinja-профили читают настройки через `os.getenv()` (например `KOS_SDK_VER` → `compiler.toolchain_config_id`). Если нужные переменные окружения не заданы, Conan не может собрать граф зависимостей.
+
+Файл `profile_settings_overrides.json` позволяет задать такие настройки явно, не трогая окружение. Он указывается в `parser_config.json`:
+
+```json
+"profile_settings_overrides_file": "configs/profile_settings_overrides.json"
+```
+
+Структура файла — список групп, каждая связывает профили с набором `-s` настроек:
+
+```json
+{
+  "overrides": [
+    {
+      "profiles": ["kos-x86_64-pc-clang.jinja", "mobile-kos-x86_64-pc.jinja"],
+      "settings": {
+        "compiler.toolchain_config_id": "kos-x86_64-2.1.2.31"
+      }
+    },
+    {
+      "profiles": ["mobile-kos-aarch64.jinja"],
+      "settings": {
+        "compiler.toolchain_config_id": "kos-aarch64-2.1.0.49",
+        "compiler.version": "12"
+      }
+    }
+  ]
+}
+```
+
+Готовый пример с комментариями: `configs/profile_settings_overrides.json.example`.
+
+Если поле не указано или файл не найден — переопределения не применяются, поведение не меняется.
+
 #### Обязательные поля `confluence_config.json`
 
 | Поле | Описание |
@@ -97,6 +134,8 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 | `url` | Базовый URL Confluence, например `"https://confluence.example.com"` |
 | `token` | Atlassian API-токен |
 | `space` | Ключ пространства в Confluence |
+| `parent_id` | ID родительской страницы для релизной документации |
+| `passports_root_parent_id` | ID корневой страницы для иерархии паспортов |
 
 #### Опциональные поля `confluence_config.json`
 
@@ -104,9 +143,7 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 |------|-------------|----------|
 | `username` | — | Имя пользователя (только для legacy-аутентификации, при PAT не нужен) |
 | `verify_ssl` | `true` | Проверять SSL-сертификаты |
-| `parent_id` | — | ID родительской страницы для релизной документации |
 | `page_title` | `"Сборки компонентов Платформы"` | Заголовок главной страницы релиза |
-| `passports_root_parent_id` | — | ID корневой страницы для иерархии паспортов |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `preserve_legacy_platforms` | `[]` | Список старых платформ, контент которых нужно сохранить при обновлении паспортов |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
