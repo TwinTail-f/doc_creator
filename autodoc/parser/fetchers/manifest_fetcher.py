@@ -44,7 +44,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
         self._tfs = ctx.tfs_client
-        self._base_url = ctx.config.tfs_collection_url.rstrip("/")
+        self._base_url = ctx.config.tfs_collection_url
         self._manifests_remotes_path = ctx.config.manifests_remotes_path
         self._platform_branch_name = ctx.config.platform_branch_name
         self._platform_version = ctx.config.platform_version

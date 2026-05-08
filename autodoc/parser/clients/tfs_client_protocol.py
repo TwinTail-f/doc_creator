@@ -24,7 +24,6 @@ class TFSClientProtocol(Protocol):
         version_type: Any = None,
     ) -> None:
         """Скачивает все ``.properties``-файлы из директории TFS."""
-        ...
 
     def get_file_content(
         self,
@@ -34,7 +33,6 @@ class TFSClientProtocol(Protocol):
         version_type: Any = None,
     ) -> requests.Response:
         """Получает содержимое одного файла из TFS."""
-        ...
 
     def get_items(
         self,
@@ -44,4 +42,3 @@ class TFSClientProtocol(Protocol):
         version_type: Any = None,
     ) -> list[dict[str, Any]]:
         """Возвращает список элементов (файлов и папок) репозитория TFS."""
-        ...

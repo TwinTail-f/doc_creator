@@ -18,4 +18,3 @@ class IArtifactoryClient(Protocol):
 
     def head(self, url: str) -> requests.Response:
         """Выполняет HTTP HEAD-запрос и возвращает ответ."""
-        ...

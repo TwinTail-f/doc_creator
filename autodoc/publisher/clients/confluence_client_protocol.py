@@ -22,7 +22,6 @@ class IConfluenceClient(Protocol):
         body_html: str,
     ) -> dict[str, Any]:
         """Создаёт или обновляет страницу Confluence и возвращает её метаданные."""
-        ...
 
     def get_or_create_page(
         self,
@@ -32,7 +31,6 @@ class IConfluenceClient(Protocol):
         body: str = "",
     ) -> str:
         """Возвращает ID существующей страницы или создаёт новую."""
-        ...
 
     def find_page(
         self,
@@ -41,7 +39,6 @@ class IConfluenceClient(Protocol):
         expand: str = "",
     ) -> dict[str, Any] | None:
         """Ищет страницу по заголовку; возвращает словарь данных или None."""
-        ...
 
     def get_page(
         self,
@@ -49,8 +46,6 @@ class IConfluenceClient(Protocol):
         expand: str = "",
     ) -> dict[str, Any]:
         """Загружает страницу по ID."""
-        ...
 
     def get_page_body(self, space: str, title: str) -> str:
         """Возвращает тело страницы в Confluence Storage Format или пустую строку."""
-        ...

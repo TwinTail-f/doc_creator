@@ -15,4 +15,3 @@ class IDocumentBuilder(Protocol):
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:
         """Рендерит *template_name* с *view_model* и возвращает HTML-строку."""
-        ...

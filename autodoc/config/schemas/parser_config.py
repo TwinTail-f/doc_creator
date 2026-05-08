@@ -3,7 +3,7 @@
 """
 
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 
 class ParserConfigSchema(BaseModel):
@@ -49,6 +49,17 @@ class ParserConfigSchema(BaseModel):
         ...,
         description="Базовый URL коллекции TFS",
     )
+
+    @field_validator("tfs_collection_url")
+    @classmethod
+    def normalize_tfs_collection_url(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped.startswith(("http://", "https://")):
+            raise ValueError(
+                "tfs_collection_url должен начинаться с http:// или https://"
+            )
+        return stripped.rstrip("/")
+
     manifests_remotes_path: str = Field(
         ...,
         description="Путь к директории с манифестами в TFS",
