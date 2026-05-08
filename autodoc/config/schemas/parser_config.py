@@ -76,9 +76,20 @@ class ParserConfigSchema(BaseModel):
         default_factory=list,
         description="Список URL на YAML-файлы профилей сборки",
     )
-    excluded_components: list[str] = Field(
+    component_names: list[str] = Field(
         default_factory=list,
-        description="Список компонентов для исключения из обработки",
+        description=(
+            "Список имён компонентов для фильтрации. "
+            "Режим применения определяется полем component_filter_mode."
+        ),
+    )
+    component_filter_mode: Literal["exclude", "include"] = Field(
+        default="exclude",
+        description=(
+            "Режим фильтрации компонентов: "
+            '"exclude" — исключить перечисленные компоненты (чёрный список, по умолчанию); '
+            '"include" — обрабатывать только перечисленные компоненты (белый список).'
+        ),
     )
 
     # Тайм-ауты

@@ -5,7 +5,7 @@
   "platform_base_version": "2.0",
 
   "platform_branch_name": "develop",
-  "_comment_platform_ref_type":"Поддерживаемые типы: branch, tag, commit"
+  "_comment_platform_ref_type":"Поддерживаемые типы: branch, tag, commit",
   "platform_ref_type": "branch",
 
   "username": "firstname.lastname@company.com",
@@ -15,14 +15,16 @@
   "tfs_collection_url": "https://tfs.company.com/tfs/DefaultCollection",
   "manifests_remotes_path": "/remotes/manifests",
   "conan_config_url": "https://conan.example.com/config",
-  
+
   "artifactory_components_conan2_url": "https://artifactory.company.com/artifactory/conan2-local",
 
   "profiles_urls": [
     "https://tfs.company.com/tfs/DefaultCollection/DEP_Components/_git/build_profiles?path=/profiles/linux.yaml&version=GBdevelop"
   ],
 
-  "excluded_components": [],
+  "_comment_component_filter_mode": "Поддерживаемые моды: exclude, include",
+  "component_filter_mode": "exclude",
+  "component_names": [],
 
   "tfs_request_timeout": 15,
   "conan_command_timeout": 300,

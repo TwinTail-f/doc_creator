@@ -62,7 +62,9 @@ def write_props(tmp_path: Path, filename: str, content: str) -> Path:
 def test_manifest_parser_parse_single_valid_file(tmp_path: Path) -> None:
     """ManifestParser возвращает один компонент с двумя profile_builds для корректного файла."""
     path = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 1
     assert components[0].name == "openssl"
     assert len(components[0].releases[0].profile_builds) == 2
@@ -76,7 +78,9 @@ def test_manifest_parser_parse_single_valid_file(tmp_path: Path) -> None:
 def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
     """ManifestParser молча пропускает .properties-файл, не содержащий ключ 'name'."""
     path = write_props(tmp_path, "noname.properties", "description= test\n")
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 0
     assert len(warnings) == 0
 
@@ -89,7 +93,9 @@ def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
 def test_manifest_parser_excluded_component_not_returned(tmp_path: Path) -> None:
     """ManifestParser пропускает компоненты, чьё имя присутствует в списке исключений."""
     path = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=["patchelf"])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=["patchelf"], filter_mode="exclude"
+    )
     assert len(components) == 0
 
 
@@ -107,7 +113,9 @@ def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
         "profiles-1.0-1.0-tech= hw-linux-x86_64-gcc10_2\n"
     )
     path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 0
 
 
@@ -119,7 +127,9 @@ def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
 def test_manifest_parser_missing_file_produces_warning() -> None:
     """ManifestParser записывает предупреждение и не возвращает компоненты для несуществующего файла."""
     missing = Path("nonexistent.properties")
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse([missing], excluded=[])
+    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
+        [missing], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 0
     assert len(warnings) == 1
 
@@ -141,7 +151,9 @@ def test_manifest_parser_multiple_component_versions_produce_multiple_releases(
         "profiles-0.18.0-2.0-tech= hw-linux-x86_64-gcc10_2, hw-linux-armv7-gcc10_2\n"
     )
     path = write_props(tmp_path, "patchelf.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 1
     releases = components[0].releases
     assert len(releases) == 2
@@ -165,7 +177,9 @@ def test_manifest_parser_channel_extracted_from_platform_suffix(
         "profiles-1.0-2.0-fast= hw-linux-x86_64-gcc10_2\n"
     )
     path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert components[0].releases[0].channel == "fast"
 
 
@@ -185,7 +199,9 @@ def test_manifest_parser_platform_without_suffix_empty_channel(
         "profiles-1.0-2.0= hw-linux-x86_64-gcc10_2\n"
     )
     path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert components[0].releases[0].channel == ""
 
 
@@ -205,7 +221,9 @@ def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
         "git_repo_name= contrib_openssl\n"
     )
     path = write_props(tmp_path, "openssl.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert components[0].releases[0].git_url == "DEP_Components/_git/contrib_openssl"
 
 
@@ -222,7 +240,9 @@ def test_manifest_parser_missing_profiles_key_skips_version_pair(
         "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
     )
     path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 0
 
 
@@ -235,7 +255,9 @@ def test_manifest_parser_multiple_files_accumulated(tmp_path: Path) -> None:
     """ManifestParser накапливает компоненты из нескольких корректных файлов."""
     path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
     path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse([path_a, path_b], excluded=[])
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path_a, path_b], component_names=[], filter_mode="exclude"
+    )
     assert len(components) == 2
 
 
@@ -248,7 +270,58 @@ def test_manifest_parser_parses_real_openssl_file(resources_dir: Path) -> None:
     """ManifestParser корректно разбирает реальный файл ресурса openssl.properties."""
     props_file = resources_dir / "manifests" / "openssl.properties"
     components, warnings = ManifestParser(TARGET_PLATFORM).parse(
-        [props_file], excluded=[]
+        [props_file], component_names=[], filter_mode="exclude"
     )
     names = [c.name for c in components]
     assert "openssl" in names
+
+
+# ===========================================================================
+# Whitelist (include) mode: only listed components are returned
+# ===========================================================================
+
+
+def test_manifest_parser_include_mode_returns_only_listed(tmp_path: Path) -> None:
+    """In include mode, ManifestParser returns only components whose name is in component_names."""
+    path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
+    path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path_a, path_b], component_names=["openssl"], filter_mode="include"
+    )
+    assert len(components) == 1
+    assert components[0].name == "openssl"
+
+
+def test_manifest_parser_include_mode_empty_list_returns_all(tmp_path: Path) -> None:
+    """In include mode with an empty component_names, all components are returned (no filtering)."""
+    path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
+    path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path_a, path_b], component_names=[], filter_mode="include"
+    )
+    assert len(components) == 2
+
+
+def test_manifest_parser_exact_match_does_not_affect_similar_names(
+    tmp_path: Path,
+) -> None:
+    """Exact-match filtering: excluding 'sqlite3' must not affect 'sqlite3_ext'."""
+    sqlite3_content = (
+        "name= sqlite3\n"
+        "versions.component= 3.43.0\n"
+        "versions.platform= 2.0-tech\n"
+        "profiles-3.43.0-2.0-tech= hw-linux-x86_64-gcc10_2\n"
+    )
+    sqlite3_ext_content = (
+        "name= sqlite3_ext\n"
+        "versions.component= 3.43.0\n"
+        "versions.platform= 2.0-tech\n"
+        "profiles-3.43.0-2.0-tech= hw-linux-x86_64-gcc10_2\n"
+    )
+    path_a = write_props(tmp_path, "sqlite3.properties", sqlite3_content)
+    path_b = write_props(tmp_path, "sqlite3_ext.properties", sqlite3_ext_content)
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path_a, path_b], component_names=["sqlite3"], filter_mode="exclude"
+    )
+    assert len(components) == 1
+    assert components[0].name == "sqlite3_ext"

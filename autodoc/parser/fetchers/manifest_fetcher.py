@@ -51,13 +51,17 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._platform_base_version = ctx.config.platform_base_version
         self._platform_ref_type = VersionType(ctx.config.platform_ref_type)
 
-    def fetch(self, tmp_dir: Path, excluded: list[str]) -> FetchResult[list[Component]]:
+    def fetch(
+        self, tmp_dir: Path, component_names: list[str], filter_mode: str
+    ) -> FetchResult[list[Component]]:
         """
         Скачивает .properties-файлы из TFS, затем передаёт их ManifestParser.
 
         Args:
             tmp_dir: Временная директория для сохранения скачанных файлов.
-            excluded: Список имён компонентов, которые нужно исключить из парсинга.
+            component_names: Список имён компонентов, используемых для фильтрации.
+            filter_mode: ``"exclude"`` — пропустить перечисленные компоненты,
+                         ``"include"`` — обрабатывать только перечисленные компоненты.
 
         Returns:
             ``FetchResult`` со списком компонентов и предупреждениями.
@@ -87,5 +91,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             target_platform=self._platform_base_version,
             tfs_collection_url=self._base_url,
         )
-        components, warnings = parser.parse(properties_files, excluded)
+        components, warnings = parser.parse(
+            properties_files, component_names, filter_mode
+        )
         return FetchResult(value=components, warnings=warnings)

@@ -122,7 +122,9 @@ def test_manifest_fetcher_returns_component_on_valid_properties(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, excluded=[])
+    result = fetcher.fetch(
+        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
+    )
 
     assert len(result.value) == 1
     assert result.value[0].name == "openssl"
@@ -146,7 +148,9 @@ def test_manifest_fetcher_excludes_named_component(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, excluded=["openssl"])
+    result = fetcher.fetch(
+        tmp_dir=ctx.tmp_dir, component_names=["openssl"], filter_mode="exclude"
+    )
 
     assert result.value == []
 
@@ -194,7 +198,7 @@ def test_manifest_fetcher_no_files_returns_empty(
     fetcher.configure(ctx)
 
     with pytest.raises(ParsingError):
-        fetcher.fetch(tmp_dir=ctx.tmp_dir, excluded=[])
+        fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
 
 # ---------------------------------------------------------------------------
@@ -217,7 +221,9 @@ def test_manifest_fetcher_with_real_properties_file(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, excluded=[])
+    result = fetcher.fetch(
+        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
+    )
 
     names = [c.name for c in result.value]
     assert "patchelf" in names

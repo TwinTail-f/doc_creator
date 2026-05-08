@@ -35,7 +35,8 @@ class ManifestStep(BaseParseStep):
         self._fetcher.configure(ctx)
         result = self._fetcher.fetch(
             tmp_dir=ctx.tmp_dir,
-            excluded=ctx.config.excluded_components or [],
+            component_names=ctx.config.component_names or [],
+            filter_mode=ctx.config.component_filter_mode,
         )
         if result.warnings:
             for w in result.warnings:

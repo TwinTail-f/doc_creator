@@ -51,7 +51,8 @@ class ManifestParser:
     def parse(
         self,
         files: list[Path],
-        excluded: list[str],
+        component_names: list[str],
+        filter_mode: str,
     ) -> tuple[list[Component], list[str]]:
         """
         Разбирает список файлов манифестов в многопоточном режиме.
@@ -64,7 +65,9 @@ class ManifestParser:
             (components, warnings) — список компонентов и список предупреждений.
         """
         file_results = self._executor.execute(
-            lambda filepath: self._parse_single_file(filepath, excluded),
+            lambda filepath: self._parse_single_file(
+                filepath, component_names, filter_mode
+            ),
             files,
             task_label="манифестов",
         )
@@ -85,14 +88,16 @@ class ManifestParser:
                 parsed_count += 1
 
         logger.info(
-            f"обработано {parsed_count} компонентов, исключено {excluded_count}"
+            f"обработано {parsed_count} компонентов, "
+            f"отфильтровано (режим '{filter_mode}'): {excluded_count}"
         )
         return components, warnings
 
     def _parse_single_file(
         self,
         filepath: Path,
-        excluded: list[str],
+        component_names: list[str],
+        filter_mode: str,
     ) -> _FileParseResult:
         """
         Разбирает один .properties-файл.
@@ -102,7 +107,8 @@ class ManifestParser:
 
         Args:
             filepath: Путь к .properties-файлу.
-            excluded: Список имён компонентов, которые нужно исключить.
+            component_names: Список имён компонентов для фильтрации.
+            filter_mode: Режим фильтрации («exclude» или «include»).
 
         Returns:
             ``_FileParseResult`` с компонентом, предупреждениями или флагом исключения.
@@ -124,9 +130,16 @@ class ManifestParser:
             logger.debug(f'Пропуск {filepath.name} — отсутствует поле "name"')
             return _FileParseResult()
 
-        if name in excluded:
-            logger.debug(f"Компонент {name} исключён")
-            return _FileParseResult(is_excluded=True)
+        if filter_mode == "exclude":
+            if name in component_names:
+                logger.debug(f"Компонент {name} исключён (режим exclude)")
+                return _FileParseResult(is_excluded=True)
+        elif filter_mode == "include":
+            if component_names and name not in component_names:
+                logger.debug(
+                    f"Компонент {name} пропущен — не в белом списке (режим include)"
+                )
+                return _FileParseResult(is_excluded=True)
 
         releases = self._build_releases(props)
         if not releases:
