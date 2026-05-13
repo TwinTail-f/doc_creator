@@ -6,6 +6,7 @@ FakeTFSClient — заглушка-пустышка для реального TF
 тестовую поверхность минимальной и явной.
 """
 
+import shutil
 import unittest.mock as mock
 from pathlib import Path
 
@@ -43,6 +44,12 @@ def parser_config() -> ParserConfigSchema:
 def resources_dir() -> Path:
     """Путь к общим тестовым ресурсам в tests/unit/parser/resources/."""
     return Path(__file__).parent / "resources"
+
+
+@pytest.fixture
+def real_manifests_dir(resources_dir: Path) -> Path:
+    """Path to real .properties files under tests/unit/parser/resources/manifests/."""
+    return resources_dir / "manifests"
 
 
 # ---------------------------------------------------------------------------
@@ -152,3 +159,28 @@ class FakeTFSClient:
         version_type=None,
     ) -> None:
         """Ничего не делает по умолчанию (файлы не записываются)."""
+
+
+class CopyingAllFakeTFSClient(FakeTFSClient):
+    """Copies every .properties file from a source directory into output_dir on download_properties."""
+
+    def __init__(self, source_dir: Path) -> None:
+        """
+        Args:
+            source_dir: Directory containing .properties files to copy.
+        """
+        self._source_dir = source_dir
+
+    def download_properties(
+        self,
+        items_url: str,
+        remote_path: str,
+        branch: str,
+        output_dir: str,
+        version_type=None,
+    ) -> None:
+        """Copies all .properties files from source_dir into output_dir."""
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        for f in self._source_dir.glob("*.properties"):
+            shutil.copy(f, out / f.name)

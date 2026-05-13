@@ -175,3 +175,152 @@ def test_finalize_step_raises_parsing_error_on_validation_failure(
     step = FinalizeStep()
     with pytest.raises(ParsingError):
         step.execute(parser_pipeline_context)
+
+
+# ---------------------------------------------------------------------------
+# Real-data tests added in Part 3
+# ---------------------------------------------------------------------------
+
+
+def test_finalize_step_sets_header_only_for_nlohmann_json(
+    parser_pipeline_context,
+) -> None:
+    """
+    A component whose every ProfileBuild has a single variant with NULL_PACKAGE_ID
+    must have is_header_only=True after FinalizeStep.
+    Mirrors: nlohmann_json 3.9.1/slow with package_id=da39a3ee...
+    """
+    pb = ProfileBuild(
+        profile_name="hw-linux-x86_64-gcc10_2",
+        exists=True,
+        variants=[ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")],
+    )
+    rel = Release(
+        version="3.9.1",
+        platform="2.0",
+        channel="slow",
+        git_url="DEP/_git/contrib_nlohmann_json",
+        profile_builds=[pb],
+    )
+    comp = Component(name="nlohmann_json", releases=[rel])
+    parser_pipeline_context.components = [comp]
+
+    FinalizeStep().execute(parser_pipeline_context)
+
+    assert parser_pipeline_context.result is not None
+    result_comp = parser_pipeline_context.result.components[0]
+    assert result_comp.releases[0].is_header_only is True
+
+
+def test_finalize_step_patchelf_two_versions_not_header_only(
+    parser_pipeline_context,
+) -> None:
+    """
+    patchelf has two releases in the tech channel. Neither should be header-only
+    (they have real package_ids). FinalizeStep keeps both releases.
+    """
+    REAL_PKG = "461534fe50686ce31d073dc24f005bd12e08c9fd"
+
+    def _make_rel(version: str) -> Release:
+        pb = ProfileBuild(
+            profile_name="hw-linux-x86_64-gcc10_2",
+            exists=True,
+            variants=[ConanVariant(package_id=REAL_PKG, build_url="", build_date="", options_ref="1")],
+        )
+        return Release(
+            version=version,
+            platform="2.0",
+            channel="tech",
+            git_url="DEP/_git/contrib_patchelf",
+            profile_builds=[pb],
+        )
+
+    comp = Component(name="patchelf", releases=[_make_rel("0.16.1"), _make_rel("0.18.0")])
+    parser_pipeline_context.components = [comp]
+
+    FinalizeStep().execute(parser_pipeline_context)
+
+    result_comp = parser_pipeline_context.result.components[0]
+    assert len(result_comp.releases) == 2
+    assert all(not r.is_header_only for r in result_comp.releases)
+
+
+def test_finalize_step_preserves_prg_quant_component(
+    parser_pipeline_context,
+) -> None:
+    """
+    libnetfilter_queue (git_project=PRG_Quant) is a non-standard component.
+    FinalizeStep must preserve it and sort it alphabetically with others.
+    """
+    pb = ProfileBuild(
+        profile_name="hw-linux-armv7-gcc10_2",
+        exists=True,
+        variants=[ConanVariant(package_id="46bf0ba807876c7591c702abfa2ba19d3133f1af", build_url="", build_date="", options_ref="1")],
+    )
+    rel = Release(
+        version="1.0.5",
+        platform="2.0",
+        channel="slow",
+        git_url="PRG_Quant/_git/contrib_libnetfilter_queue",
+        profile_builds=[pb],
+    )
+    comp_lfq = Component(name="libnetfilter_queue", git_project="PRG_Quant", releases=[rel])
+    comp_apr = Component(name="apr", releases=[])
+    parser_pipeline_context.components = [comp_lfq, comp_apr]
+
+    FinalizeStep().execute(parser_pipeline_context)
+
+    names = [c.name for c in parser_pipeline_context.result.components]
+    assert "libnetfilter_queue" in names
+    # Sorted: apr < libnetfilter_queue
+    assert names.index("apr") < names.index("libnetfilter_queue")
+
+
+def test_finalize_step_sqlite3_dependencies_preserved(
+    parser_pipeline_context,
+) -> None:
+    """Dependencies set on a release are preserved unchanged after FinalizeStep."""
+    pb = ProfileBuild(
+        profile_name="crypto_default_gcc_armv7hf.jinja",
+        exists=True,
+        variants=[ConanVariant(package_id="8c7b3c7905519eea8fda5ff9dde7fbefec90da76", build_url="", build_date="", options_ref="1")],
+    )
+    rel = Release(
+        version="3.51.2",
+        platform="2.0",
+        channel="fast",
+        git_url="DEP/_git/contrib_sqlite3",
+        profile_builds=[pb],
+    )
+    rel.dependencies = ["icu", "tcl"]
+    comp = Component(name="sqlite3", releases=[rel])
+    parser_pipeline_context.components = [comp]
+
+    FinalizeStep().execute(parser_pipeline_context)
+
+    result_rel = parser_pipeline_context.result.components[0].releases[0]
+    assert result_rel.dependencies == ["icu", "tcl"]
+
+
+def test_finalize_step_removes_non_existing_profiles(
+    parser_pipeline_context,
+) -> None:
+    """Component with 3 ProfileBuilds: 2 with exists=True, 1 with exists=False — only 2 remain."""
+    pb_live1 = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[])
+    pb_live2 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[])
+    pb_dead = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[])
+    rel = Release(
+        version="1.0.0",
+        platform="2.0",
+        channel="slow",
+        git_url="DEP/_git/repo",
+        profile_builds=[pb_live1, pb_live2, pb_dead],
+    )
+    comp = Component(name="somelib", releases=[rel])
+    parser_pipeline_context.components = [comp]
+
+    FinalizeStep().execute(parser_pipeline_context)
+
+    assert len(rel.profile_builds) == 2
+    remaining_names = {pb.profile_name for pb in rel.profile_builds}
+    assert "hw-linux-armv7-gcc10_2" not in remaining_names

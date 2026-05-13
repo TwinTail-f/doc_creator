@@ -1,7 +1,7 @@
-"""Юнит-тесты для autodoc.parser.parsers.options_parser.OptionsParser.
+"""Unit tests for autodoc.parser.parsers.options_parser.OptionsParser.
 
-Охватывает: select_ci_prefix, parse_file, pick_options.
-Реальные JSON-файлы опций читаются из фикстуры resources_dir.
+Covers: select_ci_prefix, parse_file (real JSON files), pick_options.
+Real JSON option files are loaded from the resources/options/ fixture directory.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import pytest
 from autodoc.parser.parsers.options_parser import OptionsParser
 
 # ---------------------------------------------------------------------------
-# Константы уровня модуля
+# Module-level constants
 # ---------------------------------------------------------------------------
 
 CI_PREFIX_V2: str = "/ci-2.0/"
@@ -23,128 +23,169 @@ PATH_V2_TECH: str = "/repo/ci-2.0/tech/options.json"
 PATH_V16_TECH: str = "/repo/ci-1.6/tech/options.json"
 PATH_OTHER: str = "/repo/other/options.json"
 
-JSON_TWO_OPTIONS: str = '{"1": "shared=True", "2": "shared=False"}'
-JSON_ONE_PADDED: str = '{"1": "  shared=True  "}'
-JSON_MIXED_TYPES: str = '{"1": "shared=True", "count": 42}'
-JSON_INVALID: str = "not-json"
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def options_dir(resources_dir: Path) -> Path:
+    """Path to resources/options/ directory containing real JSON option files."""
+    return resources_dir / "options"
 
 
 # ===========================================================================
-# select_ci_prefix: /ci-2.0/ предпочтительнее /ci-1.6/
+# select_ci_prefix: /ci-2.0/ preferred over /ci-1.6/
 # ===========================================================================
 
 
-def test_select_ci_prefix_prefers_v2() -> None:
-    """select_ci_prefix возвращает '/ci-2.0/', когда присутствуют пути v2 и v1.6."""
-    paths = [PATH_V2_TECH, PATH_V16_TECH]
+def test_select_ci_prefix_picks_ci_20_over_16() -> None:
+    """select_ci_prefix returns '/ci-2.0/' when both v2 and v1.6 paths are present."""
+    paths = [
+        "/conan/ci-2.0/options.json",
+        "/conan/ci-1.6/options.json",
+    ]
     result = OptionsParser.select_ci_prefix(paths)
     assert result == CI_PREFIX_V2
 
 
-# ===========================================================================
-# select_ci_prefix: присутствует только /ci-1.6/
-# ===========================================================================
-
-
-def test_select_ci_prefix_falls_back_to_v1_6() -> None:
-    """select_ci_prefix возвращает '/ci-1.6/', когда присутствуют только пути v1.6."""
-    paths = ["/repo/ci-1.6/tech/options.json"]
+def test_select_ci_prefix_uses_ci_16_alone() -> None:
+    """select_ci_prefix returns '/ci-1.6/' when only ci-1.6 paths are present."""
+    paths = ["/conan/ci-1.6/options.json"]
     result = OptionsParser.select_ci_prefix(paths)
     assert result == CI_PREFIX_V16
 
 
-# ===========================================================================
-# select_ci_prefix: нет совпадения → пустая строка
-# ===========================================================================
-
-
 def test_select_ci_prefix_no_match_returns_empty_string() -> None:
-    """select_ci_prefix возвращает '', когда не найдена ни одна известная CI-директория."""
+    """select_ci_prefix returns '' when no known CI directory is found."""
     result = OptionsParser.select_ci_prefix([PATH_OTHER])
     assert result == ""
 
 
-# ===========================================================================
-# select_ci_prefix: пустой список → пустая строка
-# ===========================================================================
-
-
 def test_select_ci_prefix_empty_list_returns_empty_string() -> None:
-    """select_ci_prefix возвращает '' для пустого входного списка."""
+    """select_ci_prefix returns '' for an empty input list."""
     result = OptionsParser.select_ci_prefix([])
     assert result == ""
 
 
 # ===========================================================================
-# parse_file: корректный JSON извлекает имя канала
+# parse_file — real content
 # ===========================================================================
 
 
-def test_parse_file_valid_json_extracts_channel() -> None:
-    """parse_file корректно извлекает сегмент канала из пути."""
+def test_parse_file_apr_single_option(options_dir: Path) -> None:
+    """parse_file on apr_options.json returns a 1-entry dict with 'apr:shared=True'."""
+    text = (options_dir / "apr_options.json").read_text(encoding="utf-8")
     channel, cleaned = OptionsParser.parse_file(
-        JSON_TWO_OPTIONS,
-        opt_path=PATH_V2_TECH,
-        ci_prefix=CI_PREFIX_V2,
+        text,
+        opt_path="/conan/ci-1.6/options.json",
+        ci_prefix=CI_PREFIX_V16,
     )
-    assert channel == "tech"
-    assert cleaned == {"1": "shared=True", "2": "shared=False"}
-
-
-# ===========================================================================
-# parse_file: нет подсегмента после префикса → channel равен None
-# ===========================================================================
-
-
-def test_parse_file_no_channel_segment_returns_none() -> None:
-    """parse_file возвращает channel=None, когда путь не имеет поддиректории после префикса."""
-    channel, _ = OptionsParser.parse_file(
-        JSON_TWO_OPTIONS,
-        opt_path="/repo/ci-2.0/options.json",
-        ci_prefix=CI_PREFIX_V2,
-    )
+    # Global file (no sub-directory after ci-prefix) -> channel is None
     assert channel is None
+    assert cleaned == {"1": "apr:shared=True"}
+
+
+def test_parse_file_sqlite3_fast_five_options(options_dir: Path) -> None:
+    """parse_file on sqlite3_fast_options.json returns a 5-entry dict; key '5' contains 'with_icu'."""
+    text = (options_dir / "sqlite3_fast_options.json").read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(
+        text,
+        opt_path="/conan/ci-2.0/fast/options.json",
+        ci_prefix=CI_PREFIX_V2,
+    )
+    assert channel == "fast"
+    assert len(cleaned) == 5
+    assert "with_icu" in cleaned["5"]
+
+
+def test_parse_file_sqlite3_slow_twelve_options(options_dir: Path) -> None:
+    """parse_file on sqlite3_slow_options.json returns a 12-entry dict; key '12' contains 'with_icu'."""
+    text = (options_dir / "sqlite3_slow_options.json").read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(
+        text,
+        opt_path="/conan/ci-1.6/slow/options.json",
+        ci_prefix=CI_PREFIX_V16,
+    )
+    assert channel == "slow"
+    assert len(cleaned) == 12
+    assert "with_icu" in cleaned["12"]
+
+
+def test_parse_file_icu_fast_two_options(options_dir: Path) -> None:
+    """parse_file on icu_fast_options.json returns a 2-entry dict; '2' == 'icu:mobile=True'."""
+    text = (options_dir / "icu_fast_options.json").read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(
+        text,
+        opt_path="/conan/ci-1.6/fast/options.json",
+        ci_prefix=CI_PREFIX_V16,
+    )
+    assert channel == "fast"
+    assert len(cleaned) == 2
+    assert cleaned["2"] == "icu:mobile=True"
+
+
+def test_parse_file_nlohmann_single_empty_option(options_dir: Path) -> None:
+    """parse_file on nlohmann_json_options.json returns {'1': ''} for a header-only component."""
+    text = (options_dir / "nlohmann_json_options.json").read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(
+        text,
+        opt_path="/conan/ci-2.0/options.json",
+        ci_prefix=CI_PREFIX_V2,
+    )
+    assert cleaned == {"1": ""}
 
 
 # ===========================================================================
-# parse_file: некорректный JSON → пустой словарь и None channel
+# parse_file — edge cases (inline data)
 # ===========================================================================
 
 
 def test_parse_file_invalid_json_returns_empty() -> None:
-    """parse_file возвращает (None, {}), когда JSON-текст не может быть разобран."""
+    """parse_file returns (None, {}) when the JSON text cannot be parsed."""
     result = OptionsParser.parse_file(
-        JSON_INVALID,
+        "NOT JSON",
         opt_path=PATH_V2_TECH,
         ci_prefix=CI_PREFIX_V2,
     )
     assert result == (None, {})
 
 
-# ===========================================================================
-# parse_file: удаляет пробелы из строковых значений
-# ===========================================================================
+def test_parse_file_empty_json_object() -> None:
+    """parse_file returns an empty options dict for '{}' without raising."""
+    channel, cleaned = OptionsParser.parse_file(
+        "{}",
+        opt_path=PATH_V2_TECH,
+        ci_prefix=CI_PREFIX_V2,
+    )
+    assert cleaned == {}
+
+
+def test_parse_file_no_channel_segment_returns_none() -> None:
+    """parse_file returns channel=None when the path has no sub-directory after the CI prefix."""
+    channel, _ = OptionsParser.parse_file(
+        '{"1": "shared=True"}',
+        opt_path="/repo/ci-2.0/options.json",
+        ci_prefix=CI_PREFIX_V2,
+    )
+    assert channel is None
 
 
 def test_parse_file_strips_whitespace_from_values() -> None:
-    """parse_file удаляет ведущие и завершающие пробелы из каждого строкового значения опции."""
+    """parse_file strips leading/trailing whitespace from each option value."""
     _, cleaned = OptionsParser.parse_file(
-        JSON_ONE_PADDED,
+        '{"1": "  shared=True  "}',
         opt_path=PATH_V2_TECH,
         ci_prefix=CI_PREFIX_V2,
     )
     assert cleaned["1"] == "shared=True"
 
 
-# ===========================================================================
-# parse_file: нестроковые значения исключаются
-# ===========================================================================
-
-
 def test_parse_file_non_string_values_excluded() -> None:
-    """parse_file пропускает записи, значение которых не является строкой (например, целые числа)."""
+    """parse_file skips entries whose value is not a string (e.g. integers)."""
     _, cleaned = OptionsParser.parse_file(
-        JSON_MIXED_TYPES,
+        '{"1": "shared=True", "count": 42}',
         opt_path=PATH_V2_TECH,
         ci_prefix=CI_PREFIX_V2,
     )
@@ -153,59 +194,50 @@ def test_parse_file_non_string_values_excluded() -> None:
 
 
 # ===========================================================================
-# pick_options: канало-специфичные опции возвращаются при совпадении канала
+# pick_options — channel selection
 # ===========================================================================
 
 
-def test_pick_options_returns_channel_specific() -> None:
-    """pick_options возвращает channels[channel], когда ключ канала существует."""
-    data: dict = {"channels": {"tech": {"1": "shared=True"}}, "global": {"1": ""}}
-    result = OptionsParser.pick_options(data, "tech")
-    assert result == {"1": "shared=True"}
+def test_pick_options_selects_channel_specific_over_global() -> None:
+    """pick_options returns the channel-specific entry when it exists, ignoring global."""
+    repo_data = {
+        "global": {"1": ""},
+        "channels": {"fast": {"1": "", "2": "x=True"}},
+    }
+    result = OptionsParser.pick_options(repo_data, "fast")
+    assert result == {"1": "", "2": "x=True"}
 
 
-# ===========================================================================
-# pick_options: использует global, если канал не найден
-# ===========================================================================
+def test_pick_options_falls_back_to_global_when_no_channel_match() -> None:
+    """pick_options returns the global entry when the requested channel is absent."""
+    repo_data = {
+        "global": {"1": "apr:shared=True"},
+        "channels": {},
+    }
+    result = OptionsParser.pick_options(repo_data, "tech")
+    assert result == {"1": "apr:shared=True"}
 
 
-def test_pick_options_falls_back_to_global() -> None:
-    """pick_options возвращает запись 'global', когда запрошенный канал отсутствует."""
-    data: dict = {"channels": {}, "global": {"1": "shared=False"}}
-    result = OptionsParser.pick_options(data, "tech")
-    assert result == {"1": "shared=False"}
-
-
-# ===========================================================================
-# pick_options: использует {"1": ""} когда оба отсутствуют
-# ===========================================================================
-
-
-def test_pick_options_defaults_to_empty_option_set() -> None:
-    """pick_options возвращает {'1': ''}, когда отсутствуют и channels, и global."""
-    result = OptionsParser.pick_options({}, "tech")
+def test_pick_options_returns_default_when_no_data() -> None:
+    """pick_options returns {'1': ''} when repo_data is empty."""
+    result = OptionsParser.pick_options({}, "fast")
     assert result == {"1": ""}
 
 
-# ===========================================================================
-# pick_options: пустая строка канала использует global
-# ===========================================================================
-
-
 def test_pick_options_empty_channel_uses_global() -> None:
-    """pick_options использует global, когда channel — пустая строка."""
+    """pick_options falls back to global when channel is an empty string."""
     data: dict = {"channels": {"tech": {"1": "x"}}, "global": {"1": "y"}}
     result = OptionsParser.pick_options(data, "")
     assert result == {"1": "y"}
 
 
 # ===========================================================================
-# Реальный openssl_options.json разбирается корректно (использует resources_dir)
+# parse_file: real openssl_options.json (kept for regression)
 # ===========================================================================
 
 
 def test_options_parser_parses_real_openssl_options(resources_dir: Path) -> None:
-    """OptionsParser.parse_file читает реальный options.json и возвращает корректное отображение."""
+    """OptionsParser.parse_file reads the real openssl options.json and returns the correct mapping."""
     options_file = resources_dir / "options" / "openssl_options.json"
     text = options_file.read_text(encoding="utf-8")
     channel, cleaned = OptionsParser.parse_file(
@@ -218,13 +250,8 @@ def test_options_parser_parses_real_openssl_options(resources_dir: Path) -> None
     assert cleaned["2"] == "openssl:shared=True"
 
 
-# ===========================================================================
-# Реальный zlib_options.json: одна пустая опция (использует resources_dir)
-# ===========================================================================
-
-
 def test_options_parser_parses_zlib_single_empty_option(resources_dir: Path) -> None:
-    """OptionsParser.parse_file обрабатывает файл с одной пустой опцией без ошибок."""
+    """OptionsParser.parse_file handles a file with a single empty option without error."""
     options_file = resources_dir / "options" / "zlib_options.json"
     text = options_file.read_text(encoding="utf-8")
     channel, cleaned = OptionsParser.parse_file(

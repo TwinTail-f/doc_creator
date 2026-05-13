@@ -39,13 +39,11 @@
                 "languages": [],
                 "settings": {
                     "os": "Linux",
-                    "os.distro": "alpine",
                     "arch": "x86_64",
                     "compiler": "gcc",
                     "compiler.cppstd": "17",
                     "compiler.libcxx": "libstdc++11",
-                    "compiler.toolchain_config_id": "musl_1_2_5",
-                    "compiler.version": "13",
+                    "compiler.version": "10.2",
                     "build_type": "RelWithDebInfo"
                 },
                 "options": {},
@@ -99,9 +97,9 @@
                 "vendor": false,
                 "dependencies": {
                     "1": {
-                        "ref": "patchelf/0.18.0.39@platform-2.0/tech",
-                        "require": "patchelf/[~0.18.0,include_prerelease]@platform-2.0/tech",
-                        "run": true,
+                        "ref": "nlohmann_json/3.9.1.188@platform-2.0/slow",
+                        "require": "nlohmann_json/[~3.9.1,include_prerelease]@platform-2.0/slow",
+                        "run": false,
                         "libs": false,
                         "skip": false,
                         "test": false,
@@ -110,7 +108,7 @@
                         "build": false,
                         "transitive_headers": null,
                         "transitive_libs": null,
-                        "headers": false,
+                        "headers": true,
                         "package_id_mode": null,
                         "visible": true
                     }
@@ -119,28 +117,28 @@
                 "test": false
             },
             "1": {
-                "ref": "patchelf/0.18.0.39@platform-2.0/tech#c6c4fa5a8d6efc0263361c1979cfad8b",
+                "ref": "nlohmann_json/3.9.1.188@platform-2.0/slow#da3ea1b7d1b27546b09d699efe9b72e1",
                 "id": "1",
                 "recipe": "Downloaded",
-                "package_id": "461534fe50686ce31d073dc24f005bd12e08c9fd",
-                "prev": "96226aa0be584fa39619483e1252f373",
-                "rrev": "c6c4fa5a8d6efc0263361c1979cfad8b",
-                "rrev_timestamp": 1777451968.099,
-                "prev_timestamp": 1777451646.286,
+                "package_id": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+                "prev": "7a9fece631b81590ea299c84e5de6b07",
+                "rrev": "da3ea1b7d1b27546b09d699efe9b72e1",
+                "rrev_timestamp": 1778057924.515,
+                "prev_timestamp": 1778057924.683,
                 "remote": "components-conan2",
                 "binary_remote": "components-conan2",
                 "build_id": null,
                 "binary": "Download",
                 "invalid_build": false,
                 "info_invalid": null,
-                "name": "patchelf",
+                "name": "nlohmann_json",
                 "user": "platform-2.0",
-                "channel": "tech",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_patchelf",
-                "license": "GPL-3.0-or-later",
+                "channel": "slow",
+                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_nlohmann_json",
+                "license": "MIT",
                 "author": null,
-                "description": "A small utility to modify the dynamic linker and RPATH of ELF executables",
-                "homepage": "https://github.com/NixOS/patchelf",
+                "description": "JSON for Modern C++ parser and generator.",
+                "homepage": "https://github.com/nlohmann/json",
                 "build_policy": null,
                 "upload_policy": null,
                 "revision_mode": "hash",
@@ -150,28 +148,17 @@
                 "win_bash_run": null,
                 "default_options": {},
                 "options_description": null,
-                "version": "0.18.0.39",
+                "version": "3.9.1.188",
                 "topics": [
                     "conan",
-                    "elf",
-                    "linker",
-                    "interpreter",
-                    "RPATH",
-                    "binaries"
+                    "jsonformoderncpp",
+                    "nlohmann_json",
+                    "json",
+                    "header-only"
                 ],
-                "package_type": "application",
+                "package_type": "header-library",
                 "languages": [],
-                "settings": {
-                    "os": "Linux",
-                    "os.distro": "alpine",
-                    "arch": "x86_64",
-                    "compiler": "gcc",
-                    "compiler.cppstd": "17",
-                    "compiler.libcxx": "libstdc++11",
-                    "compiler.toolchain_config_id": "musl_1_2_5",
-                    "compiler.version": "13",
-                    "build_type": "RelWithDebInfo"
-                },
+                "settings": {},
                 "options": {},
                 "options_definitions": {},
                 "generators": [],
@@ -183,7 +170,7 @@
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/patch49efafdb89d49/e",
+                "recipe_folder": "/home/maxim/.conan2/p/nlohma27bb8a3b16c3/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,
@@ -225,23 +212,8 @@
                     }
                 },
                 "conf_info": {},
-                "label": "patchelf/0.18.0.39@platform-2.0/tech",
-                "info": {
-                    "settings": {
-                        "os": "Linux",
-                        "os.distro": "alpine",
-                        "arch": "x86_64",
-                        "compiler": "gcc",
-                        "compiler.cppstd": "17",
-                        "compiler.libcxx": "libstdc++11",
-                        "compiler.toolchain_config_id": "musl_1_2_5",
-                        "compiler.version": "13",
-                        "build_type": "RelWithDebInfo"
-                    },
-                    "python_requires": [
-                        "conan_helper/2.0.Z@platform/python_requires"
-                    ]
-                },
+                "label": "nlohmann_json/3.9.1.188@platform-2.0/slow",
+                "info": {},
                 "vendor": false,
                 "dependencies": {},
                 "context": "host",
@@ -253,7 +225,7 @@
         },
         "overrides": {},
         "resolved_ranges": {
-            "patchelf/[~0.18.0,include_prerelease]@platform-2.0/tech": "patchelf/0.18.0.39@platform-2.0/tech",
+            "nlohmann_json/[~3.9.1,include_prerelease]@platform-2.0/slow": "nlohmann_json/3.9.1.188@platform-2.0/slow",
             "conan_helper/[>=2.0 <3.0]@platform/python_requires": "conan_helper/2.0+95@platform/python_requires"
         },
         "replaced_requires": {},

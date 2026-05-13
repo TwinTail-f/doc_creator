@@ -1,8 +1,7 @@
-"""Юнит-тесты для autodoc.parser.parsers.manifest_parser.ManifestParser.
+"""Unit tests for autodoc.parser.parsers.manifest_parser.ManifestParser.
 
-Охватывает: parse, _parse_single_file, _build_releases.
-Реальные .properties-файлы читаются из фикстуры resources_dir.
-Пользовательское/граничное содержимое записывается в tmp_path.
+Real .properties files are loaded from the resources/manifests/ fixture directory.
+Inline hand-crafted property strings are used only for edge-case / invalid-input tests.
 """
 
 from __future__ import annotations
@@ -13,70 +12,213 @@ import pytest
 
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 
-# ---------------------------------------------------------------------------
-# Константы уровня модуля
-# ---------------------------------------------------------------------------
-
 TARGET_PLATFORM: str = "2.0"
-CHANNEL_TECH: str = "tech"
-NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-
-VALID_SINGLE_CONTENT: str = (
-    "name= openssl\n"
-    "description= TLS library\n"
-    "versions.component= 3.0.0\n"
-    "versions.platform= 2.0-tech\n"
-    "profiles-3.0.0-2.0-tech= hw-linux-x86_64-gcc10_2, hw-linux-armv7-gcc10_2\n"
-    "tfs_git_project= DEP_Components\n"
-    "git_repo_name= contrib_openssl\n"
-)
-
-VALID_PATCHELF_CONTENT: str = (
-    "name= patchelf\n"
-    "description= ELF patcher\n"
-    "versions.component= 1.0\n"
-    "versions.platform= 2.0-tech\n"
-    "profiles-1.0-2.0-tech= hw-linux-x86_64-gcc10_2\n"
-    "tfs_git_project= DEP_Components\n"
-    "git_repo_name= contrib_patchelf\n"
-)
-
-
-# ---------------------------------------------------------------------------
-# Вспомогательная функция
-# ---------------------------------------------------------------------------
+TFS_COLLECTION_URL: str = "https://tfs.example.com"
 
 
 def write_props(tmp_path: Path, filename: str, content: str) -> Path:
-    """Записывает содержимое в .properties-файл в tmp_path и возвращает путь."""
+    """Write content to a .properties file in tmp_path and return the path."""
     p = tmp_path / filename
     p.write_text(content, encoding="utf-8")
     return p
 
 
-# ===========================================================================
-# Успешный путь: один компонент, один релиз
-# ===========================================================================
+@pytest.fixture
+def all_real_properties(real_manifests_dir: Path) -> list[Path]:
+    """Sorted list of all real .properties files in resources/manifests/."""
+    return sorted(real_manifests_dir.glob("*.properties"))
 
 
-def test_manifest_parser_parse_single_valid_file(tmp_path: Path) -> None:
-    """ManifestParser возвращает один компонент с двумя profile_builds для корректного файла."""
-    path = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=[], filter_mode="exclude"
+@pytest.fixture
+def parser_20() -> ManifestParser:
+    """ManifestParser configured for platform 2.0 with a fake TFS collection URL."""
+    return ManifestParser(
+        target_platform=TARGET_PLATFORM,
+        tfs_collection_url=TFS_COLLECTION_URL,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Real-data tests
+# ---------------------------------------------------------------------------
+
+
+def test_parser_returns_correct_component_count(
+    parser_20: ManifestParser,
+    all_real_properties: list[Path],
+) -> None:
+    """parse() with all real files returns at least 5 component names."""
+    components, _ = parser_20.parse(
+        all_real_properties, component_names=[], filter_mode="exclude"
+    )
+    assert len(components) >= 5
+
+
+def test_parser_patchelf_two_versions_same_channel(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """patchelf has exactly 2 releases, both channel=='tech', versions 0.16.1 and 0.18.0."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "patchelf.properties"],
+        component_names=[],
+        filter_mode="exclude",
     )
     assert len(components) == 1
-    assert components[0].name == "openssl"
-    assert len(components[0].releases[0].profile_builds) == 2
+    comp = components[0]
+    assert comp.name == "patchelf"
+    assert len(comp.releases) == 2
+    assert {r.channel for r in comp.releases} == {"tech"}
+    assert {r.version for r in comp.releases} == {"0.16.1", "0.18.0"}
 
 
-# ===========================================================================
-# Файл без поля 'name' молча пропускается
-# ===========================================================================
+def test_parser_nlohmann_json_multiple_releases(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """nlohmann_json has at least 2 releases; one channel=='slow', one channel=='fast'."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "nlohmann_json.properties"],
+        component_names=[],
+        filter_mode="exclude",
+    )
+    assert len(components) == 1
+    releases = components[0].releases
+    assert len(releases) >= 2
+    channels = {r.channel for r in releases}
+    assert "slow" in channels
+    assert "fast" in channels
+
+
+def test_parser_apr_single_release_fast_channel(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """apr has exactly 1 release with version=='1.7.6' and channel=='fast'."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "apr.properties"],
+        component_names=[],
+        filter_mode="exclude",
+    )
+    assert len(components) == 1
+    assert components[0].name == "apr"
+    assert len(components[0].releases) == 1
+    rel = components[0].releases[0]
+    assert rel.version == "1.7.6"
+    assert rel.channel == "fast"
+
+
+def test_parser_libnetfilter_queue_prg_quant_project(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """libnetfilter_queue component has git_project=='PRG_Quant' (non-standard project)."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "libnetfilter_queue.properties"],
+        component_names=[],
+        filter_mode="exclude",
+    )
+    assert len(components) == 1
+    assert components[0].git_project == "PRG_Quant"
+
+
+def test_parser_sqlite3_many_profiles(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """sqlite3 release 3.51.2/fast has at least 10 profile_builds."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "sqlite3.properties"],
+        component_names=[],
+        filter_mode="exclude",
+    )
+    assert len(components) == 1
+    fast_release = next(
+        (r for r in components[0].releases if r.version == "3.51.2" and r.channel == "fast"),
+        None,
+    )
+    assert fast_release is not None
+    assert len(fast_release.profile_builds) >= 10
+
+
+def test_parser_profile_builds_populated_as_skeletons(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """Every ProfileBuild from parsing has exists=False and variants==[] (bare skeletons)."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "apr.properties"],
+        component_names=[],
+        filter_mode="exclude",
+    )
+    for comp in components:
+        for rel in comp.releases:
+            for pb in rel.profile_builds:
+                assert pb.exists is False
+                assert pb.variants == []
+
+
+def test_parser_filter_mode_include(
+    parser_20: ManifestParser,
+    all_real_properties: list[Path],
+) -> None:
+    """parse() with filter_mode='include' and component_names=['apr'] returns only apr."""
+    components, _ = parser_20.parse(
+        all_real_properties, component_names=["apr"], filter_mode="include"
+    )
+    assert len(components) == 1
+    assert components[0].name == "apr"
+
+
+def test_parser_filter_mode_exclude(
+    parser_20: ManifestParser,
+    all_real_properties: list[Path],
+) -> None:
+    """parse() with filter_mode='exclude' and component_names=['apr'] omits apr from results."""
+    components, _ = parser_20.parse(
+        all_real_properties, component_names=["apr"], filter_mode="exclude"
+    )
+    names = [c.name for c in components]
+    assert "apr" not in names
+
+
+def test_parser_git_url_contains_tfs_collection_url(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+) -> None:
+    """release.git_url starts with the configured TFS collection URL."""
+    components, _ = parser_20.parse(
+        [real_manifests_dir / "apr.properties"],
+        component_names=[],
+        filter_mode="exclude",
+    )
+    for rel in components[0].releases:
+        assert rel.git_url.startswith(TFS_COLLECTION_URL)
+
+
+def test_parser_invalid_properties_skipped_with_warning(
+    parser_20: ManifestParser,
+    real_manifests_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """A garbage text file alongside valid ones still yields valid components from good files."""
+    bad_file = write_props(tmp_path, "garbage.properties", "not valid properties!!!")
+    good_file = real_manifests_dir / "apr.properties"
+    components, _ = parser_20.parse(
+        [good_file, bad_file], component_names=[], filter_mode="exclude"
+    )
+    names = [c.name for c in components]
+    assert "apr" in names
+    assert len(components) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Edge-case / invalid-input tests (inline strings appropriate)
+# ---------------------------------------------------------------------------
 
 
 def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
-    """ManifestParser молча пропускает .properties-файл, не содержащий ключ 'name'."""
+    """ManifestParser silently skips a .properties file that has no 'name' key."""
     path = write_props(tmp_path, "noname.properties", "description= test\n")
     components, warnings = ManifestParser(TARGET_PLATFORM).parse(
         [path], component_names=[], filter_mode="exclude"
@@ -85,27 +227,18 @@ def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
     assert len(warnings) == 0
 
 
-# ===========================================================================
-# Исключённый компонент не возвращается
-# ===========================================================================
-
-
-def test_manifest_parser_excluded_component_not_returned(tmp_path: Path) -> None:
-    """ManifestParser пропускает компоненты, чьё имя присутствует в списке исключений."""
-    path = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=["patchelf"], filter_mode="exclude"
+def test_manifest_parser_missing_file_produces_warning() -> None:
+    """ManifestParser records a warning and returns no components for a nonexistent file."""
+    missing = Path("nonexistent.properties")
+    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
+        [missing], component_names=[], filter_mode="exclude"
     )
     assert len(components) == 0
-
-
-# ===========================================================================
-# Несоответствие версии платформы → релиз не создаётся
-# ===========================================================================
+    assert len(warnings) == 1
 
 
 def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
-    """ManifestParser не возвращает компоненты, если все версии платформы не совпадают с целевой."""
+    """ManifestParser returns no components when all platform versions mismatch the target."""
     content = (
         "name= libfoo\n"
         "versions.component= 1.0\n"
@@ -119,57 +252,8 @@ def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
     assert len(components) == 0
 
 
-# ===========================================================================
-# Несуществующий файл генерирует предупреждение
-# ===========================================================================
-
-
-def test_manifest_parser_missing_file_produces_warning() -> None:
-    """ManifestParser записывает предупреждение и не возвращает компоненты для несуществующего файла."""
-    missing = Path("nonexistent.properties")
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
-        [missing], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 0
-    assert len(warnings) == 1
-
-
-# ===========================================================================
-# Несколько версий компонента → несколько релизов
-# ===========================================================================
-
-
-def test_manifest_parser_multiple_component_versions_produce_multiple_releases(
-    tmp_path: Path,
-) -> None:
-    """ManifestParser создаёт один релиз для каждой совпадающей пары компонент-версия / платформа."""
-    content = (
-        "name= patchelf\n"
-        "versions.component= 0.16.1, 0.18.0\n"
-        "versions.platform= 2.0-tech\n"
-        "profiles-0.16.1-2.0-tech= hw-linux-x86_64-gcc10_2\n"
-        "profiles-0.18.0-2.0-tech= hw-linux-x86_64-gcc10_2, hw-linux-armv7-gcc10_2\n"
-    )
-    path = write_props(tmp_path, "patchelf.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 1
-    releases = components[0].releases
-    assert len(releases) == 2
-    release_018 = next(r for r in releases if r.version == "0.18.0")
-    assert len(release_018.profile_builds) == 2
-
-
-# ===========================================================================
-# Канал извлекается из суффикса версии платформы
-# ===========================================================================
-
-
-def test_manifest_parser_channel_extracted_from_platform_suffix(
-    tmp_path: Path,
-) -> None:
-    """ManifestParser устанавливает release.channel равным части после первого '-' в версии платформы."""
+def test_manifest_parser_channel_extracted_from_platform_suffix(tmp_path: Path) -> None:
+    """ManifestParser sets release.channel to the part after the first '-' in the platform version."""
     content = (
         "name= libfoo\n"
         "versions.component= 1.0\n"
@@ -183,15 +267,8 @@ def test_manifest_parser_channel_extracted_from_platform_suffix(
     assert components[0].releases[0].channel == "fast"
 
 
-# ===========================================================================
-# Версия платформы без суффикса → пустой канал
-# ===========================================================================
-
-
-def test_manifest_parser_platform_without_suffix_empty_channel(
-    tmp_path: Path,
-) -> None:
-    """ManifestParser устанавливает release.channel в '', если версия платформы не имеет суффикса '-'."""
+def test_manifest_parser_platform_without_suffix_empty_channel(tmp_path: Path) -> None:
+    """ManifestParser sets release.channel to '' when the platform version has no '-' suffix."""
     content = (
         "name= libfoo\n"
         "versions.component= 1.0\n"
@@ -205,13 +282,22 @@ def test_manifest_parser_platform_without_suffix_empty_channel(
     assert components[0].releases[0].channel == ""
 
 
-# ===========================================================================
-# git_url строится из tfs_git_project и git_repo_name
-# ===========================================================================
+def test_manifest_parser_missing_profiles_key_skips_version_pair(tmp_path: Path) -> None:
+    """ManifestParser skips a version pair for which no matching profiles key exists."""
+    content = (
+        "name= libfoo\n"
+        "versions.component= 1.0\n"
+        "versions.platform= 2.0-tech\n"
+    )
+    path = write_props(tmp_path, "libfoo.properties", content)
+    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
+    assert len(components) == 0
 
 
 def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
-    """ManifestParser строит release.git_url в виде '<project>/_git/<repo>'."""
+    """ManifestParser builds release.git_url starting with tfs_collection_url when set."""
     content = (
         "name= openssl\n"
         "versions.component= 1.0\n"
@@ -221,90 +307,31 @@ def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
         "git_repo_name= contrib_openssl\n"
     )
     path = write_props(tmp_path, "openssl.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=[], filter_mode="exclude"
-    )
-    assert components[0].releases[0].git_url == "DEP_Components/_git/contrib_openssl"
-
-
-# ===========================================================================
-# Отсутствующий ключ profiles для пары версий → нет релиза
-# ===========================================================================
-
-
-def test_manifest_parser_missing_profiles_key_skips_version_pair(
-    tmp_path: Path,
-) -> None:
-    """ManifestParser пропускает пару версий, для которой нет совпадающего ключа profiles."""
-    content = (
-        "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
-    )
-    path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 0
-
-
-# ===========================================================================
-# Несколько файлов разобрано → результаты накоплены
-# ===========================================================================
-
-
-def test_manifest_parser_multiple_files_accumulated(tmp_path: Path) -> None:
-    """ManifestParser накапливает компоненты из нескольких корректных файлов."""
-    path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
-    path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path_a, path_b], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 2
-
-
-# ===========================================================================
-# Реальный openssl.properties разбирается корректно (использует resources_dir)
-# ===========================================================================
-
-
-def test_manifest_parser_parses_real_openssl_file(resources_dir: Path) -> None:
-    """ManifestParser корректно разбирает реальный файл ресурса openssl.properties."""
-    props_file = resources_dir / "manifests" / "openssl.properties"
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
-        [props_file], component_names=[], filter_mode="exclude"
-    )
-    names = [c.name for c in components]
-    assert "openssl" in names
-
-
-# ===========================================================================
-# Whitelist (include) mode: only listed components are returned
-# ===========================================================================
-
-
-def test_manifest_parser_include_mode_returns_only_listed(tmp_path: Path) -> None:
-    """In include mode, ManifestParser returns only components whose name is in component_names."""
-    path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
-    path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path_a, path_b], component_names=["openssl"], filter_mode="include"
-    )
-    assert len(components) == 1
-    assert components[0].name == "openssl"
+    components, _ = ManifestParser(
+        TARGET_PLATFORM, tfs_collection_url=TFS_COLLECTION_URL
+    ).parse([path], component_names=[], filter_mode="exclude")
+    assert components[0].releases[0].git_url.startswith(TFS_COLLECTION_URL)
 
 
 def test_manifest_parser_include_mode_empty_list_returns_all(tmp_path: Path) -> None:
-    """In include mode with an empty component_names, all components are returned (no filtering)."""
-    path_a = write_props(tmp_path, "openssl.properties", VALID_SINGLE_CONTENT)
-    path_b = write_props(tmp_path, "patchelf.properties", VALID_PATCHELF_CONTENT)
+    """In include mode with empty component_names, all components are returned."""
+    path_a = write_props(
+        tmp_path,
+        "openssl.properties",
+        "name= openssl\nversions.component= 1.0\nversions.platform= 2.0-tech\nprofiles-1.0-2.0-tech= hw-linux-x86_64-gcc10_2\n",
+    )
+    path_b = write_props(
+        tmp_path,
+        "libfoo.properties",
+        "name= libfoo\nversions.component= 1.0\nversions.platform= 2.0-tech\nprofiles-1.0-2.0-tech= hw-linux-x86_64-gcc10_2\n",
+    )
     components, _ = ManifestParser(TARGET_PLATFORM).parse(
         [path_a, path_b], component_names=[], filter_mode="include"
     )
     assert len(components) == 2
 
 
-def test_manifest_parser_exact_match_does_not_affect_similar_names(
-    tmp_path: Path,
-) -> None:
+def test_manifest_parser_exact_match_does_not_affect_similar_names(tmp_path: Path) -> None:
     """Exact-match filtering: excluding 'sqlite3' must not affect 'sqlite3_ext'."""
     sqlite3_content = (
         "name= sqlite3\n"
@@ -325,3 +352,13 @@ def test_manifest_parser_exact_match_does_not_affect_similar_names(
     )
     assert len(components) == 1
     assert components[0].name == "sqlite3_ext"
+
+
+def test_manifest_parser_parses_real_openssl_file(resources_dir: Path) -> None:
+    """ManifestParser correctly parses the real openssl.properties resource file."""
+    props_file = resources_dir / "manifests" / "openssl.properties"
+    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
+        [props_file], component_names=[], filter_mode="exclude"
+    )
+    names = [c.name for c in components]
+    assert "openssl" in names

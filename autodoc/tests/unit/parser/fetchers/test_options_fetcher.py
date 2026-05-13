@@ -1,13 +1,14 @@
 """
-Юнит-тесты для autodoc/parser/fetchers/options_fetcher.py.
+Unit tests for autodoc/parser/fetchers/options_fetcher.py.
 
-Стратегия: наследуемся от FakeTFSClient, чтобы управлять возвращаемыми
-значениями get_items и get_file_content, затем проверяем OptionsMap.
+Strategy: subclass FakeTFSClient with per-scenario fakes driven by real
+options JSON file content from resources/options/.
+No real network calls are made.
 """
 
-import json
+from __future__ import annotations
+
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import requests
 
@@ -20,86 +21,63 @@ from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.tests.unit.parser.conftest import FakeTFSClient
 
 # ---------------------------------------------------------------------------
-# Константы путей, удовлетворяющие фильтрам путей OptionsParser:
-#   - должны заканчиваться на "options.json"
-#   - должны содержать "/conan/"
-#   - должны содержать "/ci-2.0/" для выбора CI-префикса
-# ---------------------------------------------------------------------------
-
-_OPTIONS_PATH: str = "/conan/ci-2.0/tech/options.json"
-
-
-# ---------------------------------------------------------------------------
-# Локальные фейковые TFS-клиенты
+# Local helpers
 # ---------------------------------------------------------------------------
 
 
-class _ItemsAndContentFakeTFSClient(FakeTFSClient):
-    """
-    FakeTFSClient, чьи get_items и get_file_content возвращают настраиваемые данные.
+def _load_options_bytes(resources_dir: Path, filename: str) -> bytes:
+    """Load a real options JSON file from resources/options/ as bytes."""
+    return (resources_dir / "options" / filename).read_bytes()
 
-    Полезен для тестирования всего пайплайна OptionsFetcher.
-    """
 
-    def __init__(self, items: list, content: bytes) -> None:
+def _make_items_response(paths: list[str]) -> list[dict]:
+    """Build a list of TFS item dicts (non-folder) from a list of paths."""
+    return [{"path": p, "isFolder": False} for p in paths]
+
+
+class _OptionsFileFakeTFSClient(FakeTFSClient):
+    """Serves fixed options.json bytes for every get_file_content call."""
+
+    def __init__(self, items: list[dict], content_bytes: bytes) -> None:
         """
         Args:
-            items: Список словарей элементов, возвращаемых get_items.
-            content: Сырые байты, возвращаемые как тело ответа get_file_content.
+            items: List of item dicts returned by get_items.
+            content_bytes: Raw bytes returned as the response body.
         """
         self._items = items
-        self._content = content
+        self._bytes = content_bytes
 
-    def get_items(
-        self, items_url: str, branch: str, recursion=None, version_type=None
-    ) -> list:
-        """Возвращает заранее настроенный список элементов."""
+    def get_items(self, items_url, branch, recursion=None, version_type=None):
+        """Return the pre-configured list of items."""
         return self._items
 
-    def get_file_content(
-        self, items_url: str, path: str, branch: str, version_type=None
-    ):
-        """Возвращает ответ 200 с заранее настроенным содержимым."""
+    def get_file_content(self, items_url, path, branch, version_type=None):
+        """Return a 200 response with the pre-configured bytes content."""
         resp = requests.Response()
         resp.status_code = 200
-        resp._content = self._content
+        resp._content = self._bytes
         return resp
 
 
 # ---------------------------------------------------------------------------
-# Вспомогательные функции
+# Component / context builders
 # ---------------------------------------------------------------------------
 
 
-def _make_component(
-    name: str = "openssl",
-    git_repo: str = "contrib_openssl",
-    version: str = "3.0.0",
-    channel: str = "tech",
-) -> Component:
-    """Строит минимальный Component с одним Release."""
+def _make_component(name, repo, version, channel, project="DEP_Components"):
+    """Build a minimal Component with one Release for fetcher tests."""
     release = Release(
         version=version,
         platform="2.0",
         channel=channel,
-        git_url="DEP_Components/_git/contrib_openssl",
+        git_url=f"{project}/_git/{repo}",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
-    return Component(
-        name=name,
-        description="Test component",
-        git_project="DEP_Components",
-        git_repo=git_repo,
-        releases=[release],
-    )
+    return Component(name=name, git_project=project, git_repo=repo, releases=[release])
 
 
-def _make_context(
-    parser_config: ParserConfigSchema,
-    tfs_client: FakeTFSClient,
-    tmp_path: Path,
-) -> PipelineContext:
-    """Строит минимальный PipelineContext с заданным фейковым TFS-клиентом."""
+def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path):
+    """Build a minimal PipelineContext with the given fake TFS client."""
     return PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",
@@ -108,33 +86,178 @@ def _make_context(
 
 
 # ---------------------------------------------------------------------------
-# Успешный путь: опции извлекаются для релиза компонента
+# Tests
 # ---------------------------------------------------------------------------
 
 
-def test_options_fetcher_extracts_options_for_release(
+def test_fetcher_apr_single_option(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """OptionsFetcher maps (apr,1.7.6,fast) to {'1': 'apr:shared=True'} from real apr_options.json."""
+    apr_bytes = _load_options_bytes(resources_dir, "apr_options.json")
+    path = "/conan/ci-1.6/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=apr_bytes,
+    )
+    comp = _make_component("apr", "contrib_apr", "1.7.6", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert ("apr", "1.7.6", "fast") in result.value
+    assert result.value[("apr", "1.7.6", "fast")] == {"1": "apr:shared=True"}
+
+
+def test_fetcher_sqlite3_fast_five_options(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """OptionsFetcher maps sqlite3 fast release to a 5-entry dict; key '5' contains 'with_icu'."""
+    sqlite_bytes = _load_options_bytes(resources_dir, "sqlite3_fast_options.json")
+    path = "/conan/ci-2.0/fast/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=sqlite_bytes,
+    )
+    comp = _make_component("sqlite3", "contrib_sqlite3", "3.51.2", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    opts = result.value[("sqlite3", "3.51.2", "fast")]
+    assert len(opts) == 5
+    assert "with_icu" in opts["5"]
+
+
+def test_fetcher_nlohmann_single_empty(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """OptionsFetcher maps nlohmann_json slow release to {'1': ''} from real options file."""
+    nlohmann_bytes = _load_options_bytes(resources_dir, "nlohmann_json_options.json")
+    path = "/conan/ci-2.0/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=nlohmann_bytes,
+    )
+    comp = _make_component("nlohmann_json", "contrib_nlohmann_json", "3.9.1", "slow")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert result.value[("nlohmann_json", "3.9.1", "slow")] == {"1": ""}
+
+
+def test_fetcher_patchelf_two_versions_share_options(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """Both patchelf versions in the same repo get options; fetcher de-duplicates the download."""
+    patchelf_bytes = _load_options_bytes(resources_dir, "patchelf_options.json")
+    path = "/conan/ci-2.0/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=[{"path": path, "isFolder": False}],
+        content_bytes=patchelf_bytes,
+    )
+    comp = Component(
+        name="patchelf",
+        git_project="DEP_Components",
+        git_repo="contrib_patchelf",
+        releases=[
+            Release(
+                version="0.16.1",
+                platform="2.0",
+                channel="tech",
+                git_url="DEP_Components/_git/contrib_patchelf",
+                profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+            ),
+            Release(
+                version="0.18.0",
+                platform="2.0",
+                channel="tech",
+                git_url="DEP_Components/_git/contrib_patchelf",
+                profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+            ),
+        ],
+    )
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert ("patchelf", "0.16.1", "tech") in result.value
+    assert ("patchelf", "0.18.0", "tech") in result.value
+    assert result.value[("patchelf", "0.16.1", "tech")] == {"1": ""}
+    assert result.value[("patchelf", "0.18.0", "tech")] == {"1": ""}
+
+
+def test_fetcher_icu_fast_two_options(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """OptionsFetcher maps icu 78.2/fast to a 2-entry dict; key '2' is 'icu:mobile=True'."""
+    icu_bytes = _load_options_bytes(resources_dir, "icu_fast_options.json")
+    path = "/conan/ci-1.6/fast/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=icu_bytes,
+    )
+    comp = _make_component("icu", "contrib_icu", "78.2", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert result.value[("icu", "78.2", "fast")]["2"] == "icu:mobile=True"
+
+
+def test_fetcher_no_options_file_returns_default(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """OptionsFetcher отображает (name, version, channel) → разобранные опции при успехе."""
-    component = _make_component()
-    tfs_client = _ItemsAndContentFakeTFSClient(
-        items=[{"path": _OPTIONS_PATH, "isFolder": False}],
-        content=json.dumps({"1": "shared=True"}).encode(),
-    )
-    ctx = _make_context(parser_config, tfs_client, tmp_path)
+    """When get_items returns no items, the key exists in the map with fallback {'1': ''}."""
+    client = _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}")
+    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
     fetcher = OptionsFetcher()
     fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
 
-    result = fetcher.fetch([component])
+    assert ("somelib", "1.0.0", "fast") in result.value
 
-    key = ("openssl", "3.0.0", "tech")
-    assert key in result.value
-    assert result.value[key] == {"1": "shared=True"}
+
+def test_fetcher_invalid_json_does_not_raise(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """OptionsFetcher does not raise when get_file_content returns invalid JSON bytes."""
+    path = "/conan/ci-2.0/tech/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=b"GARBAGE",
+    )
+    comp = _make_component("somelib", "contrib_somelib", "2.0.0", "tech")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    # No exception; the release key must be present with a fallback value.
+    assert ("somelib", "2.0.0", "tech") in result.value
 
 
 # ---------------------------------------------------------------------------
-# get_items возвращает пустой список → опции по умолчанию в карте
+# Kept tests (renamed/kept for regression)
 # ---------------------------------------------------------------------------
 
 
@@ -142,49 +265,55 @@ def test_options_fetcher_empty_items_returns_empty_map(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """
-    Когда get_items не возвращает элементов, OptionsFetcher добавляет запись опций по умолчанию.
-
-    Запасной вариант OptionsParser.pick_options возвращает {"1": ""}, если нет
-    канало-специфичных или глобальных опций.
-    """
-    component = _make_component()
-    tfs_client = _ItemsAndContentFakeTFSClient(items=[], content=b"{}")
-    ctx = _make_context(parser_config, tfs_client, tmp_path)
+    """When get_items returns no items, OptionsFetcher adds a default options entry."""
+    client = _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}")
+    release = Release(
+        version="3.0.0",
+        platform="2.0",
+        channel="tech",
+        git_url="DEP_Components/_git/contrib_openssl",
+        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+    )
+    comp = Component(
+        name="openssl",
+        git_project="DEP_Components",
+        git_repo="contrib_openssl",
+        releases=[release],
+    )
+    ctx = _make_context(parser_config, client, tmp_path)
     fetcher = OptionsFetcher()
     fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
 
-    result = fetcher.fetch([component])
-
-    # Без исключений; ключ существует со значением запасного варианта.
     assert ("openssl", "3.0.0", "tech") in result.value
 
 
-# ---------------------------------------------------------------------------
-# Нераспознаваемое JSON-содержимое молча пропускается
-# ---------------------------------------------------------------------------
-
-
-def test_options_fetcher_skips_on_invalid_json(
+def test_fetcher_invalid_json_does_not_raise_openssl_alias(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """
-    OptionsFetcher не вызывает исключений, когда get_file_content возвращает некорректный JSON.
-
-    OptionsParser логирует предупреждение внутри и возвращает пустой словарь опций.
-    Fetcher продолжает работу и возвращает значение по умолчанию для данного релиза.
-    """
-    component = _make_component()
-    tfs_client = _ItemsAndContentFakeTFSClient(
-        items=[{"path": _OPTIONS_PATH, "isFolder": False}],
-        content=b"NOT JSON",
+    """OptionsFetcher does not raise when file content is not valid JSON; key is present."""
+    path = "/conan/ci-2.0/tech/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=b"NOT JSON",
     )
-    ctx = _make_context(parser_config, tfs_client, tmp_path)
+    release = Release(
+        version="3.0.0",
+        platform="2.0",
+        channel="tech",
+        git_url="DEP_Components/_git/contrib_openssl",
+        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+    )
+    comp = Component(
+        name="openssl",
+        git_project="DEP_Components",
+        git_repo="contrib_openssl",
+        releases=[release],
+    )
+    ctx = _make_context(parser_config, client, tmp_path)
     fetcher = OptionsFetcher()
     fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
 
-    result = fetcher.fetch([component])
-
-    # Fetcher не должен вызывать исключений; ключ релиза должен присутствовать.
     assert ("openssl", "3.0.0", "tech") in result.value

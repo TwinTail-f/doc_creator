@@ -1,0 +1,980 @@
+{
+    "graph": {
+        "nodes": {
+            "0": {
+                "ref": "conanfile",
+                "id": "0",
+                "recipe": "Cli",
+                "package_id": null,
+                "prev": null,
+                "rrev": null,
+                "rrev_timestamp": null,
+                "prev_timestamp": null,
+                "remote": null,
+                "binary_remote": null,
+                "build_id": null,
+                "binary": null,
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": null,
+                "user": null,
+                "channel": null,
+                "url": null,
+                "license": null,
+                "author": null,
+                "description": null,
+                "homepage": null,
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": null,
+                "options_description": null,
+                "version": null,
+                "topics": null,
+                "package_type": "unknown",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.cppstd": "17",
+                    "compiler.libcxx": "libstdc++11",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {},
+                "options_definitions": {},
+                "generators": [],
+                "python_requires": null,
+                "system_requires": {},
+                "recipe_folder": null,
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "cli",
+                "vendor": false,
+                "dependencies": {
+                    "1": {
+                        "ref": "poco/1.10.0.943@platform-2.0/slow",
+                        "require": "poco/[~1.10.0,include_prerelease]@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": null,
+                        "visible": true
+                    },
+                    "2": {
+                        "ref": "zlib/1.2.11.1475@platform-2.0/slow",
+                        "require": "zlib/1.2.11.1475@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": false,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": null,
+                        "visible": true
+                    },
+                    "3": {
+                        "ref": "pcre2/10.36.320@platform-2.0/slow",
+                        "require": "pcre2/10.36.320@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": false,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": false,
+                        "package_id_mode": null,
+                        "visible": true
+                    }
+                },
+                "context": "host",
+                "test": false
+            },
+            "1": {
+                "ref": "poco/1.10.0.943@platform-2.0/slow#93c066be31c26bef34dbac97af72a4fb",
+                "id": "1",
+                "recipe": "Downloaded",
+                "package_id": "af8ca8fe3c9092227dbfb70041621ceba7a4ecfa",
+                "prev": null,
+                "rrev": "93c066be31c26bef34dbac97af72a4fb",
+                "rrev_timestamp": 1769072343.254,
+                "prev_timestamp": null,
+                "remote": "components-conan2",
+                "binary_remote": null,
+                "build_id": null,
+                "binary": "Missing",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "poco",
+                "user": "platform-2.0",
+                "channel": "slow",
+                "url": "http://company.com:8080/tfs/companytc1/DEP_Components/_git/contrib_poco",
+                "license": "The Boost Software License 1.0",
+                "author": null,
+                "description": "Modern, powerful open source C++ class libraries for building network- and internet-based applications that run on desktop, server, mobile and embedded systems.",
+                "homepage": "https://pocoproject.org",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "enable_fork": true,
+                    "poco_unbundled": true,
+                    "disable_werror": true,
+                    "strip_binary": false,
+                    "with_openssl_gost": false,
+                    "enable_apacheconnector": false,
+                    "enable_cppparser": false,
+                    "enable_crypto": false,
+                    "enable_data": false,
+                    "enable_data_mysql": false,
+                    "enable_data_odbc": false,
+                    "enable_data_postgresql": false,
+                    "enable_data_sqlite": false,
+                    "enable_encodings": true,
+                    "enable_json": true,
+                    "enable_jwt": false,
+                    "enable_mongodb": false,
+                    "enable_net": true,
+                    "enable_netssl": false,
+                    "enable_netssl_win": false,
+                    "enable_pdf": false,
+                    "enable_pagecompiler": false,
+                    "enable_pagecompiler_file2page": false,
+                    "enable_pocodoc": false,
+                    "enable_redis": false,
+                    "enable_sevenzip": false,
+                    "enable_util": true,
+                    "enable_xml": false,
+                    "enable_zip": false,
+                    "enable_activerecord": false,
+                    "enable_activerecord_compiler": false,
+                    "enable_prometheus": false
+                },
+                "options_description": null,
+                "version": "1.10.0.943",
+                "topics": null,
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.cppstd": "17",
+                    "compiler.libcxx": "libstdc++11",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "disable_werror": "True",
+                    "enable_apacheconnector": "False",
+                    "enable_cppparser": "False",
+                    "enable_crypto": "False",
+                    "enable_data": "False",
+                    "enable_data_mysql": "False",
+                    "enable_data_odbc": "False",
+                    "enable_data_postgresql": "False",
+                    "enable_data_sqlite": "False",
+                    "enable_encodings": "True",
+                    "enable_fork": "True",
+                    "enable_json": "True",
+                    "enable_jwt": "False",
+                    "enable_mongodb": "False",
+                    "enable_net": "True",
+                    "enable_netssl": "False",
+                    "enable_pagecompiler": "False",
+                    "enable_pagecompiler_file2page": "False",
+                    "enable_pdf": "False",
+                    "enable_pocodoc": "False",
+                    "enable_redis": "False",
+                    "enable_sevenzip": "False",
+                    "enable_util": "True",
+                    "enable_xml": "False",
+                    "enable_zip": "False",
+                    "fPIC": "True",
+                    "openssl_shared": "False",
+                    "poco_unbundled": "True",
+                    "shared": "False",
+                    "strip_binary": "False",
+                    "with_openssl_gost": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_fork": [
+                        "True",
+                        "False"
+                    ],
+                    "poco_unbundled": [
+                        "True",
+                        "False"
+                    ],
+                    "disable_werror": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ],
+                    "with_openssl_gost": [
+                        "True",
+                        "False"
+                    ],
+                    "openssl_shared": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_apacheconnector": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_cppparser": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_crypto": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_data": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_data_mysql": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_data_odbc": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_data_postgresql": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_data_sqlite": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_encodings": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_json": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_jwt": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_mongodb": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_net": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_netssl": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_pdf": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_pagecompiler": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_pagecompiler_file2page": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_pocodoc": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_redis": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_sevenzip": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_util": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_xml": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_zip": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [
+                    "CMakeDeps"
+                ],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/pocobc621d0601005/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "poco/1.10.0.943@platform-2.0/slow",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7",
+                        "compiler": "gcc",
+                        "compiler.cppstd": "17",
+                        "compiler.libcxx": "libstdc++11",
+                        "compiler.version": "10.2",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "disable_werror": "True",
+                        "enable_apacheconnector": "False",
+                        "enable_cppparser": "False",
+                        "enable_crypto": "False",
+                        "enable_data": "False",
+                        "enable_data_mysql": "False",
+                        "enable_data_odbc": "False",
+                        "enable_data_postgresql": "False",
+                        "enable_data_sqlite": "False",
+                        "enable_encodings": "True",
+                        "enable_fork": "True",
+                        "enable_json": "True",
+                        "enable_jwt": "False",
+                        "enable_mongodb": "False",
+                        "enable_net": "True",
+                        "enable_netssl": "False",
+                        "enable_pagecompiler": "False",
+                        "enable_pagecompiler_file2page": "False",
+                        "enable_pdf": "False",
+                        "enable_pocodoc": "False",
+                        "enable_redis": "False",
+                        "enable_sevenzip": "False",
+                        "enable_util": "True",
+                        "enable_xml": "False",
+                        "enable_zip": "False",
+                        "fPIC": "True",
+                        "openssl_shared": "False",
+                        "poco_unbundled": "True",
+                        "shared": "False",
+                        "strip_binary": "False",
+                        "with_openssl_gost": "False"
+                    },
+                    "requires": [
+                        "zlib/1.2.11.1475@platform-2.0/slow#d918795438b51719f5abf640b8739d18:ab31bbf087db192434596c6a492e5e6f48fd2efc",
+                        "pcre2/10.36.320@platform-2.0/slow#30a2608bc3efd712e88209d39d77aeeb:04b8a87b31c78b6f245f2edc5ef8b9809bb85872"
+                    ],
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "conandata": {
+                    "patches": {
+                        "1.10.0": [
+                            {
+                                "patch_file": "patches/CVE-2023-52389.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/pcre2_for_poco_1.10.0.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/macro_for_unbundled.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/changes_cmake_for_pcre2.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/pcre2_names.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/remove_deprecated_for_openssl3.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/basic_openssl3.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/disable_pcre_sources.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/add_encodings.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/1.10.0.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ],
+                        "cxx": [
+                            {
+                                "patch_file": "patches/cxx17_warning_message.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ]
+                    }
+                },
+                "dependencies": {
+                    "2": {
+                        "ref": "zlib/1.2.11.1475@platform-2.0/slow",
+                        "require": "zlib/[~1.2.11,include_prerelease]@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": true,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": "full_mode",
+                        "visible": true
+                    },
+                    "3": {
+                        "ref": "pcre2/10.36.320@platform-2.0/slow",
+                        "require": "pcre2/[~10.36,include_prerelease]@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": "full_mode",
+                        "visible": true
+                    }
+                },
+                "context": "host",
+                "test": false
+            },
+            "2": {
+                "ref": "zlib/1.2.11.1475@platform-2.0/slow#d918795438b51719f5abf640b8739d18",
+                "id": "2",
+                "recipe": "Cache",
+                "package_id": "ab31bbf087db192434596c6a492e5e6f48fd2efc",
+                "prev": "f721f1d9c91f03dabdb359d403eafc82",
+                "rrev": "d918795438b51719f5abf640b8739d18",
+                "rrev_timestamp": 1777453040.462,
+                "prev_timestamp": 1777453005.382,
+                "remote": null,
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Download",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "zlib",
+                "user": "platform-2.0",
+                "channel": "slow",
+                "url": "http://company.com:8080/tfs/companytc1/DEP_Components/_git/contrib_zlib",
+                "license": "Zlib",
+                "author": null,
+                "description": "A Massively Spiffy Yet Delicately Unobtrusive Compression Library (Also Free, Not to Mention Unencumbered by Patents)",
+                "homepage": "https://zlib.net/",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "disable_werror": true,
+                    "strip_binary": false
+                },
+                "options_description": null,
+                "version": "1.2.11.1475",
+                "topics": null,
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.cppstd": "17",
+                    "compiler.libcxx": "libstdc++11",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "disable_werror": "True",
+                    "fPIC": "True",
+                    "shared": "False",
+                    "strip_binary": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "disable_werror": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/zlib2da79124a9347/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "zlib/1.2.11.1475@platform-2.0/slow",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7",
+                        "compiler": "gcc",
+                        "compiler.cppstd": "17",
+                        "compiler.libcxx": "libstdc++11",
+                        "compiler.version": "10.2",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "disable_werror": "True",
+                        "fPIC": "True",
+                        "shared": "False",
+                        "strip_binary": "False"
+                    },
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "conandata": {
+                    "patches": {
+                        "1.2.11": [
+                            {
+                                "patch_file": "patches/CVE-2018-25032.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/CVE-2022-37434.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ]
+                    }
+                },
+                "dependencies": {},
+                "context": "host",
+                "test": false
+            },
+            "3": {
+                "ref": "pcre2/10.36.320@platform-2.0/slow#30a2608bc3efd712e88209d39d77aeeb",
+                "id": "3",
+                "recipe": "Downloaded",
+                "package_id": "04b8a87b31c78b6f245f2edc5ef8b9809bb85872",
+                "prev": "9b45332205a6503480ae1d86f9eef30f",
+                "rrev": "30a2608bc3efd712e88209d39d77aeeb",
+                "rrev_timestamp": 1778140256.107,
+                "prev_timestamp": 1778139967.754,
+                "remote": "components-conan2",
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Download",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "pcre2",
+                "user": "platform-2.0",
+                "channel": "slow",
+                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_pcre2",
+                "license": "BSD-3-Clause",
+                "author": null,
+                "description": "Perl Compatible Regular Expressions",
+                "homepage": "https://www.pcre.org/",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "build_pcre2_8": true,
+                    "build_pcre2_16": true,
+                    "build_pcre2_32": true,
+                    "build_pcre2grep": false,
+                    "with_zlib": false,
+                    "with_bzip2": false,
+                    "support_jit": false,
+                    "grep_support_callout_fork": false,
+                    "poco_headers": true,
+                    "disable_werror": true,
+                    "strip_binary": false
+                },
+                "options_description": null,
+                "version": "10.36.320",
+                "topics": [
+                    "regex",
+                    "regexp",
+                    "perl"
+                ],
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "build_pcre2_16": "True",
+                    "build_pcre2_32": "True",
+                    "build_pcre2_8": "True",
+                    "build_pcre2grep": "False",
+                    "disable_werror": "True",
+                    "fPIC": "True",
+                    "poco_headers": "True",
+                    "shared": "False",
+                    "strip_binary": "False",
+                    "support_jit": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "build_pcre2_8": [
+                        "True",
+                        "False"
+                    ],
+                    "build_pcre2_16": [
+                        "True",
+                        "False"
+                    ],
+                    "build_pcre2_32": [
+                        "True",
+                        "False"
+                    ],
+                    "build_pcre2grep": [
+                        "True",
+                        "False"
+                    ],
+                    "support_jit": [
+                        "True",
+                        "False"
+                    ],
+                    "poco_headers": [
+                        "True",
+                        "False"
+                    ],
+                    "disable_werror": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [
+                    "CMakeDeps"
+                ],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/pcre2ec3d746b17187/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "pcre2/10.36.320@platform-2.0/slow",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7",
+                        "compiler": "gcc",
+                        "compiler.version": "10.2",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "build_pcre2_16": "True",
+                        "build_pcre2_32": "True",
+                        "build_pcre2_8": "True",
+                        "build_pcre2grep": "False",
+                        "disable_werror": "True",
+                        "fPIC": "True",
+                        "poco_headers": "True",
+                        "shared": "False",
+                        "strip_binary": "False",
+                        "support_jit": "False"
+                    },
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "conandata": {
+                    "patches": {
+                        "10.36": [
+                            {
+                                "patch_file": "patches/CVE-2022-1586.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/CVE-2022-1587.patch",
+                                "base_path": "source_subfolder"
+                            },
+                            {
+                                "patch_file": "patches/CVE-2022-41409.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ]
+                    }
+                },
+                "dependencies": {},
+                "context": "host",
+                "test": false
+            }
+        },
+        "root": {
+            "0": "None"
+        },
+        "overrides": {},
+        "resolved_ranges": {
+            "poco/[~1.10.0,include_prerelease]@platform-2.0/slow": "poco/1.10.0.943@platform-2.0/slow",
+            "conan_helper/[>=2.0 <3.0]@platform/python_requires": "conan_helper/2.0+95@platform/python_requires",
+            "zlib/[~1.2.11,include_prerelease]@platform-2.0/slow": "zlib/1.2.11.1475@platform-2.0/slow",
+            "pcre2/[~10.36,include_prerelease]@platform-2.0/slow": "pcre2/10.36.320@platform-2.0/slow"
+        },
+        "replaced_requires": {},
+        "error": null
+    }
+}
