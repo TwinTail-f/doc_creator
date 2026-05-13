@@ -382,3 +382,55 @@ def test_aggregator_two_profiles_same_release() -> None:
     # Two separate profile_data entries
     assert id(pb1) in result.profile_data
     assert id(pb2) in result.profile_data
+
+
+# ---------------------------------------------------------------------------
+# UC-G-7 — Version-range error message is preserved in aggregation result
+# ---------------------------------------------------------------------------
+
+
+def test_aggregator_records_version_range_error_message() -> None:
+    """Aggregator records the full version-range-not-resolved error from a failed ConanRawResult.
+
+    Simulates what happens when the runner returns success=False for a stunnel-like
+    version range that could not be resolved. The error text must survive aggregation
+    and appear in result.errors under the expected nested key path.
+    """
+    error_msg = (
+        "ERROR: Package 'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' not resolved: "
+        "Version range '~5.77,include_prerelease' from requirement "
+        "'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' required by 'None' "
+        "could not be resolved. Required by 'cli'"
+    )
+    release = Release(version="5.77", platform="2.0", channel="fast", git_url="")
+    pb = ProfileBuild(profile_name="crypto_default_gcc_x86_64.jinja")
+    task = ConanTask(
+        cmd=["conan", "graph", "info", "--requires=stunnel/[~5.77]@platform-2.0/fast"],
+        comp_name="stunnel",
+        version="5.77",
+        channel="fast",
+        profile_name="crypto_default_gcc_x86_64.jinja",
+        option_id="1",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="https://art.example.com",
+        release=release,
+        pb=pb,
+    )
+    raw = ConanRawResult(success=False, data=None, error=error_msg)
+
+    aggregator = ConanResultAggregator(result_parser=ConanResultParser())
+    result = aggregator.aggregate(
+        [task], [raw], art_base="", target_platform="2.0"
+    )
+
+    assert "stunnel" in result.errors, (
+        f"Expected 'stunnel' in errors keys, got: {list(result.errors.keys())}"
+    )
+    stunnel_errors = result.errors["stunnel"]
+    version_errors = stunnel_errors.get("5.77", {})
+    channel_errors = version_errors.get("fast", {})
+    profile_errors = channel_errors.get("crypto_default_gcc_x86_64.jinja", [])
+    assert any("not resolved" in str(e) or "Version range" in str(e) for e in profile_errors), (
+        f"Error message not found in profile_errors: {profile_errors}"
+    )

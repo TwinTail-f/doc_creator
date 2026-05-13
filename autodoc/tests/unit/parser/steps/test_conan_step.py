@@ -215,3 +215,71 @@ def test_conan_step_configure_called_before_fetch(
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
     assert fake.configure_called is True
+
+
+# ---------------------------------------------------------------------------
+# UC-G-4 — apr/fast channel, no dependencies
+# ---------------------------------------------------------------------------
+
+
+def test_conan_step_apr_fast_channel_no_dependencies(
+    parser_pipeline_context,
+) -> None:
+    """ConanStep correctly enriches apr/fast release with empty dependencies list.
+
+    Uses a FakeFetcher that returns a ConanEnrichmentResult pre-populated
+    with apr data. After ConanEnrichStep.execute, the apr release's dependencies
+    list must be empty (apr has no runtime deps in production).
+    """
+    comp, rel, pb = _make_release_with_pb("apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2")
+    parser_pipeline_context.components = [comp]
+    conan_result = _make_conan_result(
+        "apr",
+        "1.7.6",
+        "fast",
+        pb,
+        package_id="7741115342fe6159bd16463d6d349e4c02e33237",
+        deps=[],
+    )
+    fake = FakeFetcher(value=conan_result)
+    ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
+
+    assert rel.dependencies == [] or rel.dependencies is None, (
+        f"Expected empty dependencies for apr, got: {rel.dependencies}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# UC-G-7 — Error result does not raise and is stored in ctx.intermediate
+# ---------------------------------------------------------------------------
+
+
+def test_conan_step_error_does_not_raise_and_stores_in_report(
+    parser_pipeline_context,
+) -> None:
+    """ConanStep does not raise when the aggregator reports a version-range resolution error.
+
+    A FakeFetcher returns a ConanEnrichmentResult whose errors dict contains
+    an entry for 'stunnel' (mimicking UC-G-7: version range could not be resolved).
+    ConanEnrichStep.execute must complete without raising and must store the error
+    information in ctx.intermediate['conan_report'].
+    """
+    error_entry = {
+        "5.77": {"fast": {"crypto_default_gcc_x86_64.jinja": ["Version range not resolved"]}}
+    }
+    fake_result = ConanEnrichmentResult(
+        release_data={},
+        profile_data={},
+        errors={"stunnel": error_entry},
+    )
+    fake = FakeFetcher(value=fake_result)
+    parser_pipeline_context.components = []
+
+    # Must not raise
+    ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
+
+    conan_report = parser_pipeline_context.intermediate.get("conan_report")
+    assert conan_report is not None
+    assert "stunnel" in str(conan_report), (
+        f"Expected 'stunnel' error to appear in conan report, got: {conan_report}"
+    )

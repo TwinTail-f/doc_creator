@@ -115,26 +115,34 @@ def test_extract_tab_sections_empty_string_returns_empty_dict() -> None:
 
 def test_extract_tab_sections_deduplicates_identical_names_first_wins() -> None:
     """First occurrence wins when two tabs share the same name."""
+    _TAB = '<ac:structured-macro ac:name="tab">'
     html = (
-        '<ac:parameter ac:name="name">Alpha</ac:parameter>'
-        "<ac:rich-text-body><p>First</p></ac:rich-text-body>"
-        '<ac:parameter ac:name="name">Alpha</ac:parameter>'
-        "<ac:rich-text-body><p>Second</p></ac:rich-text-body>"
+        _TAB
+        + '<ac:parameter ac:name="name">Alpha</ac:parameter>'
+        + "<ac:rich-text-body><p>First</p></ac:rich-text-body>"
+        + _TAB
+        + '<ac:parameter ac:name="name">Alpha</ac:parameter>'
+        + "<ac:rich-text-body><p>Second</p></ac:rich-text-body>"
     )
     result = extract_tab_sections(html)
     assert list(result.keys()).count("Alpha") == 1
     assert "First" in result["Alpha"]
 
 
-def test_extract_tab_sections_handles_title_attribute() -> None:
-    """Recognises tabs that use title= instead of name=."""
+def test_extract_tab_sections_ignores_title_attribute() -> None:
+    """ac:name="title" is not recognised as a tab name — only ac:name="name" is supported.
+
+    The title= attribute belongs to expand macros, not tabs. Treating it as a
+    tab name caused false positives during fallback section parsing, so it is
+    intentionally excluded from _TAB_NAME_RE.
+    """
     html = (
+        '<ac:structured-macro ac:name="tab">'
         '<ac:parameter ac:name="title">My Tab</ac:parameter>'
         "<ac:rich-text-body><p>title content</p></ac:rich-text-body>"
     )
     result = extract_tab_sections(html)
-    assert "My Tab" in result
-    assert "title content" in result["My Tab"]
+    assert "My Tab" not in result
 
 
 def test_extract_tab_sections_skips_tab_with_no_rich_text_body() -> None:

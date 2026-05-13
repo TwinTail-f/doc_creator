@@ -260,3 +260,141 @@ def test_options_parser_parses_zlib_single_empty_option(resources_dir: Path) -> 
     assert channel == "fast"
     assert "1" in cleaned
     assert cleaned["1"] == ""
+
+
+# ===========================================================================
+# UC-O-1: Only ci-1.6 present (fallback) OR only ci-2.0 present
+# ===========================================================================
+
+
+def test_select_ci_prefix_uses_ci_20_alone() -> None:
+    """select_ci_prefix returns '/ci-2.0/' when only ci-2.0 paths are present (no ci-1.6)."""
+    paths = ["/conan/ci-2.0/options.json"]
+    result = OptionsParser.select_ci_prefix(paths)
+    assert result == CI_PREFIX_V2
+
+
+def test_parse_file_patchelf_ci16_flat_global(options_dir: Path) -> None:
+    """patchelf uses ci-1.6/options.json (no channel sub-dir); channel is None, 1 entry."""
+    text = (options_dir / "patchelf_options.json").read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(
+        text,
+        opt_path="/conan/ci-1.6/options.json",
+        ci_prefix=CI_PREFIX_V16,
+    )
+    assert channel is None
+    assert cleaned == {"1": ""}
+
+
+def test_pick_options_tech_channel_falls_back_to_global_ci16() -> None:
+    """pick_options with channel='tech' and no 'tech' key returns the global entry (patchelf case)."""
+    repo_data = {
+        "global": {"1": ""},
+        "channels": {},
+    }
+    result = OptionsParser.pick_options(repo_data, "tech")
+    assert result == {"1": ""}
+
+
+# ===========================================================================
+# UC-O-2: ci-2.0 / ci-1.6 with channel sub-directories (fast/slow)
+# ===========================================================================
+
+
+def test_pick_options_sqlite3_fast_selected_over_slow() -> None:
+    """pick_options with channel='fast' picks fast entry, not slow, when both are present."""
+    repo_data = {
+        "global": None,
+        "channels": {
+            "fast": {"1": "", "2": "sqlite3:enable_json1=True"},
+            "slow": {"1": "", "2": "sqlite3:shared=True"},
+        },
+    }
+    result = OptionsParser.pick_options(repo_data, "fast")
+    assert "enable_json1" in result["2"]
+    assert "shared" not in result["2"]
+
+
+def test_parse_file_channel_extracted_from_ci20_path() -> None:
+    """parse_file correctly extracts 'fast' channel from a /ci-2.0/fast/options.json path."""
+    channel, _ = OptionsParser.parse_file(
+        '{"1": ""}',
+        opt_path="/conan/ci-2.0/fast/options.json",
+        ci_prefix=CI_PREFIX_V2,
+    )
+    assert channel == "fast"
+
+
+def test_parse_file_channel_extracted_from_ci16_path() -> None:
+    """parse_file correctly extracts 'slow' channel from a /ci-1.6/slow/options.json path."""
+    channel, _ = OptionsParser.parse_file(
+        '{"1": ""}',
+        opt_path="/conan/ci-1.6/slow/options.json",
+        ci_prefix=CI_PREFIX_V16,
+    )
+    assert channel == "slow"
+
+
+# ===========================================================================
+# UC-O-3: Flat options.json (no channel sub-directory)
+# ===========================================================================
+
+
+def test_pick_options_apr_global_returned_for_any_channel() -> None:
+    """pick_options returns global options for apr regardless of which channel is requested.
+
+    apr only has a flat ci-1.6/options.json (no per-channel split), so the same
+    option set {'1': 'apr:shared=True'} must be returned for 'fast', 'slow', or 'tech'.
+    """
+    repo_data = {
+        "global": {"1": "apr:shared=True"},
+        "channels": {},
+    }
+    for channel in ("fast", "slow", "tech", ""):
+        result = OptionsParser.pick_options(repo_data, channel)
+        assert result == {"1": "apr:shared=True"}, f"failed for channel={channel!r}"
+
+
+def test_parse_file_nlohmann_ci20_flat_returns_none_channel(options_dir: Path) -> None:
+    """nlohmann_json ci-2.0/options.json (flat) returns channel=None and single empty entry."""
+    text = (options_dir / "nlohmann_json_options.json").read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(
+        text,
+        opt_path="/conan/ci-2.0/options.json",
+        ci_prefix=CI_PREFIX_V2,
+    )
+    assert channel is None
+    assert len(cleaned) == 1
+    assert cleaned.get("1") == ""
+
+
+# ===========================================================================
+# Edge-case tests for robustness
+# ===========================================================================
+
+
+def test_select_ci_prefix_with_channel_subdirs_present() -> None:
+    """select_ci_prefix works correctly when paths include channel subdirectory structure."""
+    paths = [
+        "/conan/ci-2.0/fast/options.json",
+        "/conan/ci-2.0/slow/options.json",
+    ]
+    result = OptionsParser.select_ci_prefix(paths)
+    assert result == CI_PREFIX_V2
+
+
+def test_pick_options_missing_global_key_returns_default() -> None:
+    """pick_options returns {'1': ''} when repo_data has channels but no 'global' key."""
+    repo_data = {"channels": {"fast": {"1": "x=True"}}}
+    result = OptionsParser.pick_options(repo_data, "slow")
+    assert result == {"1": ""}
+
+
+def test_parse_file_ci16_with_mixed_ci20_paths() -> None:
+    """select_ci_prefix ignores ci-1.6 paths when ci-2.0 paths are also present."""
+    paths = [
+        "/conan/ci-2.0/fast/options.json",
+        "/conan/ci-1.6/options.json",
+    ]
+    result = OptionsParser.select_ci_prefix(paths)
+    assert result == CI_PREFIX_V2

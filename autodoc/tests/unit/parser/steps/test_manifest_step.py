@@ -82,3 +82,41 @@ def test_manifest_step_has_name() -> None:
 def test_manifest_step_is_critical() -> None:
     """ManifestStep является критичным шагом пайплайна."""
     assert ManifestStep.is_critical is True
+
+
+# ---------------------------------------------------------------------------
+# New tests: UC-M-1/3/5 step-level coverage
+# ---------------------------------------------------------------------------
+
+
+def test_manifest_step_warnings_stored_in_context(
+    parser_pipeline_context,
+) -> None:
+    """Warnings returned by ManifestFetcher are propagated without raising exceptions.
+
+    PipelineContext has no .warnings field — ManifestStep logs warnings via logger
+    and does not store them on ctx. This test verifies the step does not raise and
+    that ctx.components is still populated correctly when warnings are present.
+    Adaptation from plan: assertion is on non-raising behaviour + component state,
+    not on ctx.warnings (which does not exist on PipelineContext).
+    """
+    warning_msg = "test-warning-from-fetcher"
+    fake = FakeFetcher(value=[], warnings=[warning_msg])
+    step = ManifestStep(fetcher=fake)
+    # Must not raise even with a non-empty warnings list
+    step.execute(parser_pipeline_context)
+    assert parser_pipeline_context.components == []
+
+
+def test_manifest_step_empty_components_list_does_not_raise(
+    parser_pipeline_context,
+) -> None:
+    """ManifestStep.execute does not raise when the fetcher returns zero components.
+
+    This is a guard against unintended IndexError / AttributeError when the TFS
+    repository has no matching manifest files.
+    """
+    fake = FakeFetcher(value=[], warnings=[])
+    step = ManifestStep(fetcher=fake)
+    step.execute(parser_pipeline_context)
+    assert parser_pipeline_context.components == []

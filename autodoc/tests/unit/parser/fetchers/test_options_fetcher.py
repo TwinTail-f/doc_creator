@@ -317,3 +317,148 @@ def test_fetcher_invalid_json_does_not_raise_openssl_alias(
     result = fetcher.fetch([comp])
 
     assert ("openssl", "3.0.0", "tech") in result.value
+
+
+# ---------------------------------------------------------------------------
+# Multi-path fake client — needed for components with multiple options files
+# ---------------------------------------------------------------------------
+
+
+class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
+    """Serves different path→content mappings depending on the requested branch.
+
+    In production, each release branch of the same repo has its own set of
+    options files (e.g. fast branch has ci-2.0/fast/options.json; slow branch
+    has ci-1.6/slow/options.json). This fake mirrors that per-branch isolation.
+    """
+
+    def __init__(self, branch_to_paths: dict[str, dict[str, str]]) -> None:
+        """
+        Args:
+            branch_to_paths: Mapping {branch_name: {tfs_path: json_content}}.
+        """
+        self._map = branch_to_paths
+
+    def get_items(self, items_url, branch, recursion=None, version_type=None):
+        """Return item entries only for paths registered under this branch."""
+        paths = self._map.get(branch, {})
+        return [{"path": p, "isFolder": False} for p in paths]
+
+    def get_file_content(self, items_url, path, branch, version_type=None):
+        """Return a 200 response with the content registered for this branch+path."""
+        content = self._map.get(branch, {}).get(path, "{}")
+        resp = requests.Response()
+        resp.status_code = 200
+        resp._content = content.encode("utf-8")
+        return resp
+
+
+# ---------------------------------------------------------------------------
+# UC-O-1: ci-1.6 fallback — icu slow, global options (3 entries)
+# ---------------------------------------------------------------------------
+
+
+def test_fetcher_icu_ci16_fallback_no_ci20_present(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """Fetcher uses ci-1.6 fallback for icu when no ci-2.0 path exists in TFS.
+
+    icu_slow_options.json contains 3 entries (ci-1.6/options.json, global).
+    The fetcher must pick it up as fallback and map ('icu', '67.1', 'slow') → 3 entries.
+    """
+    icu_bytes = _load_options_bytes(resources_dir, "icu_slow_options.json")
+    path = "/conan/ci-1.6/options.json"
+    client = _OptionsFileFakeTFSClient(
+        items=_make_items_response([path]),
+        content_bytes=icu_bytes,
+    )
+    comp = _make_component("icu", "contrib_icu", "67.1", "slow")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert ("icu", "67.1", "slow") in result.value
+    assert len(result.value[("icu", "67.1", "slow")]) == 3
+
+
+# ---------------------------------------------------------------------------
+# UC-O-2: sqlite3 — dual channel, different options files per channel
+# ---------------------------------------------------------------------------
+
+
+def test_fetcher_sqlite3_fast_channel_specific_options(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    resources_dir: Path,
+) -> None:
+    """Fetcher resolves sqlite3 options from channel subdirectories (ci-2.0/fast and ci-1.6/slow).
+
+    sqlite3 has two releases on separate branches, each with its own channel-specific
+    options.json. After fetching, ('sqlite3', '3.51.2', 'fast') must have 5 entries
+    and ('sqlite3', '3.34.1', 'slow') must have 12 entries.
+    """
+    fast_text = _load_options_bytes(resources_dir, "sqlite3_fast_options.json").decode()
+    slow_text = _load_options_bytes(resources_dir, "sqlite3_slow_options.json").decode()
+    client = _BranchAwareOptionsFakeTFSClient(
+        {
+            "release_3.51.2": {"/conan/ci-2.0/fast/options.json": fast_text},
+            "release_3.34.1": {"/conan/ci-1.6/slow/options.json": slow_text},
+        }
+    )
+    fast_release = Release(
+        version="3.51.2",
+        platform="2.0",
+        channel="fast",
+        git_url="DEP_Components/_git/contrib_sqlite3",
+        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+    )
+    slow_release = Release(
+        version="3.34.1",
+        platform="2.0",
+        channel="slow",
+        git_url="DEP_Components/_git/contrib_sqlite3",
+        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+    )
+    comp = Component(
+        name="sqlite3",
+        git_project="DEP_Components",
+        git_repo="contrib_sqlite3",
+        releases=[fast_release, slow_release],
+    )
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert len(result.value[("sqlite3", "3.51.2", "fast")]) == 5
+    assert len(result.value[("sqlite3", "3.34.1", "slow")]) == 12
+    fast_release = Release(
+        version="3.51.2",
+        platform="2.0",
+        channel="fast",
+        git_url="DEP_Components/_git/contrib_sqlite3",
+        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+    )
+    slow_release = Release(
+        version="3.34.1",
+        platform="2.0",
+        channel="slow",
+        git_url="DEP_Components/_git/contrib_sqlite3",
+        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+    )
+    comp = Component(
+        name="sqlite3",
+        git_project="DEP_Components",
+        git_repo="contrib_sqlite3",
+        releases=[fast_release, slow_release],
+    )
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert len(result.value[("sqlite3", "3.51.2", "fast")]) == 5
+    assert len(result.value[("sqlite3", "3.34.1", "slow")]) == 12

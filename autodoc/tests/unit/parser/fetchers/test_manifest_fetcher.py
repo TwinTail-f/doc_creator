@@ -260,3 +260,100 @@ def test_manifest_fetcher_configure_sets_tfs_client(
     fetcher.configure(ctx)
 
     assert fetcher._tfs is not None
+
+
+# ---------------------------------------------------------------------------
+# UC-M-1: [Section B] Single version, single fast channel
+# ---------------------------------------------------------------------------
+
+
+def test_manifest_fetcher_single_version_single_channel_fast(
+    parser_config: ParserConfigSchema,
+    real_manifests_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """Fetcher returns 1 component / 1 release / channel=='fast' for nlohmann_json_fast_only fixture.
+
+    Uses the synthetic nlohmann_json_fast_only.properties written in Step 0.
+    Confirms the fetcher-parser integration handles the simplest header-only manifest structure.
+    """
+    fixture = real_manifests_dir / "nlohmann_json_fast_only.properties"
+    ctx = _make_context(
+        parser_config,
+        WritingFakeTFSClient(content=fixture.read_text(), filename="nlohmann_json_fast_only.properties"),
+        tmp_path,
+    )
+    fetcher = ManifestFetcher()
+    fetcher.configure(ctx)
+
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
+    components = result.value
+
+    assert len(components) == 1
+    assert len(components[0].releases) == 1
+    assert components[0].releases[0].channel == "fast"
+    assert components[0].releases[0].version == "3.12.0"
+
+
+# ---------------------------------------------------------------------------
+# UC-M-3: [Section B] Multiple versions, single tech channel
+# ---------------------------------------------------------------------------
+
+
+def test_manifest_fetcher_patchelf_two_versions_one_channel(
+    parser_config: ParserConfigSchema,
+    real_manifests_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """Fetcher returns 1 component / 2 releases, both channel=='tech', for patchelf.
+
+    Covers UC-M-3: multiple versions in a single non-fast/slow channel.
+    """
+    ctx = _make_context(
+        parser_config,
+        CopyingFakeTFSClient(real_manifests_dir / "patchelf.properties"),
+        tmp_path,
+    )
+    fetcher = ManifestFetcher()
+    fetcher.configure(ctx)
+
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
+    components = result.value
+
+    assert len(components) == 1
+    assert len(components[0].releases) == 2
+    channels = {r.channel for r in components[0].releases}
+    assert channels == {"tech"}
+
+
+# ---------------------------------------------------------------------------
+# UC-M-5: [Section B] Component from external TFS project (PRG_Quant)
+# ---------------------------------------------------------------------------
+
+
+def test_manifest_fetcher_external_project_no_error(
+    parser_config: ParserConfigSchema,
+    real_manifests_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """Fetcher handles libnetfilter_queue (PRG_Quant project) without errors or warnings.
+
+    Covers UC-M-5: manifest from an external TFS project; the fetcher must not raise
+    or produce unexpected warnings just because the git project is not DEP_Components.
+    """
+    ctx = _make_context(
+        parser_config,
+        CopyingFakeTFSClient(real_manifests_dir / "libnetfilter_queue.properties"),
+        tmp_path,
+    )
+    fetcher = ManifestFetcher()
+    fetcher.configure(ctx)
+
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
+    components = result.value
+
+    assert len(components) == 1
+    assert components[0].git_project == "PRG_Quant"
+    # No unexpected warnings — the fetcher must not treat an external project as an error
+    unexpected = [w for w in result.warnings if "PRG_Quant" in str(w) and "error" in str(w).lower()]
+    assert unexpected == []

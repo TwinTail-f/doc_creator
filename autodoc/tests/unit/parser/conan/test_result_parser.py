@@ -420,3 +420,214 @@ def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> No
 
     assert result is not None
     assert result.default_options == []
+
+
+# ---------------------------------------------------------------------------
+# UC-G-1 — Header-only: NULL_PACKAGE_ID is SHA1 of empty string
+# ---------------------------------------------------------------------------
+
+
+def test_result_parser_nlohmann_json_package_id_equals_null_sha1(
+    nlohmann_json_graph: dict[str, Any],
+    nlohmann_task: ConanTask,
+) -> None:
+    """NULL_PACKAGE_ID value is the SHA1 of empty string — confirms header-only detection."""
+    result = ConanResultParser().parse(nlohmann_json_graph, nlohmann_task)
+    assert result is not None
+    assert result.package_id == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+    assert len(result.package_id) == 40
+
+
+# ---------------------------------------------------------------------------
+# UC-G-2 — Two versions, same channel: patchelf 0.16.1 matches same graph node
+# ---------------------------------------------------------------------------
+
+
+def test_result_parser_patchelf_016_version_uses_same_channel(
+    success_json: dict[str, Any],
+) -> None:
+    """ConanResultParser handles patchelf 0.16.1/tech the same way as 0.18.0/tech.
+
+    Re-uses graph_info_success.json (which has a patchelf node) but with a task
+    whose version is '0.16.1'. The parser matches on name, not version, so the
+    same graph node is found and parsed successfully.
+    """
+    release = Release(version="0.16.1", platform="2.0", channel="tech", git_url="")
+    pb = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
+    task_016 = ConanTask(
+        cmd=[],
+        comp_name="patchelf",
+        version="0.16.1",
+        channel="tech",
+        profile_name="crypto_alpine_gcc_x86_64.jinja",
+        option_id="1",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="https://art.example.com",
+        release=release,
+        pb=pb,
+    )
+    result = ConanResultParser().parse(success_json, task_016)
+    assert result is not None
+    assert result.base_ref.startswith("patchelf/")
+    assert result.conan_settings.get("os.distro") == "alpine"
+
+
+# ---------------------------------------------------------------------------
+# UC-G-3 — Standard component, one version per channel: sqlite3 fast base_ref
+# ---------------------------------------------------------------------------
+
+
+def test_result_parser_sqlite3_fast_base_ref_format(
+    sqlite3_deps_graph: dict[str, Any],
+    sqlite3_task: ConanTask,
+) -> None:
+    """sqlite3 fast base_ref has format 'sqlite3/<version>@platform-2.0/fast' without rrev hash."""
+    result = ConanResultParser().parse(sqlite3_deps_graph, sqlite3_task)
+    assert result is not None
+    assert result.base_ref.startswith("sqlite3/")
+    assert "@platform-2.0/fast" in result.base_ref
+    assert "#" not in result.base_ref
+
+
+# ---------------------------------------------------------------------------
+# UC-G-4 — Pure fast channel, no dependencies: apr/1.7.6
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def apr_task() -> ConanTask:
+    """Minimal ConanTask for apr/1.7.6 (fast channel, no dependencies)."""
+    release = Release(version="1.7.6", platform="2.0", channel="fast", git_url="")
+    pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")
+    return ConanTask(
+        cmd=[],
+        comp_name="apr",
+        version="1.7.6",
+        channel="fast",
+        profile_name="hw-linux-x86_64-gcc10_2",
+        option_id="1",
+        option_str="apr:shared=True",
+        target_platform="2.0",
+        artifactory_base_url="https://art.example.com",
+        release=release,
+        pb=pb,
+    )
+
+
+@pytest.fixture
+def apr_graph(resources_dir: Path) -> dict[str, Any]:
+    """Parsed content of graph_info_apr.json (apr 1.7.6, fast channel, no deps)."""
+    return json.loads((resources_dir / "conan" / "graph_info_apr.json").read_text())
+
+
+def test_result_parser_apr_returns_enrich_data(
+    apr_graph: dict[str, Any],
+    apr_task: ConanTask,
+) -> None:
+    """apr/1.7.6 (fast, no deps) parse() returns ConanEnrichData with correct package_id."""
+    result = ConanResultParser().parse(apr_graph, apr_task)
+    assert result is not None
+    assert result.package_id == "7741115342fe6159bd16463d6d349e4c02e33237"
+
+
+def test_result_parser_apr_no_dependencies(
+    apr_graph: dict[str, Any],
+    apr_task: ConanTask,
+) -> None:
+    """apr has no dependency nodes — dependencies list must be empty."""
+    result = ConanResultParser().parse(apr_graph, apr_task)
+    assert result is not None
+    assert result.dependencies == []
+
+
+def test_result_parser_apr_fast_channel_in_base_ref(
+    apr_graph: dict[str, Any],
+    apr_task: ConanTask,
+) -> None:
+    """apr base_ref must contain '@platform-2.0/fast' (fast channel, not slow or tech)."""
+    result = ConanResultParser().parse(apr_graph, apr_task)
+    assert result is not None
+    assert "@platform-2.0/fast" in result.base_ref
+
+
+def test_result_parser_apr_has_default_options(
+    apr_graph: dict[str, Any],
+    apr_task: ConanTask,
+) -> None:
+    """apr node carries default_options (shared, fPIC, …) — list must be non-empty."""
+    result = ConanResultParser().parse(apr_graph, apr_task)
+    assert result is not None
+    assert len(result.default_options) > 0
+    names = [opt.name for opt in result.default_options]
+    assert "shared" in names
+
+
+# ---------------------------------------------------------------------------
+# UC-G-5 — Dependencies: libnetfilter_queue dep names are plain (no version/@)
+# ---------------------------------------------------------------------------
+
+
+def test_result_parser_libnetfilter_queue_deps_are_plain_names(
+    libnetfilter_queue_graph: dict[str, Any],
+    libnetfilter_queue_task: ConanTask,
+) -> None:
+    """Dependency entries in result.dependencies are bare component names (no version or @)."""
+    result = ConanResultParser().parse(libnetfilter_queue_graph, libnetfilter_queue_task)
+    assert result is not None
+    for dep in result.dependencies:
+        assert "/" not in dep, f"dependency '{dep}' should be a bare name, not a reference"
+        assert "@" not in dep, f"dependency '{dep}' contains a conan reference part"
+
+
+# ---------------------------------------------------------------------------
+# UC-G-7 — Version-range resolution error: stunnel
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def stunnel_error_graph(resources_dir: Path) -> dict[str, Any]:
+    """Parsed content of graph_info_stunnel_error.json (version range could not be resolved)."""
+    return json.loads((resources_dir / "conan" / "graph_info_stunnel_error.json").read_text())
+
+
+@pytest.fixture
+def stunnel_task() -> ConanTask:
+    """Minimal ConanTask for stunnel/5.77 where version range resolution fails."""
+    release = Release(version="5.77", platform="2.0", channel="fast", git_url="")
+    pb = ProfileBuild(profile_name="crypto_default_gcc_x86_64.jinja")
+    return ConanTask(
+        cmd=[],
+        comp_name="stunnel",
+        version="5.77",
+        channel="fast",
+        profile_name="crypto_default_gcc_x86_64.jinja",
+        option_id="1",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="https://art.example.com",
+        release=release,
+        pb=pb,
+    )
+
+
+def test_result_parser_stunnel_error_graph_returns_none(
+    stunnel_error_graph: dict[str, Any],
+    stunnel_task: ConanTask,
+) -> None:
+    """parse() returns None when the graph contains only root node and a graph.error block.
+
+    This simulates a version-range resolution failure (e.g. stunnel/[~5.77,...] not found).
+    The parser must not raise and must return None — no stunnel node exists in the graph.
+    """
+    result = ConanResultParser().parse(stunnel_error_graph, stunnel_task)
+    assert result is None
+
+
+def test_result_parser_stunnel_error_graph_has_error_field(
+    stunnel_error_graph: dict[str, Any],
+) -> None:
+    """The stunnel error fixture contains a non-null graph.error block."""
+    error_block = stunnel_error_graph.get("graph", {}).get("error")
+    assert error_block is not None
+    assert "could not be resolved" in error_block.get("error", "")

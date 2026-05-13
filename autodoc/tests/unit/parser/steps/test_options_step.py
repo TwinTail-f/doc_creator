@@ -213,3 +213,78 @@ def test_options_step_configure_called_before_fetch(
     step = OptionsResolveStep(fetcher=fake)
     step.execute(parser_pipeline_context)
     assert fake.configure_called is True
+
+
+# ---------------------------------------------------------------------------
+# UC-M-2 + UC-O-3: Single fast-channel component with a named option
+# ---------------------------------------------------------------------------
+
+
+def test_options_step_apr_single_shared_option(
+    parser_config,
+    tmp_path: Path,
+) -> None:
+    """apr/fast gets exactly 1 build_option_set with 'apr:shared=True' (UC-M-2 / UC-O-3)."""
+    options_map: OptionsMap = {("apr", "1.7.6", "fast"): {"1": "apr:shared=True"}}
+    comp = _make_component("apr", [_make_release("1.7.6", "fast")])
+    ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])
+    step = OptionsResolveStep(fetcher=FakeFetcher(value=options_map))
+    step.execute(ctx)
+
+    build_sets = ctx.components[0].releases[0].build_option_sets
+    assert len(build_sets) == 1
+    assert build_sets[0].options == "apr:shared=True"
+    assert build_sets[0].parsed_options == {"shared": "True"}
+
+
+# ---------------------------------------------------------------------------
+# UC-M-5 + UC-O-1: External-project component (PRG_Quant) with empty option
+# ---------------------------------------------------------------------------
+
+
+def test_options_step_libnetfilter_queue_single_empty_option(
+    parser_config,
+    tmp_path: Path,
+) -> None:
+    """libnetfilter_queue/slow (PRG_Quant) gets 1 empty build_option_set (UC-M-5 / UC-O-1)."""
+    options_map: OptionsMap = {("libnetfilter_queue", "1.0.5", "slow"): {"1": ""}}
+    comp = _make_component("libnetfilter_queue", [_make_release("1.0.5", "slow")])
+    ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])
+    step = OptionsResolveStep(fetcher=FakeFetcher(value=options_map))
+    step.execute(ctx)
+
+    build_sets = ctx.components[0].releases[0].build_option_sets
+    assert len(build_sets) == 1
+    assert build_sets[0].options == ""
+
+
+# ---------------------------------------------------------------------------
+# UC-M-4: Two-channel component — fast and slow get different option counts
+# ---------------------------------------------------------------------------
+
+
+def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
+    parser_config,
+    tmp_path: Path,
+) -> None:
+    """sqlite3 with both fast (5 options) and slow (12 options) releases — each gets its own set.
+
+    Covers UC-M-4: standard component built in two channels with different option sets.
+    """
+    options_map: OptionsMap = {
+        ("sqlite3", "3.51.2", "fast"): {str(i): f"opt{i}" for i in range(1, 6)},
+        ("sqlite3", "3.34.1", "slow"): {str(i): f"opt{i}" for i in range(1, 13)},
+    }
+    comp = _make_component(
+        "sqlite3",
+        [_make_release("3.51.2", "fast"), _make_release("3.34.1", "slow")],
+    )
+    ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])
+    step = OptionsResolveStep(fetcher=FakeFetcher(value=options_map))
+    step.execute(ctx)
+
+    releases = ctx.components[0].releases
+    fast_rel = next(r for r in releases if r.channel == "fast")
+    slow_rel = next(r for r in releases if r.channel == "slow")
+    assert len(fast_rel.build_option_sets) == 5
+    assert len(slow_rel.build_option_sets) == 12
