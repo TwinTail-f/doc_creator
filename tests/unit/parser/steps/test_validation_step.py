@@ -8,7 +8,6 @@ from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 
-
 # ---------------------------------------------------------------------------
 # T3.7 — Make ParallelExecutor synchronous in all tests in this module
 # ---------------------------------------------------------------------------
@@ -30,6 +29,7 @@ def _make_executor_synchronous(mocker) -> None:
         "autodoc.parser.steps.validation_step.ParallelExecutor.execute",
         side_effect=_run_synchronously,
     )
+
 
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"

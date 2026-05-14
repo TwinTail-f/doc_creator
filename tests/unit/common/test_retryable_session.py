@@ -111,8 +111,8 @@ def test_retryable_session_uses_exponential_backoff() -> None:
     assert retry.backoff_factor == _BACKOFF_FACTOR
     # Verify that second delay > first delay for the configured backoff_factor.
     # Delay formula: backoff_factor * (2 ** (retry_index - 1))
-    first_delay: float = _BACKOFF_FACTOR * (2 ** 0)   # retry 1 → backoff_factor * 1
-    second_delay: float = _BACKOFF_FACTOR * (2 ** 1)  # retry 2 → backoff_factor * 2
+    first_delay: float = _BACKOFF_FACTOR * (2**0)  # retry 1 → backoff_factor * 1
+    second_delay: float = _BACKOFF_FACTOR * (2**1)  # retry 2 → backoff_factor * 2
     assert second_delay > first_delay
 
 

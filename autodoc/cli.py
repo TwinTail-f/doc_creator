@@ -494,10 +494,10 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     filepath = cli_ctx.configs_dir / config_file
-    is_valid, error = cli_ctx.config_manager.validate_config_file(str(filepath))
-
-    if not is_valid:
-        console.print(f"❌ Файл невалиден: {error}", style="red bold")
+    try:
+        cli_ctx.config_manager.validate_config_file(str(filepath))
+    except ConfigError as e:
+        console.print(f"❌ Файл невалиден: {e}", style="red bold")
         sys.exit(1)
 
     console.print(f"✅ Синтаксис файла корректен: {config_file}", style="green bold")

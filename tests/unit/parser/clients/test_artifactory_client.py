@@ -61,4 +61,3 @@ def test_artifactory_client_satisfies_protocol(parser_config) -> None:
     client = ArtifactoryClient.__new__(ArtifactoryClient)
 
     assert isinstance(client, IArtifactoryClient)
-

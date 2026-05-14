@@ -134,7 +134,11 @@ def test_parser_sqlite3_many_profiles(
     )
     assert len(components) == 1
     fast_release = next(
-        (r for r in components[0].releases if r.version == "3.51.2" and r.channel == "fast"),
+        (
+            r
+            for r in components[0].releases
+            if r.version == "3.51.2" and r.channel == "fast"
+        ),
         None,
     )
     assert fast_release is not None
@@ -282,12 +286,12 @@ def test_manifest_parser_platform_without_suffix_empty_channel(tmp_path: Path) -
     assert components[0].releases[0].channel == ""
 
 
-def test_manifest_parser_missing_profiles_key_skips_version_pair(tmp_path: Path) -> None:
+def test_manifest_parser_missing_profiles_key_skips_version_pair(
+    tmp_path: Path,
+) -> None:
     """ManifestParser skips a version pair for which no matching profiles key exists."""
     content = (
-        "name= libfoo\n"
-        "versions.component= 1.0\n"
-        "versions.platform= 2.0-tech\n"
+        "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
     )
     path = write_props(tmp_path, "libfoo.properties", content)
     components, _ = ManifestParser(TARGET_PLATFORM).parse(
@@ -335,7 +339,9 @@ def test_manifest_parser_include_mode_empty_list_returns_all(tmp_path: Path) -> 
     assert len(components) == 2
 
 
-def test_manifest_parser_exact_match_does_not_affect_similar_names(tmp_path: Path) -> None:
+def test_manifest_parser_exact_match_does_not_affect_similar_names(
+    tmp_path: Path,
+) -> None:
     """Exact-match filtering: excluding 'sqlite3' must not affect 'sqlite3_ext'."""
     sqlite3_content = (
         "name= sqlite3\n"
@@ -384,7 +390,11 @@ def test_parser_nlohmann_json_fast_release_has_one_profile(
         filter_mode="exclude",
     )
     fast_release = next(
-        (r for r in components[0].releases if r.version == "3.12.0" and r.channel == "fast"),
+        (
+            r
+            for r in components[0].releases
+            if r.version == "3.12.0" and r.channel == "fast"
+        ),
         None,
     )
     assert fast_release is not None

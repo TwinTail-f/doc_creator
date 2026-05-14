@@ -7,7 +7,6 @@ from autodoc.parser.steps.docker_step import DockerResolveStep
 DockerLinksMap = dict[str, str]
 
 
-
 # ---------------------------------------------------------------------------
 # Тесты
 # ---------------------------------------------------------------------------

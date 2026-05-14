@@ -181,7 +181,9 @@ def test_finalize_step_raises_parsing_error_on_validation_failure(
 
     # Patch on the class — Python passes `self` as the first argument,
     # so the side_effect must accept (self, ctx), not just (ctx).
-    mocker.patch.object(FinalizeStep, "_build_result", side_effect=_force_validation_error)
+    mocker.patch.object(
+        FinalizeStep, "_build_result", side_effect=_force_validation_error
+    )
     parser_pipeline_context.components = []
     step = FinalizeStep()
 
@@ -222,9 +224,6 @@ def test_finalize_step_deduplication_last_occurrence_wins(
     assert survivors[0].docker_image == _IMAGE_V2, "Last occurrence must win"
 
 
-
-
-
 def test_finalize_step_sets_header_only_for_nlohmann_json(
     parser_pipeline_context,
 ) -> None:
@@ -236,7 +235,11 @@ def test_finalize_step_sets_header_only_for_nlohmann_json(
     pb = ProfileBuild(
         profile_name="hw-linux-x86_64-gcc10_2",
         exists=True,
-        variants=[ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")],
+        variants=[
+            ConanVariant(
+                package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1"
+            )
+        ],
     )
     rel = Release(
         version="3.9.1",
@@ -268,7 +271,11 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
         pb = ProfileBuild(
             profile_name="hw-linux-x86_64-gcc10_2",
             exists=True,
-            variants=[ConanVariant(package_id=REAL_PKG, build_url="", build_date="", options_ref="1")],
+            variants=[
+                ConanVariant(
+                    package_id=REAL_PKG, build_url="", build_date="", options_ref="1"
+                )
+            ],
         )
         return Release(
             version=version,
@@ -278,7 +285,9 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
             profile_builds=[pb],
         )
 
-    comp = Component(name="patchelf", releases=[_make_rel("0.16.1"), _make_rel("0.18.0")])
+    comp = Component(
+        name="patchelf", releases=[_make_rel("0.16.1"), _make_rel("0.18.0")]
+    )
     parser_pipeline_context.components = [comp]
 
     FinalizeStep().execute(parser_pipeline_context)
@@ -298,7 +307,14 @@ def test_finalize_step_preserves_prg_quant_component(
     pb = ProfileBuild(
         profile_name="hw-linux-armv7-gcc10_2",
         exists=True,
-        variants=[ConanVariant(package_id="46bf0ba807876c7591c702abfa2ba19d3133f1af", build_url="", build_date="", options_ref="1")],
+        variants=[
+            ConanVariant(
+                package_id="46bf0ba807876c7591c702abfa2ba19d3133f1af",
+                build_url="",
+                build_date="",
+                options_ref="1",
+            )
+        ],
     )
     rel = Release(
         version="1.0.5",
@@ -307,7 +323,9 @@ def test_finalize_step_preserves_prg_quant_component(
         git_url="PRG_Quant/_git/contrib_libnetfilter_queue",
         profile_builds=[pb],
     )
-    comp_lfq = Component(name="libnetfilter_queue", git_project="PRG_Quant", releases=[rel])
+    comp_lfq = Component(
+        name="libnetfilter_queue", git_project="PRG_Quant", releases=[rel]
+    )
     comp_apr = Component(name="apr", releases=[])
     parser_pipeline_context.components = [comp_lfq, comp_apr]
 
@@ -326,7 +344,14 @@ def test_finalize_step_sqlite3_dependencies_preserved(
     pb = ProfileBuild(
         profile_name="crypto_default_gcc_armv7hf.jinja",
         exists=True,
-        variants=[ConanVariant(package_id="8c7b3c7905519eea8fda5ff9dde7fbefec90da76", build_url="", build_date="", options_ref="1")],
+        variants=[
+            ConanVariant(
+                package_id="8c7b3c7905519eea8fda5ff9dde7fbefec90da76",
+                build_url="",
+                build_date="",
+                options_ref="1",
+            )
+        ],
     )
     rel = Release(
         version="3.51.2",
@@ -355,9 +380,15 @@ def test_finalize_step_removes_non_existing_profiles(
     by verifying the filter preserves multiple surviving entries correctly — a meaningfully
     different scenario that catches off-by-one or first-only removal bugs.
     """
-    pb_live1 = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[])
-    pb_live2 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[])
-    pb_dead = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[])
+    pb_live1 = ProfileBuild(
+        profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[]
+    )
+    pb_live2 = ProfileBuild(
+        profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[]
+    )
+    pb_dead = ProfileBuild(
+        profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[]
+    )
     rel = Release(
         version="1.0.0",
         platform="2.0",

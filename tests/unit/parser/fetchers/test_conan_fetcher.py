@@ -77,7 +77,13 @@ def _patch_full_fetch_pipeline(
     mock_agg_cls.return_value.aggregate.return_value = ConanEnrichmentResult()
     mock_agg_cls.return_value.build_execution_report.return_value = []
 
-    return mock_builder_cls, mock_env_cls, mock_runner_cls, mock_executor_cls, mock_agg_cls
+    return (
+        mock_builder_cls,
+        mock_env_cls,
+        mock_runner_cls,
+        mock_executor_cls,
+        mock_agg_cls,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -241,12 +247,18 @@ def test_conan_fetcher_aggregation_errors_in_result(
     errors are stored in result.value.errors (not in FetchResult.warnings).
     This test verifies that aggregator errors are not silently dropped.
     """
-    _mock_builder_cls, _mock_env_cls, _mock_runner_cls, _mock_executor_cls, mock_agg_cls = (
-        _patch_full_fetch_pipeline(mocker)
-    )
+    (
+        _mock_builder_cls,
+        _mock_env_cls,
+        _mock_runner_cls,
+        _mock_executor_cls,
+        mock_agg_cls,
+    ) = _patch_full_fetch_pipeline(mocker)
 
     expected_errors: dict = {
-        "openssl": {"1.0.0": {"stable": {"hw-linux-x86_64-gcc10_2": ["graph info failed"]}}}
+        "openssl": {
+            "1.0.0": {"stable": {"hw-linux-x86_64-gcc10_2": ["graph info failed"]}}
+        }
     }
     enrichment_result_with_errors = ConanEnrichmentResult(errors=expected_errors)
     mock_agg_cls.return_value.aggregate.return_value = enrichment_result_with_errors

@@ -146,25 +146,33 @@ def missing_json(resources_dir: Path) -> dict[str, Any]:
 @pytest.fixture
 def nlohmann_json_graph(resources_dir: Path) -> dict[str, Any]:
     """Parsed content of graph_info_nlohmann_json.json (header-only, NULL_PACKAGE_ID)."""
-    return json.loads((resources_dir / "conan" / "graph_info_nlohmann_json.json").read_text())
+    return json.loads(
+        (resources_dir / "conan" / "graph_info_nlohmann_json.json").read_text()
+    )
 
 
 @pytest.fixture
 def sqlite3_deps_graph(resources_dir: Path) -> dict[str, Any]:
     """Parsed content of graph_info_sqlite3_with_deps.json (sqlite3 with tcl dep)."""
-    return json.loads((resources_dir / "conan" / "graph_info_sqlite3_with_deps.json").read_text())
+    return json.loads(
+        (resources_dir / "conan" / "graph_info_sqlite3_with_deps.json").read_text()
+    )
 
 
 @pytest.fixture
 def libnetfilter_queue_graph(resources_dir: Path) -> dict[str, Any]:
     """Parsed content of graph_info_libnetfilter_queue.json (libmnl + libnfnetlink deps)."""
-    return json.loads((resources_dir / "conan" / "graph_info_libnetfilter_queue.json").read_text())
+    return json.loads(
+        (resources_dir / "conan" / "graph_info_libnetfilter_queue.json").read_text()
+    )
 
 
 @pytest.fixture
 def poco_missing_graph(resources_dir: Path) -> dict[str, Any]:
     """Parsed content of graph_info_poco_missing.json (poco with binary=Missing)."""
-    return json.loads((resources_dir / "conan" / "graph_info_poco_missing.json").read_text())
+    return json.loads(
+        (resources_dir / "conan" / "graph_info_poco_missing.json").read_text()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +313,9 @@ def test_result_parser_libnetfilter_queue_returns_result(
     libnetfilter_queue_task: ConanTask,
 ) -> None:
     """libnetfilter_queue parse() returns a result with correct package_id."""
-    result = ConanResultParser().parse(libnetfilter_queue_graph, libnetfilter_queue_task)
+    result = ConanResultParser().parse(
+        libnetfilter_queue_graph, libnetfilter_queue_task
+    )
 
     assert result is not None
     assert result.package_id == "46bf0ba807876c7591c702abfa2ba19d3133f1af"
@@ -316,7 +326,9 @@ def test_result_parser_libnetfilter_queue_two_deps(
     libnetfilter_queue_task: ConanTask,
 ) -> None:
     """libnetfilter_queue graph has libmnl and libnfnetlink nodes — both appear in dependencies."""
-    result = ConanResultParser().parse(libnetfilter_queue_graph, libnetfilter_queue_task)
+    result = ConanResultParser().parse(
+        libnetfilter_queue_graph, libnetfilter_queue_task
+    )
 
     assert result is not None
     assert "libmnl" in result.dependencies
@@ -573,10 +585,14 @@ def test_result_parser_libnetfilter_queue_deps_are_plain_names(
     libnetfilter_queue_task: ConanTask,
 ) -> None:
     """Dependency entries in result.dependencies are bare component names (no version or @)."""
-    result = ConanResultParser().parse(libnetfilter_queue_graph, libnetfilter_queue_task)
+    result = ConanResultParser().parse(
+        libnetfilter_queue_graph, libnetfilter_queue_task
+    )
     assert result is not None
     for dep in result.dependencies:
-        assert "/" not in dep, f"dependency '{dep}' should be a bare name, not a reference"
+        assert (
+            "/" not in dep
+        ), f"dependency '{dep}' should be a bare name, not a reference"
         assert "@" not in dep, f"dependency '{dep}' contains a conan reference part"
 
 
@@ -588,7 +604,9 @@ def test_result_parser_libnetfilter_queue_deps_are_plain_names(
 @pytest.fixture
 def stunnel_error_graph(resources_dir: Path) -> dict[str, Any]:
     """Parsed content of graph_info_stunnel_error.json (version range could not be resolved)."""
-    return json.loads((resources_dir / "conan" / "graph_info_stunnel_error.json").read_text())
+    return json.loads(
+        (resources_dir / "conan" / "graph_info_stunnel_error.json").read_text()
+    )
 
 
 @pytest.fixture

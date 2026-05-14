@@ -32,10 +32,10 @@ def test_parallel_executor_results_in_submission_order() -> None:
     This is the most critical test in this file.
     """
     sleep_durations: list[float] = [
-        _SLEEP_LONG_SEC,   # task 0 — finishes last
+        _SLEEP_LONG_SEC,  # task 0 — finishes last
         _SLEEP_SHORT_SEC * 2,
         _SLEEP_SHORT_SEC,
-        0.0,               # task 3 — finishes first
+        0.0,  # task 3 — finishes first
     ]
     expected_values: list[int] = list(range(_TASK_COUNT))
 
@@ -63,6 +63,7 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
     If one task raises, its slot becomes None while the remaining tasks
     run to completion. No exception propagates to the caller.
     """
+
     def task_fn(index: int) -> int | None:
         """Return the index for tasks 0 and 2; raise ValueError for task 1."""
         if index == 1:
@@ -88,6 +89,7 @@ def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
 
     All results are None; no exception propagates to the caller.
     """
+
     def always_fail(_: Any) -> None:
         raise RuntimeError("always fails")
 

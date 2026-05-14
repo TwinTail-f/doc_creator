@@ -6,7 +6,6 @@ from autodoc.models.component import Component
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.manifest_step import ManifestStep
 
-
 # ---------------------------------------------------------------------------
 # Тесты
 # ---------------------------------------------------------------------------
@@ -74,6 +73,3 @@ def test_manifest_step_is_critical() -> None:
 # ---------------------------------------------------------------------------
 # New tests: UC-M-1/3/5 step-level coverage
 # ---------------------------------------------------------------------------
-
-
-

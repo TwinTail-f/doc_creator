@@ -136,10 +136,11 @@ def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
     mock_parser.parse.assert_not_called()
     assert ("openssl", "3.0.0", "tech") not in result.release_data
 
-    warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    warning_messages = [
+        r.message for r in caplog.records if r.levelno == logging.WARNING
+    ]
     assert any(
-        "None" in m or "crashed" in m or "cancelled" in m
-        for m in warning_messages
+        "None" in m or "crashed" in m or "cancelled" in m for m in warning_messages
     ), "A WARNING must be logged when a None raw result is encountered"
 
 
@@ -238,7 +239,10 @@ def test_aggregator_two_profiles_same_release() -> None:
     pb1 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
     pb2 = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2")
     release = Release(
-        version="0.18.0", platform="2.0", channel="tech", git_url="",
+        version="0.18.0",
+        platform="2.0",
+        channel="tech",
+        git_url="",
         profile_builds=[pb1, pb2],
     )
 
@@ -276,10 +280,12 @@ def test_aggregator_two_profiles_same_release() -> None:
     )
     mock_parser = MagicMock(spec=ConanResultParser)
     mock_parser.parse.return_value = enrich
-    raw = ConanRawResult(success=True, data={'graph': {'nodes': {}}})
+    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
     result = ConanResultAggregator(result_parser=mock_parser).aggregate(
-        [task1, task2], [raw, raw],
-        art_base="https://art.example.com", target_platform="2.0",
+        [task1, task2],
+        [raw, raw],
+        art_base="https://art.example.com",
+        target_platform="2.0",
     )
 
     # Exactly one entry in release_data for this release
@@ -328,17 +334,15 @@ def test_aggregator_records_version_range_error_message() -> None:
     raw = ConanRawResult(success=False, data=None, error=error_msg)
 
     aggregator = ConanResultAggregator(result_parser=ConanResultParser())
-    result = aggregator.aggregate(
-        [task], [raw], art_base="", target_platform="2.0"
-    )
+    result = aggregator.aggregate([task], [raw], art_base="", target_platform="2.0")
 
-    assert "stunnel" in result.errors, (
-        f"Expected 'stunnel' in errors keys, got: {list(result.errors.keys())}"
-    )
+    assert (
+        "stunnel" in result.errors
+    ), f"Expected 'stunnel' in errors keys, got: {list(result.errors.keys())}"
     stunnel_errors = result.errors["stunnel"]
     version_errors = stunnel_errors.get("5.77", {})
     channel_errors = version_errors.get("fast", {})
     profile_errors = channel_errors.get("crypto_default_gcc_x86_64.jinja", [])
-    assert any("not resolved" in str(e) or "Version range" in str(e) for e in profile_errors), (
-        f"Error message not found in profile_errors: {profile_errors}"
-    )
+    assert any(
+        "not resolved" in str(e) or "Version range" in str(e) for e in profile_errors
+    ), f"Error message not found in profile_errors: {profile_errors}"

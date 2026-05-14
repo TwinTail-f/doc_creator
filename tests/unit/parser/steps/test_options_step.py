@@ -13,7 +13,6 @@ from autodoc.models.types import OptionsMap
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.options_step import OptionsResolveStep
 
-
 # ---------------------------------------------------------------------------
 # Local helpers
 # ---------------------------------------------------------------------------

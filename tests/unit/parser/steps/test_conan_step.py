@@ -15,7 +15,6 @@ EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
 )
 
 
-
 # ---------------------------------------------------------------------------
 # Тесты
 # ---------------------------------------------------------------------------
@@ -132,7 +131,10 @@ def test_conan_step_applies_conan_results_to_components(
     )
     parser_pipeline_context.components = [comp]
     conan_result = _make_conan_result(
-        "patchelf", "0.18.0", "tech", pb,
+        "patchelf",
+        "0.18.0",
+        "tech",
+        pb,
         package_id="461534fe50686ce31d073dc24f005bd12e08c9fd",
     )
     fake = make_fake_fetcher(value=conan_result)
@@ -156,7 +158,10 @@ def test_conan_step_header_only_component_variants_stored(
     )
     parser_pipeline_context.components = [comp]
     conan_result = _make_conan_result(
-        "nlohmann_json", "3.9.1", "slow", pb,
+        "nlohmann_json",
+        "3.9.1",
+        "slow",
+        pb,
         package_id=NULL_PACKAGE_ID,
     )
     fake = make_fake_fetcher(value=conan_result)
@@ -179,7 +184,10 @@ def test_conan_step_component_with_dependencies(
     )
     parser_pipeline_context.components = [comp]
     conan_result = _make_conan_result(
-        "libnetfilter_queue", "1.0.5", "slow", pb,
+        "libnetfilter_queue",
+        "1.0.5",
+        "slow",
+        pb,
         package_id="46bf0ba807876c7591c702abfa2ba19d3133f1af",
         deps=["libmnl", "libnfnetlink"],
     )
@@ -217,7 +225,9 @@ def test_conan_step_apr_fast_channel_no_dependencies(
     with apr data. After ConanEnrichStep.execute, the apr release's dependencies
     list must be empty (apr has no runtime deps in production).
     """
-    comp, rel, pb = _make_release_with_pb("apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2")
+    comp, rel, pb = _make_release_with_pb(
+        "apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2"
+    )
     parser_pipeline_context.components = [comp]
     conan_result = _make_conan_result(
         "apr",
@@ -230,9 +240,9 @@ def test_conan_step_apr_fast_channel_no_dependencies(
     fake = make_fake_fetcher(value=conan_result)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
-    assert rel.dependencies == [] or rel.dependencies is None, (
-        f"Expected empty dependencies for apr, got: {rel.dependencies}"
-    )
+    assert (
+        rel.dependencies == [] or rel.dependencies is None
+    ), f"Expected empty dependencies for apr, got: {rel.dependencies}"
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +262,9 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
     information in ctx.intermediate['conan_report'].
     """
     error_entry = {
-        "5.77": {"fast": {"crypto_default_gcc_x86_64.jinja": ["Version range not resolved"]}}
+        "5.77": {
+            "fast": {"crypto_default_gcc_x86_64.jinja": ["Version range not resolved"]}
+        }
     }
     fake_result = ConanEnrichmentResult(
         release_data={},
@@ -267,6 +279,6 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
 
     conan_report = parser_pipeline_context.intermediate.get("conan_report")
     assert conan_report is not None
-    assert "stunnel" in str(conan_report), (
-        f"Expected 'stunnel' error to appear in conan report, got: {conan_report}"
-    )
+    assert "stunnel" in str(
+        conan_report
+    ), f"Expected 'stunnel' error to appear in conan report, got: {conan_report}"

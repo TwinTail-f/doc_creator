@@ -8,7 +8,9 @@ from typing import Any
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
 
-_NOT_CONFIGURED_MSG: str = "fetch() called before configure(). Call configure(ctx) first."
+_NOT_CONFIGURED_MSG: str = (
+    "fetch() called before configure(). Call configure(ctx) first."
+)
 
 
 class FetcherBase[T](ABC):

@@ -20,7 +20,6 @@ from autodoc.common.logger import logger
 from autodoc.parser.clients.tfs_client_enums import RecursionLevel, VersionType
 
 
-
 class TFSClient:
     """
     Клиент для выполнения запросов к TFS с автоматической retry-логикой.

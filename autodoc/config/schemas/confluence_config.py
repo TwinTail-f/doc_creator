@@ -71,4 +71,3 @@ class ConfluenceConfigSchema(BaseModel):
         description='Подпись текущего релиза (например "Platform 2.2"). '
         "Используется в заголовке паспортов и метке вкладки релиза.",
     )
-

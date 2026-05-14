@@ -86,6 +86,23 @@ class ConfigManager:
             logger.error(str(e))
             return None
 
+    def list_available_configs(self) -> dict[str, list[str]]:
+        """
+        Lists available config files in configs_dir, grouped by format.
+
+        Returns a dict mapping format extension (without leading dot) to a sorted
+        list of filenames found in configs_dir for that format.
+        """
+        result: dict[str, list[str]] = {
+            ext.lstrip("."): [] for ext in self.SUPPORTED_FORMATS
+        }
+        if not self.configs_dir.is_dir():
+            return result
+        for item in sorted(self.configs_dir.iterdir()):
+            if item.is_file() and item.suffix.lower() in self.SUPPORTED_FORMATS:
+                result[item.suffix.lower().lstrip(".")].append(item.name)
+        return result
+
     def load_raw(self, filename: str) -> dict[str, Any]:
         """
         Загружает конфиг-файл без схемной валидации.

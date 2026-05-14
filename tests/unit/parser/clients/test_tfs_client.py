@@ -182,6 +182,7 @@ def test_tfs_client_download_properties_raises_on_listing_failure(
             output_dir=str(tmp_path),
         )
 
+
 # ---------------------------------------------------------------------------
 # Соответствие протоколу: TFSClient удовлетворяет TFSClientProtocol
 # ---------------------------------------------------------------------------

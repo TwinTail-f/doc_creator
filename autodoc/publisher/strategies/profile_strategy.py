@@ -15,7 +15,9 @@ from autodoc.publisher.converters.profile_converter import ProfileCentricConvert
 _DEFAULT_TEMPLATE: str = "profile_centric.jinja2"
 
 
-class ProfileCentricStrategy(SinglePagePublishStrategy, strategy_type="profile_centric"):
+class ProfileCentricStrategy(
+    SinglePagePublishStrategy, strategy_type="profile_centric"
+):
     """
     Публикует профиль-центричную документацию релиза на одной странице Confluence.
 

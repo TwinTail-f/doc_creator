@@ -280,7 +280,9 @@ class TestTimeoutForwarding:
 # ---------------------------------------------------------------------------
 
 
-def test_confluence_client_satisfies_protocol(minimal_confluence_config: dict, mocker) -> None:
+def test_confluence_client_satisfies_protocol(
+    minimal_confluence_config: dict, mocker
+) -> None:
     """ConfluenceClient must satisfy IConfluenceClient at runtime."""
     from autodoc.publisher.clients.confluence_client import ConfluenceClient
     from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient

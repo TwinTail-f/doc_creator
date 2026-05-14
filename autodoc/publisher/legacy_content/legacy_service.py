@@ -5,6 +5,7 @@ External callers (strategies, publisher) should import exclusively from this
 module. Internal modules (legacy_extractor, legacy_merger, _html_utils) are
 implementation details and subject to change.
 """
+
 from autodoc.common.logger import logger
 from autodoc.publisher.legacy_content.legacy_extractor import extract_platform_versions
 
