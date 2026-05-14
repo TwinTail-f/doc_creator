@@ -7,12 +7,13 @@
 удовлетворяет этому протоколу структурно (duck typing), без явного наследования.
 """
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
 
 
+@runtime_checkable
 class PipelineContextProtocol(Protocol):
     """
     Минимальный интерфейс контекста пайплайна, необходимый фетчерам.

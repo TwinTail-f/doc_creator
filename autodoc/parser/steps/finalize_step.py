@@ -47,7 +47,10 @@ class FinalizeStep(BaseParseStep):
         ctx.profile_definitions = self._deduplicate_profile_definitions(
             ctx.profile_definitions
         )
-        ctx.result = self._build_result(ctx)
+        try:
+            ctx.result = self._build_result(ctx)
+        except PydanticValidationError as exc:
+            raise ParsingError(f"Result validation failed: {exc}") from exc
 
     # SHA1 от пустой строки — стандартный нулевой package_id Conan.
     # Conan выставляет его для header-only пакетов.
@@ -111,7 +114,18 @@ class FinalizeStep(BaseParseStep):
         self,
         definitions: list[ProfileDefinition],
     ) -> list[ProfileDefinition]:
-        """Дедуплицирует по profile_name, сохраняя последнюю записанную запись."""
+        """Return deduplicated ProfileDefinition list; last occurrence wins.
+
+        When two ProfileDefinition objects share the same profile_name, the one
+        appearing later in the input list is retained. This matches the pipeline
+        override pattern where later steps may produce more complete profile data.
+
+        Args:
+            definitions: Input list, may contain duplicate profile_name values.
+
+        Returns:
+            List with unique profile_name values; last-seen entry survives.
+        """
         seen: dict[str, ProfileDefinition] = {}
         for pd in definitions:
             seen[pd.profile_name] = pd

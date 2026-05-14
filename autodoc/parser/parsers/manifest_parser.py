@@ -134,6 +134,9 @@ class ManifestParser:
             if name in component_names:
                 logger.debug(f"Компонент {name} исключён (режим exclude)")
                 return _FileParseResult(is_excluded=True)
+        # NOTE: An empty 'include' list means "no filter active" — all components
+        # are returned. This is intentional. To include nothing, pass a non-empty
+        # list that matches no component names.
         elif filter_mode == "include":
             if component_names and name not in component_names:
                 logger.debug(

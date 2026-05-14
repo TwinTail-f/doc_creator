@@ -32,6 +32,7 @@ from autodoc.models.options import TotalOptionsSet
 from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
+from autodoc.common.logger import logger
 
 
 class ConanResultAggregator:
@@ -79,6 +80,10 @@ class ConanResultAggregator:
 
         for task, raw in zip(tasks, raw_results):
             if raw is None:
+                logger.warning(
+                    "ConanResultAggregator: received None raw result — "
+                    "a parallel task may have crashed or been cancelled."
+                )
                 continue
             agg = pb_agg[id(task.pb)]
             if raw.success and raw.data:

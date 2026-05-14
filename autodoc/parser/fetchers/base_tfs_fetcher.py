@@ -17,4 +17,5 @@ class BaseTFSFetcher[T](FetcherBase[T]):
 
     def __init__(self) -> None:
         """Инициализирует фетчер; ``_tfs`` заполняется в методе ``configure()``."""
+        super().__init__()
         self._tfs: TFSClientProtocol | None = None
