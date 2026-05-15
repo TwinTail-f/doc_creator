@@ -29,7 +29,6 @@ def make_release(
         version=version,
         platform="2.0",
         channel=channel,
-        git_url="proj/_git/repo",
         profile_builds=[ProfileBuild(profile_name=p) for p in profiles],
     )
     if opts:

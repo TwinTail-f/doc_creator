@@ -21,6 +21,7 @@ class FullReleaseConverter(BaseReleaseConverter):
         rel: Any,
         comp_name: str,
         pd_map: dict[str, Any],
+        comp_is_header_only: bool = False,
     ) -> dict[str, Any]:
         """
         Формирует view-model одного релиза, включая варианты сборки.
@@ -29,6 +30,7 @@ class FullReleaseConverter(BaseReleaseConverter):
             rel: Объект Release.
             comp_name: Имя компонента-владельца (для квалификации опций).
             pd_map: Словарь ``{profile_name: ProfileDefinition}``.
+            comp_is_header_only: Флаг header-only с уровня компонента.
 
         Returns:
             Словарь с полными данными релиза для шаблона.
@@ -39,7 +41,7 @@ class FullReleaseConverter(BaseReleaseConverter):
             "channel": rel.channel,
             "conan_reference": rel.conan_reference,
             "artifactory_url": rel.artifactory_url,
-            "is_header_only": rel.is_header_only,
+            "is_header_only": comp_is_header_only,
             "profile_builds": [
                 {
                     "profile_name": pb.profile_name,
@@ -89,7 +91,9 @@ class FullReleaseConverter(BaseReleaseConverter):
                     "name": comp.name,
                     "description": comp.description,
                     "releases": [
-                        self._build_release_view(rel, comp.name, pd_map)
+                        self._build_release_view(
+                            rel, comp.name, pd_map, comp.is_header_only
+                        )
                         for rel in comp.releases
                     ],
                 }

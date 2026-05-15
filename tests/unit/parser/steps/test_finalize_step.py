@@ -42,7 +42,6 @@ def _make_release(profile_builds: list[ProfileBuild]) -> Release:
         version="1.0.0",
         platform="2.0",
         channel="tech",
-        git_url="DEP/_git/lib",
         profile_builds=profile_builds,
     )
 
@@ -60,7 +59,7 @@ def _make_component(name: str, release: Release) -> Component:
 def test_finalize_step_sets_header_only_true(
     parser_pipeline_context,
 ) -> None:
-    """is_header_only равен True, когда все варианты всех профилей имеют нулевой package_id."""
+    """is_header_only равен True на компоненте, когда все варианты всех профилей имеют нулевой package_id."""
     pb1 = ProfileBuild(
         profile_name="profile_a", exists=True, variants=[_null_variant()]
     )
@@ -68,38 +67,41 @@ def test_finalize_step_sets_header_only_true(
         profile_name="profile_b", exists=True, variants=[_null_variant()]
     )
     release = _make_release([pb1, pb2])
-    parser_pipeline_context.components = [_make_component("mylib", release)]
+    comp = _make_component("mylib", release)
+    parser_pipeline_context.components = [comp]
     step = FinalizeStep()
     step.execute(parser_pipeline_context)
-    assert release.is_header_only is True
+    assert comp.is_header_only is True
 
 
 def test_finalize_step_sets_header_only_false_on_mixed(
     parser_pipeline_context,
 ) -> None:
-    """is_header_only равен False, когда хотя бы один вариант имеет реальный package_id."""
+    """is_header_only равен False на компоненте, когда хотя бы один вариант имеет реальный package_id."""
     pb = ProfileBuild(
         profile_name="profile_a",
         exists=True,
         variants=[_null_variant(), _real_variant()],
     )
     release = _make_release([pb])
-    parser_pipeline_context.components = [_make_component("mylib", release)]
+    comp = _make_component("mylib", release)
+    parser_pipeline_context.components = [comp]
     step = FinalizeStep()
     step.execute(parser_pipeline_context)
-    assert release.is_header_only is False
+    assert comp.is_header_only is False
 
 
 def test_finalize_step_sets_header_only_false_on_no_variants(
     parser_pipeline_context,
 ) -> None:
-    """is_header_only равен False, когда у релиза нет вариантов вообще."""
+    """is_header_only равен False на компоненте, когда нет вариантов вообще."""
     pb = ProfileBuild(profile_name="profile_a", exists=True, variants=[])
     release = _make_release([pb])
-    parser_pipeline_context.components = [_make_component("mylib", release)]
+    comp = _make_component("mylib", release)
+    parser_pipeline_context.components = [comp]
     step = FinalizeStep()
     step.execute(parser_pipeline_context)
-    assert release.is_header_only is False
+    assert comp.is_header_only is False
 
 
 def test_finalize_step_removes_profile_build_with_exists_false(
@@ -245,7 +247,6 @@ def test_finalize_step_sets_header_only_for_nlohmann_json(
         version="3.9.1",
         platform="2.0",
         channel="slow",
-        git_url="DEP/_git/contrib_nlohmann_json",
         profile_builds=[pb],
     )
     comp = Component(name="nlohmann_json", releases=[rel])
@@ -255,7 +256,7 @@ def test_finalize_step_sets_header_only_for_nlohmann_json(
 
     assert parser_pipeline_context.result is not None
     result_comp = parser_pipeline_context.result.components[0]
-    assert result_comp.releases[0].is_header_only is True
+    assert result_comp.is_header_only is True
 
 
 def test_finalize_step_patchelf_two_versions_not_header_only(
@@ -281,7 +282,6 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
             version=version,
             platform="2.0",
             channel="tech",
-            git_url="DEP/_git/contrib_patchelf",
             profile_builds=[pb],
         )
 
@@ -294,7 +294,7 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
 
     result_comp = parser_pipeline_context.result.components[0]
     assert len(result_comp.releases) == 2
-    assert all(not r.is_header_only for r in result_comp.releases)
+    assert not result_comp.is_header_only
 
 
 def test_finalize_step_preserves_prg_quant_component(
@@ -320,7 +320,6 @@ def test_finalize_step_preserves_prg_quant_component(
         version="1.0.5",
         platform="2.0",
         channel="slow",
-        git_url="PRG_Quant/_git/contrib_libnetfilter_queue",
         profile_builds=[pb],
     )
     comp_lfq = Component(
@@ -357,7 +356,6 @@ def test_finalize_step_sqlite3_dependencies_preserved(
         version="3.51.2",
         platform="2.0",
         channel="fast",
-        git_url="DEP/_git/contrib_sqlite3",
         profile_builds=[pb],
     )
     rel.dependencies = ["icu", "tcl"]
@@ -393,7 +391,6 @@ def test_finalize_step_removes_non_existing_profiles(
         version="1.0.0",
         platform="2.0",
         channel="slow",
-        git_url="DEP/_git/repo",
         profile_builds=[pb_live1, pb_live2, pb_dead],
     )
     comp = Component(name="somelib", releases=[rel])

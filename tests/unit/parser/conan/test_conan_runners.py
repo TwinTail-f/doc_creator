@@ -31,7 +31,6 @@ def _make_task() -> ConanTask:
         version="1.2.13",
         platform="2.0",
         channel="fast",
-        git_url="DEP_Components/_git/contrib_zlib",
         profile_builds=[],
     )
     pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")

@@ -37,7 +37,6 @@ def _release(
         version=version,
         platform="2.0",
         channel=channel,
-        git_url="DEP_Components/_git/contrib_openssl",
         profile_builds=[pb],
     )
     comp = Component(name=name, releases=[rel])

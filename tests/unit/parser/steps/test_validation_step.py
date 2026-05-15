@@ -60,7 +60,6 @@ def _make_component_with_variant(
         version="1.0.0",
         platform="2.0",
         channel="tech",
-        git_url="DEP/_git/lib",
         profile_builds=[pb],
     )
     component = Component(
@@ -207,7 +206,6 @@ def test_collect_variants_collects_all_variants(
             version="1.0.0",
             platform="2.0",
             channel="tech",
-            git_url="DEP/_git/lib",
             profile_builds=profile_builds,
         )
         components.append(

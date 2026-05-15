@@ -70,10 +70,15 @@ def _make_component(name, repo, version, channel, project="DEP_Components"):
         version=version,
         platform="2.0",
         channel=channel,
-        git_url=f"{project}/_git/{repo}",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
-    return Component(name=name, git_project=project, git_repo=repo, releases=[release])
+    return Component(
+        name=name,
+        git_project=project,
+        git_repo=repo,
+        git_url=f"{project}/_git/{repo}",
+        releases=[release],
+    )
 
 
 def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path):
@@ -189,14 +194,12 @@ def test_options_fetcher_patchelf_two_versions_share_options(
                 version="0.16.1",
                 platform="2.0",
                 channel="tech",
-                git_url="DEP_Components/_git/contrib_patchelf",
                 profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
             ),
             Release(
                 version="0.18.0",
                 platform="2.0",
                 channel="tech",
-                git_url="DEP_Components/_git/contrib_patchelf",
                 profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
             ),
         ],
@@ -286,7 +289,6 @@ def test_options_fetcher_empty_items_returns_empty_map(
         version="3.0.0",
         platform="2.0",
         channel="tech",
-        git_url="DEP_Components/_git/contrib_openssl",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
     comp = Component(
@@ -317,7 +319,6 @@ def test_options_fetcher_invalid_json_does_not_raise_openssl_alias(
         version="3.0.0",
         platform="2.0",
         channel="tech",
-        git_url="DEP_Components/_git/contrib_openssl",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
     comp = Component(
@@ -426,14 +427,12 @@ def test_options_fetcher_sqlite3_fast_channel_specific_options(
         version="3.51.2",
         platform="2.0",
         channel="fast",
-        git_url="DEP_Components/_git/contrib_sqlite3",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
     slow_release = Release(
         version="3.34.1",
         platform="2.0",
         channel="slow",
-        git_url="DEP_Components/_git/contrib_sqlite3",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
     comp = Component(

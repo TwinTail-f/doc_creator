@@ -190,14 +190,13 @@ def test_parser_git_url_contains_tfs_collection_url(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
 ) -> None:
-    """release.git_url starts with the configured TFS collection URL."""
+    """component.git_url starts with the configured TFS collection URL."""
     components, _ = parser_20.parse(
         [real_manifests_dir / "apr.properties"],
         component_names=[],
         filter_mode="exclude",
     )
-    for rel in components[0].releases:
-        assert rel.git_url.startswith(TFS_COLLECTION_URL)
+    assert components[0].git_url.startswith(TFS_COLLECTION_URL)
 
 
 def test_parser_invalid_properties_skipped_with_warning(
@@ -301,7 +300,7 @@ def test_manifest_parser_missing_profiles_key_skips_version_pair(
 
 
 def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
-    """ManifestParser builds release.git_url starting with tfs_collection_url when set."""
+    """ManifestParser builds component.git_url starting with tfs_collection_url when set."""
     content = (
         "name= openssl\n"
         "versions.component= 1.0\n"
@@ -314,7 +313,7 @@ def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
     components, _ = ManifestParser(
         TARGET_PLATFORM, tfs_collection_url=TFS_COLLECTION_URL
     ).parse([path], component_names=[], filter_mode="exclude")
-    assert components[0].releases[0].git_url.startswith(TFS_COLLECTION_URL)
+    assert components[0].git_url.startswith(TFS_COLLECTION_URL)
 
 
 def test_manifest_parser_include_mode_empty_list_returns_all(tmp_path: Path) -> None:
@@ -554,13 +553,13 @@ def test_parser_libnetfilter_queue_git_url_points_to_prg_quant(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
 ) -> None:
-    """libnetfilter_queue git_url contains 'PRG_Quant' — the external team project."""
+    """libnetfilter_queue component.git_url contains 'PRG_Quant' — the external team project."""
     components, _ = parser_20.parse(
         [real_manifests_dir / "libnetfilter_queue.properties"],
         component_names=[],
         filter_mode="exclude",
     )
-    assert any("PRG_Quant" in r.git_url for r in components[0].releases)
+    assert "PRG_Quant" in components[0].git_url
 
 
 def test_parser_libnetfilter_queue_single_slow_release_for_platform_20(

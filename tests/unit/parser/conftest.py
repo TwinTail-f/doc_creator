@@ -78,7 +78,6 @@ def manifest_release() -> Release:
         version="1.0.0",
         platform="2.0",
         channel="tech",
-        git_url="DEP_Components/_git/contrib_openssl",
         profile_builds=[pb],
     )
 

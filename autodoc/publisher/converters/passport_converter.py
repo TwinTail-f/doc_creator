@@ -161,9 +161,9 @@ class PassportConverter(BaseDataConverter):
             target_rel, target_comp.name, pd_map, os_map, bos_map
         )
 
-        # Базовый URL репозитория (без query-параметров) — для построения ссылок на патчи.
+        # Базовый URL репозитория — теперь хранится на уровне компонента.
         # Ветка вида GBrelease_{version} — стандартное соглашение TFS для бранчей релизов.
-        _raw_git_url: str = target_rel.git_url or ""
+        _raw_git_url: str = target_comp.git_url or ""
         git_repo_base_url: str = (
             _raw_git_url.split("?")[0] if "?" in _raw_git_url else _raw_git_url
         )
@@ -173,12 +173,12 @@ class PassportConverter(BaseDataConverter):
             "version": target_rel.version,
             "platform": target_rel.platform,
             "channel": target_rel.channel,
-            "git_url": target_rel.git_url,
+            "git_url": target_comp.git_url,
             "git_repo_base_url": git_repo_base_url,
             "git_branch_version": git_branch_version,
             "conan_reference": target_rel.conan_reference,
             "artifactory_url": target_rel.artifactory_url,
-            "is_header_only": target_rel.is_header_only,
+            "is_header_only": target_comp.is_header_only,
             "build_option_sets": [
                 bos.model_dump() for bos in target_rel.build_option_sets
             ],

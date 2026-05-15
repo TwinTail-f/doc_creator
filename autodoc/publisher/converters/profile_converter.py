@@ -42,7 +42,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
         profile_meta: dict[str, dict[str, Any]] = {}
         for comp in data.components:
             for rel in comp.releases:
-                if rel.is_header_only:
+                if comp.is_header_only:
                     continue
                 for pb in rel.profile_builds:
                     if pb.profile_name not in profile_meta:
@@ -90,7 +90,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
                 has_profile_build = any(
                     pb.profile_name == profile_name for pb in rel.profile_builds
                 )
-                if not rel.is_header_only and not has_profile_build:
+                if not comp.is_header_only and not has_profile_build:
                     continue
                 if rel.channel not in entry["channels"]:
                     entry["channels"][rel.channel] = []

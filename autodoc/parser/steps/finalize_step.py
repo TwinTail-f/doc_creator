@@ -31,7 +31,7 @@ class FinalizeStep(BaseParseStep):
         """
         Финализирует результаты пайплайна.
 
-        Вычисляет флаги ``is_header_only``, удаляет профили с ``exists=False``,
+        Вычисляет флаги ``is_header_only`` на уровне компонента, удаляет профили с ``exists=False``,
         сортирует компоненты по имени и собирает ``ParsedResult``.
 
         Args:
@@ -62,13 +62,13 @@ class FinalizeStep(BaseParseStep):
         profile_definitions: list[ProfileDefinition],
     ) -> None:
         """
-        Устанавливает флаг ``is_header_only`` для каждого ``Release``.
+        Устанавливает флаг ``is_header_only`` для каждого ``Component``.
 
-        Критерий: ВСЕ варианты во всех профилях имеют нулевой package_id
+        Критерий: ВСЕ варианты во всех релизах и профилях компонента имеют нулевой package_id
         (``da39a3ee5e6b4b0d3255bfef95601890afd80709`` - SHA1 от пустой строки).
         Именно такой package_id Conan выставляет header-only пакетам.
 
-        Если у релиза нет ни одного варианта — флаг устанавливается в ``False``.
+        Если у компонента нет ни одного варианта — флаг устанавливается в ``False``.
 
         Args:
             components: Список компонентов для обработки.
@@ -77,18 +77,20 @@ class FinalizeStep(BaseParseStep):
         null_id = self._NULL_PACKAGE_ID
 
         for comp in components:
-            for release in comp.releases:
-                all_variants = [
-                    variant for pb in release.profile_builds for variant in pb.variants
-                ]
+            all_variants = [
+                variant
+                for release in comp.releases
+                for pb in release.profile_builds
+                for variant in pb.variants
+            ]
 
-                if not all_variants:
-                    release.is_header_only = False
-                    continue
+            if not all_variants:
+                comp.is_header_only = False
+                continue
 
-                release.is_header_only = all(
-                    variant.package_id == null_id for variant in all_variants
-                )
+            comp.is_header_only = all(
+                variant.package_id == null_id for variant in all_variants
+            )
 
     def _filter_empty_profiles(self, components: list[Component]) -> int:
         """

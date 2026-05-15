@@ -31,7 +31,7 @@ def _make_task(
     profile_name: str = "hw-linux-x86_64",
 ) -> ConanTask:
     """Возвращает минимальный ConanTask для тестов агрегации."""
-    release = Release(version=version, platform="2.0", channel=channel, git_url="")
+    release = Release(version=version, platform="2.0", channel=channel)
     pb = ProfileBuild(profile_name=profile_name)
     return ConanTask(
         cmd=["conan", "graph", "info"],
@@ -242,7 +242,6 @@ def test_aggregator_two_profiles_same_release() -> None:
         version="0.18.0",
         platform="2.0",
         channel="tech",
-        git_url="",
         profile_builds=[pb1, pb2],
     )
 
@@ -316,7 +315,7 @@ def test_aggregator_records_version_range_error_message() -> None:
         "'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' required by 'None' "
         "could not be resolved. Required by 'cli'"
     )
-    release = Release(version="5.77", platform="2.0", channel="fast", git_url="")
+    release = Release(version="5.77", platform="2.0", channel="fast")
     pb = ProfileBuild(profile_name="crypto_default_gcc_x86_64.jinja")
     task = ConanTask(
         cmd=["conan", "graph", "info", "--requires=stunnel/[~5.77]@platform-2.0/fast"],

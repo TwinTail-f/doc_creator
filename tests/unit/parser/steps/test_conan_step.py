@@ -71,7 +71,6 @@ def _make_release_with_pb(name: str, version: str, channel: str, profile_name: s
         version=version,
         platform="2.0",
         channel=channel,
-        git_url="DEP/_git/repo",
         profile_builds=[pb],
     )
     comp = Component(name=name, releases=[rel])

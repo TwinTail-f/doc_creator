@@ -83,18 +83,29 @@ def test_styles_passport_template_renders_without_error(
     """
     from autodoc.models.release import Release
 
-    component = Component(name="testlib", description="A test library", releases=[])
+    GIT_URL = "https://tfs.example.com/_git/testlib"
+    component = Component(
+        name="testlib",
+        description="A test library",
+        git_url=GIT_URL,
+        is_header_only=False,
+        releases=[],
+    )
     release = Release(
         version="1.0.0",
         platform="2.0",
         channel="fast",
-        git_url="https://tfs.example.com/_git/testlib",
         profile_builds=[],
     )
+    release_dict = release.model_dump()
+    release_dict["git_url"] = component.git_url
+    release_dict["git_repo_base_url"] = component.git_url
+    release_dict["git_branch_version"] = f"GBrelease_{release.version}"
+    release_dict["is_header_only"] = component.is_header_only
     view_model: dict[str, Any] = {
         "target_platform": "2.0",
         "component": component.model_dump(),
-        "release": release.model_dump(),
+        "release": release_dict,
         "profile_definitions": [],
         "legacy_contents": {},
     }

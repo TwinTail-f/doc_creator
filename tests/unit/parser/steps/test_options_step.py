@@ -24,7 +24,6 @@ def _make_release(version: str, channel: str) -> Release:
         version=version,
         platform="2.0",
         channel=channel,
-        git_url="DEP/_git/repo",
         profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
     )
 

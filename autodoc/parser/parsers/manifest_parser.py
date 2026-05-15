@@ -38,7 +38,7 @@ class ManifestParser:
                              для фильтрации релизов манифестов.
             tfs_collection_url: Базовый URL коллекции TFS
                                  формирует полные ссылки на
-                                 репозиторий в поле ``git_url`` каждого Release,
+                                 репозиторий в поле ``git_url`` каждого Component,
                                  с учётом ``tfs_git_project`` из манифеста.
         """
         self._target_platform = target_platform
@@ -148,11 +148,24 @@ class ManifestParser:
         if not releases:
             return _FileParseResult()
 
+        git_project = props.get("tfs_git_project", "")
+        git_repo = props.get("git_repo_name", "")
+        git_repo_part = f"{git_project}/_git/{git_repo}" if git_repo else ""
+        if self._tfs_collection_url and git_project and git_repo:
+            component_git_url = (
+                f"{self._tfs_collection_url}/{git_project}/_git/{git_repo}"
+            )
+        elif git_repo_part:
+            component_git_url = git_repo_part
+        else:
+            component_git_url = ""
+
         component = Component(
             name=name,
             description=props.get("description", ""),
-            git_project=props.get("tfs_git_project", ""),
-            git_repo=props.get("git_repo_name", ""),
+            git_project=git_project,
+            git_repo=git_repo,
+            git_url=component_git_url,
             releases=releases,
         )
         return _FileParseResult(component=component)
@@ -170,8 +183,6 @@ class ManifestParser:
             for v in props.get("versions.platform", "").split(",")
             if v.strip()
         ]
-        git_project = props.get("tfs_git_project", "")
-        git_repo = props.get("git_repo_name", "")
         releases: list[Release] = []
 
         for p_ver in plat_versions:
@@ -185,22 +196,11 @@ class ManifestParser:
                     continue
                 channel = p_ver.split("-")[1] if "-" in p_ver else ""
                 profile_list = [p.strip() for p in profiles_str.split(",") if p.strip()]
-                git_repo_part = f"{git_project}/_git/{git_repo}" if git_repo else ""
-                if self._tfs_collection_url and git_project and git_repo:
-                    full_git_url = (
-                        f"{self._tfs_collection_url}/{git_project}/_git/{git_repo}"
-                        f"?path=%2F&version=GBrelease_{c_ver}"
-                    )
-                elif git_repo_part:
-                    full_git_url = git_repo_part
-                else:
-                    full_git_url = ""
                 releases.append(
                     Release(
                         version=c_ver,
                         platform=target_platform,
                         channel=channel,
-                        git_url=full_git_url,
                         profile_builds=[
                             ProfileBuild(profile_name=prof) for prof in profile_list
                         ],

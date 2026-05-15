@@ -16,7 +16,6 @@ class Release(BaseModel):
     version: str = Field(..., description="Версия компонента")
     platform: str = Field(..., description="Целевая платформа")
     channel: str = Field(..., description='Conan-канал (например "fast")')
-    git_url: str = Field(..., description="URL репозитория в Git/TFS")
 
     conan_reference: str = Field(
         default="", description="Ссылка Conan (name/version@user/channel)"
@@ -35,11 +34,6 @@ class Release(BaseModel):
     patches: list[str] = Field(default_factory=list, description="Список патчей")
     dependencies: list[str] = Field(
         default_factory=list, description="Список зависимостей"
-    )
-
-    is_header_only: bool = Field(
-        default=False,
-        description="True — header-only компонент (нет бинарных артефактов)",
     )
 
     total_option_sets: list[TotalOptionsSet] = Field(

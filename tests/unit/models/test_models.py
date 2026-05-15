@@ -25,7 +25,6 @@ MINIMAL_RELEASE_KWARGS: dict = {
     "version": "1.0.0",
     "platform": "2.0",
     "channel": "tech",
-    "git_url": "PROJ/_git/repo",
 }
 
 
@@ -137,11 +136,17 @@ def test_profile_build_default_exists_is_false() -> None:
 
 
 def test_release_defaults_are_empty_collections() -> None:
-    """Release.build_option_sets и profile_builds по умолчанию [], is_header_only — False."""
+    """Release.build_option_sets и profile_builds по умолчанию []."""
     instance = Release(**MINIMAL_RELEASE_KWARGS)
     assert instance.build_option_sets == []
     assert instance.profile_builds == []
+
+
+def test_component_defaults_is_header_only_false() -> None:
+    """Component.is_header_only по умолчанию False, git_url по умолчанию пустая строка."""
+    instance = Component(name="mylib")
     assert instance.is_header_only is False
+    assert instance.git_url == ""
 
 
 # ===========================================================================

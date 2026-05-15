@@ -33,12 +33,13 @@ def result_with_header_only_unique_profile(
         variants=[],
     )
     original_comp = publisher_multi_component_result.components[0]
-    header_only_release = original_comp.releases[1]  # 2.0.0 stable, is_header_only=True
-    patched_header = header_only_release.model_copy(
-        update={"profile_builds": [header_pb]}
-    )
+    second_release = original_comp.releases[1]  # 2.0.0 stable
+    patched_header = second_release.model_copy(update={"profile_builds": [header_pb]})
     patched_comp = original_comp.model_copy(
-        update={"releases": [original_comp.releases[0], patched_header]}
+        update={
+            "releases": [original_comp.releases[0], patched_header],
+            "is_header_only": True,
+        }
     )
     components = [patched_comp] + list(publisher_multi_component_result.components[1:])
     return publisher_multi_component_result.model_copy(

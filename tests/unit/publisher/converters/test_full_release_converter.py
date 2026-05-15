@@ -122,12 +122,33 @@ class TestFullReleaseConverter:
         assert ghost_pb["docker_image"] == ""
         assert ghost_pb["conan_settings"] == {}
 
-    def test_full_release_transform_header_only_release_has_empty_profile_builds(
+    def test_full_release_transform_header_only_flag_comes_from_component(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
-        """A header-only release has an empty profile_builds list in the view model."""
+        """is_header_only in each release view model reflects the parent component's flag."""
+        # Mark openssl component as header-only
+        original_comp = publisher_multi_component_result.components[0]
+        patched_comp = original_comp.model_copy(update={"is_header_only": True})
+        patched_result = publisher_multi_component_result.model_copy(
+            update={
+                "components": [patched_comp]
+                + list(publisher_multi_component_result.components[1:])
+            }
+        )
+        result = FullReleaseConverter().transform(patched_result)
+
+        openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
+        # All releases of a header-only component carry is_header_only=True
+        assert all(r["is_header_only"] for r in openssl_entry["releases"])
+
+    def test_full_release_transform_release_with_no_profile_builds_has_empty_list(
+        self, publisher_multi_component_result: ParsedResult
+    ) -> None:
+        """A release with no profile_builds produces an empty profile_builds list in the view model."""
         result = FullReleaseConverter().transform(publisher_multi_component_result)
 
         openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-        header_only = next(r for r in openssl_entry["releases"] if r["is_header_only"])
-        assert header_only["profile_builds"] == []
+        empty_pb_release = next(
+            r for r in openssl_entry["releases"] if not r["profile_builds"]
+        )
+        assert empty_pb_release["profile_builds"] == []

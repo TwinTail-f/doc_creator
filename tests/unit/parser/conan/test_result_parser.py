@@ -29,7 +29,7 @@ NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 @pytest.fixture
 def conan_task() -> ConanTask:
     """Minimal ConanTask for patchelf/0.18.0 from graph_info_success.json."""
-    release = Release(version="0.18.0", platform="2.0", channel="tech", git_url="")
+    release = Release(version="0.18.0", platform="2.0", channel="tech")
     pb = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
     return ConanTask(
         cmd=["conan", "graph", "info"],
@@ -49,7 +49,7 @@ def conan_task() -> ConanTask:
 @pytest.fixture
 def nlohmann_task() -> ConanTask:
     """Minimal ConanTask for nlohmann_json/3.9.1 (header-only)."""
-    release = Release(version="3.9.1", platform="2.0", channel="slow", git_url="")
+    release = Release(version="3.9.1", platform="2.0", channel="slow")
     pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")
     return ConanTask(
         cmd=[],
@@ -69,7 +69,7 @@ def nlohmann_task() -> ConanTask:
 @pytest.fixture
 def sqlite3_task() -> ConanTask:
     """Minimal ConanTask for sqlite3/3.51.2 with tcl dependency."""
-    release = Release(version="3.51.2", platform="2.0", channel="fast", git_url="")
+    release = Release(version="3.51.2", platform="2.0", channel="fast")
     pb = ProfileBuild(profile_name="crypto_default_gcc_armv7hf.jinja")
     return ConanTask(
         cmd=[],
@@ -89,7 +89,7 @@ def sqlite3_task() -> ConanTask:
 @pytest.fixture
 def libnetfilter_queue_task() -> ConanTask:
     """Minimal ConanTask for libnetfilter_queue/1.0.5 (PRG_Quant project)."""
-    release = Release(version="1.0.5", platform="2.0", channel="slow", git_url="")
+    release = Release(version="1.0.5", platform="2.0", channel="slow")
     pb = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2")
     return ConanTask(
         cmd=[],
@@ -109,7 +109,7 @@ def libnetfilter_queue_task() -> ConanTask:
 @pytest.fixture
 def poco_task() -> ConanTask:
     """Minimal ConanTask for poco/1.10.0 where binary=Missing."""
-    release = Release(version="1.10.0", platform="2.0", channel="slow", git_url="")
+    release = Release(version="1.10.0", platform="2.0", channel="slow")
     pb = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2")
     return ConanTask(
         cmd=[],
@@ -464,7 +464,7 @@ def test_result_parser_patchelf_016_version_uses_same_channel(
     whose version is '0.16.1'. The parser matches on name, not version, so the
     same graph node is found and parsed successfully.
     """
-    release = Release(version="0.16.1", platform="2.0", channel="tech", git_url="")
+    release = Release(version="0.16.1", platform="2.0", channel="tech")
     pb = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
     task_016 = ConanTask(
         cmd=[],
@@ -510,7 +510,7 @@ def test_result_parser_sqlite3_fast_base_ref_format(
 @pytest.fixture
 def apr_task() -> ConanTask:
     """Minimal ConanTask for apr/1.7.6 (fast channel, no dependencies)."""
-    release = Release(version="1.7.6", platform="2.0", channel="fast", git_url="")
+    release = Release(version="1.7.6", platform="2.0", channel="fast")
     pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")
     return ConanTask(
         cmd=[],
@@ -612,7 +612,7 @@ def stunnel_error_graph(resources_dir: Path) -> dict[str, Any]:
 @pytest.fixture
 def stunnel_task() -> ConanTask:
     """Minimal ConanTask for stunnel/5.77 where version range resolution fails."""
-    release = Release(version="5.77", platform="2.0", channel="fast", git_url="")
+    release = Release(version="5.77", platform="2.0", channel="fast")
     pb = ProfileBuild(profile_name="crypto_default_gcc_x86_64.jinja")
     return ConanTask(
         cmd=[],

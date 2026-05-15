@@ -189,10 +189,8 @@ def publisher_release(publisher_profile_build: ProfileBuild) -> Release:
         version="1.0.0",
         platform="2.0",
         channel="tech",
-        git_url="https://tfs.example.com/DEP_Components/_git/contrib_openssl",
         conan_reference="openssl/1.0.0@platform/2.0-tech",
         artifactory_url="https://art.example.com/conan/openssl/1.0.0",
-        is_header_only=False,
         profile_builds=[publisher_profile_build],
         total_option_sets=[total_opts],
         build_option_sets=[build_opts],
@@ -207,6 +205,8 @@ def publisher_component(publisher_release: Release) -> Component:
         description="OpenSSL TLS/SSL library",
         git_project="DEP_Components",
         git_repo="contrib_openssl",
+        git_url="https://tfs.example.com/DEP_Components/_git/contrib_openssl",
+        is_header_only=False,
         releases=[publisher_release],
     )
 
@@ -250,10 +250,8 @@ def publisher_multi_component_result(
         version="1.0.0",
         platform="2.0",
         channel="tech",
-        git_url="https://tfs.example.com/repo1",
         conan_reference="openssl/1.0.0@platform/2.0-tech",
         artifactory_url="https://art.example.com/openssl",
-        is_header_only=False,
         profile_builds=[
             ProfileBuild(
                 profile_name="hw-linux-x86_64-gcc10",
@@ -274,10 +272,8 @@ def publisher_multi_component_result(
         version="2.0.0",
         platform="2.0",
         channel="stable",
-        git_url="https://tfs.example.com/repo1",
         conan_reference="openssl/2.0.0@platform/2.0-stable",
         artifactory_url="https://art.example.com/openssl2",
-        is_header_only=True,
         profile_builds=[],
         total_option_sets=[],
     )
@@ -286,6 +282,8 @@ def publisher_multi_component_result(
         description="TLS library",
         git_project="DEP",
         git_repo="contrib_openssl",
+        git_url="https://tfs.example.com/repo1",
+        is_header_only=False,
         releases=[rel1, rel2],
     )
     comp2 = Component(
@@ -293,15 +291,15 @@ def publisher_multi_component_result(
         description="Compression library",
         git_project="DEP",
         git_repo="contrib_zlib",
+        git_url="https://tfs.example.com/repo2",
+        is_header_only=False,
         releases=[
             Release(
                 version="1.2.11",
                 platform="2.0",
                 channel="tech",
-                git_url="https://tfs.example.com/repo2",
                 conan_reference="zlib/1.2.11@platform/2.0-tech",
                 artifactory_url="https://art.example.com/zlib",
-                is_header_only=False,
                 profile_builds=[
                     ProfileBuild(
                         profile_name="hw-linux-x86_64-gcc10",
