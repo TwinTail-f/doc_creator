@@ -38,7 +38,6 @@ class ManifestStep(BaseParseStep):
             component_names=ctx.config.component_names or [],
             filter_mode=ctx.config.component_filter_mode,
         )
-        if result.warnings:
-            for w in result.warnings:
+        for w in result.warnings:
                 logger.warning(w)
         ctx.components = result.value

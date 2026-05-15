@@ -53,12 +53,7 @@ class ParserConfigSchema(BaseModel):
     @field_validator("tfs_collection_url")
     @classmethod
     def normalize_tfs_collection_url(cls, v: str) -> str:
-        stripped = v.strip()
-        if not stripped.startswith(("http://", "https://")):
-            raise ValueError(
-                "tfs_collection_url должен начинаться с http:// или https://"
-            )
-        return stripped.rstrip("/")
+        return v.strip().rstrip("/")
 
     manifests_remotes_path: str = Field(
         ...,
