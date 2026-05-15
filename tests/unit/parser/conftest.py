@@ -160,6 +160,84 @@ class FakeTFSClient:
         """Ничего не делает по умолчанию (файлы не записываются)."""
 
 
+# ---------------------------------------------------------------------------
+# Factory helpers (module-level, importable by test modules — not fixtures)
+# ---------------------------------------------------------------------------
+
+#: SHA-1 of the empty string — Conan's sentinel package_id for header-only packages.
+NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
+
+def make_component(
+    name: str = "mylib",
+    version: str = "1.0",
+    channel: str = "fast",
+    profiles: list[str] | None = None,
+    git_url: str = "",
+    is_header_only: bool = False,
+) -> Component:
+    """Component factory that produces one Release with the requested profiles.
+
+    Reflects the migration of ``git_url`` and ``is_header_only`` from
+    ``Release`` to ``Component`` introduced in the DE/FS refactoring.
+
+    Args:
+        name: Component name used as both the Conan package name and the
+            ``Component.name`` field.
+        version: Release version string (e.g. ``"1.0"``).
+        channel: Conan channel name (e.g. ``"fast"``).
+        profiles: List of profile names to attach to the release.  Defaults
+            to ``["hw-linux-x86_64"]``.
+        git_url: Git repository URL — now lives on ``Component``, not ``Release``.
+        is_header_only: Header-only sentinel flag — now lives on ``Component``.
+
+    Returns:
+        A fully-constructed ``Component`` with one ``Release`` and one
+        ``ProfileBuild`` per entry in ``profiles``.
+    """
+    profile_names = profiles or ["hw-linux-x86_64"]
+    pbs = [ProfileBuild(profile_name=p) for p in profile_names]
+    release = Release(
+        version=version,
+        platform="2.2",
+        channel=channel,
+        conan_reference="",
+        artifactory_url="",
+        profile_builds=pbs,
+    )
+    return Component(
+        name=name,
+        description="",
+        git_project="Proj",
+        git_repo="repo",
+        git_url=git_url,
+        is_header_only=is_header_only,
+        releases=[release],
+    )
+
+
+def make_conan_variant(
+    package_id: str = "abc123",
+    options_ref: str = "1",
+) -> ConanVariant:
+    """Minimal ``ConanVariant`` factory with sensible defaults.
+
+    Args:
+        package_id: Conan package hash (use ``NULL_PACKAGE_ID`` for
+            header-only scenarios).
+        options_ref: Identifier string referencing a ``TotalOptionsSet``.
+
+    Returns:
+        A ``ConanVariant`` instance ready for use in enrichment tests.
+    """
+    return ConanVariant(
+        package_id=package_id,
+        build_url="http://art/pkg",
+        build_date="2024-01-01",
+        options_ref=options_ref,
+    )
+
+
 class CopyingAllFakeTFSClient(FakeTFSClient):
     """Copies every .properties file from a source directory into output_dir on download_properties."""
 

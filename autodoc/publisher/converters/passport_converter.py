@@ -100,7 +100,7 @@ class PassportConverter(BaseDataConverter):
             Список dict-записей, совместимых с шаблоном ``component_passport.jinja2``.
         """
         enriched_pbs = []
-        for pb in target_rel.profile_builds:
+        for pb in sorted(target_rel.profile_builds, key=lambda p: p.profile_name):
             pd = pd_map.get(pb.profile_name)
             settings = dict(pd.conan_settings) if pd else {}
             docker_image = pd.docker_image if pd else ""

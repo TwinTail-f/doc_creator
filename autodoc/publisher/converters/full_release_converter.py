@@ -36,13 +36,10 @@ class FullReleaseConverter(BaseReleaseConverter):
             Словарь с полными данными релиза для шаблона.
         """
         os_map: dict[str, dict] = {os_.id: os_.options for os_ in rel.total_option_sets}
-        return {
-            "version": rel.version,
-            "channel": rel.channel,
-            "conan_reference": rel.conan_reference,
-            "artifactory_url": rel.artifactory_url,
-            "is_header_only": comp_is_header_only,
-            "profile_builds": [
+        profile_builds: list[dict] = (
+            []
+            if comp_is_header_only
+            else [
                 {
                     "profile_name": pb.profile_name,
                     "conan_settings": (
@@ -66,7 +63,16 @@ class FullReleaseConverter(BaseReleaseConverter):
                     ],
                 }
                 for pb in rel.profile_builds
-            ],
+            ]
+        )
+        return {
+            "version": rel.version,
+            "channel": rel.channel,
+            "conan_reference": rel.conan_reference,
+            "artifactory_url": rel.artifactory_url,
+            "is_header_only": comp_is_header_only,
+            "profile_builds": profile_builds,
+            "passport_link": self._passport_link(comp_name, rel.version),
         }
 
     def transform(self, data: ParsedResult) -> dict[str, Any]:

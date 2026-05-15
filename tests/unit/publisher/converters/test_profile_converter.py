@@ -167,3 +167,228 @@ class TestProfileCentricConverter:
         )
 
         assert result["include_passport_links"] is False
+
+
+# ---------------------------------------------------------------------------
+# BL-PCC-01 … BL-PCC-06  (Part 1 of the Publisher BL test plan)
+# ---------------------------------------------------------------------------
+
+
+def test_data_restructured_from_component_to_profile_axis(
+    publisher_multi_channel_result,
+) -> None:
+    """
+    BL-PCC-01
+    Business Rule: ProfileCentricConverter converts the input structure
+    Component→Release→Profile into Profile→channels dict→[components].
+
+    Preconditions:
+        - publisher_multi_channel_result with comp_alpha and comp_beta.
+
+    Steps:
+        1. Create ProfileCentricConverter(include_passport_links=False).
+        2. Call transform().
+        3. Inspect view["profiles"] structure.
+
+    Expected Result:
+        view contains "profiles" list; each profile has "profile_name" and
+        "channels" (dict); each channel maps to a non-empty list of components.
+    """
+    converter = ProfileCentricConverter(include_passport_links=False)
+    view = converter.transform(publisher_multi_channel_result)
+
+    assert "profiles" in view, "view_model must contain key 'profiles'"
+    assert len(view["profiles"]) > 0, "profiles must not be empty"
+
+    profile = view["profiles"][0]
+    assert "profile_name" in profile, "Each profile must have profile_name"
+    assert "channels" in profile, "Each profile must have channels"
+    channels = profile["channels"]
+    assert isinstance(channels, dict), "channels must be a dict keyed by channel name"
+    assert len(channels) > 0, "channels dict must not be empty"
+
+    first_channel = next(iter(channels))
+    components_list = channels[first_channel]
+    assert isinstance(components_list, list), "Each channel value must be a list"
+    assert len(components_list) > 0, "Channel must contain at least one component entry"
+    comp_entry = components_list[0]
+    assert "name" in comp_entry, "Component entry must have 'name'"
+    assert "version" in comp_entry, "Component entry must have 'version'"
+
+
+def test_header_only_components_excluded_from_profile_metadata(
+    publisher_multi_channel_result,
+    publisher_profile_definition,
+) -> None:
+    """
+    BL-PCC-02
+    Business Rule: is_header_only on Component means these components are
+    NOT used to determine profile conan_settings / docker_url.
+
+    Preconditions:
+        - publisher_multi_channel_result: comp_alpha (is_header_only=False)
+          and comp_beta (is_header_only=True).
+
+    Steps:
+        1. Create ProfileCentricConverter and call transform().
+        2. Find profile "hw-linux-x86_64-gcc10" in view["profiles"].
+        3. Check conan_settings and docker_url.
+
+    Expected Result:
+        conan_settings matches publisher_profile_definition.conan_settings
+        (sourced from comp_alpha only); value is non-empty.
+    """
+    converter = ProfileCentricConverter(include_passport_links=False)
+    view = converter.transform(publisher_multi_channel_result)
+
+    profile = next(
+        (p for p in view["profiles"] if p["profile_name"] == "hw-linux-x86_64-gcc10"),
+        None,
+    )
+    assert profile is not None, "Profile hw-linux-x86_64-gcc10 must be present"
+    assert profile["os"] == publisher_profile_definition.conan_settings["os"], (
+        "Profile os must come from the non-header-only component's ProfileDefinition"
+    )
+    assert profile["os"] != "", "conan_settings['os'] must not be empty"
+
+
+def test_channels_within_profile_sorted_consistently(
+    publisher_multi_channel_result,
+) -> None:
+    """
+    BL-PCC-03
+    Business Rule: Channels within a profile have a stable, alphabetical order
+    to ensure identical HTML output on re-publication.
+
+    Preconditions:
+        - publisher_multi_channel_result has channels "fast" and "stable"
+          for profile "hw-linux-x86_64-gcc10".
+
+    Steps:
+        1. Create ProfileCentricConverter and call transform().
+        2. For each profile, extract the ordered channel names from the dict.
+
+    Expected Result:
+        list(channels.keys()) == sorted(list(channels.keys()))
+    """
+    converter = ProfileCentricConverter(include_passport_links=False)
+    view = converter.transform(publisher_multi_channel_result)
+
+    for profile in view["profiles"]:
+        channel_names = list(profile["channels"].keys())
+        assert channel_names == sorted(channel_names), (
+            f"Channels in profile '{profile['profile_name']}' must be sorted, "
+            f"got: {channel_names}"
+        )
+
+
+def test_components_within_channel_sorted_by_name(
+    publisher_multi_channel_result,
+) -> None:
+    """
+    BL-PCC-04
+    Business Rule: Components within a channel are sorted by name for
+    deterministic output in Confluence.
+
+    Preconditions:
+        - publisher_multi_channel_result: channel "fast" has both alpha
+          and beta listed; alpha < beta alphabetically.
+
+    Steps:
+        1. Create ProfileCentricConverter and call transform().
+        2. For each profile and channel, check component name order.
+
+    Expected Result:
+        comp_names == sorted(comp_names) for every channel in every profile.
+    """
+    converter = ProfileCentricConverter(include_passport_links=False)
+    view = converter.transform(publisher_multi_channel_result)
+
+    for profile in view["profiles"]:
+        for channel_name, comp_entries in profile["channels"].items():
+            comp_names = [c["name"] for c in comp_entries]
+            assert comp_names == sorted(comp_names), (
+                f"Components in channel '{channel_name}' of profile "
+                f"'{profile['profile_name']}' must be sorted: "
+                f"expected {sorted(comp_names)}, got {comp_names}"
+            )
+
+
+def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> None:
+    """
+    BL-PCC-05
+    Business Rule: Without a passport_page_pattern, passport_link is None
+    for each component in every channel.
+
+    Preconditions:
+        - ProfileCentricConverter created with include_passport_links=False
+          (or True with no pattern).
+
+    Steps:
+        1. Create ProfileCentricConverter(include_passport_links=False).
+        2. Call transform().
+        3. Check passport_link for all component entries.
+
+    Expected Result:
+        All passport_link values are None or "".
+    """
+    converter = ProfileCentricConverter(include_passport_links=False)
+    view = converter.transform(publisher_multi_channel_result)
+
+    for profile in view["profiles"]:
+        for channel_name, comp_entries in profile["channels"].items():
+            for comp_entry in comp_entries:
+                link = comp_entry.get("passport_link")
+                assert link is None or link == "", (
+                    f"Without include_links=True, passport_link should be None/empty, "
+                    f"got: {link!r}"
+                )
+
+
+def test_passport_link_formatted_per_component_version(
+    publisher_multi_channel_result,
+) -> None:
+    """
+    BL-PCC-06
+    Business Rule: With a pattern, each component in a channel receives a
+    passport_link containing its name and version so that
+    PassportPageRegistry.inject_links_for_profiles() can replace it.
+
+    Preconditions:
+        - publisher_multi_channel_result with comp_alpha (non-header-only).
+
+    Steps:
+        1. Create ProfileCentricConverter(include_passport_links=True,
+           passport_page_pattern="/p/{component_name}/{release_version}").
+        2. Call transform().
+        3. Check that each comp_entry["passport_link"] contains name and version.
+
+    Expected Result:
+        At least one passport_link is non-None; every non-None link contains
+        the entry's name and version.
+    """
+    converter = ProfileCentricConverter(
+        include_passport_links=True,
+        passport_page_pattern="/p/{component_name}/{release_version}",
+    )
+    view = converter.transform(publisher_multi_channel_result)
+
+    found_any_link = False
+    for profile in view["profiles"]:
+        for channel_name, comp_entries in profile["channels"].items():
+            for comp_entry in comp_entries:
+                assert "passport_link" in comp_entry, (
+                    "When include_links=True, each component must have key passport_link"
+                )
+                link = comp_entry["passport_link"]
+                if link:
+                    assert comp_entry["name"] in link, (
+                        f"passport_link must contain component name '{comp_entry['name']}'"
+                    )
+                    assert comp_entry["version"] in link, (
+                        f"passport_link must contain version '{comp_entry['version']}'"
+                    )
+                    found_any_link = True
+    assert found_any_link, (
+        "At least one component should receive a non-empty passport_link"
+    )

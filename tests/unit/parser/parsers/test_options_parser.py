@@ -398,3 +398,37 @@ def test_parse_file_ci16_with_mixed_ci20_paths() -> None:
     ]
     result = OptionsParser.select_ci_prefix(paths)
     assert result == CI_PREFIX_V2
+
+
+# ===========================================================================
+# BL-OP-01  (Part 2 of the test plan)
+# ---------------------------------------------------------------------------
+
+
+def test_ci20_preferred_over_ci16_when_both_present() -> None:
+    """Verify that ci-2.0 is selected when both ci-2.0 and ci-1.6 paths are present.
+
+    Business Rule (BL-OP-01): When a component's Artifactory repository contains
+    options files in both ``/ci-2.0/`` and ``/ci-1.6/`` directories, the parser must
+    select the ci-2.0 variant as the newer, authoritative format.  The ordering of
+    paths in the input list must not affect this decision — priority is enforced by
+    the ``_CI_PRIORITY`` constant defined in the module.
+
+    Preconditions:
+        - Path list contains one path with "/ci-1.6/" and one with "/ci-2.0/",
+          in that order (ci-1.6 listed first).
+
+    Steps:
+        1. Call ``OptionsParser.select_ci_prefix(paths)``.
+
+    Expected Result:
+        - Return value is ``"/ci-2.0/"``.
+    """
+    paths = [
+        "/components/mylib/ci-1.6/global/options.json",
+        "/components/mylib/ci-2.0/global/options.json",
+    ]
+
+    selected = OptionsParser.select_ci_prefix(paths)
+
+    assert selected == "/ci-2.0/"

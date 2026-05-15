@@ -300,3 +300,40 @@ def test_conan_variant_view_custom_values() -> None:
     assert view.option_ref == "opt-set-7"
     assert view.conan_options == opts
     assert view.install_options == "-o pkg/*:shared=True -o pkg/*:fPIC=False"
+
+
+# ---------------------------------------------------------------------------
+# BL-BDC-01  (Part 1 of the Publisher BL test plan)
+# ---------------------------------------------------------------------------
+
+
+def test_build_install_options_bare_key_gets_component_name_prefix() -> None:
+    """
+    BL-BDC-01
+    Business Rule: A bare option key without a package prefix is automatically
+    qualified with the component wildcard notation.
+    "shared=True" + comp_name="mylib" → "-o mylib/*:shared=True"
+
+    Preconditions:
+        - conan_options = {"shared": "True"} (no ":" separator in key)
+        - component_name = "mylib"
+
+    Steps:
+        1. Call BaseDataConverter._build_install_options(conan_options, "mylib").
+
+    Expected Result:
+        Result contains "-o" and "mylib/*:shared=True".
+    """
+    from autodoc.publisher.converters.base_data_converter import BaseDataConverter
+
+    conan_options = {"shared": "True"}
+    result = BaseDataConverter._build_install_options(
+        conan_options=conan_options,
+        component_name="mylib",
+    )
+
+    assert "-o" in result, "Result must contain the -o flag"
+    assert "mylib/*:shared=True" in result, (
+        "Bare key 'shared=True' with comp_name='mylib' should result in "
+        "'mylib/*:shared=True'"
+    )

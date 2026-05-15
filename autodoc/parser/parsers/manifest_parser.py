@@ -194,7 +194,7 @@ class ManifestParser:
                 profiles_str = self._get_profiles_string(props, c_ver, p_ver)
                 if not profiles_str:
                     continue
-                channel = p_ver.split("-")[1] if "-" in p_ver else ""
+                channel = p_ver.split("-")[-1] if "-" in p_ver else ""
                 profile_list = [p.strip() for p in profiles_str.split(",") if p.strip()]
                 releases.append(
                     Release(

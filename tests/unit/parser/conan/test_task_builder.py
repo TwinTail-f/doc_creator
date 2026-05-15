@@ -199,3 +199,136 @@ def test_task_builder_task_fields_populated() -> None:
     assert task.profile_name == "hw-linux-x86_64"
     assert task.option_id == "1"
     assert task.target_platform == PLATFORM
+
+
+# ---------------------------------------------------------------------------
+# BL-TB-04 — package key without wildcard is normalized to pkg/*:opt
+# ---------------------------------------------------------------------------
+
+
+def test_option_normalization_package_key_gets_wildcard() -> None:
+    """BL-TB-04: Option with bare package name is normalized to wildcard form.
+
+    Business Rule:
+        An option like ``"mylib:shared=True"`` (without wildcard) must be
+        normalized to ``"mylib/*:shared=True"`` because Conan 2 requires the
+        ``pkg/*:key=val`` notation when targeting all variants of a package.
+
+    Preconditions:
+        - One component ``mylib`` with one release.
+        - Option set: ``{"1": "mylib:shared=True"}`` (no wildcard).
+
+    Steps:
+        1. Build tasks with ``ConanTaskBuilder().build([comp], ...)``
+        2. Inspect the ``cmd`` of the single resulting task.
+
+    Expected Result:
+        - ``cmd`` contains the flag ``"-o"`` followed by ``"mylib/*:shared=True"``.
+        - The bare form ``"mylib:shared=True"`` does NOT appear as a separate
+          argument.
+    """
+    release = make_release(opts={"1": "mylib:shared=True"})
+    comp = make_component(name="mylib", releases=[release])
+
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
+
+    assert len(tasks) == 1
+    cmd = tasks[0].cmd
+
+    # Normalized wildcard form must be present
+    assert any("mylib/*:shared=True" in arg for arg in cmd), (
+        f"Expected 'mylib/*:shared=True' in command, got: {cmd}"
+    )
+    # Bare non-wildcard form must NOT appear as a standalone argument
+    assert not any(arg == "mylib:shared=True" for arg in cmd), (
+        f"Unexpected bare 'mylib:shared=True' found in command: {cmd}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# BL-TB-05 — already-wildcarded option is not double-wildcarded
+# ---------------------------------------------------------------------------
+
+
+def test_option_normalization_already_wildcarded_is_idempotent() -> None:
+    """BL-TB-05: An already-wildcarded option is not modified a second time.
+
+    Business Rule:
+        An option that already contains ``/*:`` (e.g. ``"mylib/*:shared=True"``)
+        must pass through the normalizer unchanged.  The normalizer must NOT
+        produce a double-wildcard form such as ``"mylib/*/*:shared=True"``.
+
+    Preconditions:
+        - Option set: ``{"1": "mylib/*:shared=True"}`` (wildcard already present).
+
+    Steps:
+        1. Build tasks with ``ConanTaskBuilder().build([comp], ...)``
+        2. Inspect the ``cmd`` of the single resulting task.
+
+    Expected Result:
+        - ``cmd`` contains ``"mylib/*:shared=True"`` exactly once.
+        - ``cmd`` does NOT contain any string with ``"mylib/*/*"``.
+    """
+    release = make_release(opts={"1": "mylib/*:shared=True"})
+    comp = make_component(name="mylib", releases=[release])
+
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
+
+    assert len(tasks) == 1
+    cmd = tasks[0].cmd
+
+    # Double-wildcard must not appear
+    assert not any("mylib/*/*" in arg for arg in cmd), (
+        f"Double wildcard detected in command: {cmd}"
+    )
+    # Correct single-wildcard form must be present
+    assert any("mylib/*:shared=True" in arg for arg in cmd), (
+        f"Expected 'mylib/*:shared=True' in command, got: {cmd}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# BL-TB-06 — release with no option sets produces exactly one default task
+# ---------------------------------------------------------------------------
+
+
+def test_no_option_sets_produces_one_default_task() -> None:
+    """BL-TB-06: A release with no option sets still produces exactly one task.
+
+    Business Rule:
+        When ``release._build_option_sets_internal`` is empty (or None), the
+        builder must fall back to a single default option set ``{"1": ""}`` so
+        that the Conan graph is queried at least once.  Zero tasks would mean
+        the component is silently skipped.
+
+    Preconditions:
+        - One component with one release.
+        - One profile: ``"hw-linux-x86_64"``.
+        - No option sets (``opts=None``).
+
+    Steps:
+        1. Build tasks with ``ConanTaskBuilder().build([comp], ...)``
+        2. Inspect the resulting task list.
+
+    Expected Result:
+        - Exactly one ``ConanTask`` is returned.
+        - ``task.option_id == "1"`` (default identifier).
+        - ``task.option_str == ""`` (empty option string; no ``-o`` flags).
+    """
+    release = make_release(
+        profiles=("hw-linux-x86_64",),
+        opts=None,  # No option sets configured
+    )
+    comp = make_component(releases=[release])
+
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
+
+    assert len(tasks) == 1, (
+        f"Expected exactly 1 task for a release with no option sets, got {len(tasks)}"
+    )
+    assert tasks[0].option_id == "1", (
+        f"Default option_id should be '1', got '{tasks[0].option_id}'"
+    )
+    assert tasks[0].option_str == "", (
+        f"Default option_str should be empty, got '{tasks[0].option_str}'"
+    )

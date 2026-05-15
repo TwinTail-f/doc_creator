@@ -328,3 +328,41 @@ class TestPublishSinglePage:
             parent_id=_PARENT_ID,
         )
         assert report.success is False
+
+
+# ---------------------------------------------------------------------------
+# Part-3 BL additions: BL-BS-01
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_strategy_type_raises_descriptive_error() -> None:
+    """
+    BL-BS-01
+    Business Rule: BasePublishStrategy.create("nonexistent") raises an error
+    with an informative message, helping users quickly locate typos in the
+    strategy type argument.
+
+    Preconditions:
+        - Strategy type "nonexistent_strategy_type_bl_bs_01" is guaranteed to be absent
+          from the registry.
+
+    Steps:
+        1. Call BasePublishStrategy.create("nonexistent_strategy_type_bl_bs_01", ...).
+
+    Expected Result:
+        A ValueError or KeyError is raised.
+        The exception message is non-empty (contains diagnostic information).
+    """
+    with pytest.raises((ValueError, KeyError)) as exc_info:
+        BasePublishStrategy.create(
+            "nonexistent_strategy_type_bl_bs_01",
+            confluence_client=None,
+            document_builder=None,
+            parsed_data=None,
+            space="DEV",
+        )
+
+    error_message = str(exc_info.value)
+    assert len(error_message) > 0, (
+        "The error message must be non-empty — it should indicate the unknown strategy type"
+    )

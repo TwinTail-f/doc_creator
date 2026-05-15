@@ -188,3 +188,135 @@ class TestProfileCentricStrategyRegistry:
     def test_profile_centric_strategy_registered_as_profile_centric(self) -> None:
         """'profile_centric' is present in available_strategies()."""
         assert "profile_centric" in BasePublishStrategy.available_strategies()
+
+
+# ---------------------------------------------------------------------------
+# Part-3 BL additions: BL-PCS-01…04
+# ---------------------------------------------------------------------------
+
+
+def test_publishes_exactly_one_page(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """
+    BL-PCS-01
+    Business Rule: ProfileCentricStrategy.execute() publishes exactly one Confluence page.
+
+    Preconditions:
+        - PassportPageRegistry.load is stubbed (no actual file I/O).
+
+    Steps:
+        1. Construct ProfileCentricStrategy with include_passport_links=False.
+        2. Call execute().
+
+    Expected Result:
+        report.pages_published == 1.
+    """
+    mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+        include_passport_links=False,
+    )
+    report = strategy.execute()
+
+    assert report.pages_published == 1, (
+        f"ProfileCentricStrategy must publish 1 page, got: {report.pages_published}"
+    )
+
+
+def test_registered_as_profile_centric_type() -> None:
+    """
+    BL-PCS-02
+    Business Rule: ProfileCentricStrategy is registered under 'profile_centric'
+    in the BasePublishStrategy registry, enabling `publish profile` CLI command.
+
+    Preconditions:
+        - BasePublishStrategy registry is populated at import time.
+
+    Steps:
+        1. Call BasePublishStrategy.available_strategies().
+
+    Expected Result:
+        'profile_centric' is present in the returned list of strategy types.
+    """
+    available = BasePublishStrategy.available_strategies()
+    assert "profile_centric" in available, (
+        f"'profile_centric' must be in available_strategies, got: {available}"
+    )
+
+
+def test_registry_loaded_when_include_links_true(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """
+    BL-PCS-03
+    Business Rule: when include_passport_links=True, ProfileCentricStrategy must
+    load the passport registry to inject links into the view-model.
+
+    Preconditions:
+        - PassportPageRegistry.load is patched to track invocations.
+
+    Steps:
+        1. Construct strategy with include_passport_links=True.
+        2. Call execute().
+
+    Expected Result:
+        PassportPageRegistry.load() is called at least once.
+    """
+    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+        include_passport_links=True,
+    )
+    strategy.execute()
+
+    mock_load.assert_called_once_with()
+
+
+def test_registry_skipped_when_include_links_false(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """
+    BL-PCS-04
+    Business Rule: when include_passport_links=False, ProfileCentricStrategy must
+    NOT load the registry — unnecessary file reads are avoided.
+
+    Preconditions:
+        - PassportPageRegistry.load is patched to track invocations.
+
+    Steps:
+        1. Construct strategy with include_passport_links=False.
+        2. Call execute().
+
+    Expected Result:
+        PassportPageRegistry.load() is never called.
+    """
+    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+        include_passport_links=False,
+    )
+    strategy.execute()
+
+    mock_load.assert_not_called()
