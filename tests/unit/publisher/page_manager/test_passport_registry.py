@@ -86,7 +86,7 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
     assert parsed == _PAGES_MAP
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_save_on_os_error_does_not_raise(
     tmp_path: Path, mocker: pytest.MonkeyPatch
 ) -> None:
@@ -103,7 +103,7 @@ def test_save_on_os_error_does_not_raise(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_load_returns_empty_dict_if_file_missing(tmp_path: Path) -> None:
     """load() returns {} when passport_pages.json does not exist."""
     registry = _make_registry(tmp_path)
@@ -126,7 +126,7 @@ def test_load_returns_dict_on_valid_file(tmp_path: Path) -> None:
     assert result == _PAGES_MAP
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_load_returns_empty_dict_on_invalid_json(tmp_path: Path) -> None:
     """load() returns {} when the file contains malformed JSON."""
     (tmp_path / _REGISTRY_FILE).write_text("not valid json", encoding="utf-8")
@@ -137,7 +137,7 @@ def test_load_returns_empty_dict_on_invalid_json(tmp_path: Path) -> None:
     assert result == {}
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_load_returns_empty_dict_on_os_error(
     tmp_path: Path, mocker: pytest.MonkeyPatch
 ) -> None:
@@ -151,7 +151,7 @@ def test_load_returns_empty_dict_on_os_error(
     assert result == {}
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     """A value saved by save() is faithfully returned by load()."""
     pages_map: dict[str, Any] = {
@@ -303,7 +303,7 @@ def test_inject_links_for_profiles_noop_if_empty_passport_pages() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_load_returns_empty_on_missing_file(tmp_path: Path) -> None:
     """
     BL-REG-09
@@ -331,7 +331,7 @@ def test_load_returns_empty_on_missing_file(tmp_path: Path) -> None:
     ), f"load() must return an empty dict when the file is missing, got: {result!r}"
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_save_failure_does_not_raise(tmp_path: Path) -> None:
     """
     BL-REG-10

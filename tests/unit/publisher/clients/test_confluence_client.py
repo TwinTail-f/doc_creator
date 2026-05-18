@@ -73,7 +73,7 @@ def _make_response(json_data: Any, status_code: int = 200) -> MagicMock:
 class TestFindPage:
     """Tests for ConfluenceClient.find_page()."""
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_find_page_returns_none_when_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -84,7 +84,7 @@ class TestFindPage:
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is None
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_find_page_returns_page_dict_when_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -107,7 +107,7 @@ class TestFindPage:
 class TestGetPageBody:
     """Tests for ConfluenceClient.get_page_body()."""
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_get_page_body_returns_empty_string_when_page_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -118,7 +118,7 @@ class TestGetPageBody:
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == ""
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_get_page_body_returns_body_when_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -165,7 +165,7 @@ class TestPublishPage:
         confluence_client._mock_session.get.return_value = find_resp
         confluence_client._mock_session.put.return_value = update_resp
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_publish_page_creates_new_page_when_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -176,7 +176,7 @@ class TestPublishPage:
         )
         confluence_client._mock_session.post.assert_called_once()
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_publish_page_updates_existing_page_when_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -200,7 +200,7 @@ class TestPublishPage:
         assert "version" in result
         assert "status" in result
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_publish_page_raises_publish_error_on_http_error(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -318,7 +318,7 @@ class TestPublishPage:
 class TestGetOrCreatePage:
     """Tests for ConfluenceClient.get_or_create_page()."""
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_get_or_create_page_returns_id_if_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -337,7 +337,7 @@ class TestGetOrCreatePage:
         assert result == PAGE_ID
         confluence_client._mock_session.post.assert_not_called()
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_get_or_create_page_creates_and_returns_id_if_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:

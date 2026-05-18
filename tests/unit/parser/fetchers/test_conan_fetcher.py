@@ -144,7 +144,7 @@ def test_conan_fetcher_returns_empty_on_empty_component_list(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan_fetcher_cleanup_called_on_setup_failure(
     mocker: MockerFixture,
 ) -> None:

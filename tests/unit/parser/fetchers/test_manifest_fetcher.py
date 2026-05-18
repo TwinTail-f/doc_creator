@@ -94,7 +94,7 @@ def _make_context(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_returns_patchelf_with_two_releases(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -119,7 +119,7 @@ def test_manifest_fetcher_returns_patchelf_with_two_releases(
     assert result.warnings == []
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_returns_nlohmann_json(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -143,7 +143,7 @@ def test_manifest_fetcher_returns_nlohmann_json(
     assert result.warnings == []
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_all_five_components(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -165,7 +165,7 @@ def test_manifest_fetcher_all_five_components(
     assert len(result.value) >= 5
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_libnetfilter_queue_prg_quant(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -189,7 +189,7 @@ def test_manifest_fetcher_libnetfilter_queue_prg_quant(
     assert result.warnings == []
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_include_filter(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -213,7 +213,7 @@ def test_manifest_fetcher_include_filter(
     assert result.warnings == []
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_exclude_filter(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -241,7 +241,7 @@ def test_manifest_fetcher_exclude_filter(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_no_files_returns_empty(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -286,7 +286,7 @@ def test_manifest_fetcher_configure_sets_tfs_client(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_single_version_single_channel_fast(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -325,7 +325,7 @@ def test_manifest_fetcher_single_version_single_channel_fast(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_patchelf_two_versions_one_channel(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
@@ -360,7 +360,7 @@ def test_manifest_fetcher_patchelf_two_versions_one_channel(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_fetcher_external_project_no_error(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,

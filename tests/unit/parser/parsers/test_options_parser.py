@@ -59,14 +59,14 @@ def test_select_ci_prefix_uses_ci_16_alone() -> None:
     assert result == CI_PREFIX_V16
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_select_ci_prefix_no_match_returns_empty_string() -> None:
     """select_ci_prefix returns '' when no known CI directory is found."""
     result = OptionsParser.select_ci_prefix([PATH_OTHER])
     assert result == ""
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_select_ci_prefix_empty_list_returns_empty_string() -> None:
     """select_ci_prefix returns '' for an empty input list."""
     result = OptionsParser.select_ci_prefix([])
@@ -78,7 +78,7 @@ def test_select_ci_prefix_empty_list_returns_empty_string() -> None:
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_apr_single_option(options_dir: Path) -> None:
     """parse_file on apr_options.json returns a 1-entry dict with 'apr:shared=True'."""
     text = (options_dir / "apr_options.json").read_text(encoding="utf-8")
@@ -92,7 +92,7 @@ def test_parse_file_apr_single_option(options_dir: Path) -> None:
     assert cleaned == {"1": "apr:shared=True"}
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_sqlite3_fast_five_options(options_dir: Path) -> None:
     """parse_file on sqlite3_fast_options.json returns a 5-entry dict; key '5' contains 'with_icu'."""
     text = (options_dir / "sqlite3_fast_options.json").read_text(encoding="utf-8")
@@ -106,7 +106,7 @@ def test_parse_file_sqlite3_fast_five_options(options_dir: Path) -> None:
     assert "with_icu" in cleaned["5"]
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_sqlite3_slow_twelve_options(options_dir: Path) -> None:
     """parse_file on sqlite3_slow_options.json returns a 12-entry dict; key '12' contains 'with_icu'."""
     text = (options_dir / "sqlite3_slow_options.json").read_text(encoding="utf-8")
@@ -120,7 +120,7 @@ def test_parse_file_sqlite3_slow_twelve_options(options_dir: Path) -> None:
     assert "with_icu" in cleaned["12"]
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_icu_fast_two_options(options_dir: Path) -> None:
     """parse_file on icu_fast_options.json returns a 2-entry dict; '2' == 'icu:mobile=True'."""
     text = (options_dir / "icu_fast_options.json").read_text(encoding="utf-8")
@@ -134,7 +134,7 @@ def test_parse_file_icu_fast_two_options(options_dir: Path) -> None:
     assert cleaned["2"] == "icu:mobile=True"
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_nlohmann_single_empty_option(options_dir: Path) -> None:
     """parse_file on nlohmann_json_options.json returns {'1': ''} for a header-only component."""
     text = (options_dir / "nlohmann_json_options.json").read_text(encoding="utf-8")
@@ -151,7 +151,7 @@ def test_parse_file_nlohmann_single_empty_option(options_dir: Path) -> None:
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_invalid_json_returns_empty() -> None:
     """parse_file returns (None, {}) when the JSON text cannot be parsed."""
     result = OptionsParser.parse_file(
@@ -162,7 +162,7 @@ def test_parse_file_invalid_json_returns_empty() -> None:
     assert result == (None, {})
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_empty_json_object() -> None:
     """parse_file returns an empty options dict for '{}' without raising."""
     channel, cleaned = OptionsParser.parse_file(
@@ -173,7 +173,7 @@ def test_parse_file_empty_json_object() -> None:
     assert cleaned == {}
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_no_channel_segment_returns_none() -> None:
     """parse_file returns channel=None when the path has no sub-directory after the CI prefix."""
     channel, _ = OptionsParser.parse_file(
@@ -184,7 +184,7 @@ def test_parse_file_no_channel_segment_returns_none() -> None:
     assert channel is None
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_strips_whitespace_from_values() -> None:
     """parse_file strips leading/trailing whitespace from each option value."""
     _, cleaned = OptionsParser.parse_file(
@@ -195,7 +195,7 @@ def test_parse_file_strips_whitespace_from_values() -> None:
     assert cleaned["1"] == "shared=True"
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_non_string_values_excluded() -> None:
     """parse_file skips entries whose value is not a string (e.g. integers)."""
     _, cleaned = OptionsParser.parse_file(
@@ -295,7 +295,7 @@ def test_select_ci_prefix_uses_ci_20_alone() -> None:
     assert result == CI_PREFIX_V2
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_patchelf_ci16_flat_global(options_dir: Path) -> None:
     """patchelf uses ci-1.6/options.json (no channel sub-dir); channel is None, 1 entry."""
     text = (options_dir / "patchelf_options.json").read_text(encoding="utf-8")
@@ -339,7 +339,7 @@ def test_pick_options_sqlite3_fast_selected_over_slow() -> None:
     assert "shared" not in result["2"]
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_channel_extracted_from_ci20_path() -> None:
     """parse_file correctly extracts 'fast' channel from a /ci-2.0/fast/options.json path."""
     channel, _ = OptionsParser.parse_file(
@@ -350,7 +350,7 @@ def test_parse_file_channel_extracted_from_ci20_path() -> None:
     assert channel == "fast"
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_channel_extracted_from_ci16_path() -> None:
     """parse_file correctly extracts 'slow' channel from a /ci-1.6/slow/options.json path."""
     channel, _ = OptionsParser.parse_file(
@@ -382,7 +382,7 @@ def test_pick_options_apr_global_returned_for_any_channel() -> None:
         assert result == {"1": "apr:shared=True"}, f"failed for channel={channel!r}"
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parse_file_nlohmann_ci20_flat_returns_none_channel(options_dir: Path) -> None:
     """nlohmann_json ci-2.0/options.json (flat) returns channel=None and single empty entry."""
     text = (options_dir / "nlohmann_json_options.json").read_text(encoding="utf-8")
@@ -420,7 +420,7 @@ def test_pick_options_missing_global_key_returns_default() -> None:
     assert result == {"1": ""}
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parse_file_ci16_with_mixed_ci20_paths() -> None:
     """select_ci_prefix ignores ci-1.6 paths when ci-2.0 paths are also present."""
     paths = [

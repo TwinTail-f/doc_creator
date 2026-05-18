@@ -2,7 +2,6 @@
 
 Verifies the project logger is importable and has the expected configuration.
 """
-
 import pytest
 
 import logging

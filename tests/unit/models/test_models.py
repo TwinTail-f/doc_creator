@@ -45,7 +45,7 @@ def test_parse_option_str_strips_package_prefix() -> None:
 # ===========================================================================
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_parse_option_str_empty_string_returns_empty_dict() -> None:
     """_parse_option_str возвращает пустой словарь для пустой входной строки."""
     result = _parse_option_str("")

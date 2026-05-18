@@ -87,7 +87,7 @@ def test_options_step_is_not_critical() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_options_step_sqlite3_twelve_options_applied(
     parser_config,
     tmp_path: Path,
@@ -123,7 +123,7 @@ def test_options_step_sqlite3_twelve_options_applied(
     assert all(bs.options != "" for bs in non_empty)
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_options_step_patchelf_both_versions_get_options(
     parser_config,
     tmp_path: Path,
@@ -150,7 +150,7 @@ def test_options_step_patchelf_both_versions_get_options(
         assert release.build_option_sets != []
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_options_step_nlohmann_single_empty_option(
     parser_config,
     tmp_path: Path,
@@ -204,7 +204,7 @@ def test_options_step_configure_called_before_fetch(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_options_step_apr_single_shared_option(
     parser_config,
     tmp_path: Path,
@@ -228,7 +228,7 @@ def test_options_step_apr_single_shared_option(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_options_step_libnetfilter_queue_single_empty_option(
     parser_config,
     tmp_path: Path,
@@ -251,7 +251,7 @@ def test_options_step_libnetfilter_queue_single_empty_option(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
     parser_config,
     tmp_path: Path,

@@ -60,7 +60,7 @@ def _make_runner(tmp_path: Path) -> Conan2Runner:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan2_runner_raises_on_missing_conan_binary(tmp_path: Path) -> None:
     """Conan2Runner.run() returns success=False when 'conan' is absent from PATH.
 
@@ -74,7 +74,7 @@ def test_conan2_runner_raises_on_missing_conan_binary(tmp_path: Path) -> None:
     assert result.error  # non-empty error message
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
     """Conan2Runner.run() returns success=False when subprocess times out.
 
@@ -146,7 +146,7 @@ def test_conan_environment_manager_cleanup_removes_directory(
     assert called_path == setup_dir
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
     """cleanup() is idempotent and raises no exception when setup() was never called.
 

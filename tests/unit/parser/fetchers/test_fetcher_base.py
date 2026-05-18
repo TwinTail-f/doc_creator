@@ -76,7 +76,7 @@ def test_base_tfs_fetcher_tfs_is_none_before_configure() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_base_fetcher_fetch_before_configure_raises() -> None:
     """Calling fetch() before configure() must raise RuntimeError.
 

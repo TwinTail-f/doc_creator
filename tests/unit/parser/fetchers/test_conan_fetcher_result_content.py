@@ -95,7 +95,7 @@ def _patch_full_fetch_pipeline(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 @pytest.mark.integration
 def test_fetch_result_release_data_has_correct_key_and_base_ref(
     mocker: MockerFixture,
@@ -139,7 +139,7 @@ def test_fetch_result_release_data_has_correct_key_and_base_ref(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 @pytest.mark.integration
 def test_fetch_result_profile_data_keyed_by_object_identity(
     mocker: MockerFixture,
@@ -175,7 +175,7 @@ def test_fetch_result_profile_data_keyed_by_object_identity(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_fetch_result_nested_errors_structure_preserved(
     mocker: MockerFixture,
 ) -> None:
@@ -213,7 +213,7 @@ def test_fetch_result_nested_errors_structure_preserved(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_fetch_task_counters_reflected_in_result(
     mocker: MockerFixture,
 ) -> None:

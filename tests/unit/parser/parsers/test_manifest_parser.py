@@ -55,7 +55,7 @@ def test_parser_returns_correct_component_count(
     assert len(components) >= 5
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_patchelf_two_versions_same_channel(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -74,7 +74,7 @@ def test_parser_patchelf_two_versions_same_channel(
     assert {r.version for r in comp.releases} == {"0.16.1", "0.18.0"}
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_nlohmann_json_multiple_releases(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -93,7 +93,7 @@ def test_parser_nlohmann_json_multiple_releases(
     assert "fast" in channels
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_apr_single_release_fast_channel(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -112,7 +112,7 @@ def test_parser_apr_single_release_fast_channel(
     assert rel.channel == "fast"
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_libnetfilter_queue_prg_quant_project(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -127,7 +127,7 @@ def test_parser_libnetfilter_queue_prg_quant_project(
     assert components[0].git_project == "PRG_Quant"
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_sqlite3_many_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -195,7 +195,7 @@ def test_parser_filter_mode_exclude(
     assert "apr" not in names
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parser_git_url_contains_tfs_collection_url(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -209,7 +209,7 @@ def test_parser_git_url_contains_tfs_collection_url(
     assert components[0].git_url.startswith(TFS_COLLECTION_URL)
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_parser_invalid_properties_skipped_with_warning(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -231,7 +231,7 @@ def test_parser_invalid_properties_skipped_with_warning(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
     """ManifestParser silently skips a .properties file that has no 'name' key."""
     path = write_props(tmp_path, "noname.properties", "description= test\n")
@@ -242,7 +242,7 @@ def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
     assert len(warnings) == 0
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_manifest_parser_missing_file_produces_warning() -> None:
     """ManifestParser records a warning and returns no components for a nonexistent file."""
     missing = Path("nonexistent.properties")
@@ -253,7 +253,7 @@ def test_manifest_parser_missing_file_produces_warning() -> None:
     assert len(warnings) == 1
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
     """ManifestParser returns no components when all platform versions mismatch the target."""
     content = (
@@ -301,7 +301,7 @@ def test_manifest_parser_platform_without_suffix_empty_channel(tmp_path: Path) -
     assert components[0].releases[0].channel == ""
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_manifest_parser_missing_profiles_key_skips_version_pair(
     tmp_path: Path,
 ) -> None:
@@ -316,7 +316,7 @@ def test_manifest_parser_missing_profiles_key_skips_version_pair(
     assert len(components) == 0
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
     """ManifestParser builds component.git_url starting with tfs_collection_url when set."""
     content = (
@@ -399,7 +399,7 @@ def test_manifest_parser_parses_real_openssl_file(resources_dir: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_nlohmann_json_fast_release_has_one_profile(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -423,7 +423,7 @@ def test_parser_nlohmann_json_fast_release_has_one_profile(
     assert fast_release.profile_builds[0].profile_name == "mobile-windows-x86_64.jinja"
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_nlohmann_json_profile_builds_are_skeletons(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -445,7 +445,7 @@ def test_parser_nlohmann_json_profile_builds_are_skeletons(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_apr_has_no_slow_release(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -460,7 +460,7 @@ def test_parser_apr_has_no_slow_release(
     assert slow_releases == []
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_apr_profile_count_fast(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -485,7 +485,7 @@ def test_parser_apr_profile_count_fast(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_patchelf_both_versions_have_same_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -504,7 +504,7 @@ def test_parser_patchelf_both_versions_have_same_profiles(
     assert len(profile_sets[0]) == 6
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_patchelf_no_fast_or_slow_channel(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -524,7 +524,7 @@ def test_parser_patchelf_no_fast_or_slow_channel(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_sqlite3_has_both_fast_and_slow_releases(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -541,7 +541,7 @@ def test_parser_sqlite3_has_both_fast_and_slow_releases(
     assert len(components[0].releases) == 2
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_sqlite3_slow_release_version_and_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -559,7 +559,7 @@ def test_parser_sqlite3_slow_release_version_and_profiles(
     assert any("hw-linux" in p or "instrumented" in p for p in profile_names)
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_sqlite3_fast_and_slow_different_versions(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -579,7 +579,7 @@ def test_parser_sqlite3_fast_and_slow_different_versions(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_libnetfilter_queue_git_url_points_to_prg_quant(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -593,7 +593,7 @@ def test_parser_libnetfilter_queue_git_url_points_to_prg_quant(
     assert "PRG_Quant" in components[0].git_url
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_libnetfilter_queue_single_slow_release_for_platform_20(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -609,7 +609,7 @@ def test_parser_libnetfilter_queue_single_slow_release_for_platform_20(
     assert components[0].releases[0].version == "1.0.5"
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_parser_libnetfilter_queue_slow_has_hw_linux_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -1121,7 +1121,7 @@ def test_profile_build_names_match_manifest_profile_list_exactly(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_git_url_set_on_component_not_release(tmp_path: Path) -> None:
     """Verify that git_url is a Component-level field, not a Release-level field.
 
@@ -1166,7 +1166,7 @@ def test_git_url_set_on_component_not_release(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_git_url_format_is_tfs_git_format(tmp_path: Path) -> None:
     """Verify that Component.git_url is formatted as a well-formed TFS Git URL.
 

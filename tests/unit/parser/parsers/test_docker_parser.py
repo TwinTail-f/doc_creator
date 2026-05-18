@@ -25,7 +25,7 @@ PROFILE_FLAT: str = "hw-linux-x86_64-gcc10_2"
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_extract_from_yaml_plain_string_docker() -> None:
     """extract_from_yaml сопоставляет ключ arch с URL docker-образа в виде простой строки."""
     content: dict = {
@@ -46,7 +46,7 @@ def test_extract_from_yaml_plain_string_docker() -> None:
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_extract_from_yaml_docker_dict_image_key() -> None:
     """extract_from_yaml извлекает URL образа, когда docker-значение — словарь с ключом 'image'."""
     content: dict = {
@@ -67,7 +67,7 @@ def test_extract_from_yaml_docker_dict_image_key() -> None:
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_extract_from_yaml_skips_common_key() -> None:
     """extract_from_yaml игнорирует записи с зарезервированным ключом 'common'."""
     content: dict = {
@@ -85,7 +85,7 @@ def test_extract_from_yaml_skips_common_key() -> None:
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_extract_from_yaml_skips_entry_without_docker() -> None:
     """extract_from_yaml пропускает записи arch, не содержащие поле 'docker'."""
     content: dict = {
@@ -155,7 +155,7 @@ def test_add_aliases_flat_name_adds_entries() -> None:
 # ===========================================================================
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_add_aliases_empty_name_does_nothing() -> None:
     """add_aliases оставляет словарь links без изменений, когда name — пустая строка."""
     links: DockerLinksMap = {}

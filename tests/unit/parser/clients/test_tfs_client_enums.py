@@ -4,7 +4,6 @@ Pins the wire-format string values of TFS API enums.
 A test failure here means a refactor changed a value sent in HTTP requests,
 which would silently break TFS query results.
 """
-
 import pytest
 
 from autodoc.parser.clients.tfs_client_enums import RecursionLevel, VersionType

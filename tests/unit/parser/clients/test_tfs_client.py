@@ -69,7 +69,7 @@ def test_tfs_client_get_file_content_returns_response(mocker, parser_config) -> 
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_tfs_client_get_file_content_raises_network_error_on_failure(
     mocker, parser_config
 ) -> None:
@@ -108,7 +108,7 @@ def test_tfs_client_get_items_returns_item_list(mocker, parser_config) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_tfs_client_get_items_raises_network_error_on_http_error(
     mocker, parser_config
 ) -> None:
@@ -127,7 +127,7 @@ def test_tfs_client_get_items_raises_network_error_on_http_error(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_tfs_client_download_properties_downloads_files(
     mocker, parser_config, tmp_path
 ) -> None:
@@ -168,7 +168,7 @@ def test_tfs_client_download_properties_downloads_files(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_tfs_client_download_properties_raises_on_listing_failure(
     mocker, parser_config, tmp_path
 ) -> None:

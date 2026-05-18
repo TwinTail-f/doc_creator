@@ -123,7 +123,7 @@ def test_component_parser_non_critical_step_failure_continues(
     assert isinstance(result, ParsedResult)
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_component_parser_cleans_up_tmp_dir_on_success(
     parser_config,
     tmp_path,
@@ -142,7 +142,7 @@ def test_component_parser_cleans_up_tmp_dir_on_success(
     assert not tmp_dir.exists()
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_component_parser_cleans_up_tmp_dir_on_failure(
     parser_config,
     tmp_path,
