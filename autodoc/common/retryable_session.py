@@ -151,8 +151,8 @@ def create_retryable_session(
     Создаёт ``RetryableSession`` с опциональной аутентификацией.
 
     .. deprecated::
-        Prefer ``create_bearer_session()`` or ``create_pat_session()`` directly.
-        This wrapper will be removed in a future release.
+        Используйте ``create_bearer_session()`` или ``create_pat_session()`` напрямую.
+        Этот враппер будет удалён в одном из следующих релизов.
 
     Args:
         timeout: Таймаут запроса в секундах.

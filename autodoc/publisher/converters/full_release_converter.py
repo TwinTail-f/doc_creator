@@ -1,4 +1,4 @@
-"""Converter for the full release documentation view."""
+"""Трансформер для полного вида документации релиза."""
 
 from typing import Any
 

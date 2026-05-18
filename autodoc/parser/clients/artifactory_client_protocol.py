@@ -1,5 +1,5 @@
 """
-Протокол (structural interface) для Artifactory-клиента.
+Протокол (структурный интерфейс) для Artifactory-клиента.
 """
 
 from typing import Protocol, runtime_checkable

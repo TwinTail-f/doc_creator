@@ -1,5 +1,5 @@
 """
-Protocol (structural interface) for document builder used by publisher strategies.
+Протокол (структурный интерфейс) строителя документов, используемого стратегиями паблишера.
 """
 
 from typing import Any, Protocol, runtime_checkable

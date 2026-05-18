@@ -77,7 +77,7 @@ def cli(
     ctx: click.Context, base_dir: str, configs_dir: str | None, verbose: bool
 ) -> None:
     """
-    Doc Generator CLI — инструмент сбора и публикации документации компонентов платформы.
+    Инструмент сбора и публикации документации компонентов платформы.
 
     \b
     Примеры:

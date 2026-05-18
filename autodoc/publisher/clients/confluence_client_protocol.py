@@ -1,5 +1,5 @@
 """
-Protocol (structural interface) for Confluence client used by publisher strategies.
+Протокол (структурный интерфейс) Confluence-клиента, используемого стратегиями паблишера.
 """
 
 from typing import Any, Protocol, runtime_checkable

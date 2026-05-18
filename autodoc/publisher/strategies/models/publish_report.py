@@ -1,4 +1,4 @@
-"""Result model for publish strategy execution."""
+"""Модель результата выполнения стратегии публикации."""
 
 from dataclasses import dataclass, field
 from typing import Any

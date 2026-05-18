@@ -1,4 +1,4 @@
-"""Mixin that adds passport link support to converters."""
+"""Миксин, добавляющий поддержку ссылок на паспорта в трансформеры."""
 
 from typing import NamedTuple, Any
 
@@ -15,7 +15,7 @@ _DEFAULT_PASSPORT_PATTERN: str | None = None
 
 
 class _VariantOpts(NamedTuple):
-    """Build options for a single Conan variant view."""
+    """Опции сборки для одного варианта Conan в view-model."""
 
     conan_options: dict[str, Any]
     install_options_override: str | None = None

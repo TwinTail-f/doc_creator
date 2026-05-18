@@ -22,7 +22,7 @@ class FetcherBase[T](ABC):
     """
 
     def __init__(self) -> None:
-        """Initialises the fetcher; ``_configured`` is set to True by configure()."""
+        """Инициализирует фетчер; ``_configured`` выставляется в True в ``configure()``."""
         self._configured: bool = False
 
     @abstractmethod
@@ -50,17 +50,18 @@ class FetcherBase[T](ABC):
             ``FetchResult`` с загруженными данными и предупреждениями.
 
         Raises:
-            RuntimeError: If called before configure().
+            RuntimeError: Если вызван до ``configure()``.
         """
 
     def _assert_configured(self) -> None:
-        """Raise RuntimeError if fetch() is called before configure().
+        """Вспомогательный метод для подклассов: бросает ``RuntimeError``, если ``fetch()``
+        вызван до ``configure()``.
 
-        Subclasses should call this at the top of their fetch() implementation
-        to enforce the two-phase configure() → fetch() contract.
+        Подклассы должны вызывать его в начале своей реализации ``fetch()``,
+        чтобы соблюдать контракт двухфазового взаимодействия ``configure()`` → ``fetch()``.
 
         Raises:
-            RuntimeError: If configure() has not yet been called.
+            RuntimeError: Если ``configure()`` ещё не был вызван.
         """
         if not self._configured:
             raise RuntimeError(_NOT_CONFIGURED_MSG)

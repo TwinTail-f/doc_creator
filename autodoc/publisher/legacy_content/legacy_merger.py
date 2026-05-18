@@ -13,7 +13,7 @@ _VERSION_SORT_RE = _re.compile(r"(\d+)")
 
 
 def _version_sort_key(item: tuple[str, str]) -> list[int]:
-    """Converts version string segments to ints for correct numeric ordering."""
+    """Преобразует сегменты строки версии в числа для корректной числовой сортировки."""
     return [int(x) for x in _VERSION_SORT_RE.findall(item[0])]
 
 
@@ -21,9 +21,9 @@ def parse_page_content_into_sections(html: str) -> dict[str, str]:
     """
     Разбирает HTML существующей страницы на секции по версиям платформы.
 
-    Delegates to ``parse_page_sections`` from ``_html_utils``,
-    which tries tab format first, then ``<h1>Platform X.Y</h1>`` headers,
-    then h2/h3 headers with ``vX.Y`` markers as a final fallback.
+    Делегирует вызов ``parse_page_sections`` из ``_html_utils``,
+    которая последовательно пробует формат вкладок, заголовки ``<h1>Platform X.Y</h1>``,
+    а затем заголовки h2/h3 с маркерами ``vX.Y`` в качестве финального fallback.
 
     Args:
         html: HTML страницы Confluence (Confluence Storage Format).

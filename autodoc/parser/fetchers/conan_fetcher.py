@@ -50,6 +50,7 @@ class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
 
     def __init__(self) -> None:
         """Инициализирует фетчер; перед вызовом ``fetch()`` необходимо вызвать ``configure(ctx)``."""
+        super().__init__()
         self._timeout: int = 0
         self._platform_version: str = ""
         self._artifactory_base_url: str = ""
@@ -87,6 +88,8 @@ class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
         else:
             self._profile_overrides = ProfileSettingsOverrides.empty()
 
+        self._configured = True
+
     def fetch(
         self,
         components: list[Component],
@@ -116,6 +119,8 @@ class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
         Raises:
             RuntimeError: Если установка конфигурации Conan завершилась с ошибкой.
         """
+        self._assert_configured()
+
         if not self._conan_config_url:
             raise RuntimeError(
                 "ConanFetcher: conan_config_url не задан в конфигурации. "

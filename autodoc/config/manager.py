@@ -88,10 +88,11 @@ class ConfigManager:
 
     def list_available_configs(self) -> dict[str, list[str]]:
         """
-        Lists available config files in configs_dir, grouped by format.
+        Возвращает доступные конфиг-файлы из ``configs_dir``, сгруппированные по формату.
 
-        Returns a dict mapping format extension (without leading dot) to a sorted
-        list of filenames found in configs_dir for that format.
+        Returns:
+            Словарь, отображающий расширение формата (без ведущей точки) на
+            отсортированный список имён файлов этого формата в ``configs_dir``.
         """
         result: dict[str, list[str]] = {
             ext.lstrip("."): [] for ext in self.SUPPORTED_FORMATS

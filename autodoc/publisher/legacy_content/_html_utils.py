@@ -264,11 +264,11 @@ def _parse_h2_version_sections(html: str) -> dict[str, str]:
 
 def parse_page_sections(html: str) -> dict[str, str]:
     """
-    Parses a Confluence page into {platform_name: content} sections.
+    Разбирает страницу Confluence на секции ``{имя_платформы: контент}``.
 
-    Tries tab format first; falls back to <h1>Platform X.Y</h1> headers;
-    then falls back to h2/h3 with vX.Y markers (historical).
-    Returns an empty dict when html is empty or no sections are found.
+    Сначала пробует формат вкладок; если не найдено — заголовки ``<h1>Platform X.Y</h1>``;
+    затем заголовки h2/h3 с маркерами vX.Y (исторический fallback).
+    Возвращает пустой словарь, если ``html`` пуст или секции не найдены.
 
     Args:
         html: HTML страницы Confluence в Storage Format.

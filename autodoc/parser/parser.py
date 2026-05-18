@@ -101,9 +101,9 @@ class ComponentParser:
             Экземпляр ``ComponentParser`` с отфильтрованным пайплайном.
         """
         steps = [
-            s
-            for s in ComponentParser._default_pipeline()
-            if not isinstance(s, tuple(exclude))
+            step
+            for step in ComponentParser._default_pipeline()
+            if not isinstance(step, tuple(exclude))
         ]
         return cls(config, data_dir, steps=steps)
 

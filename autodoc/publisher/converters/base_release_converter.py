@@ -1,4 +1,4 @@
-"""Abstract base class for release document converters."""
+"""Абстрактный базовый класс трансформеров документации релиза."""
 
 from autodoc.publisher.converters.passport_link_mixin import (
     PassportLinkMixin,

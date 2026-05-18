@@ -1,4 +1,4 @@
-"""Abstract base class for publish strategies with Registry pattern."""
+"""Абстрактный базовый класс стратегий публикации с Registry-паттерном."""
 
 import re
 from abc import ABC, abstractmethod

@@ -1,9 +1,9 @@
 """
-Public API for the legacy_content subsystem.
+Публичный API подсистемы legacy_content.
 
-External callers (strategies, publisher) should import exclusively from this
-module. Internal modules (legacy_extractor, legacy_merger, _html_utils) are
-implementation details and subject to change.
+Внешние вызывающие (стратегии, паблишер) должны импортировать исключительно из этого
+модуля. Внутренние модули (legacy_extractor, legacy_merger, _html_utils) являются
+деталями реализации и могут меняться.
 """
 
 from autodoc.common.logger import logger

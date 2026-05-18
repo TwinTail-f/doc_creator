@@ -51,6 +51,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         self._tfs = ctx.tfs_client
         self._base_url = ctx.config.tfs_collection_url.rstrip("/")
+        self._configured = True
 
     def fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
@@ -67,6 +68,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         Returns:
             ``FetchResult`` с маппингом ``(comp_name, version, channel) → options``.
         """
+        self._assert_configured()
         logger.info("Начинаем сбор options.json…")
 
         fetch_warnings: list[str] = []

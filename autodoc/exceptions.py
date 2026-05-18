@@ -1,5 +1,5 @@
 """
-Unified exception module for the autodoc project.
+Единый модуль исключений проекта autodoc.
 """
 
 

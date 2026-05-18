@@ -44,6 +44,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
         self._tfs = ctx.tfs_client
         self._profiles_urls = ctx.config.profiles_urls or []
         self._platform_version = ctx.config.platform_version
+        self._configured = True
 
     def fetch(
         self, urls: list[str], target_platform: str
@@ -58,6 +59,7 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
         Returns:
             ``FetchResult`` с маппингом ``имя_профиля → docker_image_url``.
         """
+        self._assert_configured()
         docker_links: DockerLinksMap = {}
 
         for url in urls:

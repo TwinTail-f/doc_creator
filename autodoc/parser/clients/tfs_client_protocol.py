@@ -1,5 +1,5 @@
 """
-Протокол (structural interface) для TFS-клиента.
+Протокол (структурный интерфейс) для TFS-клиента.
 """
 
 from typing import Any, Protocol, runtime_checkable

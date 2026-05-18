@@ -36,7 +36,7 @@ class OptionsParser:
         Разбирает текст JSON-файла опций.
 
         Returns:
-            (channel_name_or_None, cleaned_options)
+            Кортеж ``(имя_канала_или_None, очищенные_опции)``
         """
         try:
             parsed: dict[str, Any] = json.loads(text)

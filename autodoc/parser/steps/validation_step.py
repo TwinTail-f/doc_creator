@@ -18,16 +18,7 @@ _LOG_PROGRESS_INTERVAL: int = 100
 
 
 class ArtifactoryValidationStep(BaseParseStep):
-    """Validation step: checks Artifactory URLs for each component variant.
-
-    Fail-open policy (network error): if Artifactory is unreachable, the
-    variant is retained in the output to avoid data loss on transient failures.
-
-    Behaviour on HTTP 404: variants returning 404 are removed from
-    ProfileBuild.variants. A 404 from a reachable Artifactory means the
-    artifact no longer exists (fail-closed for authoritative 404 responses).
-
-    Шаг 5: Проверяет доступность ссылок на сборки в Artifactory (HTTP HEAD).
+    """Шаг 5: Проверяет доступность ссылок на сборки в Artifactory (HTTP HEAD).
 
     Варианты, вернувшие 404, удаляются из ``ProfileBuild.variants``.
     При сетевых ошибках вариант считается живым — чтобы не удалять данные

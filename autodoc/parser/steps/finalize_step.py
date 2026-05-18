@@ -116,17 +116,18 @@ class FinalizeStep(BaseParseStep):
         self,
         definitions: list[ProfileDefinition],
     ) -> list[ProfileDefinition]:
-        """Return deduplicated ProfileDefinition list; last occurrence wins.
+        """Возвращает список ProfileDefinition без дубликатов; при совпадении побеждает последняя запись.
 
-        When two ProfileDefinition objects share the same profile_name, the one
-        appearing later in the input list is retained. This matches the pipeline
-        override pattern where later steps may produce more complete profile data.
+        Если два объекта ``ProfileDefinition`` имеют одинаковый ``profile_name``,
+        сохраняется тот, что встречается позже во входном списке. Это соответствует
+        паттерну переопределений в пайплайне: более поздние шаги могут формировать
+        более полные данные профиля.
 
         Args:
-            definitions: Input list, may contain duplicate profile_name values.
+            definitions: Входной список, может содержать дублирующиеся ``profile_name``.
 
         Returns:
-            List with unique profile_name values; last-seen entry survives.
+            Список с уникальными ``profile_name``; выживает последняя встреченная запись.
         """
         seen: dict[str, ProfileDefinition] = {}
         for pd in definitions:

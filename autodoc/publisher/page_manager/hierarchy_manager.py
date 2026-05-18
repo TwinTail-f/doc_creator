@@ -7,7 +7,7 @@ _CHILDREN_MACRO_ID: str = "8cb4ae85-0212-4b3d-a15f-77899af1f1d7"
 
 
 def _build_children_body(intro_text: str, depth: int) -> str:
-    """Builds the Confluence Storage Format body for an auto-created hierarchy page."""
+    """Формирует тело страницы в Confluence Storage Format для автоматически создаваемой страницы иерархии."""
     return (
         f"{intro_text}"
         "<p>"
