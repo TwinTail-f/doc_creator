@@ -38,6 +38,7 @@ def _write_json(tmp_path: Path, content: dict) -> Path:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_from_file_loads_correctly(tmp_path: Path) -> None:
     """from_file() с корректным JSON-файлом правильно разрешает точное имя профиля."""
     path = _write_json(tmp_path, _SINGLE_OVERRIDE)
@@ -51,6 +52,7 @@ def test_profile_overrides_from_file_loads_correctly(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_from_file_missing_file_returns_empty() -> None:
     """from_file() с несуществующим путём возвращает пустой экземпляр."""
     overrides = ProfileSettingsOverrides.from_file(Path("/nonexistent/path.json"))
@@ -63,6 +65,7 @@ def test_profile_overrides_from_file_missing_file_returns_empty() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_from_file_invalid_json_returns_empty(tmp_path: Path) -> None:
     """from_file() с некорректным JSON возвращает пустой экземпляр."""
     bad_file = tmp_path / "bad.json"
@@ -78,6 +81,7 @@ def test_profile_overrides_from_file_invalid_json_returns_empty(tmp_path: Path) 
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_resolve_exact_match(tmp_path: Path) -> None:
     """resolve() с точным именем профиля из конфига возвращает настройки."""
     data = {
@@ -101,6 +105,7 @@ def test_profile_overrides_resolve_exact_match(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_resolve_basename_fallback(tmp_path: Path) -> None:
     """resolve() использует сопоставление по basename, когда полный путь используется как имя профиля.
 
@@ -130,6 +135,7 @@ def test_profile_overrides_resolve_basename_fallback(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -> None:
     """resolve() с неизвестным именем профиля возвращает пустой словарь."""
     path = _write_json(tmp_path, _SINGLE_OVERRIDE)
@@ -145,6 +151,7 @@ def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_empty_instance_is_empty() -> None:
     """ProfileSettingsOverrides.empty() создаёт экземпляр, для которого is_empty() возвращает True."""
     assert ProfileSettingsOverrides.empty().is_empty() is True
@@ -155,6 +162,7 @@ def test_profile_overrides_empty_instance_is_empty() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_non_empty_is_not_empty(tmp_path: Path) -> None:
     """is_empty() возвращает False, если переопределения загружены из корректного файла."""
     path = _write_json(tmp_path, _SINGLE_OVERRIDE)
@@ -168,6 +176,7 @@ def test_profile_overrides_non_empty_is_not_empty(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_overrides_multiple_entries_merged(tmp_path: Path) -> None:
     """Две записи для одного имени профиля объединяются в единый словарь настроек."""
     data = {

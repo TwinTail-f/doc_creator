@@ -3,6 +3,8 @@
 Verifies the project logger is importable and has the expected configuration.
 """
 
+import pytest
+
 import logging
 
 from autodoc.common.logger import logger
@@ -10,6 +12,7 @@ from autodoc.common.logger import logger
 _EXPECTED_NAME_PREFIX: str = "doc_parser"
 
 
+@pytest.mark.infrastructure
 def test_logger_is_importable() -> None:
     """Importing autodoc.common.logger raises no ImportError.
 
@@ -18,6 +21,7 @@ def test_logger_is_importable() -> None:
     assert logger is not None
 
 
+@pytest.mark.infrastructure
 def test_logger_name_starts_with_doc_parser() -> None:
     """The project logger name must start with 'doc_parser'.
 
@@ -27,6 +31,7 @@ def test_logger_name_starts_with_doc_parser() -> None:
     assert logger.name.startswith(_EXPECTED_NAME_PREFIX)
 
 
+@pytest.mark.infrastructure
 def test_logger_is_standard_logger_instance() -> None:
     """The exported logger must be a standard logging.Logger instance.
 

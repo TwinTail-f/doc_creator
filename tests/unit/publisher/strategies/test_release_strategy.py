@@ -67,6 +67,7 @@ def make_release_strategy(
 class TestReleaseStrategyExecute:
     """Tests for ReleasePageStrategy.execute() behaviour."""
 
+    @pytest.mark.infrastructure
     def test_release_strategy_execute_calls_publish_single_page(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -92,6 +93,7 @@ class TestReleaseStrategyExecute:
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE
 
+    @pytest.mark.business_logic
     def test_release_strategy_execute_returns_success_report(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -112,6 +114,7 @@ class TestReleaseStrategyExecute:
         assert report.success is True
         assert report.pages_published == 1
 
+    @pytest.mark.business_logic
     def test_release_strategy_loads_registry_when_include_links_true(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -132,6 +135,7 @@ class TestReleaseStrategyExecute:
         strategy.execute()
         mock_load.assert_called_once()
 
+    @pytest.mark.business_logic
     def test_release_strategy_skips_registry_load_when_include_links_false(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -152,6 +156,7 @@ class TestReleaseStrategyExecute:
         strategy.execute()
         mock_load.assert_not_called()
 
+    @pytest.mark.business_logic
     def test_release_strategy_execute_returns_failure_on_client_error(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -186,6 +191,7 @@ class TestReleaseStrategyExecute:
 class TestReleaseStrategyConverter:
     """Tests for ReleasePageStrategy factory and converter wiring."""
 
+    @pytest.mark.contract
     def test_release_make_converter_creates_full_release_converter(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -207,6 +213,7 @@ class TestReleaseStrategyConverter:
         )
         assert isinstance(strategy._converter, FullReleaseConverter)
 
+    @pytest.mark.business_logic
     def test_release_strategy_registered_as_release(self) -> None:
         """'release' is present in available_strategies()."""
         assert "release" in BasePublishStrategy.available_strategies()
@@ -217,6 +224,7 @@ class TestReleaseStrategyConverter:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_publishes_exactly_one_page(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
@@ -249,15 +257,18 @@ def test_publishes_exactly_one_page(
     )
     report = strategy.execute()
 
-    assert report.pages_published == 1, (
-        f"ReleasePageStrategy must publish exactly 1 page, published: {report.pages_published}"
-    )
-    publish_calls = [c for c in publisher_confluence_client.calls if c["method"] == "publish_page"]
-    assert len(publish_calls) == 1, (
-        f"publish_page must be called exactly 1 time, called: {len(publish_calls)}"
-    )
+    assert (
+        report.pages_published == 1
+    ), f"ReleasePageStrategy must publish exactly 1 page, published: {report.pages_published}"
+    publish_calls = [
+        c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
+    ]
+    assert (
+        len(publish_calls) == 1
+    ), f"publish_page must be called exactly 1 time, called: {len(publish_calls)}"
 
 
+@pytest.mark.business_logic
 def test_passport_registry_loaded_when_include_links_true(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
@@ -292,6 +303,7 @@ def test_passport_registry_loaded_when_include_links_true(
     mock_load.assert_called_once_with()
 
 
+@pytest.mark.business_logic
 def test_passport_registry_not_loaded_when_include_links_false(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
@@ -327,6 +339,7 @@ def test_passport_registry_not_loaded_when_include_links_false(
     mock_load.assert_not_called()
 
 
+@pytest.mark.business_logic
 def test_links_injected_into_view_model_from_registry(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_parsed_result: ParsedResult,
@@ -389,13 +402,16 @@ def test_links_injected_into_view_model_from_registry(
         (c for c in view.get("components", []) if c.get("name") == "openssl"),
         None,
     )
-    assert openssl_view is not None, "openssl component must be present in the view_model"
+    assert (
+        openssl_view is not None
+    ), "openssl component must be present in the view_model"
     passport_versions = openssl_view.get("passport_versions", {})
-    assert len(passport_versions) > 0, (
-        "passport_versions must be injected from the registry when include_passport_links=True"
-    )
+    assert (
+        len(passport_versions) > 0
+    ), "passport_versions must be injected from the registry when include_passport_links=True"
 
 
+@pytest.mark.business_logic
 def test_client_error_returns_failure_report(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
@@ -447,6 +463,6 @@ def test_client_error_returns_failure_report(
     )
     report = strategy.execute()
 
-    assert report.success is False, (
-        "PublishReport.success must be False when publish_page raises an exception"
-    )
+    assert (
+        report.success is False
+    ), "PublishReport.success must be False when publish_page raises an exception"

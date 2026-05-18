@@ -13,6 +13,7 @@ Covers:
 """
 
 from __future__ import annotations
+import pytest
 
 from autodoc.publisher.legacy_content.legacy_extractor import (
     extract_by_platform_tab,
@@ -32,6 +33,7 @@ from tests.unit.publisher.fixtures.shared_html import (
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_extract_by_platform_tab_returns_content_for_existing_tab() -> None:
     """Returns the inner HTML for a tab that exists in the document."""
     result = extract_by_platform_tab(TAB_HTML_SINGLE, "Platform 2.0")
@@ -39,6 +41,7 @@ def test_extract_by_platform_tab_returns_content_for_existing_tab() -> None:
     assert "<p>Content 2.0</p>" in result
 
 
+@pytest.mark.business_logic
 def test_extract_by_platform_tab_returns_empty_for_missing_tab() -> None:
     """Returns "" when the requested platform name is not present."""
     result = extract_by_platform_tab(TAB_HTML_SINGLE, "Platform 9.9")
@@ -46,6 +49,7 @@ def test_extract_by_platform_tab_returns_empty_for_missing_tab() -> None:
     assert result == ""
 
 
+@pytest.mark.business_logic
 def test_extract_by_platform_tab_empty_html_returns_empty() -> None:
     """Returns "" when the input HTML is an empty string."""
     result = extract_by_platform_tab("", "Platform 2.0")
@@ -53,6 +57,7 @@ def test_extract_by_platform_tab_empty_html_returns_empty() -> None:
     assert result == ""
 
 
+@pytest.mark.business_logic
 def test_extract_by_platform_tab_handles_nested_rich_text_body() -> None:
     """Depth-balanced extraction does not stop at a nested rich-text-body tag."""
     result = extract_by_platform_tab(TAB_HTML_NESTED, "Platform 2.0")
@@ -67,6 +72,7 @@ def test_extract_by_platform_tab_handles_nested_rich_text_body() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_extract_platform_versions_returns_all_tabs() -> None:
     """Returns a dict with one key per distinct tab name found in the HTML."""
     result = extract_platform_versions(TAB_HTML_MULTI)
@@ -74,6 +80,7 @@ def test_extract_platform_versions_returns_all_tabs() -> None:
     assert set(result.keys()) == {"Platform 2.0", "Platform 2.1"}
 
 
+@pytest.mark.infrastructure
 def test_extract_platform_versions_empty_html_returns_empty_dict() -> None:
     """Returns {} on empty HTML input."""
     result = extract_platform_versions("")
@@ -81,6 +88,7 @@ def test_extract_platform_versions_empty_html_returns_empty_dict() -> None:
     assert result == {}
 
 
+@pytest.mark.business_logic
 def test_extract_platform_versions_fallback_to_h1_when_no_tabs() -> None:
     """Falls back to h1-header parsing when no tab markers are present."""
     result = extract_platform_versions(H1_HTML)
@@ -89,6 +97,7 @@ def test_extract_platform_versions_fallback_to_h1_when_no_tabs() -> None:
     assert "Platform 2.1" in result
 
 
+@pytest.mark.business_logic
 def test_extract_platform_versions_skips_tabs_with_no_content() -> None:
     """Tabs that have no extractable body content are excluded from the result."""
     result = extract_platform_versions(TAB_HTML_NO_BODY)
@@ -96,6 +105,7 @@ def test_extract_platform_versions_skips_tabs_with_no_content() -> None:
     assert "Platform 9.9" not in result
 
 
+@pytest.mark.business_logic
 def test_extract_platform_versions_no_duplicate_names() -> None:
     """HTML with two identically-named tabs produces only one entry in the result."""
     result = extract_platform_versions(TAB_HTML_DUPLICATE_NAMES)

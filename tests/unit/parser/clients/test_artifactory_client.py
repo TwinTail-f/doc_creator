@@ -25,6 +25,7 @@ def _make_artifactory_client(parser_config) -> ArtifactoryClient:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_artifactory_client_head_returns_response(mocker, parser_config) -> None:
     """ArtifactoryClient.head возвращает HTTP-ответ при успешном HEAD-запросе."""
     client = _make_artifactory_client(parser_config)
@@ -42,6 +43,7 @@ def test_artifactory_client_head_returns_response(mocker, parser_config) -> None
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_artifactory_client_head_disables_ssl_verification(
     parser_config,
 ) -> None:
@@ -56,6 +58,7 @@ def test_artifactory_client_head_disables_ssl_verification(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_artifactory_client_satisfies_protocol(parser_config) -> None:
     """ArtifactoryClient структурно удовлетворяет протоколу IArtifactoryClient."""
     client = ArtifactoryClient.__new__(ArtifactoryClient)

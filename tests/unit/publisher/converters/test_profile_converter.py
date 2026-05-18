@@ -53,6 +53,7 @@ def result_with_header_only_unique_profile(
 class TestProfileCentricConverter:
     """Tests for ProfileCentricConverter.transform()."""
 
+    @pytest.mark.contract
     def test_profile_centric_transform_returns_profiles_list(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -61,6 +62,7 @@ class TestProfileCentricConverter:
 
         assert len(result["profiles"]) > 0
 
+    @pytest.mark.contract
     def test_profile_centric_transform_profile_has_required_fields(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -79,6 +81,7 @@ class TestProfileCentricConverter:
         }
         assert required_keys.issubset(profile.keys())
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_profile_os_from_conan_settings(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -87,6 +90,7 @@ class TestProfileCentricConverter:
 
         assert result["profiles"][0]["os"] == OS_LINUX
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_profile_docker_url(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -95,6 +99,7 @@ class TestProfileCentricConverter:
 
         assert result["profiles"][0]["docker_url"] == DOCKER_IMAGE
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_channels_grouped_by_channel(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -104,6 +109,7 @@ class TestProfileCentricConverter:
         channels = result["profiles"][0]["channels"]
         assert len(channels[CHANNEL_TECH]) == 2
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_components_sorted_by_name_in_channel(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -114,6 +120,7 @@ class TestProfileCentricConverter:
         names = [e["name"] for e in tech_entries]
         assert names == sorted(names)
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_comp_entry_has_reference_and_url(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -124,6 +131,7 @@ class TestProfileCentricConverter:
         assert "reference" in comp_entry
         assert "url" in comp_entry
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_passport_link_is_none_without_pattern(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -133,6 +141,7 @@ class TestProfileCentricConverter:
         comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
         assert comp_entry["passport_link"] is None
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_passport_link_formatted_with_pattern(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -147,6 +156,7 @@ class TestProfileCentricConverter:
         openssl_entry = next(e for e in tech_entries if e["name"] == COMP_NAME)
         assert openssl_entry["passport_link"] == f"/p/{COMP_NAME}/{RELEASE_VERSION}"
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_skips_header_only_for_profile_meta(
         self, result_with_header_only_unique_profile: ParsedResult
     ) -> None:
@@ -158,6 +168,7 @@ class TestProfileCentricConverter:
         profile_names = {p["profile_name"] for p in result["profiles"]}
         assert "header-only-exclusive-profile" not in profile_names
 
+    @pytest.mark.business_logic
     def test_profile_centric_transform_include_links_flag_in_result(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -168,12 +179,51 @@ class TestProfileCentricConverter:
 
         assert result["include_passport_links"] is False
 
+    @pytest.mark.business_logic
+    def test_profile_centric_converter_profile_with_no_components_does_not_raise(
+        self,
+    ) -> None:
+        """ProfileDefinition with no matching ProfileBuilds produces no crash."""
+        from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
+        from autodoc.models.component import Component
+        from autodoc.models.release import Release
+        from autodoc.models.conan_variant import ProfileBuild
+
+        # Profile in definitions but not referenced by any component's ProfileBuild
+        orphan_profile = ProfileDefinition(profile_name="hw-linux-riscv64-gcc12")
+
+        pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")  # different name
+        release = Release(
+            version="3.0.9",  # from openssl.properties
+            platform="2.0",
+            channel="tech",
+            profile_builds=[pb],
+        )
+        component = Component(name="openssl", releases=[release])
+
+        parsed = ParsedResult(
+            generated_at="2024-01-01T00:00:00",
+            platform_version="2.0",
+            profile_definitions=[orphan_profile],
+            components=[component],
+        )
+
+        converter = ProfileCentricConverter()
+        view_model = converter.transform(parsed)  # must not raise
+
+        assert view_model is not None
+        # The orphan profile has no matching ProfileBuilds from non-header-only components,
+        # so it must be absent from the profiles list (not cause a crash or spurious entry)
+        profile_names = {p["profile_name"] for p in view_model["profiles"]}
+        assert "hw-linux-riscv64-gcc12" not in profile_names
+
 
 # ---------------------------------------------------------------------------
 # BL-PCC-01 … BL-PCC-06  (Part 1 of the Publisher BL test plan)
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_data_restructured_from_component_to_profile_axis(
     publisher_multi_channel_result,
 ) -> None:
@@ -216,6 +266,7 @@ def test_data_restructured_from_component_to_profile_axis(
     assert "version" in comp_entry, "Component entry must have 'version'"
 
 
+@pytest.mark.business_logic
 def test_header_only_components_excluded_from_profile_metadata(
     publisher_multi_channel_result,
     publisher_profile_definition,
@@ -246,12 +297,13 @@ def test_header_only_components_excluded_from_profile_metadata(
         None,
     )
     assert profile is not None, "Profile hw-linux-x86_64-gcc10 must be present"
-    assert profile["os"] == publisher_profile_definition.conan_settings["os"], (
-        "Profile os must come from the non-header-only component's ProfileDefinition"
-    )
+    assert (
+        profile["os"] == publisher_profile_definition.conan_settings["os"]
+    ), "Profile os must come from the non-header-only component's ProfileDefinition"
     assert profile["os"] != "", "conan_settings['os'] must not be empty"
 
 
+@pytest.mark.business_logic
 def test_channels_within_profile_sorted_consistently(
     publisher_multi_channel_result,
 ) -> None:
@@ -282,6 +334,7 @@ def test_channels_within_profile_sorted_consistently(
         )
 
 
+@pytest.mark.business_logic
 def test_components_within_channel_sorted_by_name(
     publisher_multi_channel_result,
 ) -> None:
@@ -314,6 +367,7 @@ def test_components_within_channel_sorted_by_name(
             )
 
 
+@pytest.mark.business_logic
 def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> None:
     """
     BL-PCC-05
@@ -345,6 +399,7 @@ def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> N
                 )
 
 
+@pytest.mark.business_logic
 def test_passport_link_formatted_per_component_version(
     publisher_multi_channel_result,
 ) -> None:
@@ -377,18 +432,18 @@ def test_passport_link_formatted_per_component_version(
     for profile in view["profiles"]:
         for channel_name, comp_entries in profile["channels"].items():
             for comp_entry in comp_entries:
-                assert "passport_link" in comp_entry, (
-                    "When include_links=True, each component must have key passport_link"
-                )
+                assert (
+                    "passport_link" in comp_entry
+                ), "When include_links=True, each component must have key passport_link"
                 link = comp_entry["passport_link"]
                 if link:
-                    assert comp_entry["name"] in link, (
-                        f"passport_link must contain component name '{comp_entry['name']}'"
-                    )
-                    assert comp_entry["version"] in link, (
-                        f"passport_link must contain version '{comp_entry['version']}'"
-                    )
+                    assert (
+                        comp_entry["name"] in link
+                    ), f"passport_link must contain component name '{comp_entry['name']}'"
+                    assert (
+                        comp_entry["version"] in link
+                    ), f"passport_link must contain version '{comp_entry['version']}'"
                     found_any_link = True
-    assert found_any_link, (
-        "At least one component should receive a non-empty passport_link"
-    )
+    assert (
+        found_any_link
+    ), "At least one component should receive a non-empty passport_link"

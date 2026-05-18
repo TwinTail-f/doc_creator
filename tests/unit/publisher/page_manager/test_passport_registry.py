@@ -53,6 +53,7 @@ def _make_registry(data_dir: Path) -> PassportPageRegistry:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_save_creates_file_in_data_dir(tmp_path: Path) -> None:
     """save() writes passport_pages.json into data_dir."""
     registry = _make_registry(tmp_path)
@@ -62,6 +63,7 @@ def test_save_creates_file_in_data_dir(tmp_path: Path) -> None:
     assert (tmp_path / _REGISTRY_FILE).exists()
 
 
+@pytest.mark.infrastructure
 def test_save_creates_parent_directory_if_missing(tmp_path: Path) -> None:
     """save() creates data_dir when it does not yet exist."""
     data_dir = tmp_path / "new_subdir"
@@ -72,6 +74,7 @@ def test_save_creates_parent_directory_if_missing(tmp_path: Path) -> None:
     assert data_dir.exists()
 
 
+@pytest.mark.infrastructure
 def test_save_writes_valid_json(tmp_path: Path) -> None:
     """save() writes content that can be parsed as valid JSON."""
     registry = _make_registry(tmp_path)
@@ -83,6 +86,7 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
     assert parsed == _PAGES_MAP
 
 
+@pytest.mark.business_logic
 def test_save_on_os_error_does_not_raise(
     tmp_path: Path, mocker: pytest.MonkeyPatch
 ) -> None:
@@ -99,6 +103,7 @@ def test_save_on_os_error_does_not_raise(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_load_returns_empty_dict_if_file_missing(tmp_path: Path) -> None:
     """load() returns {} when passport_pages.json does not exist."""
     registry = _make_registry(tmp_path)
@@ -108,6 +113,7 @@ def test_load_returns_empty_dict_if_file_missing(tmp_path: Path) -> None:
     assert result == {}
 
 
+@pytest.mark.infrastructure
 def test_load_returns_dict_on_valid_file(tmp_path: Path) -> None:
     """load() deserialises and returns the stored dict."""
     (tmp_path / _REGISTRY_FILE).write_text(
@@ -120,6 +126,7 @@ def test_load_returns_dict_on_valid_file(tmp_path: Path) -> None:
     assert result == _PAGES_MAP
 
 
+@pytest.mark.business_logic
 def test_load_returns_empty_dict_on_invalid_json(tmp_path: Path) -> None:
     """load() returns {} when the file contains malformed JSON."""
     (tmp_path / _REGISTRY_FILE).write_text("not valid json", encoding="utf-8")
@@ -130,6 +137,7 @@ def test_load_returns_empty_dict_on_invalid_json(tmp_path: Path) -> None:
     assert result == {}
 
 
+@pytest.mark.business_logic
 def test_load_returns_empty_dict_on_os_error(
     tmp_path: Path, mocker: pytest.MonkeyPatch
 ) -> None:
@@ -143,6 +151,7 @@ def test_load_returns_empty_dict_on_os_error(
     assert result == {}
 
 
+@pytest.mark.business_logic
 def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     """A value saved by save() is faithfully returned by load()."""
     pages_map: dict[str, Any] = {
@@ -161,6 +170,7 @@ def test_save_then_load_roundtrip(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_inject_links_adds_passport_versions_to_component(tmp_path: Path) -> None:
     """inject_links() sets passport_versions on a matched component."""
     view_model: dict[str, Any] = {
@@ -175,6 +185,7 @@ def test_inject_links_adds_passport_versions_to_component(tmp_path: Path) -> Non
     )
 
 
+@pytest.mark.business_logic
 def test_inject_links_skips_versions_not_in_releases(tmp_path: Path) -> None:
     """inject_links() includes only versions present in the component's releases."""
     view_model: dict[str, Any] = {
@@ -194,6 +205,7 @@ def test_inject_links_skips_versions_not_in_releases(tmp_path: Path) -> None:
     assert "2.0.0" not in passport_versions
 
 
+@pytest.mark.business_logic
 def test_inject_links_noop_if_no_components_key() -> None:
     """inject_links() does nothing and does not raise when 'components' is absent."""
     view_model: dict[str, Any] = {"other_key": "value"}
@@ -204,6 +216,7 @@ def test_inject_links_noop_if_no_components_key() -> None:
     assert "components" not in view_model
 
 
+@pytest.mark.business_logic
 def test_inject_links_noop_if_passport_pages_empty() -> None:
     """inject_links() does nothing when passport_pages is empty."""
     view_model: dict[str, Any] = {
@@ -238,6 +251,7 @@ def _make_profile_view_model(
     }
 
 
+@pytest.mark.business_logic
 def test_inject_links_for_profiles_sets_passport_link() -> None:
     """inject_links_for_profiles() sets passport_link to the expected Confluence path."""
     view_model = _make_profile_view_model("openssl", "1.0.0")
@@ -249,6 +263,7 @@ def test_inject_links_for_profiles_sets_passport_link() -> None:
     assert comp["passport_link"] == f"/spaces/{SPACE}/pages/{PAGE_ID}"
 
 
+@pytest.mark.business_logic
 def test_inject_links_for_profiles_sets_none_if_comp_missing() -> None:
     """inject_links_for_profiles() sets passport_link to None when comp not in registry."""
     view_model = _make_profile_view_model("unknown_lib", "1.0.0")
@@ -260,6 +275,7 @@ def test_inject_links_for_profiles_sets_none_if_comp_missing() -> None:
     assert comp["passport_link"] is None
 
 
+@pytest.mark.business_logic
 def test_inject_links_for_profiles_noop_if_no_profiles_key() -> None:
     """inject_links_for_profiles() does not raise when 'profiles' key is absent."""
     view_model: dict[str, Any] = {"space": SPACE, "components": []}
@@ -270,6 +286,7 @@ def test_inject_links_for_profiles_noop_if_no_profiles_key() -> None:
     assert "profiles" not in view_model
 
 
+@pytest.mark.business_logic
 def test_inject_links_for_profiles_noop_if_empty_passport_pages() -> None:
     """inject_links_for_profiles() does nothing when passport_pages is empty."""
     view_model = _make_profile_view_model("openssl", "1.0.0")
@@ -286,6 +303,7 @@ def test_inject_links_for_profiles_noop_if_empty_passport_pages() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_load_returns_empty_on_missing_file(tmp_path: Path) -> None:
     """
     BL-REG-09
@@ -308,11 +326,12 @@ def test_load_returns_empty_on_missing_file(tmp_path: Path) -> None:
 
     result = registry.load()
 
-    assert result == {}, (
-        f"load() must return an empty dict when the file is missing, got: {result!r}"
-    )
+    assert (
+        result == {}
+    ), f"load() must return an empty dict when the file is missing, got: {result!r}"
 
 
+@pytest.mark.business_logic
 def test_save_failure_does_not_raise(tmp_path: Path) -> None:
     """
     BL-REG-10

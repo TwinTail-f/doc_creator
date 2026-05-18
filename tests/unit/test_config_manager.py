@@ -52,6 +52,7 @@ _CONFLUENCE_CONFIG_FILENAME: str = "confluence_config.json"
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_config_manager_loads_valid_json(tmp_path: Path) -> None:
     """ConfigManager successfully loads a valid parser config from a .json file.
 
@@ -71,6 +72,7 @@ def test_config_manager_loads_valid_json(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_config_manager_loads_valid_yaml(tmp_path: Path) -> None:
     """ConfigManager successfully loads a valid parser config from a .yaml file.
 
@@ -90,6 +92,7 @@ def test_config_manager_loads_valid_yaml(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_config_manager_loads_valid_yml_extension(tmp_path: Path) -> None:
     """ConfigManager successfully loads a valid parser config from a .yml file.
 
@@ -109,6 +112,7 @@ def test_config_manager_loads_valid_yml_extension(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_config_manager_raises_config_error_on_invalid_schema(
     tmp_path: Path,
 ) -> None:
@@ -130,6 +134,7 @@ def test_config_manager_raises_config_error_on_invalid_schema(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_config_manager_raises_on_nonexistent_configs_dir(tmp_path: Path) -> None:
     """load_raw() raises ConfigError when configs_dir does not exist.
 
@@ -149,6 +154,7 @@ def test_config_manager_raises_on_nonexistent_configs_dir(tmp_path: Path) -> Non
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_config_manager_raises_on_file_as_configs_dir(tmp_path: Path) -> None:
     """load_raw() raises ConfigError when configs_dir is a file, not a directory.
 
@@ -168,6 +174,7 @@ def test_config_manager_raises_on_file_as_configs_dir(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_config_manager_load_parser_config_returns_correct_type(
     tmp_path: Path,
 ) -> None:
@@ -190,6 +197,7 @@ def test_config_manager_load_parser_config_returns_correct_type(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_config_manager_load_confluence_config_returns_correct_type(
     tmp_path: Path,
 ) -> None:

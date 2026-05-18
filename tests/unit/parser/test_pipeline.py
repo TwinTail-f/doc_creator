@@ -10,6 +10,7 @@ from autodoc.parser.steps.base_parse_step import BaseParseStep
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_pipeline_context_construction(
     parser_config,
     tmp_path,
@@ -20,6 +21,7 @@ def test_pipeline_context_construction(
     assert ctx.result is None
 
 
+@pytest.mark.business_logic
 def test_pipeline_context_snapshot_excludes_docker_links(
     parser_config,
     tmp_path,
@@ -32,6 +34,7 @@ def test_pipeline_context_snapshot_excludes_docker_links(
     assert snapshot["docker_links_count"] == 1
 
 
+@pytest.mark.business_logic
 def test_pipeline_context_snapshot_includes_components_count(
     parser_config,
     tmp_path,
@@ -44,6 +47,7 @@ def test_pipeline_context_snapshot_includes_components_count(
     assert snapshot["components_count"] == 1
 
 
+@pytest.mark.infrastructure
 def test_pipeline_context_snapshot_converts_tuple_keys(
     parser_config,
     tmp_path,
@@ -61,6 +65,7 @@ def test_pipeline_context_snapshot_converts_tuple_keys(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_base_parse_step_requires_name_attribute() -> None:
     """Определение подкласса BaseParseStep с пустым именем вызывает TypeError при определении класса."""
     with pytest.raises(TypeError):
@@ -79,6 +84,7 @@ def test_base_parse_step_requires_name_attribute() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_pipeline_context_satisfies_protocol(parser_pipeline_context) -> None:
     """PipelineContext must satisfy PipelineContextProtocol at runtime."""
     from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol

@@ -33,6 +33,7 @@ MINIMAL_RELEASE_KWARGS: dict = {
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_parse_option_str_strips_package_prefix() -> None:
     """_parse_option_str удаляет префикс пакета из каждого ключа."""
     result = _parse_option_str(OPTION_STR_WITH_PREFIX)
@@ -44,6 +45,7 @@ def test_parse_option_str_strips_package_prefix() -> None:
 # ===========================================================================
 
 
+@pytest.mark.contract
 def test_parse_option_str_empty_string_returns_empty_dict() -> None:
     """_parse_option_str возвращает пустой словарь для пустой входной строки."""
     result = _parse_option_str("")
@@ -55,6 +57,7 @@ def test_parse_option_str_empty_string_returns_empty_dict() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_parse_option_str_no_prefix() -> None:
     """_parse_option_str принимает ключи без префикса пакета."""
     result = _parse_option_str(OPTION_STR_NO_PREFIX)
@@ -66,6 +69,7 @@ def test_parse_option_str_no_prefix() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_parse_option_str_wildcard_prefix_stripped() -> None:
     """_parse_option_str удаляет префикс с символом подстановки (mylib/*:key) и оставляет чистый ключ."""
     result = _parse_option_str(OPTION_STR_WILDCARD)
@@ -77,6 +81,7 @@ def test_parse_option_str_wildcard_prefix_stripped() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_conan_input_options_auto_fills_parsed_options() -> None:
     """ConanInputOptions.parsed_options автоматически заполняется из строки options при создании."""
     instance = ConanInputOptions(id="1", options=OPTION_STR_PKG)
@@ -88,6 +93,7 @@ def test_conan_input_options_auto_fills_parsed_options() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_conan_input_options_empty_options_parsed_options_empty() -> None:
     """ConanInputOptions.parsed_options остаётся пустым, если options — пустая строка."""
     instance = ConanInputOptions(id="1", options="")
@@ -106,6 +112,7 @@ def test_conan_input_options_empty_options_parsed_options_empty() -> None:
         ("pkg:fPIC=False", {"override": "yes", "extra": "no"}),
     ],
 )
+@pytest.mark.business_logic
 def test_conan_input_options_explicit_parsed_options_not_overwritten(
     options_str: str,
     explicit_parsed: dict[str, str],
@@ -124,6 +131,7 @@ def test_conan_input_options_explicit_parsed_options_not_overwritten(
 # ===========================================================================
 
 
+@pytest.mark.contract
 def test_profile_build_default_exists_is_false() -> None:
     """ProfileBuild.exists по умолчанию равен False, если не задан явно."""
     instance = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")
@@ -135,6 +143,7 @@ def test_profile_build_default_exists_is_false() -> None:
 # ===========================================================================
 
 
+@pytest.mark.contract
 def test_release_defaults_are_empty_collections() -> None:
     """Release.build_option_sets и profile_builds по умолчанию []."""
     instance = Release(**MINIMAL_RELEASE_KWARGS)
@@ -142,6 +151,7 @@ def test_release_defaults_are_empty_collections() -> None:
     assert instance.profile_builds == []
 
 
+@pytest.mark.contract
 def test_component_defaults_is_header_only_false() -> None:
     """Component.is_header_only по умолчанию False, git_url по умолчанию пустая строка."""
     instance = Component(name="mylib")
@@ -154,6 +164,7 @@ def test_component_defaults_is_header_only_false() -> None:
 # ===========================================================================
 
 
+@pytest.mark.contract
 def test_component_roundtrip_serialization() -> None:
     """Component корректно проходит сериализацию и десериализацию через model_dump и model_validate."""
     original = Component(name="openssl", description="TLS library")
@@ -181,6 +192,7 @@ _PLATFORM_VERSION: str = "2.0"
 class TestProfileDefinition:
     """Unit tests for the ProfileDefinition Pydantic model."""
 
+    @pytest.mark.contract
     def test_minimal_construction(self) -> None:
         """ProfileDefinition can be built with profile_name only; defaults apply."""
         pd = ProfileDefinition(profile_name=_PROFILE_NAME)
@@ -188,6 +200,7 @@ class TestProfileDefinition:
         assert pd.docker_image == ""
         assert pd.conan_settings == {}
 
+    @pytest.mark.contract
     def test_full_construction(self) -> None:
         """ProfileDefinition accepts all optional fields."""
         pd = ProfileDefinition(
@@ -197,6 +210,7 @@ class TestProfileDefinition:
         )
         assert pd.docker_image == _DOCKER_IMAGE
 
+    @pytest.mark.contract
     def test_missing_profile_name_raises(self) -> None:
         """Omitting required profile_name must raise ValidationError."""
         with pytest.raises(PydanticValidationError):
@@ -206,6 +220,7 @@ class TestProfileDefinition:
 class TestParsedResult:
     """Unit tests for the ParsedResult Pydantic model."""
 
+    @pytest.mark.contract
     def test_minimal_construction(self) -> None:
         """ParsedResult can be built with required fields; list defaults are empty."""
         result = ParsedResult(
@@ -216,11 +231,13 @@ class TestParsedResult:
         assert result.components == []
         assert result.profile_definitions == []
 
+    @pytest.mark.contract
     def test_missing_generated_at_raises(self) -> None:
         """Omitting generated_at must raise ValidationError."""
         with pytest.raises(PydanticValidationError):
             ParsedResult(platform_version=_PLATFORM_VERSION)  # type: ignore[call-arg]
 
+    @pytest.mark.contract
     def test_missing_platform_version_raises(self) -> None:
         """Omitting platform_version must raise ValidationError."""
         with pytest.raises(PydanticValidationError):

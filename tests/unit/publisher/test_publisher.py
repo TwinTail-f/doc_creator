@@ -69,6 +69,7 @@ def _mock_strategy(report: PublishReport, mocker: MockerFixture) -> MagicMock:
 class TestDocumentPublisherPublish:
     """Tests for DocumentPublisher.publish()."""
 
+    @pytest.mark.business_logic
     def test_publisher_publish_delegates_to_strategy_execute(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -85,6 +86,7 @@ class TestDocumentPublisherPublish:
         publisher_document_publisher.publish("release", publisher_parsed_result)
         mock_strategy.execute.assert_called_once()
 
+    @pytest.mark.business_logic
     def test_publisher_publish_passes_space_from_config(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -102,6 +104,7 @@ class TestDocumentPublisherPublish:
         _, kwargs = mock_create.call_args
         assert kwargs["space"] == _SPACE
 
+    @pytest.mark.infrastructure
     def test_publisher_publish_passes_data_dir(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -120,6 +123,7 @@ class TestDocumentPublisherPublish:
         _, kwargs = mock_create.call_args
         assert kwargs["data_dir"] == tmp_path
 
+    @pytest.mark.business_logic
     def test_publisher_publish_returns_strategy_report(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -179,6 +183,7 @@ class TestDocumentPublisherPublishAll:
         # Expose call_order for order verification
         mocker.call_order = call_order  # type: ignore[attr-defined]
 
+    @pytest.mark.business_logic
     def test_publisher_publish_all_runs_passports_then_release(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -212,6 +217,7 @@ class TestDocumentPublisherPublishAll:
         )
         assert call_order == ["passports", "release"]
 
+    @pytest.mark.business_logic
     def test_publisher_publish_all_merges_reports(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -241,6 +247,7 @@ class TestDocumentPublisherPublishAll:
         )
         assert result.pages_published == 4
 
+    @pytest.mark.business_logic
     def test_publisher_publish_all_success_false_if_any_strategy_fails(
         self,
         publisher_document_publisher: DocumentPublisher,
@@ -272,6 +279,7 @@ class TestDocumentPublisherPublishAll:
         )
         assert result.success is False
 
+    @pytest.mark.business_logic
     def test_publisher_publish_all_merges_errors_lists(
         self,
         publisher_document_publisher: DocumentPublisher,

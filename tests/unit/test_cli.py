@@ -47,6 +47,7 @@ def _write_json(directory: Path, filename: str, data: dict) -> Path:
     return p
 
 
+@pytest.mark.business_logic
 def test_cli_config_validate_exits_zero_on_valid_config(
     configs_dir: Path,
 ) -> None:
@@ -66,6 +67,7 @@ def test_cli_config_validate_exits_zero_on_valid_config(
     )
 
 
+@pytest.mark.business_logic
 def test_cli_config_validate_exits_nonzero_on_invalid_config(
     configs_dir: Path,
 ) -> None:
@@ -84,6 +86,7 @@ def test_cli_config_validate_exits_nonzero_on_invalid_config(
     ), f"Expected non-zero exit for invalid JSON, got {result.exit_code}"
 
 
+@pytest.mark.business_logic
 def test_cli_config_validate_error_is_human_readable(
     configs_dir: Path,
 ) -> None:
@@ -108,6 +111,7 @@ def test_cli_config_validate_error_is_human_readable(
     ), "Python file reference found in CLI output — error must be user-friendly."
 
 
+@pytest.mark.business_logic
 def test_cli_config_list_shows_config_filenames(
     configs_dir: Path,
 ) -> None:
@@ -129,6 +133,7 @@ def test_cli_config_list_shows_config_filenames(
     assert "config_b.json" in result.output, "config_b.json missing from list output"
 
 
+@pytest.mark.business_logic
 def test_cli_config_list_on_empty_dir_exits_zero(
     configs_dir: Path,
 ) -> None:

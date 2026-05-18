@@ -75,6 +75,7 @@ def _make_enrich(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_aggregator_populates_release_data_on_success() -> None:
     """Успешный сырой результат создаёт запись в ConanEnrichmentResult.release_data."""
     task = _make_task()
@@ -98,6 +99,7 @@ def test_aggregator_populates_release_data_on_success() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_aggregator_skips_parser_on_failed_raw_result() -> None:
     """Parser.parse() никогда не вызывается для сырых результатов с success=False."""
     task = _make_task()
@@ -117,6 +119,7 @@ def test_aggregator_skips_parser_on_failed_raw_result() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
     """Aggregator skips None raw results and emits a WARNING log entry.
 
@@ -149,6 +152,7 @@ def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_aggregator_handles_parser_returning_none() -> None:
     """Когда парсер возвращает None (Binary: Missing), profile_data.exists == False."""
     task = _make_task()
@@ -171,6 +175,7 @@ def test_aggregator_handles_parser_returning_none() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_aggregator_counts_totals_correctly() -> None:
     """Счётчики total_tasks и succeeded отражают количество задач и успехов."""
     task1 = _make_task(profile_name="hw-linux-x86_64")
@@ -190,6 +195,7 @@ def test_aggregator_counts_totals_correctly() -> None:
     assert result.succeeded == 1
 
 
+@pytest.mark.business_logic
 def test_aggregator_dependencies_flow_through_to_release_data() -> None:
     """Dependencies returned by the parser are stored in release_data for the correct key.
 
@@ -234,6 +240,7 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
+@pytest.mark.business_logic
 def test_aggregator_two_profiles_same_release() -> None:
     """Two tasks for the same release (different profiles) → one release_data entry, two profile_data entries."""
     pb1 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
@@ -302,6 +309,7 @@ def test_aggregator_two_profiles_same_release() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_aggregator_records_version_range_error_message() -> None:
     """Aggregator records the full version-range-not-resolved error from a failed ConanRawResult.
 

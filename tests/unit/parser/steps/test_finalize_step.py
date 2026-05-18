@@ -56,6 +56,7 @@ def _make_component(name: str, release: Release) -> Component:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_finalize_step_sets_header_only_true(
     parser_pipeline_context,
 ) -> None:
@@ -74,6 +75,7 @@ def test_finalize_step_sets_header_only_true(
     assert comp.is_header_only is True
 
 
+@pytest.mark.business_logic
 def test_finalize_step_sets_header_only_false_on_mixed(
     parser_pipeline_context,
 ) -> None:
@@ -91,6 +93,7 @@ def test_finalize_step_sets_header_only_false_on_mixed(
     assert comp.is_header_only is False
 
 
+@pytest.mark.business_logic
 def test_finalize_step_sets_header_only_false_on_no_variants(
     parser_pipeline_context,
 ) -> None:
@@ -104,6 +107,7 @@ def test_finalize_step_sets_header_only_false_on_no_variants(
     assert comp.is_header_only is False
 
 
+@pytest.mark.business_logic
 def test_finalize_step_removes_profile_build_with_exists_false(
     parser_pipeline_context,
 ) -> None:
@@ -124,6 +128,7 @@ def test_finalize_step_removes_profile_build_with_exists_false(
     assert release.profile_builds[0].profile_name == "live"
 
 
+@pytest.mark.business_logic
 def test_finalize_step_sorts_components_by_name(
     parser_pipeline_context,
 ) -> None:
@@ -136,6 +141,7 @@ def test_finalize_step_sorts_components_by_name(
     assert parser_pipeline_context.components[0].name == "apache"
 
 
+@pytest.mark.business_logic
 def test_finalize_step_deduplicates_profile_definitions(
     parser_pipeline_context,
 ) -> None:
@@ -149,6 +155,7 @@ def test_finalize_step_deduplicates_profile_definitions(
     assert parser_pipeline_context.profile_definitions[0].docker_image == "image:v2"
 
 
+@pytest.mark.business_logic
 def test_finalize_step_populates_ctx_result(
     parser_pipeline_context,
 ) -> None:
@@ -160,6 +167,7 @@ def test_finalize_step_populates_ctx_result(
     assert parser_pipeline_context.result.platform_version == "2.0"
 
 
+@pytest.mark.business_logic
 def test_finalize_step_raises_parsing_error_on_validation_failure(
     parser_pipeline_context,
     mocker,
@@ -202,6 +210,7 @@ _IMAGE_V1: str = "registry.example.com/builder:v1"
 _IMAGE_V2: str = "registry.example.com/builder:v2"
 
 
+@pytest.mark.business_logic
 def test_finalize_step_deduplication_last_occurrence_wins(
     parser_pipeline_context,
 ) -> None:
@@ -226,6 +235,7 @@ def test_finalize_step_deduplication_last_occurrence_wins(
     assert survivors[0].docker_image == _IMAGE_V2, "Last occurrence must win"
 
 
+@pytest.mark.business_logic
 def test_finalize_step_sets_header_only_for_nlohmann_json(
     parser_pipeline_context,
 ) -> None:
@@ -259,6 +269,7 @@ def test_finalize_step_sets_header_only_for_nlohmann_json(
     assert result_comp.is_header_only is True
 
 
+@pytest.mark.business_logic
 def test_finalize_step_patchelf_two_versions_not_header_only(
     parser_pipeline_context,
 ) -> None:
@@ -297,6 +308,7 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
     assert not result_comp.is_header_only
 
 
+@pytest.mark.business_logic
 def test_finalize_step_preserves_prg_quant_component(
     parser_pipeline_context,
 ) -> None:
@@ -336,6 +348,7 @@ def test_finalize_step_preserves_prg_quant_component(
     assert names.index("apr") < names.index("libnetfilter_queue")
 
 
+@pytest.mark.business_logic
 def test_finalize_step_sqlite3_dependencies_preserved(
     parser_pipeline_context,
 ) -> None:
@@ -368,6 +381,7 @@ def test_finalize_step_sqlite3_dependencies_preserved(
     assert result_rel.dependencies == ["icu", "tcl"]
 
 
+@pytest.mark.business_logic
 def test_finalize_step_removes_non_existing_profiles(
     parser_pipeline_context,
 ) -> None:
@@ -463,6 +477,7 @@ def _make_comp_with_variant(name: str, package_id: str) -> Component:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_header_only_requires_all_profiles_to_have_null_package_id(
     parser_pipeline_context,
 ) -> None:
@@ -490,7 +505,9 @@ def test_header_only_requires_all_profiles_to_have_null_package_id(
         profile_name="p1",
         exists=True,
         variants=[
-            ConanVariant(package_id=null_id, build_url="", build_date="", options_ref="")
+            ConanVariant(
+                package_id=null_id, build_url="", build_date="", options_ref=""
+            )
         ],
     )
     pb2 = ProfileBuild(
@@ -532,6 +549,7 @@ def test_header_only_requires_all_profiles_to_have_null_package_id(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_header_only_evaluated_per_component_independently(
     parser_pipeline_context,
 ) -> None:
@@ -569,6 +587,7 @@ def test_header_only_evaluated_per_component_independently(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_header_only_null_package_id_exact_sha1_value(
     parser_pipeline_context,
 ) -> None:
@@ -601,6 +620,7 @@ def test_header_only_null_package_id_exact_sha1_value(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_header_only_with_no_profile_builds_is_false(
     parser_pipeline_context,
 ) -> None:
@@ -648,6 +668,7 @@ def test_header_only_with_no_profile_builds_is_false(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_header_only_with_empty_variants_per_profile_is_false(
     parser_pipeline_context,
 ) -> None:
@@ -695,6 +716,7 @@ def test_header_only_with_empty_variants_per_profile_is_false(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_filter_empty_profiles_removes_only_false_profiles(
     parser_pipeline_context,
 ) -> None:
@@ -757,6 +779,7 @@ def test_filter_empty_profiles_removes_only_false_profiles(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_filter_empty_profiles_count_returned() -> None:
     """Verify that ``_filter_empty_profiles`` returns the exact count of removed profiles.
 
@@ -813,6 +836,7 @@ def test_filter_empty_profiles_count_returned() -> None:
 # Helper factories scoped to this block to keep tests self-contained
 # ---------------------------------------------------------------------------
 
+
 def _bl_make_variant() -> ConanVariant:
     """Return a minimal ConanVariant with a non-null package_id."""
     return ConanVariant(
@@ -848,6 +872,7 @@ def _bl_make_component(name: str = "lib", releases: list | None = None) -> Compo
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_filter_empty_profiles_removes_only_false_exists() -> None:
     """Verify that _filter_empty_profiles removes only ProfileBuilds with exists=False.
 
@@ -888,6 +913,7 @@ def test_filter_empty_profiles_removes_only_false_exists() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_filter_empty_profiles_count_matches_actual_removed() -> None:
     """Verify that the return value of _filter_empty_profiles is the exact removal count.
 
@@ -927,6 +953,7 @@ def test_filter_empty_profiles_count_matches_actual_removed() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_filter_empty_profiles_release_with_all_false_stays_in_component() -> None:
     """Verify that a Release remains in the Component even when all its ProfileBuilds are removed.
 
@@ -962,6 +989,7 @@ def test_filter_empty_profiles_release_with_all_false_stays_in_component() -> No
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_filter_empty_profiles_accumulates_count_across_components() -> None:
     """Verify that _filter_empty_profiles sums removed profiles across all components.
 
@@ -1005,6 +1033,7 @@ def test_filter_empty_profiles_accumulates_count_across_components() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_dedup_profile_definitions_last_write_wins() -> None:
     """Verify that when two ProfileDefinitions share a name, the last one in the list wins.
 
@@ -1049,6 +1078,7 @@ def test_dedup_profile_definitions_last_write_wins() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_dedup_profile_definitions_unique_names_all_preserved() -> None:
     """Verify that ProfileDefinitions with unique names are all preserved after deduplication.
 
@@ -1086,6 +1116,7 @@ def test_dedup_profile_definitions_unique_names_all_preserved() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_dedup_profile_definitions_empty_input_returns_empty() -> None:
     """Verify that _deduplicate_profile_definitions returns [] for an empty input.
 

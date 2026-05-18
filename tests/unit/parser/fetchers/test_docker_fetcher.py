@@ -6,6 +6,8 @@
 цепочка DockerFetcher → DockerParser.
 """
 
+import pytest
+
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -98,6 +100,7 @@ def _make_context(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_docker_fetcher_extracts_links_from_yaml(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -120,6 +123,7 @@ def test_docker_fetcher_extracts_links_from_yaml(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_docker_fetcher_empty_urls_returns_empty_links(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -140,6 +144,7 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_docker_fetcher_failed_url_produces_warning(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -164,6 +169,7 @@ def test_docker_fetcher_failed_url_produces_warning(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_docker_fetcher_invalid_yaml_produces_warning(
     parser_config: ParserConfigSchema,
     tmp_path: Path,

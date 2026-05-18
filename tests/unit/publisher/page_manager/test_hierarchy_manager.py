@@ -61,6 +61,7 @@ def _publish_calls(client: FakeConfluenceClient) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_ensure_hierarchy_calls_publish_page_twice(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -72,6 +73,7 @@ def test_ensure_hierarchy_calls_publish_page_twice(
     assert len(_publish_calls(publisher_confluence_client)) == 2
 
 
+@pytest.mark.business_logic
 def test_ensure_hierarchy_first_call_uses_root_as_parent(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -85,6 +87,7 @@ def test_ensure_hierarchy_first_call_uses_root_as_parent(
     assert first_call["title"] == COMP_NAME
 
 
+@pytest.mark.business_logic
 def test_ensure_hierarchy_second_call_uses_comp_id_as_parent(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -97,6 +100,7 @@ def test_ensure_hierarchy_second_call_uses_comp_id_as_parent(
     assert second_call["parent_id"] == COMP_PAGE_ID
 
 
+@pytest.mark.business_logic
 def test_ensure_hierarchy_second_call_title_is_comp_version(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -109,6 +113,7 @@ def test_ensure_hierarchy_second_call_title_is_comp_version(
     assert second_call["title"] == f"{COMP_NAME} {RELEASE_VERSION}"
 
 
+@pytest.mark.business_logic
 def test_ensure_hierarchy_returns_version_page_id(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -122,6 +127,7 @@ def test_ensure_hierarchy_returns_version_page_id(
     assert result == VERSION_PAGE_ID
 
 
+@pytest.mark.business_logic
 def test_ensure_hierarchy_passes_space_to_both_calls(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -140,6 +146,7 @@ def test_ensure_hierarchy_passes_space_to_both_calls(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_component_page_created_under_root_parent() -> None:
     """
     BL-PHM-01
@@ -186,7 +193,9 @@ def test_component_page_created_under_root_parent() -> None:
         release_version="1.0.0",
     )
 
-    assert len(recorded) >= 1, "At least one publish_page call must exist (component page)"
+    assert (
+        len(recorded) >= 1
+    ), "At least one publish_page call must exist (component page)"
     first_call = recorded[0]
     assert first_call["parent_id"] == "ROOT_PAGE", (
         f"First publish_page call must use root_parent_id='ROOT_PAGE', "
@@ -194,6 +203,7 @@ def test_component_page_created_under_root_parent() -> None:
     )
 
 
+@pytest.mark.business_logic
 def test_version_page_created_under_component_page() -> None:
     """
     BL-PHM-02
@@ -219,8 +229,18 @@ def test_version_page_created_under_component_page() -> None:
             call_seq[0] += 1
             call_log.append({"title": title, "parent_id": parent_id})
             if call_seq[0] == 1:
-                return {"id": component_page_id, "version": 1, "status": "updated", "title": title}
-            return {"id": "VERSION_PAGE_ID", "version": 1, "status": "updated", "title": title}
+                return {
+                    "id": component_page_id,
+                    "version": 1,
+                    "status": "updated",
+                    "title": title,
+                }
+            return {
+                "id": "VERSION_PAGE_ID",
+                "version": 1,
+                "status": "updated",
+                "title": title,
+            }
 
         def get_or_create_page(self, space, title, parent_id=None, body=" "):
             return "page-id"
@@ -251,6 +271,7 @@ def test_version_page_created_under_component_page() -> None:
     )
 
 
+@pytest.mark.business_logic
 def test_returns_version_page_id_not_component_page_id() -> None:
     """
     BL-PHM-03
@@ -276,8 +297,18 @@ def test_returns_version_page_id_not_component_page_id() -> None:
         def publish_page(self, space, parent_id, title, body_html):
             call_seq[0] += 1
             if call_seq[0] == 1:
-                return {"id": component_page_id, "version": 1, "status": "updated", "title": title}
-            return {"id": version_page_id, "version": 1, "status": "updated", "title": title}
+                return {
+                    "id": component_page_id,
+                    "version": 1,
+                    "status": "updated",
+                    "title": title,
+                }
+            return {
+                "id": version_page_id,
+                "version": 1,
+                "status": "updated",
+                "title": title,
+            }
 
         def get_or_create_page(self, space, title, parent_id=None, body=" "):
             return "page-id"
@@ -300,11 +331,11 @@ def test_returns_version_page_id_not_component_page_id() -> None:
     )
 
     assert returned_id == version_page_id, (
-        f"Must return the release page ID '{version_page_id}', "
-        f"got '{returned_id}'"
+        f"Must return the release page ID '{version_page_id}', " f"got '{returned_id}'"
     )
 
 
+@pytest.mark.business_logic
 def test_hierarchy_calls_are_idempotent() -> None:
     """
     BL-PHM-04
@@ -358,11 +389,12 @@ def test_hierarchy_calls_are_idempotent() -> None:
         release_version="1.0.0",
     )
 
-    assert id_first == id_second, (
-        "Repeated calls must return the same page_id (idempotency)"
-    )
+    assert (
+        id_first == id_second
+    ), "Repeated calls must return the same page_id (idempotency)"
 
 
+@pytest.mark.business_logic
 def test_version_page_title_format() -> None:
     """
     BL-PHM-05
@@ -385,7 +417,12 @@ def test_version_page_title_format() -> None:
         def publish_page(self, space, parent_id, title, body_html):
             seq[0] += 1
             created_titles.append(title)
-            return {"id": f"page-id-{seq[0]}", "version": 1, "status": "updated", "title": title}
+            return {
+                "id": f"page-id-{seq[0]}",
+                "version": 1,
+                "status": "updated",
+                "title": title,
+            }
 
         def get_or_create_page(self, space, title, parent_id=None, body=" "):
             created_titles.append(title)
@@ -408,6 +445,6 @@ def test_version_page_title_format() -> None:
         release_version="3.0.1",
     )
 
-    assert any("openssl" in t and "3.0.1" in t for t in created_titles), (
-        f"Release title must contain 'openssl' and '3.0.1', recorded titles: {created_titles}"
-    )
+    assert any(
+        "openssl" in t and "3.0.1" in t for t in created_titles
+    ), f"Release title must contain 'openssl' and '3.0.1', recorded titles: {created_titles}"

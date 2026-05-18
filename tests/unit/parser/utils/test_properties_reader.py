@@ -23,6 +23,7 @@ _SEP_EQ: str = "="
 _SEP_COLON: str = ":"
 
 
+@pytest.mark.infrastructure
 def test_properties_reader_line_continuation(tmp_path: Path) -> None:
     """A value split over two physical lines is joined into one logical value.
 
@@ -40,6 +41,7 @@ def test_properties_reader_line_continuation(tmp_path: Path) -> None:
     assert "\\" not in result[_KEY_NAME]
 
 
+@pytest.mark.infrastructure
 def test_properties_reader_colon_in_value_with_equals_separator(
     tmp_path: Path,
 ) -> None:
@@ -57,6 +59,7 @@ def test_properties_reader_colon_in_value_with_equals_separator(
     assert result["component.url"] == _VALUE_URL
 
 
+@pytest.mark.infrastructure
 def test_properties_reader_file_without_trailing_newline(tmp_path: Path) -> None:
     """The last key is parsed even when the file has no trailing newline.
 
@@ -70,6 +73,7 @@ def test_properties_reader_file_without_trailing_newline(tmp_path: Path) -> None
     assert result[_KEY_NAME] == "mylib"
 
 
+@pytest.mark.infrastructure
 def test_properties_reader_detect_separator_equals(tmp_path: Path) -> None:
     """Files with 'key=value' lines use '=' as the separator.
 
@@ -89,6 +93,7 @@ def test_properties_reader_detect_separator_equals(tmp_path: Path) -> None:
     assert _detect_separator(f"{_KEY_NAME}=mylib") == _SEP_EQ
 
 
+@pytest.mark.infrastructure
 def test_properties_reader_detect_separator_colon(tmp_path: Path) -> None:
     """Files with 'key:value' lines use ':' as the separator.
 
@@ -107,6 +112,7 @@ def test_properties_reader_detect_separator_colon(tmp_path: Path) -> None:
     assert _detect_separator(f"{_KEY_NAME}:mylib") == _SEP_COLON
 
 
+@pytest.mark.infrastructure
 def test_properties_reader_mixed_separators_uses_documented_rule(
     tmp_path: Path,
 ) -> None:

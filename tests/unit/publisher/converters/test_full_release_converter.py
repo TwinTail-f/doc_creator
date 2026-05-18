@@ -44,6 +44,7 @@ def multi_result_with_unknown_profile(
 class TestFullReleaseConverter:
     """Tests for FullReleaseConverter.transform()."""
 
+    @pytest.mark.contract
     def test_full_release_transform_returns_platform_version(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -52,6 +53,7 @@ class TestFullReleaseConverter:
 
         assert result["platform_version"] == PLATFORM_VERSION
 
+    @pytest.mark.business_logic
     def test_full_release_transform_contains_all_components(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -60,6 +62,7 @@ class TestFullReleaseConverter:
 
         assert len(result["components"]) == 2
 
+    @pytest.mark.contract
     def test_full_release_transform_component_has_name_and_description(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -70,6 +73,7 @@ class TestFullReleaseConverter:
         assert COMP_NAME in names
         assert COMP_ZLIB in names
 
+    @pytest.mark.contract
     def test_full_release_transform_component_has_releases(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -79,6 +83,7 @@ class TestFullReleaseConverter:
         openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
         assert len(openssl_entry["releases"]) == 2
 
+    @pytest.mark.business_logic
     def test_full_release_transform_include_links_false(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -89,6 +94,7 @@ class TestFullReleaseConverter:
 
         assert result["include_passport_links"] is False
 
+    @pytest.mark.business_logic
     def test_full_release_transform_include_links_true_by_default(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -97,6 +103,7 @@ class TestFullReleaseConverter:
 
         assert result["include_passport_links"] is True
 
+    @pytest.mark.business_logic
     def test_full_release_transform_profile_build_has_docker_image(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -107,6 +114,7 @@ class TestFullReleaseConverter:
         first_release = openssl_entry["releases"][0]
         assert first_release["profile_builds"][0]["docker_image"] == DOCKER_IMAGE
 
+    @pytest.mark.business_logic
     def test_full_release_transform_profile_build_unknown_profile_gives_empty_fields(
         self, multi_result_with_unknown_profile: ParsedResult
     ) -> None:
@@ -122,6 +130,7 @@ class TestFullReleaseConverter:
         assert ghost_pb["docker_image"] == ""
         assert ghost_pb["conan_settings"] == {}
 
+    @pytest.mark.business_logic
     def test_full_release_transform_header_only_flag_comes_from_component(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -141,6 +150,7 @@ class TestFullReleaseConverter:
         # All releases of a header-only component carry is_header_only=True
         assert all(r["is_header_only"] for r in openssl_entry["releases"])
 
+    @pytest.mark.business_logic
     def test_full_release_transform_release_with_no_profile_builds_has_empty_list(
         self, publisher_multi_component_result: ParsedResult
     ) -> None:
@@ -164,6 +174,7 @@ from autodoc.models.parsed_result import ParsedResult as _ParsedResult
 _PASSPORT_PATTERN = "/pages/{component_name}/{release_version}"
 
 
+@pytest.mark.business_logic
 def test_header_only_component_has_no_profile_builds_in_view(
     publisher_header_only_component,
     publisher_profile_definition,
@@ -200,11 +211,12 @@ def test_header_only_component_has_no_profile_builds_in_view(
     comp_view = view["components"][0]
     assert comp_view["name"] == "eigen"
     for release_view in comp_view["releases"]:
-        assert release_view["profile_builds"] == [], (
-            "header-only component must not have profile_builds in view model"
-        )
+        assert (
+            release_view["profile_builds"] == []
+        ), "header-only component must not have profile_builds in view model"
 
 
+@pytest.mark.business_logic
 def test_non_header_only_component_has_profile_builds(
     publisher_parsed_result,
 ) -> None:
@@ -228,20 +240,21 @@ def test_non_header_only_component_has_profile_builds(
 
     comp = publisher_parsed_result.components[0]
     assert comp.is_header_only is False, "Fixture must have is_header_only=False"
-    assert len(comp.releases[0].profile_builds) > 0, (
-        "Fixture must have non-empty profile_builds"
-    )
+    assert (
+        len(comp.releases[0].profile_builds) > 0
+    ), "Fixture must have non-empty profile_builds"
 
     converter = FullReleaseConverter(include_passport_links=False)
     view = converter.transform(publisher_parsed_result)
 
     comp_view = view["components"][0]
     release_view = comp_view["releases"][0]
-    assert len(release_view["profile_builds"]) > 0, (
-        "Non-header-only component must have non-empty profile_builds in view"
-    )
+    assert (
+        len(release_view["profile_builds"]) > 0
+    ), "Non-header-only component must have non-empty profile_builds in view"
 
 
+@pytest.mark.business_logic
 def test_components_sorted_alphabetically_in_view(
     publisher_multi_component_result,
 ) -> None:
@@ -265,12 +278,13 @@ def test_components_sorted_alphabetically_in_view(
     view = converter.transform(publisher_multi_component_result)
 
     names = [c["name"] for c in view["components"]]
-    assert names == sorted(names), (
-        f"Components must be sorted alphabetically: expected {sorted(names)}, got {names}"
-    )
+    assert names == sorted(
+        names
+    ), f"Components must be sorted alphabetically: expected {sorted(names)}, got {names}"
 
 
 @pytest.mark.parametrize("flag", [True, False])
+@pytest.mark.business_logic
 def test_include_links_flag_propagated_to_view_model(
     publisher_parsed_result, flag: bool
 ) -> None:
@@ -296,14 +310,15 @@ def test_include_links_flag_propagated_to_view_model(
     converter = FullReleaseConverter(include_passport_links=flag)
     view = converter.transform(publisher_parsed_result)
 
-    assert "include_passport_links" in view, (
-        "view_model must contain key include_passport_links"
-    )
-    assert view["include_passport_links"] is flag, (
-        f"include_passport_links should be {flag}, got {view['include_passport_links']}"
-    )
+    assert (
+        "include_passport_links" in view
+    ), "view_model must contain key include_passport_links"
+    assert (
+        view["include_passport_links"] is flag
+    ), f"include_passport_links should be {flag}, got {view['include_passport_links']}"
 
 
+@pytest.mark.business_logic
 def test_passport_link_placeholder_present_when_include_links_true(
     publisher_parsed_result,
 ) -> None:
@@ -330,11 +345,12 @@ def test_passport_link_placeholder_present_when_include_links_true(
 
     for comp_view in view["components"]:
         for release_view in comp_view["releases"]:
-            assert "passport_link" in release_view, (
-                "When include_links=True, passport_link key must be present in release_view"
-            )
+            assert (
+                "passport_link" in release_view
+            ), "When include_links=True, passport_link key must be present in release_view"
 
 
+@pytest.mark.business_logic
 def test_no_passport_link_when_include_links_false(publisher_parsed_result) -> None:
     """
     BL-FRC-06
@@ -359,11 +375,12 @@ def test_no_passport_link_when_include_links_false(publisher_parsed_result) -> N
     for comp_view in view["components"]:
         for release_view in comp_view["releases"]:
             passport_link = release_view.get("passport_link")
-            assert passport_link is None or passport_link == "", (
-                "When include_links=False, passport_link should be None or empty"
-            )
+            assert (
+                passport_link is None or passport_link == ""
+            ), "When include_links=False, passport_link should be None or empty"
 
 
+@pytest.mark.business_logic
 def test_passport_link_formatted_with_component_name_and_version(
     publisher_parsed_result,
 ) -> None:
@@ -401,10 +418,10 @@ def test_passport_link_formatted_with_component_name_and_version(
 
     assert "passport_link" in release_view
     link = release_view["passport_link"]
-    assert link is not None, "With a pattern and include_links=True, link must not be None"
-    assert comp.name in link, (
-        f"passport_link must contain component name '{comp.name}'"
-    )
-    assert comp.releases[0].version in link, (
-        f"passport_link must contain version '{comp.releases[0].version}'"
-    )
+    assert (
+        link is not None
+    ), "With a pattern and include_links=True, link must not be None"
+    assert comp.name in link, f"passport_link must contain component name '{comp.name}'"
+    assert (
+        comp.releases[0].version in link
+    ), f"passport_link must contain version '{comp.releases[0].version}'"

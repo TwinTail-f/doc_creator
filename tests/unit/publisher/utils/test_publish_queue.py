@@ -21,18 +21,21 @@ ZERO_DELAY: float = 0.0
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_init_raises_on_batch_size_zero() -> None:
     """PublishQueue raises ValueError when batch_size is 0."""
     with pytest.raises(ValueError):
         PublishQueue(batch_size=0)
 
 
+@pytest.mark.business_logic
 def test_init_raises_on_batch_size_negative() -> None:
     """PublishQueue raises ValueError when batch_size is negative."""
     with pytest.raises(ValueError):
         PublishQueue(batch_size=-5)
 
 
+@pytest.mark.business_logic
 def test_init_raises_on_negative_delay() -> None:
     """PublishQueue raises ValueError when batch_delay_seconds is negative."""
     with pytest.raises(ValueError):
@@ -44,12 +47,14 @@ def test_init_raises_on_negative_delay() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_batch_size_property_readable() -> None:
     """batch_size property returns the value passed to the constructor."""
     queue = PublishQueue(batch_size=3, batch_delay_seconds=ZERO_DELAY)
     assert queue.batch_size == 3
 
 
+@pytest.mark.infrastructure
 def test_batch_delay_property_readable() -> None:
     """batch_delay_seconds property returns the value passed to the constructor."""
     queue = PublishQueue(batch_size=1, batch_delay_seconds=2.5)
@@ -61,6 +66,7 @@ def test_batch_delay_property_readable() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_process_empty_list_returns_empty() -> None:
     """process([]) returns an empty list without calling fn."""
     queue = PublishQueue(batch_size=DEFAULT_BATCH_SIZE, batch_delay_seconds=ZERO_DELAY)
@@ -69,6 +75,7 @@ def test_process_empty_list_returns_empty() -> None:
     assert result == []
 
 
+@pytest.mark.business_logic
 def test_process_empty_list_does_not_call_fn() -> None:
     """fn is never invoked when the item list is empty."""
     queue = PublishQueue(batch_size=DEFAULT_BATCH_SIZE, batch_delay_seconds=ZERO_DELAY)
@@ -82,6 +89,7 @@ def test_process_empty_list_does_not_call_fn() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_process_single_item_calls_fn_once() -> None:
     """fn is called exactly once for a single-element list."""
     queue = PublishQueue(batch_size=DEFAULT_BATCH_SIZE, batch_delay_seconds=ZERO_DELAY)
@@ -90,6 +98,7 @@ def test_process_single_item_calls_fn_once() -> None:
     assert len(calls) == 1
 
 
+@pytest.mark.business_logic
 def test_process_returns_results_in_order() -> None:
     """Results are returned in the same order as the input items."""
     queue = PublishQueue(batch_size=DEFAULT_BATCH_SIZE, batch_delay_seconds=ZERO_DELAY)
@@ -98,6 +107,7 @@ def test_process_returns_results_in_order() -> None:
     assert result == [10, 20, 30, 40, 50]
 
 
+@pytest.mark.business_logic
 def test_process_calls_fn_for_every_item() -> None:
     """fn is called exactly len(items) times."""
     queue = PublishQueue(batch_size=DEFAULT_BATCH_SIZE, batch_delay_seconds=ZERO_DELAY)
@@ -112,6 +122,7 @@ def test_process_calls_fn_for_every_item() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_process_single_batch_no_sleep(mocker) -> None:
     """time.sleep is not called when all items fit in one batch."""
     mock_sleep = mocker.patch(SLEEP_TARGET)
@@ -120,6 +131,7 @@ def test_process_single_batch_no_sleep(mocker) -> None:
     mock_sleep.assert_not_called()
 
 
+@pytest.mark.business_logic
 def test_process_two_batches_sleeps_once(mocker) -> None:
     """time.sleep is called exactly once for two batches (3 items, batch_size=2)."""
     mock_sleep = mocker.patch(SLEEP_TARGET)
@@ -128,6 +140,7 @@ def test_process_two_batches_sleeps_once(mocker) -> None:
     assert mock_sleep.call_count == 1
 
 
+@pytest.mark.business_logic
 def test_process_three_batches_sleeps_twice(mocker) -> None:
     """time.sleep is called exactly twice for three batches (5 items, batch_size=2)."""
     mock_sleep = mocker.patch(SLEEP_TARGET)
@@ -136,6 +149,7 @@ def test_process_three_batches_sleeps_twice(mocker) -> None:
     assert mock_sleep.call_count == 2
 
 
+@pytest.mark.business_logic
 def test_process_no_sleep_after_last_batch(mocker) -> None:
     """time.sleep is not called after the final batch is processed."""
     mock_sleep = mocker.patch(SLEEP_TARGET)
@@ -145,6 +159,7 @@ def test_process_no_sleep_after_last_batch(mocker) -> None:
     assert mock_sleep.call_count == 1
 
 
+@pytest.mark.business_logic
 def test_process_zero_delay_no_sleep(mocker) -> None:
     """time.sleep is never called when batch_delay_seconds is 0."""
     mock_sleep = mocker.patch(SLEEP_TARGET)
@@ -153,6 +168,7 @@ def test_process_zero_delay_no_sleep(mocker) -> None:
     mock_sleep.assert_not_called()
 
 
+@pytest.mark.business_logic
 def test_process_sleep_called_with_correct_delay(mocker) -> None:
     """time.sleep is called with the configured delay value."""
     mock_sleep = mocker.patch(SLEEP_TARGET)
@@ -167,6 +183,7 @@ def test_process_sleep_called_with_correct_delay(mocker) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_process_propagates_fn_exception() -> None:
     """Exceptions raised by fn propagate to the caller unchanged."""
     queue = PublishQueue(batch_size=DEFAULT_BATCH_SIZE, batch_delay_seconds=ZERO_DELAY)

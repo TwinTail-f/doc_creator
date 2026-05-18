@@ -47,6 +47,7 @@ def _make_ctx_with_components(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_options_step_stores_options_map_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -59,6 +60,7 @@ def test_options_step_stores_options_map_in_intermediate(
     assert parser_pipeline_context.intermediate["options_map"] == expected
 
 
+@pytest.mark.business_logic
 def test_options_step_applies_options_to_components(
     parser_pipeline_context,
     manifest_component,
@@ -74,6 +76,7 @@ def test_options_step_applies_options_to_components(
     assert parser_pipeline_context.components[0].releases[0].build_option_sets != []
 
 
+@pytest.mark.business_logic
 def test_options_step_is_not_critical() -> None:
     """OptionsResolveStep is a non-critical pipeline step."""
     assert OptionsResolveStep.is_critical is False
@@ -84,6 +87,7 @@ def test_options_step_is_not_critical() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_step_sqlite3_twelve_options_applied(
     parser_config,
     tmp_path: Path,
@@ -119,6 +123,7 @@ def test_options_step_sqlite3_twelve_options_applied(
     assert all(bs.options != "" for bs in non_empty)
 
 
+@pytest.mark.business_logic
 def test_options_step_patchelf_both_versions_get_options(
     parser_config,
     tmp_path: Path,
@@ -145,6 +150,7 @@ def test_options_step_patchelf_both_versions_get_options(
         assert release.build_option_sets != []
 
 
+@pytest.mark.business_logic
 def test_options_step_nlohmann_single_empty_option(
     parser_config,
     tmp_path: Path,
@@ -164,6 +170,7 @@ def test_options_step_nlohmann_single_empty_option(
     assert build_sets[0].parsed_options == {}
 
 
+@pytest.mark.infrastructure
 def test_options_step_warnings_logged(
     parser_config,
     tmp_path: Path,
@@ -180,6 +187,7 @@ def test_options_step_warnings_logged(
     assert "options_map" in ctx.intermediate
 
 
+@pytest.mark.contract
 def test_options_step_configure_called_before_fetch(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -196,6 +204,7 @@ def test_options_step_configure_called_before_fetch(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_step_apr_single_shared_option(
     parser_config,
     tmp_path: Path,
@@ -219,6 +228,7 @@ def test_options_step_apr_single_shared_option(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_step_libnetfilter_queue_single_empty_option(
     parser_config,
     tmp_path: Path,
@@ -241,6 +251,7 @@ def test_options_step_libnetfilter_queue_single_empty_option(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
     parser_config,
     tmp_path: Path,

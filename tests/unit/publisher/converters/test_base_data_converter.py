@@ -50,12 +50,14 @@ def sample_variant() -> ConanVariant:
 class TestBuildInstallOptions:
     """Tests for BaseDataConverter._build_install_options static method."""
 
+    @pytest.mark.business_logic
     def test_build_install_options_empty_dict_returns_empty_string(self) -> None:
         """Empty options dict produces an empty string."""
         result = PassportConverter._build_install_options({}, COMP_NAME)
 
         assert result == ""
 
+    @pytest.mark.business_logic
     def test_build_install_options_qualifies_bare_key_with_component_name(
         self,
     ) -> None:
@@ -66,6 +68,7 @@ class TestBuildInstallOptions:
 
         assert result == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
 
+    @pytest.mark.business_logic
     def test_build_install_options_preserves_qualified_key(self) -> None:
         """A key already containing '/*:' is not double-qualified."""
         result = PassportConverter._build_install_options(
@@ -74,6 +77,7 @@ class TestBuildInstallOptions:
 
         assert result == "-o icu/*:shared=True"
 
+    @pytest.mark.business_logic
     def test_build_install_options_multiple_options_joined_by_space(self) -> None:
         """Multiple options are joined by a single space, each with its own '-o' flag."""
         result = PassportConverter._build_install_options(
@@ -83,6 +87,7 @@ class TestBuildInstallOptions:
         assert f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" in result
         assert f"-o {COMP_NAME}/*:{OPT_KEY_FPIC}=True" in result
 
+    @pytest.mark.business_logic
     def test_build_install_options_dep_key_with_colon_not_modified(self) -> None:
         """A dependency key like 'icu:opt' is qualified to 'icu/*:opt' without duplication."""
         result = PassportConverter._build_install_options(
@@ -95,18 +100,21 @@ class TestBuildInstallOptions:
 class TestBuildInstallOptionsFromString:
     """Tests for BaseDataConverter._build_install_options_from_string static method."""
 
+    @pytest.mark.infrastructure
     def test_build_install_options_from_string_empty_returns_empty(self) -> None:
         """An empty string input produces an empty string."""
         result = PassportConverter._build_install_options_from_string("")
 
         assert result == ""
 
+    @pytest.mark.infrastructure
     def test_build_install_options_from_string_whitespace_returns_empty(self) -> None:
         """A whitespace-only string produces an empty string."""
         result = PassportConverter._build_install_options_from_string("   ")
 
         assert result == ""
 
+    @pytest.mark.business_logic
     def test_build_install_options_from_string_single_option(self) -> None:
         """A single 'pkg/*:key=val' entry is wrapped with a single '-o' flag."""
         result = PassportConverter._build_install_options_from_string(
@@ -115,6 +123,7 @@ class TestBuildInstallOptionsFromString:
 
         assert result == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
 
+    @pytest.mark.business_logic
     def test_build_install_options_from_string_multiple_options(self) -> None:
         """Multiple comma-separated options produce space-separated '-o' flags."""
         options = (
@@ -127,6 +136,7 @@ class TestBuildInstallOptionsFromString:
             f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
         )
 
+    @pytest.mark.business_logic
     def test_build_install_options_from_string_qualifies_unqualified_key(
         self,
     ) -> None:
@@ -137,6 +147,7 @@ class TestBuildInstallOptionsFromString:
 
         assert result == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
 
+    @pytest.mark.business_logic
     def test_build_install_options_from_string_strips_whitespace_between_options(
         self,
     ) -> None:
@@ -156,6 +167,7 @@ class TestBuildInstallOptionsFromString:
 class TestBuildVariantView:
     """Tests for BaseDataConverter._build_variant_view static method."""
 
+    @pytest.mark.contract
     def test_build_variant_view_maps_fields_from_variant(
         self, sample_variant: ConanVariant
     ) -> None:
@@ -165,6 +177,7 @@ class TestBuildVariantView:
         assert view.package_id == VARIANT_PKG_ID
         assert view.build_url == VARIANT_BUILD_URL
 
+    @pytest.mark.business_logic
     def test_build_variant_view_uses_conan_options_from_opts(
         self, sample_variant: ConanVariant
     ) -> None:
@@ -174,6 +187,7 @@ class TestBuildVariantView:
 
         assert view.conan_options == {OPT_KEY_SHARED: "True"}
 
+    @pytest.mark.business_logic
     def test_build_variant_view_no_opts_gives_empty_conan_options(
         self, sample_variant: ConanVariant
     ) -> None:
@@ -182,6 +196,7 @@ class TestBuildVariantView:
 
         assert view.conan_options == {}
 
+    @pytest.mark.business_logic
     def test_build_variant_view_install_options_override_used_directly(
         self, sample_variant: ConanVariant
     ) -> None:
@@ -191,6 +206,7 @@ class TestBuildVariantView:
 
         assert view.install_options == INSTALL_OVERRIDE
 
+    @pytest.mark.business_logic
     def test_build_variant_view_builds_install_options_from_conan_options_if_no_override(
         self, sample_variant: ConanVariant
     ) -> None:
@@ -209,6 +225,7 @@ class TestBuildVariantView:
 class TestPassportLinkMixin:
     """Tests for PassportLinkMixin via FullReleaseConverter (concrete subclass)."""
 
+    @pytest.mark.business_logic
     def test_passport_link_returns_none_if_include_links_false(self) -> None:
         """_passport_link returns None when include_passport_links=False."""
         converter = FullReleaseConverter(
@@ -218,6 +235,7 @@ class TestPassportLinkMixin:
 
         assert converter._passport_link(COMP_NAME, RELEASE_VERSION) is None
 
+    @pytest.mark.business_logic
     def test_passport_link_returns_none_if_pattern_is_none(self) -> None:
         """_passport_link returns None when passport_page_pattern is None."""
         converter = FullReleaseConverter(
@@ -227,6 +245,7 @@ class TestPassportLinkMixin:
 
         assert converter._passport_link(COMP_NAME, RELEASE_VERSION) is None
 
+    @pytest.mark.business_logic
     def test_passport_link_formats_pattern_with_component_and_version(self) -> None:
         """_passport_link substitutes component_name and release_version into the pattern."""
         converter = FullReleaseConverter(
@@ -239,6 +258,7 @@ class TestPassportLinkMixin:
             == f"/pages/{COMP_NAME}/{RELEASE_VERSION}"
         )
 
+    @pytest.mark.business_logic
     def test_passport_link_replaces_spaces_with_plus(self) -> None:
         """Spaces in component name and version are replaced with '+' in the link."""
         converter = FullReleaseConverter(
@@ -256,11 +276,13 @@ class TestPassportLinkMixin:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_conan_variant_view_is_dataclass() -> None:
     """ConanVariantView is a Python dataclass."""
     assert dataclasses.is_dataclass(ConanVariantView)
 
 
+@pytest.mark.contract
 def test_conan_variant_view_required_fields() -> None:
     """ConanVariantView can be created with the three required positional fields."""
     view = ConanVariantView(
@@ -271,6 +293,7 @@ def test_conan_variant_view_required_fields() -> None:
     assert view.package_id == "pkg-abc"
 
 
+@pytest.mark.contract
 def test_conan_variant_view_defaults() -> None:
     """ConanVariantView optional fields default to empty string / empty dict."""
     view = ConanVariantView(
@@ -283,6 +306,7 @@ def test_conan_variant_view_defaults() -> None:
     assert view.install_options == ""
 
 
+@pytest.mark.contract
 def test_conan_variant_view_custom_values() -> None:
     """ConanVariantView stores all custom field values correctly."""
     opts: dict[str, Any] = {"shared": "True", "fPIC": "False"}
@@ -307,6 +331,7 @@ def test_conan_variant_view_custom_values() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_build_install_options_bare_key_gets_component_name_prefix() -> None:
     """
     BL-BDC-01

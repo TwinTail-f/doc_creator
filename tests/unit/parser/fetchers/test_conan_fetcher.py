@@ -91,6 +91,7 @@ def _patch_full_fetch_pipeline(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_fetcher_raises_if_conan_config_url_not_set(
     mocker: MockerFixture,
 ) -> None:
@@ -113,6 +114,7 @@ def test_conan_fetcher_raises_if_conan_config_url_not_set(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_fetcher_returns_empty_on_empty_component_list(
     mocker: MockerFixture,
 ) -> None:
@@ -142,6 +144,7 @@ def test_conan_fetcher_returns_empty_on_empty_component_list(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_fetcher_cleanup_called_on_setup_failure(
     mocker: MockerFixture,
 ) -> None:
@@ -173,6 +176,7 @@ def test_conan_fetcher_cleanup_called_on_setup_failure(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_fetcher_overrides_loaded_when_file_configured(
     mocker: MockerFixture,
 ) -> None:
@@ -198,6 +202,7 @@ def test_conan_fetcher_overrides_loaded_when_file_configured(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_conan_fetcher_parallel_executor_receives_task_list(
     mocker: MockerFixture,
 ) -> None:
@@ -238,6 +243,7 @@ def test_conan_fetcher_parallel_executor_receives_task_list(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_fetcher_aggregation_errors_in_result(
     mocker: MockerFixture,
 ) -> None:

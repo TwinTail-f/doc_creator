@@ -180,6 +180,7 @@ def poco_missing_graph(resources_dir: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_patchelf_returns_enrich_data(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -191,6 +192,7 @@ def test_result_parser_patchelf_returns_enrich_data(
     assert result.package_id == "461534fe50686ce31d073dc24f005bd12e08c9fd"
 
 
+@pytest.mark.business_logic
 def test_result_parser_patchelf_base_ref_no_hash(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -203,6 +205,7 @@ def test_result_parser_patchelf_base_ref_no_hash(
     assert "#" not in result.base_ref
 
 
+@pytest.mark.business_logic
 def test_result_parser_patchelf_conan_settings_has_os_distro(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -214,6 +217,7 @@ def test_result_parser_patchelf_conan_settings_has_os_distro(
     assert result.conan_settings.get("os.distro") == "alpine"
 
 
+@pytest.mark.business_logic
 def test_result_parser_patchelf_empty_default_options(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -230,6 +234,7 @@ def test_result_parser_patchelf_empty_default_options(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_nlohmann_json_null_package_id(
     nlohmann_json_graph: dict[str, Any],
     nlohmann_task: ConanTask,
@@ -241,6 +246,7 @@ def test_result_parser_nlohmann_json_null_package_id(
     assert result.package_id == NULL_PACKAGE_ID
 
 
+@pytest.mark.business_logic
 def test_result_parser_nlohmann_json_no_default_options(
     nlohmann_json_graph: dict[str, Any],
     nlohmann_task: ConanTask,
@@ -252,6 +258,7 @@ def test_result_parser_nlohmann_json_no_default_options(
     assert result.default_options == []
 
 
+@pytest.mark.business_logic
 def test_result_parser_nlohmann_json_no_dependencies(
     nlohmann_json_graph: dict[str, Any],
     nlohmann_task: ConanTask,
@@ -268,6 +275,7 @@ def test_result_parser_nlohmann_json_no_dependencies(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_sqlite3_has_tcl_dependency(
     sqlite3_deps_graph: dict[str, Any],
     sqlite3_task: ConanTask,
@@ -279,6 +287,7 @@ def test_result_parser_sqlite3_has_tcl_dependency(
     assert "tcl" in result.dependencies
 
 
+@pytest.mark.business_logic
 def test_result_parser_sqlite3_has_default_options(
     sqlite3_deps_graph: dict[str, Any],
     sqlite3_task: ConanTask,
@@ -292,6 +301,7 @@ def test_result_parser_sqlite3_has_default_options(
     assert "shared" in names
 
 
+@pytest.mark.business_logic
 def test_result_parser_sqlite3_dependency_nodes_not_matched(
     sqlite3_deps_graph: dict[str, Any],
     sqlite3_task: ConanTask,
@@ -308,6 +318,7 @@ def test_result_parser_sqlite3_dependency_nodes_not_matched(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_libnetfilter_queue_returns_result(
     libnetfilter_queue_graph: dict[str, Any],
     libnetfilter_queue_task: ConanTask,
@@ -321,6 +332,7 @@ def test_result_parser_libnetfilter_queue_returns_result(
     assert result.package_id == "46bf0ba807876c7591c702abfa2ba19d3133f1af"
 
 
+@pytest.mark.business_logic
 def test_result_parser_libnetfilter_queue_two_deps(
     libnetfilter_queue_graph: dict[str, Any],
     libnetfilter_queue_task: ConanTask,
@@ -340,6 +352,7 @@ def test_result_parser_libnetfilter_queue_two_deps(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_poco_missing_binary_returns_none(
     poco_missing_graph: dict[str, Any],
     poco_task: ConanTask,
@@ -355,6 +368,7 @@ def test_result_parser_poco_missing_binary_returns_none(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_returns_none_when_node_not_found(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -366,6 +380,7 @@ def test_result_parser_returns_none_when_node_not_found(
     assert result is None
 
 
+@pytest.mark.business_logic
 def test_result_parser_returns_none_on_missing_binary(
     missing_json: dict[str, Any],
     conan_task: ConanTask,
@@ -377,6 +392,7 @@ def test_result_parser_returns_none_on_missing_binary(
     assert result is None
 
 
+@pytest.mark.business_logic
 def test_result_parser_skips_root_node(conan_task: ConanTask) -> None:
     """Node '0' with name=null is never matched, even if it is the only node."""
     minimal_json: dict[str, Any] = {
@@ -397,6 +413,7 @@ def test_result_parser_skips_root_node(conan_task: ConanTask) -> None:
     assert result is None
 
 
+@pytest.mark.business_logic
 def test_result_parser_extracts_conan_settings(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -410,6 +427,7 @@ def test_result_parser_extracts_conan_settings(
     assert "os" in result.conan_settings or "arch" in result.conan_settings
 
 
+@pytest.mark.business_logic
 def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> None:
     """A node with default_options=null must return an empty list for default_options."""
     minimal_json: dict[str, Any] = {
@@ -439,6 +457,7 @@ def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> No
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_nlohmann_json_package_id_equals_null_sha1(
     nlohmann_json_graph: dict[str, Any],
     nlohmann_task: ConanTask,
@@ -455,6 +474,7 @@ def test_result_parser_nlohmann_json_package_id_equals_null_sha1(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_patchelf_016_version_uses_same_channel(
     success_json: dict[str, Any],
 ) -> None:
@@ -490,6 +510,7 @@ def test_result_parser_patchelf_016_version_uses_same_channel(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_sqlite3_fast_base_ref_format(
     sqlite3_deps_graph: dict[str, Any],
     sqlite3_task: ConanTask,
@@ -533,6 +554,7 @@ def apr_graph(resources_dir: Path) -> dict[str, Any]:
     return json.loads((resources_dir / "conan" / "graph_info_apr.json").read_text())
 
 
+@pytest.mark.business_logic
 def test_result_parser_apr_returns_enrich_data(
     apr_graph: dict[str, Any],
     apr_task: ConanTask,
@@ -543,6 +565,7 @@ def test_result_parser_apr_returns_enrich_data(
     assert result.package_id == "7741115342fe6159bd16463d6d349e4c02e33237"
 
 
+@pytest.mark.business_logic
 def test_result_parser_apr_no_dependencies(
     apr_graph: dict[str, Any],
     apr_task: ConanTask,
@@ -553,6 +576,7 @@ def test_result_parser_apr_no_dependencies(
     assert result.dependencies == []
 
 
+@pytest.mark.business_logic
 def test_result_parser_apr_fast_channel_in_base_ref(
     apr_graph: dict[str, Any],
     apr_task: ConanTask,
@@ -563,6 +587,7 @@ def test_result_parser_apr_fast_channel_in_base_ref(
     assert "@platform-2.0/fast" in result.base_ref
 
 
+@pytest.mark.business_logic
 def test_result_parser_apr_has_default_options(
     apr_graph: dict[str, Any],
     apr_task: ConanTask,
@@ -580,6 +605,7 @@ def test_result_parser_apr_has_default_options(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_result_parser_libnetfilter_queue_deps_are_plain_names(
     libnetfilter_queue_graph: dict[str, Any],
     libnetfilter_queue_task: ConanTask,
@@ -629,6 +655,7 @@ def stunnel_task() -> ConanTask:
     )
 
 
+@pytest.mark.business_logic
 def test_result_parser_stunnel_error_graph_returns_none(
     stunnel_error_graph: dict[str, Any],
     stunnel_task: ConanTask,
@@ -642,6 +669,7 @@ def test_result_parser_stunnel_error_graph_returns_none(
     assert result is None
 
 
+@pytest.mark.business_logic
 def test_result_parser_stunnel_error_graph_has_error_field(
     stunnel_error_graph: dict[str, Any],
 ) -> None:

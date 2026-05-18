@@ -20,6 +20,7 @@ EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_conan_step_stores_conan_report_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -31,11 +32,13 @@ def test_conan_step_stores_conan_report_in_intermediate(
     assert "conan_report" in parser_pipeline_context.intermediate
 
 
+@pytest.mark.business_logic
 def test_conan_step_is_not_critical() -> None:
     """ConanEnrichStep является некритичным шагом пайплайна."""
     assert ConanEnrichStep.is_critical is False
 
 
+@pytest.mark.business_logic
 def test_conan_step_warnings_do_not_raise(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -117,6 +120,7 @@ def _make_conan_result(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_step_applies_conan_results_to_components(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -144,6 +148,7 @@ def test_conan_step_applies_conan_results_to_components(
     assert rel.conan_reference != ""
 
 
+@pytest.mark.business_logic
 def test_conan_step_header_only_component_variants_stored(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -170,6 +175,7 @@ def test_conan_step_header_only_component_variants_stored(
     assert len(pb.variants) == 1
 
 
+@pytest.mark.business_logic
 def test_conan_step_component_with_dependencies(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -198,6 +204,7 @@ def test_conan_step_component_with_dependencies(
     assert len(rel.dependencies) > 0
 
 
+@pytest.mark.contract
 def test_conan_step_configure_called_before_fetch(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -214,6 +221,7 @@ def test_conan_step_configure_called_before_fetch(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_step_apr_fast_channel_no_dependencies(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -249,6 +257,7 @@ def test_conan_step_apr_fast_channel_no_dependencies(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_step_error_does_not_raise_and_stores_in_report(
     parser_pipeline_context,
     make_fake_fetcher,

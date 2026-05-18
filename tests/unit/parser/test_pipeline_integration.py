@@ -84,6 +84,7 @@ def _make_parser_with_real_steps(
     )
 
 
+@pytest.mark.integration
 def test_full_pipeline_runs_without_raising(
     parser_config: ParserConfigSchema,
     resources_dir: Path,
@@ -106,6 +107,7 @@ def test_full_pipeline_runs_without_raising(
     assert isinstance(result, ParsedResult)
 
 
+@pytest.mark.integration
 def test_manifest_step_populates_ctx_components(
     parser_config: ParserConfigSchema,
     resources_dir: Path,
@@ -132,6 +134,7 @@ def test_manifest_step_populates_ctx_components(
     )
 
 
+@pytest.mark.integration
 def test_finalize_step_output_length_matches_input(
     parser_config: ParserConfigSchema,
     resources_dir: Path,
@@ -211,6 +214,7 @@ def _make_real_pipeline(
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
 def test_pipeline_patchelf_has_two_releases_after_full_run(
     mock_conan_fetch,
     resources_dir: Path,
@@ -246,9 +250,9 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
 
     patchelf_components = [c for c in result.components if c.name == "patchelf"]
     assert len(patchelf_components) == 1, "Exactly one patchelf component must exist"
-    assert len(patchelf_components[0].releases) == 2, (
-        f"patchelf should have 2 releases, got: {len(patchelf_components[0].releases)}"
-    )
+    assert (
+        len(patchelf_components[0].releases) == 2
+    ), f"patchelf should have 2 releases, got: {len(patchelf_components[0].releases)}"
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +261,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
 def test_pipeline_header_only_component_marked_after_conan_enrich(
     mock_conan_fetch,
     resources_dir: Path,
@@ -350,6 +355,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
 def test_pipeline_profile_builds_populated_after_manifest_step(
     mock_conan_fetch,
     resources_dir: Path,
@@ -391,22 +397,19 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
             for comp in ctx.components:
                 for release in comp.releases:
                     for pb in release.profile_builds:
-                        observed_states.append(
-                            (comp.name, pb.exists, len(pb.variants))
-                        )
+                        observed_states.append((comp.name, pb.exists, len(pb.variants)))
 
     parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
     parser._steps.insert(1, _ObserveAfterManifest())
 
     parser.parse()
 
-    assert len(observed_states) > 0, (
-        "ManifestStep must create ProfileBuild skeletons before the observer runs"
-    )
+    assert (
+        len(observed_states) > 0
+    ), "ManifestStep must create ProfileBuild skeletons before the observer runs"
     for comp_name, exists, variant_count in observed_states:
         assert exists is False, (
-            f"After ManifestStep pb.exists must be False; "
-            f"got True for {comp_name}"
+            f"After ManifestStep pb.exists must be False; " f"got True for {comp_name}"
         )
         assert variant_count == 0, (
             f"After ManifestStep pb.variants must be []; "
@@ -420,6 +423,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
 def test_pipeline_options_applied_after_options_step(
     mock_conan_fetch,
     resources_dir: Path,
@@ -475,9 +479,9 @@ def test_pipeline_options_applied_after_options_step(
     parser.parse()
 
     # Ensure the observer executed (step wiring is valid)
-    assert len(options_by_release) > 0, (
-        "_ObserveAfterOptions must have executed; no releases were observed"
-    )
+    assert (
+        len(options_by_release) > 0
+    ), "_ObserveAfterOptions must have executed; no releases were observed"
 
 
 # ---------------------------------------------------------------------------
@@ -486,6 +490,7 @@ def test_pipeline_options_applied_after_options_step(
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
 def test_pipeline_result_components_sorted_alphabetically(
     mock_conan_fetch,
     resources_dir: Path,
@@ -515,13 +520,10 @@ def test_pipeline_result_components_sorted_alphabetically(
     result: ParsedResult = parser.parse()
 
     names = [c.name for c in result.components]
-    assert len(names) >= 2, (
-        "Need at least 2 components to verify alphabetical ordering"
-    )
+    assert len(names) >= 2, "Need at least 2 components to verify alphabetical ordering"
     sorted_names = sorted(names, key=lambda n: n.lower())
     assert names == sorted_names, (
-        f"Components must be sorted alphabetically (case-insensitive), "
-        f"got: {names}"
+        f"Components must be sorted alphabetically (case-insensitive), " f"got: {names}"
     )
 
 
@@ -531,6 +533,7 @@ def test_pipeline_result_components_sorted_alphabetically(
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
 def test_pipeline_non_existing_profiles_removed_after_finalize(
     mock_conan_fetch,
     resources_dir: Path,

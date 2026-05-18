@@ -79,6 +79,7 @@ def _minimal_enrich_result(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_options_sets_build_option_sets(
     manifest_component: Component, manifest_release: Release
 ) -> None:
@@ -98,6 +99,7 @@ def test_apply_options_sets_build_option_sets(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_options_ignores_missing_key(
     manifest_component: Component, manifest_release: Release
 ) -> None:
@@ -112,6 +114,7 @@ def test_apply_options_ignores_missing_key(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_options_multiple_sets(
     manifest_component: Component, manifest_release: Release
 ) -> None:
@@ -129,6 +132,7 @@ def test_apply_options_multiple_sets(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_creates_profile_definition() -> None:
     """apply_docker_links() добавляет новый ProfileDefinition, если его ещё нет."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
@@ -146,6 +150,7 @@ def test_apply_docker_links_creates_profile_definition() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_updates_existing_definition() -> None:
     """apply_docker_links() обновляет docker_image в существующем ProfileDefinition."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
@@ -166,6 +171,7 @@ def test_apply_docker_links_updates_existing_definition() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_profile_not_in_links_unchanged() -> None:
     """apply_docker_links() с пустым docker_links создаёт ProfileDefinition
     с пустым docker_image — профиль регистрируется, но URL не задан."""
@@ -185,6 +191,7 @@ def test_apply_docker_links_profile_not_in_links_unchanged() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_sets_conan_reference() -> None:
     """apply_conan_results() записывает base_ref в release.conan_reference."""
     comp, rel, pb = _release()
@@ -201,6 +208,7 @@ def test_apply_conan_results_sets_conan_reference() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_sets_profile_build_exists_and_variants(
     conan_variant: ConanVariant,
 ) -> None:
@@ -221,6 +229,7 @@ def test_apply_conan_results_sets_profile_build_exists_and_variants(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_upserts_conan_settings() -> None:
     """apply_conan_results() создаёт новый ProfileDefinition с conan_settings."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
@@ -238,6 +247,7 @@ def test_apply_conan_results_upserts_conan_settings() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_does_not_overwrite_with_empty_settings() -> None:
     """Непустые conan_settings в существующем ProfileDefinition не стираются пустыми данными."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
@@ -259,6 +269,7 @@ def test_apply_conan_results_does_not_overwrite_with_empty_settings() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_missing_release_key_unchanged() -> None:
     """apply_conan_results() оставляет conan_reference пустым, если release_data не содержит совпадений."""
     comp, rel, pb = _release()
@@ -363,6 +374,7 @@ def _minimal_release_data() -> "ReleaseConanData":
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_apply_options_creates_one_option_per_option_id() -> None:
     """Verify that each key in ``options_map`` creates exactly one ``ConanInputOptions``.
 
@@ -387,9 +399,7 @@ def test_apply_options_creates_one_option_per_option_id() -> None:
     """
     comp = make_component("mylib", "1.0", "fast")
     release = comp.releases[0]
-    options_map = {
-        ("mylib", "1.0", "fast"): {"1": "shared=True", "2": "shared=False"}
-    }
+    options_map = {("mylib", "1.0", "fast"): {"1": "shared=True", "2": "shared=False"}}
     DataEnricher.apply_options([comp], options_map)
 
     assert len(release.build_option_sets) == 2
@@ -399,6 +409,7 @@ def test_apply_options_creates_one_option_per_option_id() -> None:
     assert opt1.options == "shared=True"
 
 
+@pytest.mark.business_logic
 def test_apply_options_parsed_options_strip_package_prefix() -> None:
     """Verify that ``parsed_options`` strips the package-name prefix from option strings.
 
@@ -428,6 +439,7 @@ def test_apply_options_parsed_options_strip_package_prefix() -> None:
     assert "mylib:shared" not in opt.parsed_options
 
 
+@pytest.mark.business_logic
 def test_apply_options_does_not_mutate_other_releases() -> None:
     """Verify that options are applied only to the matching release.
 
@@ -459,6 +471,7 @@ def test_apply_options_does_not_mutate_other_releases() -> None:
     assert comp_b.releases[0].build_option_sets == []
 
 
+@pytest.mark.business_logic
 def test_apply_options_all_releases_of_same_component_receive_options() -> None:
     """Verify that multiple releases of one component each receive their own options.
 
@@ -519,6 +532,7 @@ def test_apply_options_all_releases_of_same_component_receive_options() -> None:
     assert rel_11.build_option_sets[0].options == "shared=False"
 
 
+@pytest.mark.business_logic
 def test_apply_options_replaces_build_option_sets_idempotently() -> None:
     """Verify that repeated calls to ``apply_options`` do not duplicate option sets.
 
@@ -551,6 +565,7 @@ def test_apply_options_replaces_build_option_sets_idempotently() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_conan_reference_format_no_revision_hash() -> None:
     """Verify that ``release.conan_reference`` contains no ``#rrev`` suffix.
 
@@ -579,6 +594,7 @@ def test_apply_conan_results_conan_reference_format_no_revision_hash() -> None:
     assert "#" not in ref
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_multiple_profiles_each_gets_own_variants() -> None:
     """Verify that two ProfileBuilds receive independent variant lists.
 
@@ -632,6 +648,7 @@ def test_apply_conan_results_multiple_profiles_each_gets_own_variants() -> None:
     assert pb1.variants is not pb2.variants
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_exists_false_when_profile_not_in_enrichment() -> None:
     """Verify that a ProfileBuild absent from the enrichment result stays unenriched.
 
@@ -670,6 +687,7 @@ def test_apply_conan_results_exists_false_when_profile_not_in_enrichment() -> No
     assert pb2.variants == []
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_total_option_sets_linked_by_id() -> None:
     """Verify that ``release.total_option_sets`` is populated with matching IDs.
 
@@ -712,6 +730,7 @@ def test_apply_conan_results_total_option_sets_linked_by_id() -> None:
     assert release.total_option_sets[0].options == {"shared": "True"}
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_patches_and_dependencies_applied() -> None:
     """Verify that ``release.patches`` and ``release.dependencies`` are populated.
 
@@ -739,6 +758,7 @@ def test_apply_conan_results_patches_and_dependencies_applied() -> None:
     assert comp.releases[0].dependencies == ["tcl"]
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_does_not_create_new_profile_builds() -> None:
     """Verify that ``apply_conan_results`` mutates existing ProfileBuilds only.
 
@@ -768,6 +788,7 @@ def test_apply_conan_results_does_not_create_new_profile_builds() -> None:
     assert id(comp.releases[0].profile_builds[0]) == original_id
 
 
+@pytest.mark.business_logic
 def test_apply_conan_results_profile_data_keyed_by_object_identity() -> None:
     """Document that replacing a ProfileBuild after building the EnrichmentResult silently skips enrichment.
 
@@ -804,6 +825,7 @@ def test_apply_conan_results_profile_data_keyed_by_object_identity() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_matches_profile_by_name_exact() -> None:
     """Verify that Docker image binding uses exact profile-name matching.
 
@@ -829,6 +851,7 @@ def test_apply_docker_links_matches_profile_by_name_exact() -> None:
     assert pd.docker_image == "harbor.example.com/img:tag"
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_partial_match_does_not_apply() -> None:
     """Verify that a partial profile-name match does NOT trigger Docker binding.
 
@@ -853,6 +876,7 @@ def test_apply_docker_links_partial_match_does_not_apply() -> None:
     assert pd.docker_image == ""
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_empty_docker_image_preserved_when_no_match() -> None:
     """Verify that a missing profile key leaves docker_image as empty string (not None).
 
@@ -874,6 +898,7 @@ def test_apply_docker_links_empty_docker_image_preserved_when_no_match() -> None
     assert pd.docker_image is not None
 
 
+@pytest.mark.business_logic
 def test_apply_docker_links_multiple_components_same_profile() -> None:
     """Verify that a single docker_links entry applies across multiple components sharing a profile.
 

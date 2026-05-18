@@ -45,6 +45,7 @@ def make_rendering_dir(tmp_path: Path, templates: dict[str, str]) -> Path:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
     """DocumentBuilder raises FileNotFoundError when rendering_dir does not exist."""
     missing = tmp_path / "does_not_exist"
@@ -52,6 +53,7 @@ def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
         DocumentBuilder(rendering_dir=missing)
 
 
+@pytest.mark.infrastructure
 def test_init_succeeds_with_valid_dir(tmp_path: Path) -> None:
     """DocumentBuilder initialises without error when rendering_dir exists."""
     rendering_dir = make_rendering_dir(tmp_path, {})
@@ -64,6 +66,7 @@ def test_init_succeeds_with_valid_dir(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_build_renders_template_with_data(tmp_path: Path) -> None:
     """build() substitutes view_model fields into the template correctly."""
     rendering_dir = make_rendering_dir(
@@ -74,6 +77,7 @@ def test_build_renders_template_with_data(tmp_path: Path) -> None:
     assert result == "Hello"
 
 
+@pytest.mark.contract
 def test_build_returns_string(tmp_path: Path) -> None:
     """build() always returns a str instance."""
     rendering_dir = make_rendering_dir(
@@ -84,6 +88,7 @@ def test_build_returns_string(tmp_path: Path) -> None:
     assert isinstance(result, str)
 
 
+@pytest.mark.infrastructure
 def test_build_raises_template_not_found(tmp_path: Path) -> None:
     """build() raises TemplateNotFound when the requested template does not exist."""
     rendering_dir = make_rendering_dir(tmp_path, {})
@@ -92,6 +97,7 @@ def test_build_raises_template_not_found(tmp_path: Path) -> None:
         builder.build(BAD_TEMPLATE_NAME, {})
 
 
+@pytest.mark.infrastructure
 def test_build_passes_view_model_as_data(tmp_path: Path) -> None:
     """The template variable 'data' contains the view_model dict passed to build()."""
     rendering_dir = make_rendering_dir(
@@ -102,6 +108,7 @@ def test_build_passes_view_model_as_data(tmp_path: Path) -> None:
     assert result == "expected_value"
 
 
+@pytest.mark.infrastructure
 def test_build_with_empty_view_model(tmp_path: Path) -> None:
     """build() renders a static template correctly when view_model is empty."""
     rendering_dir = make_rendering_dir(
@@ -117,6 +124,7 @@ def test_build_with_empty_view_model(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_document_builder_satisfies_protocol(tmp_path) -> None:
     """DocumentBuilder must satisfy IDocumentBuilder at runtime.
 

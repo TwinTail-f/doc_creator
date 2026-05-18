@@ -42,6 +42,7 @@ def _get_retry(session: RetryableSession) -> Retry:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_retryable_session_retries_on_429() -> None:
     """Session retry adapter includes 429 in its status_forcelist.
 
@@ -61,6 +62,7 @@ def test_retryable_session_retries_on_429() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_retryable_session_retries_on_503() -> None:
     """Session retry adapter includes 503 in its status_forcelist.
 
@@ -78,6 +80,7 @@ def test_retryable_session_retries_on_503() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_retryable_session_raises_after_exhausting_retries() -> None:
     """Retry adapter total count matches the max_retries constructor argument.
 
@@ -97,6 +100,7 @@ def test_retryable_session_raises_after_exhausting_retries() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_retryable_session_uses_exponential_backoff() -> None:
     """The configured backoff_factor is wired into the urllib3 Retry object.
 
@@ -121,6 +125,7 @@ def test_retryable_session_uses_exponential_backoff() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_retryable_session_timeout_forwarded_to_request(
     mocker: MockerFixture,
 ) -> None:

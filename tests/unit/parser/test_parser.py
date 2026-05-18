@@ -68,6 +68,7 @@ class NonCriticalStep(BaseParseStep):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_component_parser_parse_returns_parsed_result(
     parser_config,
     tmp_path,
@@ -82,6 +83,7 @@ def test_component_parser_parse_returns_parsed_result(
     assert isinstance(result, ParsedResult)
 
 
+@pytest.mark.business_logic
 def test_component_parser_critical_step_failure_raises_parsing_error(
     parser_config,
     tmp_path,
@@ -106,6 +108,7 @@ def test_component_parser_critical_step_failure_raises_parsing_error(
     assert finalize_executed == []
 
 
+@pytest.mark.business_logic
 def test_component_parser_non_critical_step_failure_continues(
     parser_config,
     tmp_path,
@@ -120,6 +123,7 @@ def test_component_parser_non_critical_step_failure_continues(
     assert isinstance(result, ParsedResult)
 
 
+@pytest.mark.business_logic
 def test_component_parser_cleans_up_tmp_dir_on_success(
     parser_config,
     tmp_path,
@@ -138,6 +142,7 @@ def test_component_parser_cleans_up_tmp_dir_on_success(
     assert not tmp_dir.exists()
 
 
+@pytest.mark.business_logic
 def test_component_parser_cleans_up_tmp_dir_on_failure(
     parser_config,
     tmp_path,
@@ -157,6 +162,7 @@ def test_component_parser_cleans_up_tmp_dir_on_failure(
     assert not tmp_dir.exists()
 
 
+@pytest.mark.business_logic
 def test_component_parser_raises_if_result_not_set(
     parser_config,
     tmp_path,
@@ -171,6 +177,7 @@ def test_component_parser_raises_if_result_not_set(
         parser.parse()
 
 
+@pytest.mark.infrastructure
 def test_component_parser_with_steps_excluded_removes_step_class(
     parser_config,
     tmp_path,
@@ -184,6 +191,7 @@ def test_component_parser_with_steps_excluded_removes_step_class(
     assert not any(isinstance(s, ConanEnrichStep) for s in parser._steps)
 
 
+@pytest.mark.infrastructure
 def test_component_parser_uses_injected_tfs_client(
     mocker,
     parser_config,
@@ -206,6 +214,7 @@ def test_component_parser_uses_injected_tfs_client(
     mock_tfs_init.assert_not_called()
 
 
+@pytest.mark.infrastructure
 def test_component_parser_save_intermediate_writes_files(
     parser_config,
     tmp_path,

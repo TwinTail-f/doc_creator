@@ -102,6 +102,7 @@ class _FinalizeOnlyStep(BaseParseStep):
         )
 
 
+@pytest.mark.business_logic
 def test_two_non_critical_failures_both_reported(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -153,6 +154,7 @@ def test_two_non_critical_failures_both_reported(
     ), f"Expected '{_ERROR_MSG_SECOND}' in warning log but got: {all_messages}"
 
 
+@pytest.mark.business_logic
 def test_non_critical_failure_does_not_block_next_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -237,6 +239,7 @@ def test_non_critical_failure_does_not_block_next_step(
     ), "Step after failing non-critical step was not executed"
 
 
+@pytest.mark.business_logic
 def test_critical_failure_stops_pipeline(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -282,6 +285,7 @@ def test_critical_failure_stops_pipeline(
 # Shared step helpers for BL-PP tests
 # ---------------------------------------------------------------------------
 
+
 class _FakeManifestStep(BaseParseStep):
     """Sets ctx.components with one minimal component for BL-PP tests.
 
@@ -324,6 +328,7 @@ class _FakeManifestStep(BaseParseStep):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_manifest_step_failure_stops_pipeline_no_result(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -374,9 +379,7 @@ def test_manifest_step_failure_stops_pipeline_no_result(
     with pytest.raises(ParsingError):
         parser.parse()
 
-    assert _ShouldNotRun.ran is False, (
-        "Step after critical failure must not execute"
-    )
+    assert _ShouldNotRun.ran is False, "Step after critical failure must not execute"
 
 
 # ---------------------------------------------------------------------------
@@ -384,6 +387,7 @@ def test_manifest_step_failure_stops_pipeline_no_result(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_finalize_step_failure_stops_pipeline(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -427,6 +431,7 @@ def test_finalize_step_failure_stops_pipeline(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -485,6 +490,7 @@ def test_conan_step_failure_pipeline_continues(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_docker_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -538,6 +544,7 @@ def test_docker_step_failure_pipeline_continues(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -596,6 +603,7 @@ def test_options_step_failure_pipeline_continues(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_validation_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -654,6 +662,7 @@ def test_validation_step_failure_pipeline_continues(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_context_components_empty_before_manifest_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -703,6 +712,7 @@ def test_context_components_empty_before_manifest_step(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_context_result_none_before_finalize_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -740,9 +750,9 @@ def test_context_result_none_before_finalize_step(
     parser.parse()
 
     assert len(observed_results) > 0, "_CheckResultStep must have executed"
-    assert observed_results[0] is None, (
-        f"ctx.result should be None before FinalizeStep, got {observed_results[0]}"
-    )
+    assert (
+        observed_results[0] is None
+    ), f"ctx.result should be None before FinalizeStep, got {observed_results[0]}"
 
 
 # ---------------------------------------------------------------------------
@@ -750,6 +760,7 @@ def test_context_result_none_before_finalize_step(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_with_steps_excluded_removes_class_not_instance(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -784,9 +795,9 @@ def test_with_steps_excluded_removes_class_not_instance(
     )
 
     step_classes = [type(s) for s in filtered_parser._steps]
-    assert ConanEnrichStep not in step_classes, (
-        "ConanEnrichStep must be excluded from the filtered pipeline"
-    )
+    assert (
+        ConanEnrichStep not in step_classes
+    ), "ConanEnrichStep must be excluded from the filtered pipeline"
     assert len(filtered_parser._steps) == default_count - 1, (
         f"Filtered pipeline should have {default_count - 1} steps, "
         f"got {len(filtered_parser._steps)}"
@@ -798,6 +809,7 @@ def test_with_steps_excluded_removes_class_not_instance(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_tmp_dir_cleaned_up_in_finally_block_on_error(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -843,6 +855,6 @@ def test_tmp_dir_cleaned_up_in_finally_block_on_error(
 
     assert len(captured_tmp_dir) == 1, "_CriticalFail must have executed"
     tmp_dir_path = captured_tmp_dir[0]
-    assert not tmp_dir_path.exists(), (
-        f"tmp_dir {tmp_dir_path} must be deleted after ParsingError (finally block)"
-    )
+    assert (
+        not tmp_dir_path.exists()
+    ), f"tmp_dir {tmp_dir_path} must be deleted after ParsingError (finally block)"

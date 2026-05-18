@@ -11,6 +11,7 @@ from autodoc.parser.steps.manifest_step import ManifestStep
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_manifest_step_populates_ctx_components(
     parser_pipeline_context,
     manifest_component,
@@ -32,6 +33,7 @@ _EMPTY_WITH_WARNING: list[str] = ["something failed"]
     [_EMPTY_NO_WARNINGS, _EMPTY_WITH_WARNING],
     ids=["no-warnings", "with-warning"],
 )
+@pytest.mark.business_logic
 def test_manifest_step_empty_result_does_not_raise(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -48,6 +50,7 @@ def test_manifest_step_empty_result_does_not_raise(
     assert parser_pipeline_context.components == []
 
 
+@pytest.mark.contract
 def test_manifest_step_calls_configure_before_fetch(
     parser_pipeline_context,
     manifest_component,
@@ -60,11 +63,13 @@ def test_manifest_step_calls_configure_before_fetch(
     assert fake.configure_called is True
 
 
+@pytest.mark.infrastructure
 def test_manifest_step_has_name() -> None:
     """ManifestStep.name задан и не пуст."""
     assert ManifestStep.name != ""
 
 
+@pytest.mark.business_logic
 def test_manifest_step_is_critical() -> None:
     """ManifestStep является критичным шагом пайплайна."""
     assert ManifestStep.is_critical is True

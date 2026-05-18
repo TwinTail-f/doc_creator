@@ -39,5 +39,5 @@ class ManifestStep(BaseParseStep):
             filter_mode=ctx.config.component_filter_mode,
         )
         for w in result.warnings:
-                logger.warning(w)
+            logger.warning(w)
         ctx.components = result.value

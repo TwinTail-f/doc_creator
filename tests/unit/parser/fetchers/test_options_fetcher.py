@@ -7,6 +7,7 @@ No real network calls are made.
 """
 
 from __future__ import annotations
+import pytest
 
 from pathlib import Path
 
@@ -95,6 +96,7 @@ def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path)
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_apr_single_option(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -120,6 +122,7 @@ def test_options_fetcher_apr_single_option(
     assert ("apr", "1.7.6", "fast") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_sqlite3_fast_five_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -145,6 +148,7 @@ def test_options_fetcher_sqlite3_fast_five_options(
     assert ("sqlite3", "3.51.2", "fast") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_nlohmann_single_empty(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -170,6 +174,7 @@ def test_options_fetcher_nlohmann_single_empty(
     assert ("nlohmann_json", "3.9.1", "slow") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_patchelf_two_versions_share_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -214,6 +219,7 @@ def test_options_fetcher_patchelf_two_versions_share_options(
     assert ("patchelf", "0.18.0", "tech") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_icu_fast_two_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -239,6 +245,7 @@ def test_options_fetcher_icu_fast_two_options(
     assert ("icu", "78.2", "fast") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_no_options_file_returns_default(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -254,6 +261,7 @@ def test_options_fetcher_no_options_file_returns_default(
     assert ("somelib", "1.0.0", "fast") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_invalid_json_does_not_raise(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -279,6 +287,7 @@ def test_options_fetcher_invalid_json_does_not_raise(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_empty_items_returns_empty_map(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -305,6 +314,7 @@ def test_options_fetcher_empty_items_returns_empty_map(
     assert ("openssl", "3.0.0", "tech") in result.value
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_invalid_json_does_not_raise_openssl_alias(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -374,6 +384,7 @@ class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -404,6 +415,7 @@ def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_options_fetcher_sqlite3_fast_channel_specific_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,

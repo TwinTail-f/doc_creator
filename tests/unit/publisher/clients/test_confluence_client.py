@@ -73,6 +73,7 @@ def _make_response(json_data: Any, status_code: int = 200) -> MagicMock:
 class TestFindPage:
     """Tests for ConfluenceClient.find_page()."""
 
+    @pytest.mark.business_logic
     def test_find_page_returns_none_when_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -83,6 +84,7 @@ class TestFindPage:
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is None
 
+    @pytest.mark.business_logic
     def test_find_page_returns_page_dict_when_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -105,6 +107,7 @@ class TestFindPage:
 class TestGetPageBody:
     """Tests for ConfluenceClient.get_page_body()."""
 
+    @pytest.mark.business_logic
     def test_get_page_body_returns_empty_string_when_page_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -115,6 +118,7 @@ class TestGetPageBody:
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == ""
 
+    @pytest.mark.business_logic
     def test_get_page_body_returns_body_when_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -161,6 +165,7 @@ class TestPublishPage:
         confluence_client._mock_session.get.return_value = find_resp
         confluence_client._mock_session.put.return_value = update_resp
 
+    @pytest.mark.business_logic
     def test_publish_page_creates_new_page_when_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -171,6 +176,7 @@ class TestPublishPage:
         )
         confluence_client._mock_session.post.assert_called_once()
 
+    @pytest.mark.business_logic
     def test_publish_page_updates_existing_page_when_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -181,6 +187,7 @@ class TestPublishPage:
         )
         confluence_client._mock_session.put.assert_called_once()
 
+    @pytest.mark.contract
     def test_publish_page_returns_dict_with_id_version_status(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -193,6 +200,7 @@ class TestPublishPage:
         assert "version" in result
         assert "status" in result
 
+    @pytest.mark.business_logic
     def test_publish_page_raises_publish_error_on_http_error(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -205,6 +213,102 @@ class TestPublishPage:
                 space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
             )
 
+    @pytest.mark.business_logic
+    def test_publish_page_calls_put_even_when_page_under_wrong_parent(
+        self,
+        confluence_client: ConfluenceClient,
+    ) -> None:
+        """publish_page issues PUT even when found page's ancestor differs from requested parent_id."""
+        WRONG_PARENT = "wrong-parent-999"
+
+        existing_page = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "version": {"number": 4},
+            "ancestors": [{"id": WRONG_PARENT}],
+        }
+        confluence_client._mock_session.get.return_value = _make_response(
+            {"results": [existing_page]}
+        )
+        confluence_client._mock_session.put.return_value = _make_response(
+            {"id": PAGE_ID}
+        )
+
+        confluence_client.publish_page(
+            space=SPACE,
+            parent_id=PARENT_ID,  # different from WRONG_PARENT
+            title=PAGE_TITLE,
+            body_html=PAGE_BODY,
+        )
+
+        confluence_client._mock_session.put.assert_called_once()
+
+    @pytest.mark.business_logic
+    def test_publish_page_put_payload_contains_correct_parent_id(
+        self,
+        confluence_client: ConfluenceClient,
+    ) -> None:
+        """PUT json payload ancestors[0].id equals the requested parent_id, not the old one."""
+        OLD_PARENT = "old-parent-111"
+        NEW_PARENT = "new-parent-222"
+
+        existing_page = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "version": {"number": 2},
+            "ancestors": [{"id": OLD_PARENT}],
+        }
+        confluence_client._mock_session.get.return_value = _make_response(
+            {"results": [existing_page]}
+        )
+        confluence_client._mock_session.put.return_value = _make_response(
+            {"id": PAGE_ID}
+        )
+
+        confluence_client.publish_page(
+            space=SPACE,
+            parent_id=NEW_PARENT,
+            title=PAGE_TITLE,
+            body_html=PAGE_BODY,
+        )
+
+        put_call = confluence_client._mock_session.put.call_args
+        payload = put_call.kwargs.get("json") or put_call.args[1]
+        # _build_page_payload always sets: payload["ancestors"] = [{"id": parent_id}]
+        ancestors = payload.get("ancestors", [])
+        assert any(
+            a["id"] == NEW_PARENT for a in ancestors
+        ), f"Expected parent_id={NEW_PARENT!r} in ancestors, got: {ancestors}"
+
+    @pytest.mark.business_logic
+    def test_publish_page_version_incremented_on_reparent(
+        self,
+        confluence_client: ConfluenceClient,
+    ) -> None:
+        """Version number increments correctly (current+1) even when page is moved to new parent."""
+        existing_page = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "version": {"number": 7},
+            "ancestors": [{"id": "some-other-parent"}],
+        }
+        confluence_client._mock_session.get.return_value = _make_response(
+            {"results": [existing_page]}
+        )
+        confluence_client._mock_session.put.return_value = _make_response(
+            {"id": PAGE_ID}
+        )
+
+        result = confluence_client.publish_page(
+            space=SPACE,
+            parent_id=PARENT_ID,
+            title=PAGE_TITLE,
+            body_html=PAGE_BODY,
+        )
+
+        assert result["version"] == 8  # 7 + 1
+        assert result["status"] == "updated"
+
 
 # ---------------------------------------------------------------------------
 # get_or_create_page tests
@@ -214,6 +318,7 @@ class TestPublishPage:
 class TestGetOrCreatePage:
     """Tests for ConfluenceClient.get_or_create_page()."""
 
+    @pytest.mark.business_logic
     def test_get_or_create_page_returns_id_if_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -232,6 +337,7 @@ class TestGetOrCreatePage:
         assert result == PAGE_ID
         confluence_client._mock_session.post.assert_not_called()
 
+    @pytest.mark.business_logic
     def test_get_or_create_page_creates_and_returns_id_if_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
@@ -257,6 +363,7 @@ class TestGetOrCreatePage:
 class TestTimeoutForwarding:
     """Tests that confluence_request_timeout reaches the HTTP session."""
 
+    @pytest.mark.infrastructure
     def test_confluence_client_passes_timeout_to_session(
         self, minimal_confluence_config: dict, mocker: Any
     ) -> None:
@@ -280,6 +387,7 @@ class TestTimeoutForwarding:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_confluence_client_satisfies_protocol(
     minimal_confluence_config: dict, mocker
 ) -> None:

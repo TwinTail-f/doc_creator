@@ -60,6 +60,7 @@ def _make_runner(tmp_path: Path) -> Conan2Runner:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_conan2_runner_raises_on_missing_conan_binary(tmp_path: Path) -> None:
     """Conan2Runner.run() returns success=False when 'conan' is absent from PATH.
 
@@ -73,6 +74,7 @@ def test_conan2_runner_raises_on_missing_conan_binary(tmp_path: Path) -> None:
     assert result.error  # non-empty error message
 
 
+@pytest.mark.business_logic
 def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
     """Conan2Runner.run() returns success=False when subprocess times out.
 
@@ -97,6 +99,7 @@ def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type: ignore[no-untyped-def]
     """setup() calls shutil.copytree exactly once to copy the config into the tmp dir.
 
@@ -117,6 +120,7 @@ def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type:
     assert mock_run.call_count >= 1
 
 
+@pytest.mark.infrastructure
 def test_conan_environment_manager_cleanup_removes_directory(
     tmp_path: Path, mocker
 ) -> None:  # type: ignore[no-untyped-def]
@@ -142,6 +146,7 @@ def test_conan_environment_manager_cleanup_removes_directory(
     assert called_path == setup_dir
 
 
+@pytest.mark.business_logic
 def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
     """cleanup() is idempotent and raises no exception when setup() was never called.
 
@@ -153,6 +158,7 @@ def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
     manager.cleanup()
 
 
+@pytest.mark.infrastructure
 def test_base_conan_runner_setup_semantics_on_double_call(
     tmp_path: Path, mocker
 ) -> None:

@@ -66,6 +66,7 @@ def make_profile_strategy(
 class TestProfileCentricStrategyExecute:
     """Tests for ProfileCentricStrategy.execute() behaviour."""
 
+    @pytest.mark.business_logic
     def test_profile_centric_strategy_execute_returns_success_report(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -86,6 +87,7 @@ class TestProfileCentricStrategyExecute:
         assert report.success is True
         assert report.pages_published == 1
 
+    @pytest.mark.business_logic
     def test_profile_centric_strategy_loads_registry_when_include_links_true(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -106,6 +108,7 @@ class TestProfileCentricStrategyExecute:
         strategy.execute()
         mock_load.assert_called_once()
 
+    @pytest.mark.business_logic
     def test_profile_centric_strategy_skips_registry_when_include_links_false(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -126,6 +129,7 @@ class TestProfileCentricStrategyExecute:
         strategy.execute()
         mock_load.assert_not_called()
 
+    @pytest.mark.infrastructure
     def test_profile_centric_strategy_execute_calls_publish_page(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -151,6 +155,7 @@ class TestProfileCentricStrategyExecute:
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE
 
+    @pytest.mark.business_logic
     def test_profile_centric_strategy_execute_returns_failure_on_client_error(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -185,6 +190,7 @@ class TestProfileCentricStrategyExecute:
 class TestProfileCentricStrategyRegistry:
     """Tests for ProfileCentricStrategy registration."""
 
+    @pytest.mark.business_logic
     def test_profile_centric_strategy_registered_as_profile_centric(self) -> None:
         """'profile_centric' is present in available_strategies()."""
         assert "profile_centric" in BasePublishStrategy.available_strategies()
@@ -195,6 +201,7 @@ class TestProfileCentricStrategyRegistry:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_publishes_exactly_one_page(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
@@ -226,11 +233,12 @@ def test_publishes_exactly_one_page(
     )
     report = strategy.execute()
 
-    assert report.pages_published == 1, (
-        f"ProfileCentricStrategy must publish 1 page, got: {report.pages_published}"
-    )
+    assert (
+        report.pages_published == 1
+    ), f"ProfileCentricStrategy must publish 1 page, got: {report.pages_published}"
 
 
+@pytest.mark.business_logic
 def test_registered_as_profile_centric_type() -> None:
     """
     BL-PCS-02
@@ -247,11 +255,12 @@ def test_registered_as_profile_centric_type() -> None:
         'profile_centric' is present in the returned list of strategy types.
     """
     available = BasePublishStrategy.available_strategies()
-    assert "profile_centric" in available, (
-        f"'profile_centric' must be in available_strategies, got: {available}"
-    )
+    assert (
+        "profile_centric" in available
+    ), f"'profile_centric' must be in available_strategies, got: {available}"
 
 
+@pytest.mark.business_logic
 def test_registry_loaded_when_include_links_true(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
@@ -287,6 +296,7 @@ def test_registry_loaded_when_include_links_true(
     mock_load.assert_called_once_with()
 
 
+@pytest.mark.business_logic
 def test_registry_skipped_when_include_links_false(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,

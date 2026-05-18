@@ -36,6 +36,7 @@ class _ConcreteFetcher(BaseTFSFetcher):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_fetch_result_holds_value_and_warnings() -> None:
     """FetchResult предоставляет переданные value и список warnings."""
     result: FetchResult = FetchResult(value=[1, 2], warnings=["w1"])
@@ -49,6 +50,7 @@ def test_fetch_result_holds_value_and_warnings() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_fetch_result_default_warnings_empty() -> None:
     """FetchResult.warnings по умолчанию является пустым списком, если не задан."""
     result: FetchResult = FetchResult(value="x")
@@ -61,6 +63,7 @@ def test_fetch_result_default_warnings_empty() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.contract
 def test_base_tfs_fetcher_tfs_is_none_before_configure() -> None:
     """Атрибут _tfs равен None сразу после создания, до вызова configure()."""
     fetcher = _ConcreteFetcher()
@@ -73,6 +76,7 @@ def test_base_tfs_fetcher_tfs_is_none_before_configure() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_base_fetcher_fetch_before_configure_raises() -> None:
     """Calling fetch() before configure() must raise RuntimeError.
 

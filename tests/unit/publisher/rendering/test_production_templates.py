@@ -46,6 +46,7 @@ def minimal_view_model() -> dict[str, Any]:
     return parsed.model_dump()
 
 
+@pytest.mark.infrastructure
 def test_macros_template_renders_without_error(builder: DocumentBuilder) -> None:
     """Rendering _macros.jinja2 via the main release template produces non-empty output.
 
@@ -57,6 +58,7 @@ def test_macros_template_renders_without_error(builder: DocumentBuilder) -> None
     assert output.strip(), "Rendered output from release_doc.jinja2 is empty"
 
 
+@pytest.mark.infrastructure
 def test_styles_base_template_renders_without_error(
     builder: DocumentBuilder,
 ) -> None:
@@ -73,6 +75,7 @@ def test_styles_base_template_renders_without_error(
     ), f"Expected '{_STYLES_BASE_MARKER}' in rendered output (from _styles_base.jinja2)"
 
 
+@pytest.mark.infrastructure
 def test_styles_passport_template_renders_without_error(
     builder: DocumentBuilder,
 ) -> None:
@@ -116,6 +119,7 @@ def test_styles_passport_template_renders_without_error(
     ), f"Expected '{_STYLES_PP_MARKER}' in rendered output (from _styles_passport.jinja2)"
 
 
+@pytest.mark.business_logic
 def test_main_component_template_contains_component_name(
     builder: DocumentBuilder,
 ) -> None:

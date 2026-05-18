@@ -24,6 +24,7 @@ _TIMEOUT_GUARD_SEC: int = 5
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_parallel_executor_results_in_submission_order() -> None:
     """Results are returned in submission order, not in completion order.
 
@@ -57,6 +58,7 @@ def test_parallel_executor_results_in_submission_order() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> None:
     """Exceptions in individual tasks are isolated; other tasks still produce results.
 
@@ -84,6 +86,7 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
 
 
 @pytest.mark.timeout(_TIMEOUT_GUARD_SEC)
+@pytest.mark.infrastructure
 def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
     """execute() returns without deadlocking when every task raises RuntimeError.
 
@@ -104,6 +107,7 @@ def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_parallel_executor_max_workers_one_is_sequential() -> None:
     """With max_workers=1 tasks execute sequentially in submission order.
 
@@ -130,6 +134,7 @@ def test_parallel_executor_max_workers_one_is_sequential() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.infrastructure
 def test_parallel_executor_empty_task_list_returns_empty() -> None:
     """execute([]) returns [] immediately without raising or spinning up threads.
 

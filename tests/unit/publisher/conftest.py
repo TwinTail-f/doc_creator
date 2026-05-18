@@ -276,35 +276,51 @@ def publisher_two_profile_parsed_result(
     """
     pd_arm = ProfileDefinition(
         profile_name="hw-linux-arm64-gcc10",
-        conan_settings={"os": "Linux", "arch": "armv8", "compiler": "gcc",
-                        "compiler.version": "10"},
+        conan_settings={
+            "os": "Linux",
+            "arch": "armv8",
+            "compiler": "gcc",
+            "compiler.version": "10",
+        },
         docker_image="registry.example.com/arm64:latest",
     )
     total_opts = TotalOptionsSet(id="opt-1", options={"shared": "True"})
     variant_x86 = ConanVariant(
-        package_id="pka", build_url="https://ci/a",
-        build_date="2024-01-01", options_ref="opt-1",
+        package_id="pka",
+        build_url="https://ci/a",
+        build_date="2024-01-01",
+        options_ref="opt-1",
     )
     variant_arm = ConanVariant(
-        package_id="pkb", build_url="https://ci/b",
-        build_date="2024-01-02", options_ref="opt-1",
+        package_id="pkb",
+        build_url="https://ci/b",
+        build_date="2024-01-02",
+        options_ref="opt-1",
     )
     pb_x86 = ProfileBuild(
-        profile_name="hw-linux-x86_64-gcc10", exists=True, variants=[variant_x86],
+        profile_name="hw-linux-x86_64-gcc10",
+        exists=True,
+        variants=[variant_x86],
     )
     pb_arm = ProfileBuild(
-        profile_name="hw-linux-arm64-gcc10", exists=True, variants=[variant_arm],
+        profile_name="hw-linux-arm64-gcc10",
+        exists=True,
+        variants=[variant_arm],
     )
     rel = Release(
-        version="1.0.0", platform="2.0", channel="tech",
+        version="1.0.0",
+        platform="2.0",
+        channel="tech",
         conan_reference="mylib/1.0.0@platform/2.0-tech",
         artifactory_url="https://art/mylib",
         profile_builds=[pb_x86, pb_arm],
         total_option_sets=[total_opts],
     )
     comp = Component(
-        name="mylib", description="My library",
-        git_project="DEP", git_repo="mylib",
+        name="mylib",
+        description="My library",
+        git_project="DEP",
+        git_repo="mylib",
         git_url="https://tfs.example.com/DEP/_git/mylib",
         is_header_only=False,
         releases=[rel],
@@ -329,21 +345,29 @@ def publisher_multi_channel_result(
     """
     total_opts = TotalOptionsSet(id="opt-1", options={"shared": "False"})
     variant = ConanVariant(
-        package_id="pkx", build_url="https://ci/x",
-        build_date="2024-01-01", options_ref="opt-1",
+        package_id="pkx",
+        build_url="https://ci/x",
+        build_date="2024-01-01",
+        options_ref="opt-1",
     )
     pb = ProfileBuild(
-        profile_name="hw-linux-x86_64-gcc10", exists=True, variants=[variant],
+        profile_name="hw-linux-x86_64-gcc10",
+        exists=True,
+        variants=[variant],
     )
     rel_fast = Release(
-        version="2.0.0", platform="2.0", channel="fast",
+        version="2.0.0",
+        platform="2.0",
+        channel="fast",
         conan_reference="alpha/2.0.0@platform/2.0-fast",
         artifactory_url="https://art/alpha",
         profile_builds=[pb],
         total_option_sets=[total_opts],
     )
     rel_stable = Release(
-        version="2.0.0", platform="2.0", channel="stable",
+        version="2.0.0",
+        platform="2.0",
+        channel="stable",
         conan_reference="alpha/2.0.0@platform/2.0-stable",
         artifactory_url="https://art/alpha-stable",
         profile_builds=[
@@ -352,8 +376,10 @@ def publisher_multi_channel_result(
                 exists=True,
                 variants=[
                     ConanVariant(
-                        package_id="pky", build_url="https://ci/y",
-                        build_date="2024-01-02", options_ref="opt-1",
+                        package_id="pky",
+                        build_url="https://ci/y",
+                        build_date="2024-01-02",
+                        options_ref="opt-1",
                     )
                 ],
             )
@@ -361,20 +387,26 @@ def publisher_multi_channel_result(
         total_option_sets=[total_opts],
     )
     comp_alpha = Component(
-        name="alpha", description="Alpha lib",
-        git_project="DEP", git_repo="alpha",
+        name="alpha",
+        description="Alpha lib",
+        git_project="DEP",
+        git_repo="alpha",
         git_url="https://tfs.example.com/DEP/_git/alpha",
         is_header_only=False,
         releases=[rel_fast, rel_stable],
     )
     comp_beta = Component(
-        name="beta", description="Beta lib — header-only",
-        git_project="DEP", git_repo="beta",
+        name="beta",
+        description="Beta lib — header-only",
+        git_project="DEP",
+        git_repo="beta",
         git_url="https://tfs.example.com/DEP/_git/beta",
         is_header_only=True,
         releases=[
             Release(
-                version="1.0.0", platform="2.0", channel="fast",
+                version="1.0.0",
+                platform="2.0",
+                channel="fast",
                 conan_reference="beta/1.0.0@platform/2.0-fast",
                 artifactory_url="https://art/beta",
                 profile_builds=[],
@@ -490,7 +522,9 @@ def fake_builder_recording():
 
         def build(self, template_name: str, view_model: dict) -> str:
             """Records the call and returns a deterministic rendered HTML string."""
-            self.calls.append({"template_name": template_name, "view_model": view_model})
+            self.calls.append(
+                {"template_name": template_name, "view_model": view_model}
+            )
             return f"<html>rendered {template_name}</html>"
 
     return RecordingBuilder()
@@ -501,7 +535,11 @@ def registry_pages_map() -> dict:
     """A minimal pages_map dict for PassportPageRegistry.save() tests."""
     return {
         "openssl": {
-            "1.0.0": {"page_id": "p-001", "page_title": "Документация openssl 1.0.0", "version": 1}
+            "1.0.0": {
+                "page_id": "p-001",
+                "page_title": "Документация openssl 1.0.0",
+                "version": 1,
+            }
         }
     }
 

@@ -5,6 +5,7 @@
 """
 
 from __future__ import annotations
+import pytest
 
 from autodoc.parser.parsers.docker_parser import DockerParser, DockerLinksMap
 
@@ -24,6 +25,7 @@ PROFILE_FLAT: str = "hw-linux-x86_64-gcc10_2"
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_extract_from_yaml_plain_string_docker() -> None:
     """extract_from_yaml сопоставляет ключ arch с URL docker-образа в виде простой строки."""
     content: dict = {
@@ -44,6 +46,7 @@ def test_extract_from_yaml_plain_string_docker() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_extract_from_yaml_docker_dict_image_key() -> None:
     """extract_from_yaml извлекает URL образа, когда docker-значение — словарь с ключом 'image'."""
     content: dict = {
@@ -64,6 +67,7 @@ def test_extract_from_yaml_docker_dict_image_key() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_extract_from_yaml_skips_common_key() -> None:
     """extract_from_yaml игнорирует записи с зарезервированным ключом 'common'."""
     content: dict = {
@@ -81,6 +85,7 @@ def test_extract_from_yaml_skips_common_key() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_extract_from_yaml_skips_entry_without_docker() -> None:
     """extract_from_yaml пропускает записи arch, не содержащие поле 'docker'."""
     content: dict = {
@@ -98,6 +103,7 @@ def test_extract_from_yaml_skips_entry_without_docker() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
     """extract_from_yaml регистрирует docker-образ для каждого элемента списка profile_host."""
     content: dict = {
@@ -119,6 +125,7 @@ def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_add_aliases_with_extension_adds_four_entries() -> None:
     """add_aliases добавляет полный путь, имя файла, stem и parent/stem для вложённого .jinja-имени."""
     links: DockerLinksMap = {}
@@ -134,6 +141,7 @@ def test_add_aliases_with_extension_adds_four_entries() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_add_aliases_flat_name_adds_entries() -> None:
     """add_aliases отображает плоское (невложенное) имя без добавления ключа parent/stem."""
     links: DockerLinksMap = {}
@@ -147,6 +155,7 @@ def test_add_aliases_flat_name_adds_entries() -> None:
 # ===========================================================================
 
 
+@pytest.mark.business_logic
 def test_add_aliases_empty_name_does_nothing() -> None:
     """add_aliases оставляет словарь links без изменений, когда name — пустая строка."""
     links: DockerLinksMap = {}
@@ -159,6 +168,7 @@ def test_add_aliases_empty_name_does_nothing() -> None:
 # ===========================================================================
 
 
+@pytest.mark.infrastructure
 def test_extract_docker_image_none_returns_empty_string() -> None:
     """extract_docker_image возвращает '', если значение поля docker равно None."""
     result = DockerParser.extract_docker_image({"docker": None})

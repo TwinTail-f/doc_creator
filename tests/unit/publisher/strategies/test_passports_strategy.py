@@ -76,6 +76,7 @@ def make_passports_strategy(
 class TestPassportsStrategyInit:
     """Tests for PassportsStrategy.__init__ validation."""
 
+    @pytest.mark.business_logic
     def test_passports_strategy_init_raises_on_empty_space(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -94,6 +95,7 @@ class TestPassportsStrategyInit:
                 data_dir=tmp_path,
             )
 
+    @pytest.mark.business_logic
     def test_passports_strategy_init_raises_on_empty_root_page_id(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -121,6 +123,7 @@ class TestPassportsStrategyInit:
 class TestPassportsStrategyExecute:
     """Tests for PassportsStrategy.execute() behaviour."""
 
+    @pytest.mark.business_logic
     def test_passports_strategy_execute_publishes_one_page_per_component_release(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -154,6 +157,7 @@ class TestPassportsStrategyExecute:
         ]
         assert len(publish_calls) >= 1
 
+    @pytest.mark.business_logic
     def test_passports_strategy_execute_report_success_when_no_errors(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -182,6 +186,7 @@ class TestPassportsStrategyExecute:
         report = strategy.execute()
         assert report.success is True
 
+    @pytest.mark.business_logic
     def test_passports_strategy_execute_records_failed_component_without_releases(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -213,6 +218,7 @@ class TestPassportsStrategyExecute:
         report = strategy.execute()
         assert any("no-release-lib" in err for err in report.errors)
 
+    @pytest.mark.business_logic
     def test_passports_strategy_execute_continues_after_single_failure(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -248,6 +254,7 @@ class TestPassportsStrategyExecute:
         assert report.pages_failed >= 1
         assert report.pages_published >= 1
 
+    @pytest.mark.business_logic
     def test_passports_strategy_execute_saves_registry_after_publish(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -276,6 +283,7 @@ class TestPassportsStrategyExecute:
         strategy.execute()
         assert (tmp_path / _REGISTRY_FILENAME).exists()
 
+    @pytest.mark.business_logic
     def test_passports_strategy_execute_report_contains_details(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -316,12 +324,41 @@ class TestPassportsStrategyExecute:
 class TestPassportsStrategyUtils:
     """Tests for PassportsStrategy static helper methods."""
 
+    @pytest.mark.business_logic
     def test_passports_strategy_page_title_format(self) -> None:
         """_make_page_title returns the expected formatted string."""
         title = PassportsStrategy._make_page_title("openssl", "1.0.0")
         assert "openssl" in title
         assert "1.0.0" in title
 
+    @pytest.mark.business_logic
+    def test_page_title_is_unique_for_different_component_release_pairs(self) -> None:
+        """Different (comp, version) pairs always produce distinct page titles."""
+        pairs = [
+            ("openssl", "3.0.9"),  # from openssl.properties
+            ("patchelf", "0.16.1"),  # from patchelf.properties
+            ("patchelf", "0.18.0"),  # same component, different version
+            ("sqlite3", "3.51.2"),  # from sqlite3.properties
+            ("nlohmann_json", "3.9.1"),  # from nlohmann_json.properties
+        ]
+        titles = [PassportsStrategy._make_page_title(comp, ver) for comp, ver in pairs]
+        assert len(titles) == len(set(titles)), f"Duplicate titles detected: {titles}"
+
+    @pytest.mark.business_logic
+    def test_page_title_exact_format(self) -> None:
+        """_make_page_title returns 'Документация <name> <version>' — exact format."""
+        # sqlite3/3.51.2 comes from sqlite3.properties (versions: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
+        assert (
+            PassportsStrategy._make_page_title("sqlite3", "3.51.2")
+            == "Документация sqlite3 3.51.2"
+        )
+        # patchelf/0.18.0 comes from patchelf.properties
+        assert (
+            PassportsStrategy._make_page_title("patchelf", "0.18.0")
+            == "Документация patchelf 0.18.0"
+        )
+
+    @pytest.mark.business_logic
     def test_passports_strategy_build_pages_map_structure(self) -> None:
         """_build_pages_map produces the nested {comp: {version: {...}}} structure."""
         details = [
@@ -357,6 +394,7 @@ _BL_PS_TRANSFORM_RESULT: dict = {
 }
 
 
+@pytest.mark.business_logic
 def test_one_page_per_component_release_combination(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -405,8 +443,7 @@ def test_one_page_per_component_release_combination(
     report = strategy.execute()
 
     total_releases = sum(
-        len(comp.releases)
-        for comp in publisher_multi_component_result.components
+        len(comp.releases) for comp in publisher_multi_component_result.components
     )
     assert report.pages_published == total_releases, (
         f"Expected {total_releases} passport pages published, "
@@ -414,6 +451,7 @@ def test_one_page_per_component_release_combination(
     )
 
 
+@pytest.mark.business_logic
 def test_registry_saved_after_all_pages_published(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -474,11 +512,12 @@ def test_registry_saved_after_all_pages_published(
         f"PassportPageRegistry.save() must be called exactly once, "
         f"called {len(save_calls)} times"
     )
-    assert save_calls[0]["published_count"] > 0, (
-        "By the time save() is called, publish_page must have been called at least once"
-    )
+    assert (
+        save_calls[0]["published_count"] > 0
+    ), "By the time save() is called, publish_page must have been called at least once"
 
 
+@pytest.mark.business_logic
 def test_failure_of_one_page_does_not_stop_others(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -515,7 +554,9 @@ def test_failure_of_one_page_does_not_stop_others(
             raise RuntimeError("Simulated failure on first passport page")
         return dict(_BL_PS_TRANSFORM_RESULT)
 
-    mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
+    mocker.patch.object(
+        PassportConverter, "transform", side_effect=transform_side_effect
+    )
 
     strategy = PassportsStrategy(
         confluence_client=FakeConfluenceClient(),
@@ -530,11 +571,12 @@ def test_failure_of_one_page_does_not_stop_others(
     report = strategy.execute()
 
     assert report.pages_failed >= 1, "There must be at least one recorded failure"
-    assert report.pages_published >= 1, (
-        "Other pages must still be published despite the partial failure"
-    )
+    assert (
+        report.pages_published >= 1
+    ), "Other pages must still be published despite the partial failure"
 
 
+@pytest.mark.business_logic
 def test_report_pages_published_count_equals_successful_pages(
     publisher_parsed_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -581,12 +623,13 @@ def test_report_pages_published_count_equals_successful_pages(
     report = strategy.execute()
 
     expected = sum(len(comp.releases) for comp in publisher_parsed_result.components)
-    assert report.pages_published == expected, (
-        f"pages_published must be {expected}, got {report.pages_published}"
-    )
+    assert (
+        report.pages_published == expected
+    ), f"pages_published must be {expected}, got {report.pages_published}"
     assert report.pages_failed == 0, "All pages must succeed with no errors"
 
 
+@pytest.mark.business_logic
 def test_report_pages_failed_count_equals_failed_pages(
     publisher_parsed_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -632,13 +675,18 @@ def test_report_pages_failed_count_equals_failed_pages(
     )
     report = strategy.execute()
 
-    assert report.pages_failed == len(report.failed_pages), (
-        "pages_failed must match len(failed_pages) — counter and list must be consistent"
-    )
-    assert report.pages_failed > 0, "With constant converter errors, pages_failed must be > 0"
-    assert report.pages_published == 0, "With constant errors, pages_published must be 0"
+    assert report.pages_failed == len(
+        report.failed_pages
+    ), "pages_failed must match len(failed_pages) — counter and list must be consistent"
+    assert (
+        report.pages_failed > 0
+    ), "With constant converter errors, pages_failed must be > 0"
+    assert (
+        report.pages_published == 0
+    ), "With constant errors, pages_published must be 0"
 
 
+@pytest.mark.business_logic
 def test_legacy_content_extracted_before_overwrite(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
@@ -713,19 +761,20 @@ def test_legacy_content_extracted_before_overwrite(
     )
     strategy.execute()
 
-    assert len(captured_view_models) > 0, (
-        "builder.build() must be called at least once (one passport page)"
-    )
+    assert (
+        len(captured_view_models) > 0
+    ), "builder.build() must be called at least once (one passport page)"
     for vm in captured_view_models:
         assert "legacy_contents" in vm, (
             f"view_model passed to builder.build() must contain 'legacy_contents', "
             f"got keys: {list(vm.keys())}"
         )
-        assert isinstance(vm["legacy_contents"], dict), (
-            "legacy_contents must be a dict (empty or populated)"
-        )
+        assert isinstance(
+            vm["legacy_contents"], dict
+        ), "legacy_contents must be a dict (empty or populated)"
 
 
+@pytest.mark.business_logic
 def test_hierarchy_created_for_each_component(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -751,13 +800,17 @@ def test_hierarchy_created_for_each_component(
     """
     hierarchy_calls: list[dict] = []
 
-    def tracking_ensure(self, space, root_parent_id, component_name, release_version):  # noqa: ANN001
+    def tracking_ensure(
+        self, space, root_parent_id, component_name, release_version
+    ):  # noqa: ANN001
         hierarchy_calls.append(
             {"component_name": component_name, "release_version": release_version}
         )
         return "hierarchy-page-id"
 
-    mocker.patch.object(PageHierarchyManager, "ensure_hierarchy_exists", tracking_ensure)
+    mocker.patch.object(
+        PageHierarchyManager, "ensure_hierarchy_exists", tracking_ensure
+    )
     mocker.patch.object(
         PassportConverter,
         "transform",
@@ -782,8 +835,7 @@ def test_hierarchy_created_for_each_component(
         for rel in comp.releases
     }
     actual_pairs = {
-        (c["component_name"], c["release_version"])
-        for c in hierarchy_calls
+        (c["component_name"], c["release_version"]) for c in hierarchy_calls
     }
     assert actual_pairs == expected_pairs, (
         f"ensure_hierarchy_exists must be called for all (comp, version) pairs.\n"

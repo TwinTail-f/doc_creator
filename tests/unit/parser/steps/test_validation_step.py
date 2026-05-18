@@ -100,6 +100,7 @@ class _RaisingClient:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_validation_step_removes_404_variant(
     parser_pipeline_context,
     artifactory_client,
@@ -115,6 +116,7 @@ def test_validation_step_removes_404_variant(
     assert pb.variants == []
 
 
+@pytest.mark.business_logic
 def test_validation_step_keeps_200_variant(
     parser_pipeline_context,
     artifactory_client,
@@ -130,6 +132,7 @@ def test_validation_step_keeps_200_variant(
     assert len(pb.variants) == 1
 
 
+@pytest.mark.business_logic
 def test_validation_step_transforms_ui_url_to_api_url(
     parser_pipeline_context,
 ) -> None:
@@ -143,6 +146,7 @@ def test_validation_step_transforms_ui_url_to_api_url(
     assert recording_client.called_urls == [API_URL]
 
 
+@pytest.mark.business_logic
 def test_validation_step_keeps_variant_on_network_exception(
     parser_pipeline_context,
 ) -> None:
@@ -155,6 +159,7 @@ def test_validation_step_keeps_variant_on_network_exception(
     assert len(pb.variants) == 1
 
 
+@pytest.mark.business_logic
 def test_validation_step_skips_variant_with_empty_build_url(
     parser_pipeline_context,
 ) -> None:
@@ -168,6 +173,7 @@ def test_validation_step_skips_variant_with_empty_build_url(
     assert recording_client.called_urls == []
 
 
+@pytest.mark.business_logic
 def test_validation_step_no_client_skips(
     parser_pipeline_context,
 ) -> None:
@@ -180,6 +186,7 @@ def test_validation_step_no_client_skips(
     assert len(pb.variants) == 1
 
 
+@pytest.mark.business_logic
 def test_collect_variants_collects_all_variants(
     parser_pipeline_context,
 ) -> None:
@@ -232,6 +239,7 @@ def test_collect_variants_collects_all_variants(
 _HTTP_NOT_FOUND: int = 404
 
 
+@pytest.mark.business_logic
 def test_validation_step_documents_behaviour_on_reachable_404(
     parser_pipeline_context,
 ) -> None:
@@ -315,6 +323,7 @@ def _make_tree(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_404_removes_variant_from_profile_build(
     parser_pipeline_context,
 ) -> None:
@@ -337,9 +346,7 @@ def test_404_removes_variant_from_profile_build(
     Expected Result:
         - ``pb.variants`` is empty after the step executes.
     """
-    comp, release, pb, variant = _make_tree(
-        f"{_VS_UI_URL_PREFIX}/v1.zip"
-    )
+    comp, release, pb, variant = _make_tree(f"{_VS_UI_URL_PREFIX}/v1.zip")
     ctx = parser_pipeline_context
     ctx.components = [comp]
     ctx.artifactory_client = _RecordingClient(status_code=404)
@@ -355,6 +362,7 @@ def test_404_removes_variant_from_profile_build(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_network_error_keeps_variant_fail_open(
     parser_pipeline_context,
 ) -> None:
@@ -384,9 +392,7 @@ def test_network_error_keeps_variant_fail_open(
         def head(self, url: str) -> None:
             raise _requests.RequestException("Connection refused")
 
-    comp, release, pb, variant = _make_tree(
-        f"{_VS_UI_URL_PREFIX}/v1.zip"
-    )
+    comp, release, pb, variant = _make_tree(f"{_VS_UI_URL_PREFIX}/v1.zip")
     ctx = parser_pipeline_context
     ctx.components = [comp]
     ctx.artifactory_client = _RaisingClient()
@@ -402,6 +408,7 @@ def test_network_error_keeps_variant_fail_open(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_ui_url_converted_to_api_url_before_head(
     parser_pipeline_context,
 ) -> None:
@@ -437,12 +444,12 @@ def test_ui_url_converted_to_api_url_before_head(
 
     assert len(recording_client.called_urls) == 1, "Exactly one HEAD request expected"
     called = recording_client.called_urls[0]
-    assert "/ui/repos/tree/General/" not in called, (
-        f"UI path must not appear in HEAD URL: {called}"
-    )
-    assert "/artifactory/" in called, (
-        f"API path '/artifactory/' must appear in HEAD URL: {called}"
-    )
+    assert (
+        "/ui/repos/tree/General/" not in called
+    ), f"UI path must not appear in HEAD URL: {called}"
+    assert (
+        "/artifactory/" in called
+    ), f"API path '/artifactory/' must appear in HEAD URL: {called}"
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +457,7 @@ def test_ui_url_converted_to_api_url_before_head(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_empty_build_url_skips_head_check(
     parser_pipeline_context,
 ) -> None:
@@ -479,12 +487,10 @@ def test_empty_build_url_skips_head_check(
 
     ArtifactoryValidationStep().execute(ctx)
 
-    assert recording_client.called_urls == [], (
-        "HEAD must not be called for a variant with empty build_url"
-    )
-    assert variant in pb.variants, (
-        "Variant with empty build_url must not be removed"
-    )
+    assert (
+        recording_client.called_urls == []
+    ), "HEAD must not be called for a variant with empty build_url"
+    assert variant in pb.variants, "Variant with empty build_url must not be removed"
 
 
 # ---------------------------------------------------------------------------
@@ -492,6 +498,7 @@ def test_empty_build_url_skips_head_check(
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.business_logic
 def test_profile_build_with_all_dead_variants_becomes_empty_not_removed(
     parser_pipeline_context,
 ) -> None:
@@ -519,9 +526,7 @@ def test_profile_build_with_all_dead_variants_becomes_empty_not_removed(
 
     v1 = _make_variant(f"{_VS_UI_URL_PREFIX}/v1.zip", "id1")
     v2 = _make_variant(f"{_VS_UI_URL_PREFIX}/v2.zip", "id2")
-    pb = ProfileBuild(
-        profile_name="hw-linux-x86_64", exists=True, variants=[v1, v2]
-    )
+    pb = ProfileBuild(profile_name="hw-linux-x86_64", exists=True, variants=[v1, v2])
     release = Release(
         version="1.0",
         platform="2.0",
@@ -546,7 +551,7 @@ def test_profile_build_with_all_dead_variants_becomes_empty_not_removed(
     ArtifactoryValidationStep().execute(ctx)
 
     assert pb.variants == [], "All variants must be removed on 404"
-    assert pb in release.profile_builds, (
-        "ProfileBuild must NOT be removed — that is FinalizeStep's responsibility"
-    )
+    assert (
+        pb in release.profile_builds
+    ), "ProfileBuild must NOT be removed — that is FinalizeStep's responsibility"
     assert len(release.profile_builds) == 1
