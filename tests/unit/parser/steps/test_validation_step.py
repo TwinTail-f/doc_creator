@@ -13,24 +13,6 @@ from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(autouse=True)
-def _make_executor_synchronous(mocker) -> None:
-    """Patch ParallelExecutor to run tasks sequentially in validation step tests.
-
-    Prevents non-deterministic ordering from affecting _RecordingClient assertions.
-    ArtifactoryValidationStep calls executor.execute(fn, items, task_label=...).
-    The synchronous replacement calls fn(item) for each item in order.
-    """
-
-    def _run_synchronously(fn, items, *args, **kwargs):  # noqa: ANN001
-        return [fn(item) for item in items]
-
-    mocker.patch(
-        "autodoc.parser.steps.validation_step.ParallelExecutor.execute",
-        side_effect=_run_synchronously,
-    )
-
-
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"
 UI_URL: str = "https://art.example.com/ui/repos/tree/General/conan2/lib/package"

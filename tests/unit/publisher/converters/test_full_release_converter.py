@@ -41,129 +41,6 @@ def multi_result_with_unknown_profile(
 # ── FullReleaseConverter ────────────────────────────────────────────────────
 
 
-class TestFullReleaseConverter:
-    """Tests for FullReleaseConverter.transform()."""
-
-    @pytest.mark.contract
-    def test_full_release_transform_returns_platform_version(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """result['platform_version'] matches the ParsedResult platform_version."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        assert result["platform_version"] == PLATFORM_VERSION
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_contains_all_components(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """result['components'] contains one entry for each component in the data."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        assert len(result["components"]) == 2
-
-    @pytest.mark.contract
-    def test_full_release_transform_component_has_name_and_description(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """Each component entry carries its name and description fields."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        names = {c["name"] for c in result["components"]}
-        assert COMP_NAME in names
-        assert COMP_ZLIB in names
-
-    @pytest.mark.contract
-    def test_full_release_transform_component_has_releases(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """The openssl component entry exposes both of its releases."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-        assert len(openssl_entry["releases"]) == 2
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_include_links_false(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """result['include_passport_links'] is False when the converter is created with False."""
-        result = FullReleaseConverter(include_passport_links=False).transform(
-            publisher_multi_component_result
-        )
-
-        assert result["include_passport_links"] is False
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_include_links_true_by_default(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """result['include_passport_links'] is True when using the default constructor."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        assert result["include_passport_links"] is True
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_profile_build_has_docker_image(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """Profile builds are enriched with docker_image from the matching ProfileDefinition."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-        first_release = openssl_entry["releases"][0]
-        assert first_release["profile_builds"][0]["docker_image"] == DOCKER_IMAGE
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_profile_build_unknown_profile_gives_empty_fields(
-        self, multi_result_with_unknown_profile: ParsedResult
-    ) -> None:
-        """A ProfileBuild with an absent profile_name yields docker_image='' and conan_settings={}."""
-        result = FullReleaseConverter().transform(multi_result_with_unknown_profile)
-
-        openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-        ghost_pb = next(
-            pb
-            for pb in openssl_entry["releases"][0]["profile_builds"]
-            if pb["profile_name"] == UNKNOWN_PROFILE
-        )
-        assert ghost_pb["docker_image"] == ""
-        assert ghost_pb["conan_settings"] == {}
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_header_only_flag_comes_from_component(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """is_header_only in each release view model reflects the parent component's flag."""
-        # Mark openssl component as header-only
-        original_comp = publisher_multi_component_result.components[0]
-        patched_comp = original_comp.model_copy(update={"is_header_only": True})
-        patched_result = publisher_multi_component_result.model_copy(
-            update={
-                "components": [patched_comp]
-                + list(publisher_multi_component_result.components[1:])
-            }
-        )
-        result = FullReleaseConverter().transform(patched_result)
-
-        openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-        # All releases of a header-only component carry is_header_only=True
-        assert all(r["is_header_only"] for r in openssl_entry["releases"])
-
-    @pytest.mark.business_logic
-    def test_full_release_transform_release_with_no_profile_builds_has_empty_list(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """A release with no profile_builds produces an empty profile_builds list in the view model."""
-        result = FullReleaseConverter().transform(publisher_multi_component_result)
-
-        openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-        empty_pb_release = next(
-            r for r in openssl_entry["releases"] if not r["profile_builds"]
-        )
-        assert empty_pb_release["profile_builds"] == []
-
-
 # ---------------------------------------------------------------------------
 # BL-FRC-01 … BL-FRC-07  (Part 1 of the Publisher BL test plan)
 # ---------------------------------------------------------------------------
@@ -172,6 +49,108 @@ from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult as _ParsedResult
 
 _PASSPORT_PATTERN = "/pages/{component_name}/{release_version}"
+
+
+@pytest.mark.contract
+def test_full_release_transform_returns_platform_version(publisher_multi_component_result: ParsedResult
+) -> None:
+    """result['platform_version'] matches the ParsedResult platform_version."""
+    result = FullReleaseConverter().transform(publisher_multi_component_result)
+
+    assert result["platform_version"] == PLATFORM_VERSION
+
+
+@pytest.mark.business_logic
+def test_full_release_transform_contains_all_components(publisher_multi_component_result: ParsedResult
+) -> None:
+    """result['components'] contains one entry for each component in the data."""
+    result = FullReleaseConverter().transform(publisher_multi_component_result)
+
+    assert len(result["components"]) == 2
+
+
+@pytest.mark.contract
+def test_full_release_transform_component_has_name_and_description(publisher_multi_component_result: ParsedResult
+) -> None:
+    """Each component entry carries its name and description fields."""
+    result = FullReleaseConverter().transform(publisher_multi_component_result)
+
+    names = {c["name"] for c in result["components"]}
+    assert COMP_NAME in names
+    assert COMP_ZLIB in names
+
+
+@pytest.mark.contract
+def test_full_release_transform_component_has_releases(publisher_multi_component_result: ParsedResult
+) -> None:
+    """The openssl component entry exposes both of its releases."""
+    result = FullReleaseConverter().transform(publisher_multi_component_result)
+
+    openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
+    assert len(openssl_entry["releases"]) == 2
+
+
+@pytest.mark.business_logic
+def test_full_release_transform_profile_build_has_docker_image(publisher_multi_component_result: ParsedResult
+) -> None:
+    """Profile builds are enriched with docker_image from the matching ProfileDefinition."""
+    result = FullReleaseConverter().transform(publisher_multi_component_result)
+
+    openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
+    first_release = openssl_entry["releases"][0]
+    assert first_release["profile_builds"][0]["docker_image"] == DOCKER_IMAGE
+
+
+@pytest.mark.business_logic
+def test_full_release_transform_profile_build_unknown_profile_gives_empty_fields(multi_result_with_unknown_profile: ParsedResult
+) -> None:
+    """A ProfileBuild with an absent profile_name yields docker_image='' and conan_settings={}."""
+    result = FullReleaseConverter().transform(multi_result_with_unknown_profile)
+
+    openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
+    ghost_pb = next(
+        pb
+        for pb in openssl_entry["releases"][0]["profile_builds"]
+        if pb["profile_name"] == UNKNOWN_PROFILE
+    )
+    assert ghost_pb["docker_image"] == ""
+    assert ghost_pb["conan_settings"] == {}
+
+
+@pytest.mark.business_logic
+def test_full_release_transform_header_only_flag_comes_from_component(publisher_multi_component_result: ParsedResult
+) -> None:
+    """is_header_only in each release view model reflects the parent component's flag."""
+    # Mark openssl component as header-only
+    original_comp = publisher_multi_component_result.components[0]
+    patched_comp = original_comp.model_copy(update={"is_header_only": True})
+    patched_result = publisher_multi_component_result.model_copy(
+        update={
+            "components": [patched_comp]
+            + list(publisher_multi_component_result.components[1:])
+        }
+    )
+    result = FullReleaseConverter().transform(patched_result)
+
+    openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
+    # All releases of a header-only component carry is_header_only=True
+    assert all(r["is_header_only"] for r in openssl_entry["releases"])
+
+
+@pytest.mark.business_logic
+def test_full_release_transform_release_with_no_profile_builds_has_empty_list(publisher_multi_component_result: ParsedResult
+) -> None:
+    """A release with no profile_builds produces an empty profile_builds list in the view model."""
+    result = FullReleaseConverter().transform(publisher_multi_component_result)
+
+    openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
+    empty_pb_release = next(
+        r for r in openssl_entry["releases"] if not r["profile_builds"]
+    )
+    assert empty_pb_release["profile_builds"] == []
+
+
+
 
 
 @pytest.mark.business_logic

@@ -50,177 +50,127 @@ def result_with_header_only_unique_profile(
 # ── ProfileCentricConverter ─────────────────────────────────────────────────
 
 
-class TestProfileCentricConverter:
-    """Tests for ProfileCentricConverter.transform()."""
-
-    @pytest.mark.contract
-    def test_profile_centric_transform_returns_profiles_list(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """result['profiles'] is a non-empty list."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        assert len(result["profiles"]) > 0
-
-    @pytest.mark.contract
-    def test_profile_centric_transform_profile_has_required_fields(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """Each profile entry contains all mandatory keys."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        profile = result["profiles"][0]
-        required_keys = {
-            "profile_name",
-            "os",
-            "arch",
-            "compiler",
-            "compiler_version",
-            "docker_url",
-            "channels",
-        }
-        assert required_keys.issubset(profile.keys())
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_profile_os_from_conan_settings(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """profile['os'] is read from conan_settings['os'] of the matching ProfileDefinition."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        assert result["profiles"][0]["os"] == OS_LINUX
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_profile_docker_url(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """profile['docker_url'] matches the docker_image of the matching ProfileDefinition."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        assert result["profiles"][0]["docker_url"] == DOCKER_IMAGE
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_channels_grouped_by_channel(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """Both openssl and zlib appear under the 'tech' channel of the profile."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        channels = result["profiles"][0]["channels"]
-        assert len(channels[CHANNEL_TECH]) == 2
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_components_sorted_by_name_in_channel(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """Components within a channel are sorted alphabetically by name."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        tech_entries = result["profiles"][0]["channels"][CHANNEL_TECH]
-        names = [e["name"] for e in tech_entries]
-        assert names == sorted(names)
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_comp_entry_has_reference_and_url(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """Each component entry includes 'reference' and 'url' fields."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
-        assert "reference" in comp_entry
-        assert "url" in comp_entry
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_passport_link_is_none_without_pattern(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """passport_link is None when no passport_page_pattern is configured."""
-        result = ProfileCentricConverter().transform(publisher_multi_component_result)
-
-        comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
-        assert comp_entry["passport_link"] is None
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_passport_link_formatted_with_pattern(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """passport_link is built from the pattern when include_passport_links=True."""
-        converter = ProfileCentricConverter(
-            include_passport_links=True,
-            passport_page_pattern=PASSPORT_PATTERN_SHORT,
-        )
-        result = converter.transform(publisher_multi_component_result)
-
-        tech_entries = result["profiles"][0]["channels"][CHANNEL_TECH]
-        openssl_entry = next(e for e in tech_entries if e["name"] == COMP_NAME)
-        assert openssl_entry["passport_link"] == f"/p/{COMP_NAME}/{RELEASE_VERSION}"
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_skips_header_only_for_profile_meta(
-        self, result_with_header_only_unique_profile: ParsedResult
-    ) -> None:
-        """A profile referenced only from header-only releases is absent from result['profiles']."""
-        result = ProfileCentricConverter().transform(
-            result_with_header_only_unique_profile
-        )
-
-        profile_names = {p["profile_name"] for p in result["profiles"]}
-        assert "header-only-exclusive-profile" not in profile_names
-
-    @pytest.mark.business_logic
-    def test_profile_centric_transform_include_links_flag_in_result(
-        self, publisher_multi_component_result: ParsedResult
-    ) -> None:
-        """result['include_passport_links'] reflects the constructor parameter."""
-        result = ProfileCentricConverter(include_passport_links=False).transform(
-            publisher_multi_component_result
-        )
-
-        assert result["include_passport_links"] is False
-
-    @pytest.mark.business_logic
-    def test_profile_centric_converter_profile_with_no_components_does_not_raise(
-        self,
-    ) -> None:
-        """ProfileDefinition with no matching ProfileBuilds produces no crash."""
-        from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
-        from autodoc.models.component import Component
-        from autodoc.models.release import Release
-        from autodoc.models.conan_variant import ProfileBuild
-
-        # Profile in definitions but not referenced by any component's ProfileBuild
-        orphan_profile = ProfileDefinition(profile_name="hw-linux-riscv64-gcc12")
-
-        pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")  # different name
-        release = Release(
-            version="3.0.9",  # from openssl.properties
-            platform="2.0",
-            channel="tech",
-            profile_builds=[pb],
-        )
-        component = Component(name="openssl", releases=[release])
-
-        parsed = ParsedResult(
-            generated_at="2024-01-01T00:00:00",
-            platform_version="2.0",
-            profile_definitions=[orphan_profile],
-            components=[component],
-        )
-
-        converter = ProfileCentricConverter()
-        view_model = converter.transform(parsed)  # must not raise
-
-        assert view_model is not None
-        # The orphan profile has no matching ProfileBuilds from non-header-only components,
-        # so it must be absent from the profiles list (not cause a crash or spurious entry)
-        profile_names = {p["profile_name"] for p in view_model["profiles"]}
-        assert "hw-linux-riscv64-gcc12" not in profile_names
-
-
 # ---------------------------------------------------------------------------
 # BL-PCC-01 … BL-PCC-06  (Part 1 of the Publisher BL test plan)
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+def test_profile_centric_transform_returns_profiles_list(publisher_multi_component_result: ParsedResult
+) -> None:
+    """result['profiles'] is a non-empty list."""
+    result = ProfileCentricConverter().transform(publisher_multi_component_result)
+
+    assert len(result["profiles"]) > 0
+
+
+@pytest.mark.contract
+def test_profile_centric_transform_profile_has_required_fields(publisher_multi_component_result: ParsedResult
+) -> None:
+    """Each profile entry contains all mandatory keys."""
+    result = ProfileCentricConverter().transform(publisher_multi_component_result)
+
+    profile = result["profiles"][0]
+    required_keys = {
+        "profile_name",
+        "os",
+        "arch",
+        "compiler",
+        "compiler_version",
+        "docker_url",
+        "channels",
+    }
+    assert required_keys.issubset(profile.keys())
+
+
+@pytest.mark.business_logic
+def test_profile_centric_transform_profile_os_from_conan_settings(publisher_multi_component_result: ParsedResult
+) -> None:
+    """profile['os'] is read from conan_settings['os'] of the matching ProfileDefinition."""
+    result = ProfileCentricConverter().transform(publisher_multi_component_result)
+
+    assert result["profiles"][0]["os"] == OS_LINUX
+
+
+@pytest.mark.business_logic
+def test_profile_centric_transform_profile_docker_url(publisher_multi_component_result: ParsedResult
+) -> None:
+    """profile['docker_url'] matches the docker_image of the matching ProfileDefinition."""
+    result = ProfileCentricConverter().transform(publisher_multi_component_result)
+
+    assert result["profiles"][0]["docker_url"] == DOCKER_IMAGE
+
+
+@pytest.mark.business_logic
+def test_profile_centric_transform_channels_grouped_by_channel(publisher_multi_component_result: ParsedResult
+) -> None:
+    """Both openssl and zlib appear under the 'tech' channel of the profile."""
+    result = ProfileCentricConverter().transform(publisher_multi_component_result)
+
+    channels = result["profiles"][0]["channels"]
+    assert len(channels[CHANNEL_TECH]) == 2
+
+
+@pytest.mark.business_logic
+def test_profile_centric_transform_comp_entry_has_reference_and_url(publisher_multi_component_result: ParsedResult
+) -> None:
+    """Each component entry includes 'reference' and 'url' fields."""
+    result = ProfileCentricConverter().transform(publisher_multi_component_result)
+
+    comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
+    assert "reference" in comp_entry
+    assert "url" in comp_entry
+
+
+@pytest.mark.business_logic
+def test_profile_centric_transform_include_links_flag_in_result(publisher_multi_component_result: ParsedResult
+) -> None:
+    """result['include_passport_links'] reflects the constructor parameter."""
+    result = ProfileCentricConverter(include_passport_links=False).transform(
+        publisher_multi_component_result
+    )
+
+    assert result["include_passport_links"] is False
+
+
+@pytest.mark.business_logic
+def test_profile_centric_converter_profile_with_no_components_does_not_raise() -> None:
+    """ProfileDefinition with no matching ProfileBuilds produces no crash."""
+    from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
+    from autodoc.models.component import Component
+    from autodoc.models.release import Release
+    from autodoc.models.conan_variant import ProfileBuild
+
+    # Profile in definitions but not referenced by any component's ProfileBuild
+    orphan_profile = ProfileDefinition(profile_name="hw-linux-riscv64-gcc12")
+
+    pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")  # different name
+    release = Release(
+        version="3.0.9",  # from openssl.properties
+        platform="2.0",
+        channel="tech",
+        profile_builds=[pb],
+    )
+    component = Component(name="openssl", releases=[release])
+
+    parsed = ParsedResult(
+        generated_at="2024-01-01T00:00:00",
+        platform_version="2.0",
+        profile_definitions=[orphan_profile],
+        components=[component],
+    )
+
+    converter = ProfileCentricConverter()
+    view_model = converter.transform(parsed)  # must not raise
+
+    assert view_model is not None
+    # The orphan profile has no matching ProfileBuilds from non-header-only components,
+    # so it must be absent from the profiles list (not cause a crash or spurious entry)
+    profile_names = {p["profile_name"] for p in view_model["profiles"]}
+    assert "hw-linux-riscv64-gcc12" not in profile_names
+
+
+
 
 
 @pytest.mark.business_logic

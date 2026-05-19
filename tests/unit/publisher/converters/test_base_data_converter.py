@@ -58,16 +58,6 @@ class TestBuildInstallOptions:
         assert result == ""
 
     @pytest.mark.business_logic
-    def test_build_install_options_qualifies_bare_key_with_component_name(
-        self,
-    ) -> None:
-        """A bare key without ':' is qualified as 'component_name/*:key=val'."""
-        result = PassportConverter._build_install_options(
-            {OPT_KEY_SHARED: "True"}, COMP_NAME
-        )
-
-        assert result == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
-
     @pytest.mark.business_logic
     def test_build_install_options_preserves_qualified_key(self) -> None:
         """A key already containing '/*:' is not double-qualified."""

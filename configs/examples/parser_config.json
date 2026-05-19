@@ -1,0 +1,31 @@
+{
+  "_comment": "Справочный JSON-вариант. Рекомендуется использовать configs/examples/parser_config.yaml",
+
+  "platform_version": "2.2",
+  "platform_base_version": "2.0",
+
+  "platform_branch_name": "develop",
+  "platform_ref_type": "branch",
+
+  "username": "firstname.lastname@company.com",
+  "tfs_token": "YOUR_TFS_PERSONAL_ACCESS_TOKEN",
+  "artifactory_token": "YOUR_ARTIFACTORY_PERSONAL_ACCESS_TOKEN",
+
+  "tfs_collection_url": "https://tfs.company.com/tfs/DefaultCollection",
+  "manifests_remotes_path": "/remotes/manifests",
+  "conan_config_url": "https://conan.example.com/config",
+
+  "artifactory_components_conan2_url": "https://artifactory.company.com/artifactory/conan2-local",
+
+  "profiles_urls": [
+    "https://tfs.company.com/tfs/DefaultCollection/DEP_Components/_git/build_profiles?path=/profiles/linux.yaml&version=GBdevelop"
+  ],
+
+  "component_filter_mode": "exclude",
+  "component_names": [],
+
+  "tfs_request_timeout": 15,
+  "conan_command_timeout": 300,
+  "max_retries": 3,
+  "retry_backoff_factor": 2.0
+}

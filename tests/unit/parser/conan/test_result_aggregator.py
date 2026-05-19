@@ -121,10 +121,10 @@ def test_aggregator_skips_parser_on_failed_raw_result() -> None:
 
 @pytest.mark.business_logic
 def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
-    """Aggregator skips None raw results and emits a WARNING log entry.
+    """Агрегатор пропускает None-результаты и записывает WARNING в лог.
 
-    A None result indicates a crashed or cancelled parallel task.
-    Silent skipping without a warning would hide threading failures.
+    None-результат означает упавшую или отменённую параллельную задачу.
+    Молчаливый пропуск без предупреждения скрывал бы сбои потоков.
     """
     import logging
 
@@ -197,12 +197,11 @@ def test_aggregator_counts_totals_correctly() -> None:
 
 @pytest.mark.business_logic
 def test_aggregator_dependencies_flow_through_to_release_data() -> None:
-    """Dependencies returned by the parser are stored in release_data for the correct key.
+    """Зависимости, возвращённые парсером, сохраняются в release_data под правильным ключом.
 
-    Uses pre-built mock data — no real fixture JSON is parsed here.
-    Verifies the aggregator's own responsibility of routing parsed deps into
-    release_data, which was the only aggregator behaviour covered exclusively
-    by the deleted test_aggregator_sqlite3_dependencies_in_release_data.
+    Использует заранее подготовленные mock-данные — реальный JSON фикстуры не парсится.
+    Проверяет собственную ответственность агрегатора — маршрутизацию распарсенных
+    зависимостей в release_data.
     """
     task = _make_task(comp_name="mylib", version="2.0.0", channel="fast")
     enrich = ConanEnrichData(
@@ -242,7 +241,7 @@ NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 @pytest.mark.business_logic
 def test_aggregator_two_profiles_same_release() -> None:
-    """Two tasks for the same release (different profiles) → one release_data entry, two profile_data entries."""
+    """Две задачи для одного релиза (разные профили) → одна запись release_data, две записи profile_data."""
     pb1 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
     pb2 = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2")
     release = Release(
@@ -311,11 +310,11 @@ def test_aggregator_two_profiles_same_release() -> None:
 
 @pytest.mark.business_logic
 def test_aggregator_records_version_range_error_message() -> None:
-    """Aggregator records полный version-range-not-resolved error from a failed ConanRawResult.
+    """Агрегатор сохраняет полный текст ошибки version-range-not-resolved из неуспешного ConanRawResult.
 
-    Simulates what happens when the runner returns success=False for a stunnel-like
-    version range that could not be resolved. The error text must survive aggregation
-    and appear in result.errors under the expected nested key path.
+    Имитирует ситуацию, когда runner возвращает success=False для version range stunnel,
+    который не удалось разрешить. Текст ошибки должен сохраниться после агрегации
+    и появиться в result.errors по ожидаемому вложенному пути ключей.
     """
     error_msg = (
         "ERROR: Package 'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' not resolved: "

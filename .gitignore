@@ -42,9 +42,7 @@ htmlcov/
 # Configs with secrets — только примеры в репо
 configs/*
 
-!configs/confluence_config.json.example
-!configs/parser_config.json.example
-!configs/profile_settings_overrides.json.example
+!configs/examples
 
 # Logs
 *.log

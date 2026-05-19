@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Справочный JSON-вариант. Рекомендуется использовать configs/examples/profile_settings_overrides.yaml",
+    "Костыль для профилей, использующих Jinja-шаблоны с os.getenv()."
+  ],
+
+  "overrides": [
+    {
+      "profiles": [
+        "kos-kisg-x86_64-pc-clang.jinja",
+        "mobile-kos-kisg-x86_64-pc.jinja"
+      ],
+      "settings": {
+        "compiler.toolchain_config_id": "kos-kisg-3.1.0.130"
+      }
+    },
+    {
+      "profiles": [
+        "kos-x86_64-pc-clang.jinja",
+        "mobile-kos-x86_64-pc.jinja"
+      ],
+      "settings": {
+        "compiler.toolchain_config_id": "kos-x86_64-2.1.2.31"
+      }
+    },
+    {
+      "profiles": [
+        "mobile-kos-aarch64.jinja"
+      ],
+      "settings": {
+        "compiler.toolchain_config_id": "kos-aarch64-2.1.0.49",
+        "compiler.version": "12"
+      }
+    }
+  ]
+}

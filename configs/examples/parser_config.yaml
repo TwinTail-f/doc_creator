@@ -1,0 +1,37 @@
+# Пример конфигурации парсера. Скопируйте в configs/parser_config.yaml и заполните.
+
+platform_version: "2.2"
+platform_base_version: "2.0"
+
+platform_branch_name: "develop"
+# Поддерживаемые типы: branch, tag, commit
+platform_ref_type: "branch"
+
+username: "firstname.lastname@company.com"
+tfs_token: "YOUR_TFS_PERSONAL_ACCESS_TOKEN"
+artifactory_token: "YOUR_ARTIFACTORY_PERSONAL_ACCESS_TOKEN"
+
+tfs_collection_url: "https://tfs.company.com/tfs/DefaultCollection"
+manifests_remotes_path: "/remotes/manifests"
+conan_config_url: "https://conan.example.com/config"
+
+artifactory_components_conan2_url: "https://artifactory.company.com/artifactory/conan2-local"
+
+profiles_urls:
+  - "https://tfs.company.com/tfs/DefaultCollection/DEP_Components/_git/build_profiles?path=/profiles/linux.yaml&version=GBdevelop"
+
+# Поддерживаемые моды: exclude, include
+component_filter_mode: "exclude"
+component_names: []
+
+tfs_request_timeout: 15
+conan_command_timeout: 300
+max_retries: 3
+retry_backoff_factor: 2.0
+
+# Необязательно. Путь к файлу с переопределениями настроек (-s) для профилей Conan.
+# Используется как костыль для Jinja-профилей, читающих env-переменные
+# (например KOS_SDK_VER → compiler.toolchain_config_id).
+# Пример файла: configs/examples/profile_settings_overrides.yaml
+# Если поле не указано или файл не найден — костыль отключён.
+# profile_settings_overrides_file: "configs/profile_settings_overrides.yaml"

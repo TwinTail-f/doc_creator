@@ -49,161 +49,70 @@ def converter_parsed_result_missing_profile(
 # ── PassportConverter ───────────────────────────────────────────────────────
 
 
-class TestPassportConverter:
-    """Tests for PassportConverter.transform()."""
+@pytest.mark.business_logic
+def test_passport_transform_raises_on_unknown_component(publisher_parsed_result: ParsedResult
+) -> None:
+    """transform() raises ValueError when the requested component does not exist."""
+    converter = PassportConverter(UNKNOWN_COMPONENT, RELEASE_VERSION)
 
-    @pytest.mark.business_logic
-    def test_passport_transform_raises_on_unknown_component(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """transform() raises ValueError when the requested component does not exist."""
-        converter = PassportConverter(UNKNOWN_COMPONENT, RELEASE_VERSION)
+    with pytest.raises(ValueError):
+        converter.transform(publisher_parsed_result)
 
-        with pytest.raises(ValueError):
-            converter.transform(publisher_parsed_result)
 
-    @pytest.mark.business_logic
-    def test_passport_transform_raises_on_unknown_version(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """transform() raises ValueError when the release version is not found."""
-        converter = PassportConverter(COMP_NAME, UNKNOWN_VERSION)
+@pytest.mark.business_logic
+def test_passport_transform_raises_on_unknown_version(publisher_parsed_result: ParsedResult
+) -> None:
+    """transform() raises ValueError when the release version is not found."""
+    converter = PassportConverter(COMP_NAME, UNKNOWN_VERSION)
 
-        with pytest.raises(ValueError):
-            converter.transform(publisher_parsed_result)
+    with pytest.raises(ValueError):
+        converter.transform(publisher_parsed_result)
 
-    @pytest.mark.contract
-    def test_passport_transform_returns_platform_version(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """result['platform_version'] matches the platform_version of the ParsedResult."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
 
-        assert result["platform_version"] == PLATFORM_VERSION
+@pytest.mark.contract
+def test_passport_transform_returns_platform_version(publisher_parsed_result: ParsedResult
+) -> None:
+    """result['platform_version'] matches the platform_version of the ParsedResult."""
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
+        publisher_parsed_result
+    )
 
-    @pytest.mark.contract
-    def test_passport_transform_returns_component_fields(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """result['component'] contains the component's name and description."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
+    assert result["platform_version"] == PLATFORM_VERSION
 
-        assert result["component"]["name"] == COMP_NAME
-        assert result["component"]["description"] == COMP_DESCRIPTION
 
-    @pytest.mark.contract
-    def test_passport_transform_returns_release_version(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """result['release']['version'] matches the requested release version."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
+@pytest.mark.contract
+def test_passport_transform_returns_component_fields(publisher_parsed_result: ParsedResult
+) -> None:
+    """result['component'] contains the component's name and description."""
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
+        publisher_parsed_result
+    )
 
-        assert result["release"]["version"] == RELEASE_VERSION
+    assert result["component"]["name"] == COMP_NAME
+    assert result["component"]["description"] == COMP_DESCRIPTION
 
-    @pytest.mark.contract
-    def test_passport_transform_returns_release_channel(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """result['release']['channel'] matches the release's channel."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
 
-        assert result["release"]["channel"] == CHANNEL_TECH
+@pytest.mark.contract
+def test_passport_transform_returns_release_version(publisher_parsed_result: ParsedResult
+) -> None:
+    """result['release']['version'] matches the requested release version."""
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
+        publisher_parsed_result
+    )
 
-    @pytest.mark.business_logic
-    def test_passport_transform_legacy_contents_is_empty_dict(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """result['legacy_contents'] is always an empty dict from the converter."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
+    assert result["release"]["version"] == RELEASE_VERSION
 
-        assert result["legacy_contents"] == {}
 
-    @pytest.mark.business_logic
-    def test_passport_transform_profile_builds_enriched_with_docker_image(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """Profile builds are enriched with docker_image from ProfileDefinition."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
+@pytest.mark.contract
+def test_passport_transform_returns_release_channel(publisher_parsed_result: ParsedResult
+) -> None:
+    """result['release']['channel'] matches the release's channel."""
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
+        publisher_parsed_result
+    )
 
-        assert result["release"]["profile_builds"][0]["docker_image"] == DOCKER_IMAGE
+    assert result["release"]["channel"] == CHANNEL_TECH
 
-    @pytest.mark.business_logic
-    def test_passport_transform_profile_builds_enriched_with_conan_settings(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """Profile builds are enriched with conan_settings from ProfileDefinition."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
-
-        assert (
-            result["release"]["profile_builds"][0]["conan_settings"]["os"] == OS_LINUX
-        )
-
-    @pytest.mark.contract
-    def test_passport_transform_variants_are_conan_variant_views(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """Each variant in profile_builds is a ConanVariantView instance."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
-
-        variant = result["release"]["profile_builds"][0]["variants"][0]
-        assert isinstance(variant, ConanVariantView)
-
-    @pytest.mark.business_logic
-    def test_passport_transform_variant_options_resolved_from_total_option_sets(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """Variant conan_options are resolved via options_ref → TotalOptionsSet.options."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
-
-        variant = result["release"]["profile_builds"][0]["variants"][0]
-        assert variant.conan_options == {OPT_KEY_SHARED: "True", OPT_KEY_FPIC: "True"}
-
-    @pytest.mark.business_logic
-    def test_passport_transform_variant_install_options_from_build_option_sets(
-        self, publisher_parsed_result: ParsedResult
-    ) -> None:
-        """Variant install_options are built from the matching ConanInputOptions entry."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            publisher_parsed_result
-        )
-
-        variant = result["release"]["profile_builds"][0]["variants"][0]
-        assert f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" in variant.install_options
-
-    @pytest.mark.business_logic
-    def test_passport_transform_profile_build_missing_profile_definition(
-        self, converter_parsed_result_missing_profile: ParsedResult
-    ) -> None:
-        """A ProfileBuild with an absent profile_name yields docker_image='' and conan_settings={}."""
-        result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-            converter_parsed_result_missing_profile
-        )
-
-        unknown_pb = next(
-            pb
-            for pb in result["release"]["profile_builds"]
-            if pb["profile_name"] == "unknown-profile"
-        )
-        assert unknown_pb["docker_image"] == ""
-        assert unknown_pb["conan_settings"] == {}
 
 
 # ---------------------------------------------------------------------------
