@@ -6,7 +6,8 @@ env-переменные (например ``KOS_SDK_VER`` → ``compiler.toolch
 Вместо задания env-переменных пользователь описывает нужные ``-s`` настройки
 в файле ``profile_settings_overrides.json``.
 
-Пример конфига — ``configs/profile_settings_overrides.json.example``.
+Пример конфига — ``configs/examples/profile_settings_overrides.yaml``
+(JSON-вариант: ``configs/examples/profile_settings_overrides.json``).
 """
 
 import json

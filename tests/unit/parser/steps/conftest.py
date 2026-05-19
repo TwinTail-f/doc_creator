@@ -1,4 +1,4 @@
-"""Shared fixtures for parser step unit tests."""
+"""Общие фикстуры для парсера step unit tests."""
 
 import pytest
 

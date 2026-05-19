@@ -1,7 +1,7 @@
-"""Unit tests for autodoc.parser.parsers.options_parser.OptionsParser.
+"""Юнит-тесты для autodoc.parser.parsers.options_parser.OptionsParser.
 
-Covers: select_ci_prefix, parse_file (real JSON files), pick_options.
-Real JSON option files are loaded from the resources/options/ fixture directory.
+Охватывает: select_ci_prefix, parse_file (реальные JSON файлы), pick_options.
+Реальные JSON файлы опций загружаются из директории фиксчур resources/options/.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import pytest
 from autodoc.parser.parsers.options_parser import OptionsParser
 
 # ---------------------------------------------------------------------------
-# Module-level constants
+# Константы уровня модуля
 # ---------------------------------------------------------------------------
 
 CI_PREFIX_V2: str = "/ci-2.0/"
@@ -25,13 +25,13 @@ PATH_OTHER: str = "/repo/other/options.json"
 
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Фикстуры
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture
 def options_dir(resources_dir: Path) -> Path:
-    """Path to resources/options/ directory containing real JSON option files."""
+    """Путь к директории resources/options/ содержащей реальные JSON файлы опций."""
     return resources_dir / "options"
 
 
@@ -42,7 +42,7 @@ def options_dir(resources_dir: Path) -> Path:
 
 @pytest.mark.business_logic
 def test_select_ci_prefix_picks_ci_20_over_16() -> None:
-    """select_ci_prefix returns '/ci-2.0/' when both v2 and v1.6 paths are present."""
+    """select_ci_prefix возвращает '/ci-2.0/' когда присутствуют обе пути v2 и v1.6."""
     paths = [
         "/conan/ci-2.0/options.json",
         "/conan/ci-1.6/options.json",

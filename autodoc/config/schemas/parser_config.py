@@ -86,7 +86,8 @@ class ParserConfigSchema(BaseModel):
         default=None,
         description=(
             "Путь к файлу переопределений настроек Conan-профилей "
-            "(``profile_settings_overrides.json``). "
+            "(``profile_settings_overrides.yaml`` или ``profile_settings_overrides.json``). "
+            "Пример файла: ``configs/examples/profile_settings_overrides.yaml``. "
             "Используется как костыль для Jinja-профилей, читающих env-переменные "
             "(например ``KOS_SDK_VER`` → ``compiler.toolchain_config_id``). "
             "Если не указан или файл не найден — переопределения не применяются."

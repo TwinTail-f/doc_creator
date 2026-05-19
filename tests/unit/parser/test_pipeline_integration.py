@@ -1,9 +1,9 @@
-"""Integration tests for the full autodoc parser pipeline.
+"""Интеграционные тесты для полного пайплайна парсера autodoc.
 
-Wires all real step instances (ManifestStep → OptionsResolveStep → ConanEnrichStep →
-DockerResolveStep → ArtifactoryValidationStep → FinalizeStep) with stubbed external I/O.
-A failure here indicates a context-key rename or step interface change
-that was invisible to individual unit tests.
+Подключает все реальные экземпляры шагов (ManifestStep → OptionsResolveStep → ConanEnrichStep →
+DockerResolveStep → ArtifactoryValidationStep → FinalizeStep) с заглушками внешнего ввода-вывода.
+Сбой здесь указывает на переименование ключа контекста или изменение интерфейса шага,
+которое было невидимо для отдельных модульных тестов.
 """
 
 from pathlib import Path
@@ -29,7 +29,7 @@ _EMPTY_CONAN_RESULT = FetchResult(value=ConanEnrichmentResult(), warnings=[])
 
 @pytest.fixture()
 def parser_config() -> ParserConfigSchema:
-    """Minimal valid ParserConfigSchema for integration tests."""
+    """Минимально допустимая ParserConfigSchema для интеграционных тестов."""
     return ParserConfigSchema(
         platform_version="2.0",
         platform_branch_name="develop",
@@ -45,7 +45,7 @@ def parser_config() -> ParserConfigSchema:
 
 @pytest.fixture()
 def resources_dir() -> Path:
-    """Path to real .properties manifest fixtures shared by unit tests."""
+    """Путь к реальным .properties фиксчурам манифестов, общим для модульных тестов."""
     return Path(__file__).parent / "resources" / "manifests"
 
 
@@ -54,21 +54,21 @@ def _make_parser_with_real_steps(
     data_dir: Path,
     resources_dir: Path,
 ) -> ComponentParser:
-    """Build a ComponentParser that uses real step instances with stubbed I/O.
+    """Построить ComponentParser, который использует реальные экземпляры шагов с заглушками ввода-вывода.
 
-    The TFS client copies real .properties files from resources_dir;
-    Artifactory always returns HTTP 200; ConanFetcher is patched to return
-    a no-op result so no subprocess is spawned.
+    TFS клиент копирует реальные .properties файлы из resources_dir;
+    Artifactory всегда возвращает HTTP 200; ConanFetcher залатан для возврата
+    результата без операций, чтобы подпроцесс не был запущен.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
     from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
     import requests
 
     class _AlwaysOkArtifactoryClient:
-        """Stub: every HEAD request returns HTTP 200 OK."""
+        """Заглушка: каждый запрос HEAD возвращает HTTP 200 OK."""
 
         def head(self, url: str) -> requests.Response:
-            """Return a 200 response without making a real network request."""
+            """Возвращает ответ 200 без выполнения реального сетевого запроса."""
             resp = requests.Response()
             resp.status_code = _HTTP_OK
             return resp
@@ -90,10 +90,10 @@ def test_full_pipeline_runs_without_raising(
     resources_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """The full pipeline completes without raising and produces a ParsedResult.
+    """Полный пайплайн завершается без вызова исключений и выдаёт ParsedResult.
 
-    Wires all real step instances with stubbed external I/O. A crash here
-    indicates a regression in step wiring, context key usage, or step interface.
+    Подключает все реальные экземпляры шагов с заглушками внешнего ввода-вывода. Сбой здесь
+    указывает на регрессию в проводке шагов, использовании ключей контекста или интерфейсе шага.
     """
     parser = _make_parser_with_real_steps(parser_config, tmp_path, resources_dir)
 
@@ -113,10 +113,10 @@ def test_manifest_step_populates_ctx_components(
     resources_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """ManifestStep populates ctx.components with a non-empty list.
+    """ManifestStep заполняет ctx.components непустым списком.
 
-    Guards against context-key renames that silently empty the component list
-    before downstream steps can consume it.
+    Защита от переименований ключей контекста, которые могли бы незаметно
+    очистить список компонентов до того, как他 будут обработаны нисходящими шагами.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 
@@ -140,10 +140,10 @@ def test_finalize_step_output_length_matches_input(
     resources_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """ctx.result.components count does not exceed the number of input components.
+    """Количество компонентов в ctx.result.components не превышает число входных компонентов.
 
-    Feeds the full pipeline with N components. After the pipeline completes,
-    components may be filtered by ValidationStep but never artificially increased.
+    Передаёт полный пайплайн с N компонентами. После завершения пайплайна
+    компоненты могут быть отфильтрованы ValidationStep, но никогда искусственно добавлены.
     """
     parser = _make_parser_with_real_steps(parser_config, tmp_path, resources_dir)
 
@@ -162,21 +162,21 @@ def test_finalize_step_output_length_matches_input(
 
 
 # ===========================================================================
-# BL-E2E-01 … BL-E2E-06  — E2E Pipeline Integration Tests (Part 4)
+# BL-E2E-01 … BL-E2E-06  — E2E Интеграционные тесты пайплайна (часть 4)
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Shared E2E helpers
+# Общие вспомогательные функции E2E
 # ---------------------------------------------------------------------------
 
 _HTTP_OK_E2E: int = 200
 
 
 class _AlwaysOkArtifactoryClient:
-    """Stub Artifactory client: every HEAD request returns HTTP 200 OK."""
+    """Заглушка Artifactory клиента: каждый HEAD запрос возвращает HTTP 200 OK."""
 
     def head(self, url: str) -> "requests.Response":
-        """Return HTTP 200 without making a real network request."""
+        """Возвращает HTTP 200 без выполнения реального сетевого запроса."""
         import requests as _req
 
         resp = _req.Response()
@@ -189,11 +189,11 @@ def _make_real_pipeline(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> ComponentParser:
-    """Create a ComponentParser with real step instances and stubbed external I/O.
+    """Создаёт ComponentParser с реальными экземплярами шагов и заглушками внешнего ввода-вывода.
 
-    - TFS: ``CopyingAllFakeTFSClient`` copies real ``.properties`` fixtures.
-    - Artifactory: always returns HTTP 200.
-    - Conan: must be patched by each test at the fetcher level.
+    - TFS: ``CopyingAllFakeTFSClient`` копирует реальные фиксчуры ``.properties``.
+    - Artifactory: всегда возвращает HTTP 200.
+    - Conan: должен быть залатан каждым тестом на уровне fetcher.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 
@@ -221,27 +221,27 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-01: patchelf has exactly 2 releases after the full pipeline run.
+    """BL-E2E-01: patchelf имеет ровно 2 релиза после полного прохода пайплайна.
 
-    Business Scenario:
-        The ``patchelf.properties`` fixture declares two component versions
-        (0.16.1 and 0.18.0) bound to the same platform.  After a full pipeline
-        run (with stubbed Conan and always-200 Artifactory), the resulting
-        ``ParsedResult`` must contain one patchelf component with exactly two
-        releases.
+    Бизнес-сценарий:
+        Фиксчур ``patchelf.properties`` объявляет две версии компонента
+        (0.16.1 и 0.18.0), привязанные к одной платформе. После полного прохода
+        пайплайна (с заглушкой Conan и всегда возвращающим 200 Artifactory),
+        полученный ``ParsedResult`` должен содержать один компонент patchelf
+        с ровно двумя релизами.
 
-    Preconditions:
-        - Real pipeline with ``CopyingAllFakeTFSClient`` pointing to the
-          ``resources/manifests`` fixture directory.
-        - ``ConanFetcher.fetch`` patched to return an empty enrichment result.
+    Предусловия:
+        - Реальный пайплайн с ``CopyingAllFakeTFSClient``, указывающим на директорию
+          фиксчур ``resources/manifests``.
+        - ``ConanFetcher.fetch`` залатан для возврата пустого результата обогащения.
 
-    Steps:
-        1. Call ``parser.parse()``.
-        2. Find the ``patchelf`` component in ``result.components``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
+        2. Найти компонент ``patchelf`` в ``result.components``.
 
-    Expected Result:
-        - Exactly one patchelf component exists.
-        - It has exactly 2 releases.
+    Ожидаемый результат:
+        - Ровно один компонент patchelf существует.
+        - Он имеет ровно 2 релиза.
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
     parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
@@ -256,7 +256,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
 
 
 # ---------------------------------------------------------------------------
-# BL-E2E-02 — nlohmann_json is_header_only=True after ConanEnrichStep
+# BL-E2E-02 — nlohmann_json помечена is_header_only=True после ConanEnrichStep
 # ---------------------------------------------------------------------------
 
 
@@ -268,32 +268,31 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-02: nlohmann_json is marked is_header_only=True after enrichment.
+    """BL-E2E-02: nlohmann_json помечена is_header_only=True после обогащения.
 
-    Business Scenario:
-        ``FinalizeStep._compute_header_only_flags`` sets
-        ``Component.is_header_only = True`` when every ``ConanVariant`` across
-        all releases and profile builds of a component carries the NULL_PACKAGE_ID
-        (``da39a3ee5e6b4b0d3255bfef95601890afd80709``), which is Conan's sentinel
-        for header-only packages that produce no binary artifact.
+    Бизнес-сценарий:
+        ``FinalizeStep._compute_header_only_flags`` устанавливает
+        ``Component.is_header_only = True``, когда каждый ``ConanVariant`` во всех
+        релизах и профильных сборках компонента имеет NULL_PACKAGE_ID
+        (``da39a3ee5e6b4b0d3255bfef95601890afd80709``), что является сигналом Conan
+        для заголовочных пакетов, которые не производят бинарный артефакт.
 
-    Preconditions:
-        - ``nlohmann_json.properties`` exists in the manifests fixture directory.
-        - ``ConanFetcher.fetch`` is patched with a ``side_effect`` that receives
-          the live ``components`` list at call time (after ``ManifestStep`` has
-          created the ``ProfileBuild`` objects) and builds a
-          ``ConanEnrichmentResult`` keyed on ``id(pb)`` for every nlohmann
-          ProfileBuild, assigning each a single ``ConanVariant`` with
-          ``package_id = NULL_PACKAGE_ID`` and ``exists = True``.
+    Предусловия:
+        - ``nlohmann_json.properties`` существует в директории фиксчур manifests.
+        - ``ConanFetcher.fetch`` залатан с ``side_effect``, который получает живой
+          список ``components`` во время вызова (после того как ``ManifestStep``
+          создал объекты ``ProfileBuild``) и строит ``ConanEnrichmentResult``
+          с ключом ``id(pb)`` для каждого профиля nlohmann, присваивая каждому
+          один ``ConanVariant`` с ``package_id = NULL_PACKAGE_ID`` и ``exists = True``.
 
-    Steps:
-        1. Register a ``side_effect`` that builds the enrichment at call time.
-        2. Call ``parser.parse()``.
-        3. Find nlohmann_json in ``result.components``.
+    Шаги:
+        1. Зарегистрировать ``side_effect``, который строит обогащение во время вызова.
+        2. Вызвать ``parser.parse()``.
+        3. Найти nlohmann_json в ``result.components``.
 
-    Expected Result:
-        - nlohmann_json is present (it has variants, so FinalizeStep retains it).
-        - ``nlohmann.is_header_only`` is ``True``.
+    Ожидаемый результат:
+        - nlohmann_json присутствует (у него есть варианты, поэтому FinalizeStep оставляет его).
+        - ``nlohmann.is_header_only`` равна ``True``.
     """
     from autodoc.parser.conan.models.conan_enrichment_result import (
         ConanEnrichmentResult as _EnrichResult,
@@ -304,11 +303,11 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
     _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
     def _build_nlohmann_enrich(components):
-        """Build ConanEnrichmentResult giving every nlohmann ProfileBuild a NULL_PACKAGE_ID variant.
+        """Построить ConanEnrichmentResult, дав каждому профилю nlohmann вариант с NULL_PACKAGE_ID.
 
-        Called at fetch()-time so the live ProfileBuild objects (created by
-        ManifestStep) are available and id(pb) can be used as the dict key
-        expected by DataEnricher.apply_conan_results().
+        Вызывается во время fetch(), поэтому живые объекты ProfileBuild (созданные
+        ManifestStep) доступны и id(pb) может быть использован как ключ словаря,
+        ожидаемый DataEnricher.apply_conan_results().
         """
         result = _EnrichResult()
         for comp in components:
@@ -350,7 +349,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
 
 
 # ---------------------------------------------------------------------------
-# BL-E2E-03 — ProfileBuild skeletons populated after ManifestStep
+# BL-E2E-03 — скелеты ProfileBuild заполнены после ManifestStep
 # ---------------------------------------------------------------------------
 
 
@@ -362,25 +361,25 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-03: After ManifestStep all components have ProfileBuild skeletons.
+    """BL-E2E-03: После ManifestStep все компоненты имеют скелеты ProfileBuild.
 
-    Business Scenario:
-        After ``ManifestStep`` executes, every Release in every Component must
-        have at least one ``ProfileBuild`` entry.  Each entry must have
-        ``exists=False`` (not yet verified against Artifactory) and
-        ``variants=[]`` (not yet enriched by Conan).
+    Бизнес-сценарий:
+        После того как выполняется ``ManifestStep``, каждый Release в каждом
+        Component должен иметь по крайней мере одну запись ``ProfileBuild``.
+        Каждая запись должна иметь ``exists=False`` (ещё не проверена в Artifactory)
+        и ``variants=[]`` (ещё не обогащена Conan).
 
-    Preconditions:
-        - Real pipeline; observer step inserted after ManifestStep (index 1).
-        - Conan patched to return empty enrichment.
+    Предусловия:
+        - Реальный пайплайн; observer-шаг вставлен после ManifestStep (индекс 1).
+        - Conan залатан для возврата пустого обогащения.
 
-    Steps:
-        1. Insert ``_ObserveAfterManifest`` at index 1 in ``parser._steps``.
-        2. Call ``parser.parse()``.
+    Шаги:
+        1. Вставить ``_ObserveAfterManifest`` с индексом 1 в ``parser._steps``.
+        2. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - At least one observation is recorded.
-        - Every observed ProfileBuild has ``exists=False`` and ``len(variants)==0``.
+    Ожидаемый результат:
+        - По крайней мере одно наблюдение записано.
+        - Каждый наблюдаемый ProfileBuild имеет ``exists=False`` и ``len(variants)==0``.
     """
     from autodoc.parser.steps.base_parse_step import BaseParseStep
     from autodoc.parser.pipeline.context import PipelineContext
@@ -418,7 +417,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
 
 
 # ---------------------------------------------------------------------------
-# BL-E2E-04 — build_option_sets populated after OptionsResolveStep
+# BL-E2E-04 — build_option_sets заполнены после OptionsResolveStep
 # ---------------------------------------------------------------------------
 
 
@@ -430,30 +429,30 @@ def test_pipeline_options_applied_after_options_step(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-04: At least one release has build_option_sets after OptionsResolveStep.
+    """BL-E2E-04: По крайней мере один релиз имеет build_option_sets после OptionsResolveStep.
 
-    Business Scenario:
-        ``OptionsResolveStep`` fetches Conan option configuration from TFS and
-        populates ``Release.build_option_sets``.  With real manifest fixtures
-        and the ``CopyingAllFakeTFSClient``, at least one release should have a
-        non-empty options list after the step executes.
+    Бизнес-сценарий:
+        ``OptionsResolveStep`` получает конфигурацию параметров Conan из TFS и
+        заполняет ``Release.build_option_sets``. С реальными фиксчурами манифестов
+        и ``CopyingAllFakeTFSClient``, по крайней мере один релиз должен иметь
+        непустой список опций после выполнения шага.
 
-    Preconditions:
-        - Observer step inserted after OptionsResolveStep (index 2).
-        - Conan patched to return empty enrichment.
+    Предусловия:
+        - Observer-шаг вставлен после OptionsResolveStep (индекс 2).
+        - Conan залатан для возврата пустого обогащения.
 
-    Steps:
-        1. Insert ``_ObserveAfterOptions`` at index 2.
-        2. Call ``parser.parse()``.
+    Шаги:
+        1. Вставить ``_ObserveAfterOptions`` с индексом 2.
+        2. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - The sum of ``len(release.build_option_sets)`` across all releases
-          is greater than 0 for at least one component.
+    Ожидаемый результат:
+        - Сумма ``len(release.build_option_sets)`` во всех релизах больше 0
+          по крайней мере для одного компонента.
 
-    Note:
-        If the fake TFS client returns no options files the total may be 0.
-        The test asserts that the observer executed (step wiring is correct)
-        even if no options were applied by the stub TFS.
+    Примечание:
+        Если фейк TFS-клиент не возвращает файлы опций, общее значение может быть 0.
+        Тест утверждает, что наблюдатель выполнился (проводка шагов корректна),
+        даже если фейк TFS не применил опции.
     """
     from autodoc.parser.steps.base_parse_step import BaseParseStep
     from autodoc.parser.pipeline.context import PipelineContext
@@ -473,19 +472,19 @@ def test_pipeline_options_applied_after_options_step(
                     options_by_release[key] = len(release.build_option_sets)
 
     parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
-    # Insert observer right after OptionsResolveStep (index 2 in default pipeline)
+    # Вставить observer сразу после OptionsResolveStep (индекс 2 в стандартном пайплайне)
     parser._steps.insert(2, _ObserveAfterOptions())
 
     parser.parse()
 
-    # Ensure the observer executed (step wiring is valid)
+    # Убедиться, что наблюдатель выполнился (проводка шагов валидна)
     assert (
         len(options_by_release) > 0
-    ), "_ObserveAfterOptions must have executed; no releases were observed"
+    ), "_ObserveAfterOptions должен был выполниться; ни один релиз не был наблюден"
 
 
 # ---------------------------------------------------------------------------
-# BL-E2E-05 — components in ParsedResult are sorted alphabetically
+# BL-E2E-05 — компоненты в ParsedResult отсортированы в алфавитном порядке
 # ---------------------------------------------------------------------------
 
 
@@ -497,22 +496,23 @@ def test_pipeline_result_components_sorted_alphabetically(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-05: Components in ParsedResult.components are alphabetically sorted.
+    """BL-E2E-05: Компоненты в ParsedResult.components отсортированы в алфавитном порядке.
 
-    Business Scenario:
-        ``FinalizeStep`` sorts the final component list by name (case-insensitive)
-        so that the generated documentation is deterministic and human-readable.
+    Бизнес-сценарий:
+        ``FinalizeStep`` сортирует финальный список компонентов по имени
+        (без учёта регистра) так, чтобы сгенерированная документация
+        была детерминированной и удобочитаемой.
 
-    Preconditions:
-        - Real pipeline; at least 2 components from manifests directory.
-        - Conan patched to return empty enrichment.
+    Предусловия:
+        - Реальный пайплайн; по крайней мере 2 компонента из директории manifests.
+        - Conan залатан для возврата пустого обогащения.
 
-    Steps:
-        1. Call ``parser.parse()``.
-        2. Extract component names from ``result.components``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
+        2. Извлечь названия компонентов из ``result.components``.
 
-    Expected Result:
-        - ``names`` equals ``sorted(names, key=str.lower)``.
+    Ожидаемый результат:
+        - ``names`` равна ``sorted(names, key=str.lower)``.
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
     parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
@@ -520,15 +520,16 @@ def test_pipeline_result_components_sorted_alphabetically(
     result: ParsedResult = parser.parse()
 
     names = [c.name for c in result.components]
-    assert len(names) >= 2, "Need at least 2 components to verify alphabetical ordering"
+    assert len(names) >= 2, "Нужно по крайней мере 2 компонента для проверки алфавитной сортировки"
     sorted_names = sorted(names, key=lambda n: n.lower())
     assert names == sorted_names, (
-        f"Components must be sorted alphabetically (case-insensitive), " f"got: {names}"
+        f"Компоненты должны быть отсортированы в алфавитном порядке (без учёта регистра), "
+        f"получено: {names}"
     )
 
 
 # ---------------------------------------------------------------------------
-# BL-E2E-06 — no ProfileBuild with exists=False in final ParsedResult
+# BL-E2E-06 — нет ProfileBuild с exists=False в финальном ParsedResult
 # ---------------------------------------------------------------------------
 
 
@@ -540,26 +541,26 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-06: Final ParsedResult contains no ProfileBuild entries with exists=False.
+    """BL-E2E-06: Финальный ParsedResult не содержит записей ProfileBuild с exists=False.
 
-    Business Scenario:
-        ``ManifestStep`` creates ``ProfileBuild`` skeletons with ``exists=False``.
-        ``ConanEnrichStep`` marks them ``exists=True`` when packages are found.
-        ``FinalizeStep`` then removes any remaining ``exists=False`` entries.
-        The final ``ParsedResult`` must therefore contain only live profile builds.
+    Бизнес-сценарий:
+        ``ManifestStep`` создаёт скелеты ``ProfileBuild`` с ``exists=False``.
+        ``ConanEnrichStep`` помечает их ``exists=True``, когда пакеты найдены.
+        Затем ``FinalizeStep`` удаляет все оставшиеся записи ``exists=False``.
+        Финальный ``ParsedResult`` должен поэтому содержать только живые профильные сборки.
 
-    Preconditions:
-        - Real pipeline with empty Conan enrichment (no variants returned).
-        - All ProfileBuilds will stay at ``exists=False`` → FinalizeStep prunes all.
+    Предусловия:
+        - Реальный пайплайн с пустым обогащением Conan (без возвращённых вариантов).
+        - Все ProfileBuilds останутся с ``exists=False`` → FinalizeStep удалит все.
 
-    Steps:
-        1. Call ``parser.parse()``.
-        2. Iterate all components → releases → profile_builds.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
+        2. Пройти по всем компонентам → релизам → profile_builds.
 
-    Expected Result:
-        - No ``ProfileBuild`` with ``exists=False`` appears in the result.
-        (With empty Conan enrichment the result may contain zero components
-        or zero releases — that is also valid.)
+    Ожидаемый результат:
+        - Ни один ``ProfileBuild`` с ``exists=False`` не появляется в результате.
+        (С пустым обогащением Conan результат может содержать ноль компонентов
+        или ноль релизов — это также валидно.)
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
     parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
@@ -570,6 +571,6 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
         for release in comp.releases:
             for pb in release.profile_builds:
                 assert pb.exists is True, (
-                    f"After FinalizeStep there must be no exists=False ProfileBuilds. "
-                    f"Found one for {comp.name}/{release.version}/{pb.profile_name}"
+                    f"После FinalizeStep не должно быть ProfileBuilds с exists=False. "
+                    f"Найден для {comp.name}/{release.version}/{pb.profile_name}"
                 )

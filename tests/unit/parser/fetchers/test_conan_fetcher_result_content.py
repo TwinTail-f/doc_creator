@@ -40,7 +40,7 @@ def _make_mock_ctx(
     conan_config_url: str = _CONAN_CONFIG_URL,
     overrides_file: str | None = None,
 ) -> MagicMock:
-    """Build a minimal PipelineContext mock with the given conan_config_url."""
+    """Построить минимальный PipelineContext mock with the given conan_config_url."""
     ctx: MagicMock = mocker.MagicMock()
     ctx.config.conan_command_timeout = _TIMEOUT_SEC
     ctx.config.platform_base_version = _PLATFORM_VERSION

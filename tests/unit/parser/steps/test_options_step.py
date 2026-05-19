@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/steps/options_step.py."""
+"""Юнит-тесты для autodoc/parser/steps/options_step.py."""
 
 from __future__ import annotations
 

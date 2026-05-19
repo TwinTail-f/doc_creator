@@ -80,13 +80,13 @@ def test_base_parse_step_requires_name_attribute() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T3.6 — Protocol compliance
+# T3.6 — Соответствие Protocol
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.contract
 def test_pipeline_context_satisfies_protocol(parser_pipeline_context) -> None:
-    """PipelineContext must satisfy PipelineContextProtocol at runtime."""
+    """PipelineContext должен удовлетворять PipelineContextProtocol во время выполнения."""
     from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
 
     assert isinstance(parser_pipeline_context, PipelineContextProtocol)

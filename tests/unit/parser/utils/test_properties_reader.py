@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/utils/properties_reader.py.
+"""Юнит-тесты для autodoc/parser/utils/properties_reader.py.
 
 Tests cover line continuation, separator detection, and edge cases
 that are invisible when testing through ManifestParser.

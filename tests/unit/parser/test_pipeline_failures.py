@@ -1,7 +1,7 @@
-"""Tests for error accumulation behaviour in the autodoc parser pipeline.
+"""Тесты для поведения накопления ошибок в пайплайне парсера autodoc.
 
-The pipeline must accumulate errors from non-critical step failures and
-surface them all together, rather than stopping at the first failure.
+Пайплайн должен накапливать ошибки от сбоев некритичных шагов и
+выводить их все вместе, а не останавливаться на первом сбое.
 """
 
 from pathlib import Path
@@ -14,19 +14,19 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 
-# Sentinel values written to ctx.intermediate to track step execution order.
+# Значения-дозоры, записываемые в ctx.intermediate для отслеживания порядка выполнения шагов.
 _SENTINEL_SECOND_STEP: str = "second_step_ran"
 _SENTINEL_AFTER_CRITICAL: str = "after_critical_ran"
 _SENTINEL_VALUE: str = "yes"
 
-# Error messages embedded in failing steps — used to assert both are reported.
+# Сообщения об ошибках, встроенные в отказывающие шаги — используются для утверждения, что оба сообщаются.
 _ERROR_MSG_FIRST: str = "first non-critical failure"
 _ERROR_MSG_SECOND: str = "second non-critical failure"
 
 
 @pytest.fixture()
 def parser_config() -> ParserConfigSchema:
-    """Minimal valid ParserConfigSchema for pipeline failure tests."""
+    """Минимально допустимая ParserConfigSchema для тестов сбоев пайплайна."""
     return ParserConfigSchema(
         platform_version="2.0",
         platform_branch_name="develop",
@@ -40,18 +40,18 @@ def parser_config() -> ParserConfigSchema:
 
 
 def _make_context(config: ParserConfigSchema, tmp_path: Path) -> PipelineContext:
-    """Construct a bare PipelineContext for use in failure tests."""
+    """Построить пустой PipelineContext для использования в тестах сбоев."""
     return PipelineContext(config=config, tmp_dir=tmp_path)
 
 
 class _FailingNonCriticalStep(BaseParseStep):
-    """Test double: a non-critical step that always raises DocGeneratorError."""
+    """Тестовый двойник: некритичный шаг, который всегда вызывает DocGeneratorError."""
 
     name = "_FailingNonCriticalStep"
     is_critical = False
 
     def __init__(self, error_message: str) -> None:
-        """Args: error_message — text embedded in the raised DocGeneratorError."""
+        """Args: error_message — текст, встроенный в вызываемый DocGeneratorError."""
         self._error_message = error_message
 
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
@@ -60,40 +60,40 @@ class _FailingNonCriticalStep(BaseParseStep):
 
 
 class _SentinelStep(BaseParseStep):
-    """Test double: a non-critical step that writes a sentinel to ctx.intermediate."""
+    """Тестовый двойник: некритичный шаг, который записывает дозор в ctx.intermediate."""
 
     name = "_SentinelStep"
     is_critical = False
 
     def __init__(self, key: str, value: str) -> None:
-        """Args: key/value written to ctx.intermediate on execute()."""
+        """Args: key/value записанные в ctx.intermediate при execute()."""
         self._key = key
         self._value = value
 
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Write sentinel key-value pair to ctx.intermediate."""
+        """Написать пару ключ-значение дозора в ctx.intermediate."""
         ctx.intermediate[self._key] = self._value
 
 
 class _FailingCriticalStep(BaseParseStep):
-    """Test double: a critical step that always raises DocGeneratorError."""
+    """Тестовый двойник: критичный шаг, который всегда вызывает DocGeneratorError."""
 
     name = "_FailingCriticalStep"
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Raise DocGeneratorError unconditionally."""
+        """Вызвать DocGeneratorError без условий."""
         raise DocGeneratorError("critical step failure")
 
 
 class _FinalizeOnlyStep(BaseParseStep):
-    """Test double: a critical step that sets ctx.result to a minimal ParsedResult."""
+    """Тестовый двойник: критичный шаг, который устанавливает ctx.result на минимальный ParsedResult."""
 
     name = "_FinalizeOnlyStep"
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Populate ctx.result so ComponentParser.parse() does not raise on missing result."""
+        """Заполнить ctx.result, чтобы ComponentParser.parse() не вызывал исключение на отсутствие результата."""
         from autodoc.models.parsed_result import ParsedResult
 
         ctx.result = ParsedResult(
@@ -107,11 +107,11 @@ def test_two_non_critical_failures_both_reported(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Two non-critical failing steps must both be logged; the pipeline must not stop.
+    """Два некритичных отказывающих шага должны быть залогированы; пайплайн не должен остановиться.
 
-    The ComponentParser logs (and does not re-raise) DocGeneratorError from
-    non-critical steps, so the pipeline must complete all steps.  The test
-    confirms completion by checking that a subsequent FinalizeOnlyStep still runs.
+    ComponentParser логирует (и не пробрасывает заново) DocGeneratorError из
+    некритичных шагов, поэтому пайплайн должен выполнить все шаги.  Тест
+    подтверждает завершение, проверяя, что последующий FinalizeOnlyStep всё ещё работает.
     """
     warning_messages: list[str] = []
 
@@ -139,12 +139,12 @@ def test_two_non_critical_failures_both_reported(
             steps=steps,
         )
         result = parser.parse()
-        # Pipeline completed: result is populated by FinalizeOnlyStep
+        # Пайплайн завершен: result заполнен FinalizeOnlyStep
         assert result is not None
     finally:
         logger.removeHandler(handler)
 
-    # Both error messages must have been logged
+    # Оба сообщения об ошибке должны быть залогированы
     all_messages: str = "\n".join(warning_messages)
     assert (
         _ERROR_MSG_FIRST in all_messages
@@ -159,10 +159,10 @@ def test_non_critical_failure_does_not_block_next_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """A non-critical step failure must not prevent the next step from running.
+    """Сбой некритичного шага не должен предотвратить запуск следующего шага.
 
-    The sentinel step after the failing step must execute and write its value,
-    proving that non-critical errors are accumulated rather than propagated.
+    Дозорный шаг после отказывающего шага должен выполниться и записать своё значение,
+    доказывая, что некритичные ошибки накапливаются, а не распространяются.
     """
     steps = [
         _FailingNonCriticalStep(_ERROR_MSG_FIRST),
@@ -175,14 +175,14 @@ def test_non_critical_failure_does_not_block_next_step(
         steps=steps,
     )
     result = parser.parse()
-    # FinalizeOnlyStep only sets ctx.result but does not expose ctx.intermediate.
-    # The easiest way to verify the sentinel step ran is to run a custom finalize
-    # that captures intermediate. We test this via a patched FinalizeOnlyStep.
-    # Instead, run a variant where the sentinel step IS the last step and also
-    # serves as finalize:
+    # FinalizeOnlyStep только устанавливает ctx.result, но не выражает ctx.intermediate.
+    # Самый простой способ убедиться, что дозорный шаг работал — это запустить пользовательскую финализацию
+    # которая захватывает промежуточные результаты. Мы тестируем это через залатанный FinalizeOnlyStep.
+    # Вместо этого запустите вариант, где дозорный шаг ЯВЛЯЕТСЯ последним шагом и также
+    # служит финализацией:
 
     class _SentinelAndFinalizeStep(_FinalizeOnlyStep):
-        """Sets sentinel AND ctx.result."""
+        """Устанавливает дозор И ctx.result."""
 
         name = "_SentinelAndFinalizeStep"
 
@@ -199,13 +199,13 @@ def test_non_critical_failure_does_not_block_next_step(
         data_dir=tmp_path / "run2",
         steps=steps2,
     )
-    # Capture the ctx after execution by inspecting parse() result.
-    # We can't directly inspect ctx, so we piggyback on a custom FinalizeStep.
-    # Instead, we track via a shared list (closure):
+    # Захватить ctx после выполнения путём проверки результата parse().
+    # Мы не можем прямо проверить ctx, поэтому мы полагаемся на пользовательский FinalizeStep.
+    # Вместо этого отслеживаем через общий список (closure):
     executed_steps: list[str] = []
 
     class _TrackingFail(_FailingNonCriticalStep):
-        """Records that this step was attempted before failing."""
+        """Записывает, что этот шаг был попытан перед отказом."""
 
         name = "_TrackingFail"
 
@@ -214,7 +214,7 @@ def test_non_critical_failure_does_not_block_next_step(
             super().execute(ctx)
 
     class _TrackingFinalize(_FinalizeOnlyStep):
-        """Records that this step executed."""
+        """Записывает, что этот шаг был выполнен."""
 
         name = "_TrackingFinalize"
 
@@ -233,10 +233,10 @@ def test_non_critical_failure_does_not_block_next_step(
     )
     parser3.parse()
 
-    assert "fail" in executed_steps, "Failing step was never attempted"
+    assert "fail" in executed_steps, "Отказавший шаг никогда не был попытан"
     assert (
         "finalize" in executed_steps
-    ), "Step after failing non-critical step was not executed"
+    ), "Шаг после некритичного отказа не был выполнен"
 
 
 @pytest.mark.business_logic
@@ -244,15 +244,15 @@ def test_critical_failure_stops_pipeline(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """A critical step failure must stop the pipeline immediately.
+    """Сбой критичного шага должен остановить пайплайн немедленно.
 
-    The sentinel step registered after a critical failing step must NOT execute.
-    The pipeline must raise ParsingError.
+    Дозорный шаг, зарегистрированный после отказывающего критичного шага, НЕ ДОЛЖЕН выполниться.
+    Пайплайн должен вызвать ParsingError.
     """
     executed_after: list[str] = []
 
     class _TrackingStep(BaseParseStep):
-        """Records execution and writes sentinel — must NOT run after critical failure."""
+        """Записывает выполнение и записывает дозор — НЕ ДОЛЖЕН работать после критичного сбоя."""
 
         name = "_TrackingStep"
         is_critical = False
@@ -274,30 +274,30 @@ def test_critical_failure_stops_pipeline(
 
     assert (
         len(executed_after) == 0
-    ), "Step after critical failure must not execute, but it ran"
+    ), "Шаг после критичного сбоя не должен выполниться, но он работал"
 
 
 # ===========================================================================
-# BL-PP-01 … BL-PP-10  — Pipeline Orchestration Rules (Part 4)
+# BL-PP-01 … BL-PP-10  — Правила оркестрации пайплайна (часть 4)
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Shared step helpers for BL-PP tests
+# Общие помощники шагов для BL-PP тестов
 # ---------------------------------------------------------------------------
 
 
 class _FakeManifestStep(BaseParseStep):
-    """Sets ctx.components with one minimal component for BL-PP tests.
+    """Устанавливает ctx.components с одним минимальным компонентом для BL-PP тестов.
 
-    Simulates the ManifestStep so that subsequent steps that expect
-    ctx.components to be populated can function without real TFS I/O.
+    Имитирует ManifestStep, чтобы последующие шаги, которые ожидают
+    ctx.components быть заполненным, могли функционировать без реального TFS ввода-вывода.
     """
 
     name = "fake_manifest_step"
     is_critical = True
 
     def execute(self, ctx: PipelineContext) -> None:
-        """Populate ctx.components with a single minimal Component."""
+        """Заполнить ctx.components одним минимальным компонентом."""
         from autodoc.models.component import Component
         from autodoc.models.conan_variant import ProfileBuild
         from autodoc.models.release import Release
@@ -333,24 +333,24 @@ def test_manifest_step_failure_stops_pipeline_no_result(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-01: Error in a critical ManifestStep stops the pipeline immediately.
+    """BL-PP-01: Ошибка в критичном ManifestStep останавливает пайплайн немедленно.
 
-    Business Rule:
-        A DocGeneratorError raised by a critical step (ManifestStep) must
-        propagate as ``ParsingError`` and halt execution of all subsequent
-        steps.  ``ctx.result`` must remain ``None`` because ``FinalizeStep``
-        was never reached.
+    Бизнес-правило:
+        DocGeneratorError, вызванный критичным шагом (ManifestStep), должен
+        распространяться как ``ParsingError`` и остановить выполнение всех последующих
+        шагов.  ``ctx.result`` должен оставаться ``None``, потому что ``FinalizeStep``
+        никогда не был достигнут.
 
-    Preconditions:
-        - Pipeline: [_FailManifest (critical), _ShouldNotRun (non-critical),
-          _FakeFinalizeStep (critical)].
+    Предусловия:
+        - Пайплайн: [_FailManifest (критичный), _ShouldNotRun (некритичный),
+          _FakeFinalizeStep (критичный)].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - ``ParsingError`` is raised.
-        - ``_ShouldNotRun.ran`` is ``False`` (step was never executed).
+    Ожидаемый результат:
+        - ``ParsingError`` вызывается.
+        - ``_ShouldNotRun.ran`` равен ``False`` (шаг никогда не был выполнен).
     """
 
     class _FailManifest(BaseParseStep):
@@ -379,11 +379,11 @@ def test_manifest_step_failure_stops_pipeline_no_result(
     with pytest.raises(ParsingError):
         parser.parse()
 
-    assert _ShouldNotRun.ran is False, "Step after critical failure must not execute"
+    assert _ShouldNotRun.ran is False, "Шаг после критичного сбоя не должен выполниться"
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-02 — critical FinalizeStep failure raises ParsingError
+# BL-PP-02 — критичный FinalizeStep сбой вызывает ParsingError
 # ---------------------------------------------------------------------------
 
 
@@ -392,21 +392,21 @@ def test_finalize_step_failure_stops_pipeline(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-02: Error in a critical FinalizeStep raises ParsingError.
+    """BL-PP-02: Ошибка в критичном FinalizeStep вызывает ParsingError.
 
-    Business Rule:
-        A DocGeneratorError raised by the FinalizeStep (critical) must
-        propagate as ``ParsingError``.  Neither ``ctx.result`` nor any output
-        file must be created; the pipeline stops immediately.
+    Бизнес-правило:
+        DocGeneratorError, вызванный FinalizeStep (критичный), должен
+        распространяться как ``ParsingError``. Ни ``ctx.result``, ни какой-либо
+        выходной файл не должны быть созданы; пайплайн останавливается немедленно.
 
-    Preconditions:
-        - Pipeline: [_FakeManifestStep (critical), _FailFinalize (critical)].
+    Предусловия:
+        - Пайплайн: [_FakeManifestStep (критичный), _FailFinalize (критичный)].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - ``ParsingError`` is raised.
+    Ожидаемый результат:
+        - ``ParsingError`` вызывается.
     """
 
     class _FailFinalize(BaseParseStep):
@@ -427,7 +427,7 @@ def test_finalize_step_failure_stops_pipeline(
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-03 — non-critical ConanEnrichStep failure does not stop pipeline
+# BL-PP-03 — некритичный ConanEnrichStep сбой не останавливает пайплайн
 # ---------------------------------------------------------------------------
 
 
@@ -436,24 +436,24 @@ def test_conan_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-03: Error in a non-critical ConanEnrichStep does not halt pipeline.
+    """BL-PP-03: Ошибка в некритичном ConanEnrichStep не останавливает пайплайн.
 
-    Business Rule:
-        A DocGeneratorError raised by a non-critical step (e.g. ConanEnrichStep)
-        must be logged and swallowed; subsequent steps must still execute and
-        the pipeline must return a valid ``ParsedResult``.
+    Бизнес-правило:
+        DocGeneratorError, вызванный некритичным шагом (например ConanEnrichStep),
+        должен быть залогирован и проглочен; последующие шаги должны всё ещё выполняться и
+        пайплайн должен вернуть корректный ``ParsedResult``.
 
-    Preconditions:
-        - Pipeline: [_FakeManifestStep, _FailConan (non-critical),
-          _AfterConan (non-critical), _FinalizeOnlyStep].
+    Предусловия:
+        - Пайплайн: [_FakeManifestStep, _FailConan (некритичный),
+          _AfterConan (некритичный), _FinalizeOnlyStep].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - No exception is raised.
-        - ``_AfterConan.ran`` is ``True``.
-        - Return value is not ``None``.
+    Ожидаемый результат:
+        - Исключение не вызывается.
+        - ``_AfterConan.ran`` равен ``True``.
+        - Возвращаемое значение не ``None``.
     """
 
     class _FailConan(BaseParseStep):
@@ -481,12 +481,12 @@ def test_conan_step_failure_pipeline_continues(
 
     result = parser.parse()
 
-    assert _AfterConan.ran is True, "Step after non-critical failure must execute"
-    assert result is not None, "Pipeline must complete with a valid result"
+    assert _AfterConan.ran is True, "Шаг после некритичного сбоя должен выполниться"
+    assert result is not None, "Пайплайн должен завершиться с корректным результатом"
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-04 — non-critical DockerResolveStep failure does not halt pipeline
+# BL-PP-04 — некритичный DockerResolveStep сбой не останавливает пайплайн
 # ---------------------------------------------------------------------------
 
 
@@ -495,21 +495,21 @@ def test_docker_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-04: Error in a non-critical DockerResolveStep does not halt pipeline.
+    """BL-PP-04: Ошибка в некритичном DockerResolveStep не останавливает пайплайн.
 
-    Business Rule:
-        ``DockerResolveStep`` is non-critical; a failure there must not
-        interrupt subsequent steps.
+    Бизнес-правило:
+        ``DockerResolveStep`` некритичен; сбой там не должен прерывать
+        последующие шаги.
 
-    Preconditions:
-        - Pipeline: [_FakeManifestStep, _FailDocker (non-critical),
-          _AfterDocker (non-critical), _FinalizeOnlyStep].
+    Предусловия:
+        - Пайплайн: [_FakeManifestStep, _FailDocker (некритичный),
+          _AfterDocker (некритичный), _FinalizeOnlyStep].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - ``_AfterDocker.ran`` is ``True``.
+    Ожидаемый результат:
+        - ``_AfterDocker.ran`` равен ``True``.
     """
 
     class _FailDocker(BaseParseStep):
@@ -540,7 +540,7 @@ def test_docker_step_failure_pipeline_continues(
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-05 — non-critical OptionsResolveStep failure does not halt pipeline
+# BL-PP-05 — некритичный OptionsResolveStep сбой не останавливает пайплайн
 # ---------------------------------------------------------------------------
 
 
@@ -549,21 +549,21 @@ def test_options_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-05: Error in a non-critical OptionsResolveStep does not halt pipeline.
+    """BL-PP-05: Ошибка в некритичном OptionsResolveStep не останавливает пайплайн.
 
-    Business Rule:
-        ``OptionsResolveStep`` is non-critical; its failure must be swallowed
-        and steps registered after it must still execute.
+    Бизнес-правило:
+        ``OptionsResolveStep`` некритичен; его сбой должен быть проглочен
+        и шаги, зарегистрированные после него, должны всё ещё выполняться.
 
-    Preconditions:
-        - Pipeline: [_FakeManifestStep, _FailOptions (non-critical),
-          _AfterOptions (non-critical), _FinalizeOnlyStep].
+    Предусловия:
+        - Пайплайн: [_FakeManifestStep, _FailOptions (некритичный),
+          _AfterOptions (некритичный), _FinalizeOnlyStep].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - ``_AfterOptions.ran`` is ``True``.
+    Ожидаемый результат:
+        - ``_AfterOptions.ran`` равен ``True``.
     """
 
     class _FailOptions(BaseParseStep):
@@ -599,7 +599,7 @@ def test_options_step_failure_pipeline_continues(
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-06 — non-critical ArtifactoryValidationStep failure does not halt pipeline
+# BL-PP-06 — некритичный ArtifactoryValidationStep сбой не останавливает пайплайн
 # ---------------------------------------------------------------------------
 
 
@@ -608,21 +608,21 @@ def test_validation_step_failure_pipeline_continues(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-06: Error in a non-critical ArtifactoryValidationStep does not halt pipeline.
+    """BL-PP-06: Ошибка в некритичном ArtifactoryValidationStep не останавливает пайплайн.
 
-    Business Rule:
-        ``ArtifactoryValidationStep`` is non-critical; failures (e.g. because
-        Artifactory is unreachable) must not interrupt subsequent steps.
+    Бизнес-правило:
+        ``ArtifactoryValidationStep`` некритичен; сбои (например, потому что
+        Artifactory недостижим) не должны прерывать последующие шаги.
 
-    Preconditions:
-        - Pipeline: [_FakeManifestStep, _FailValidation (non-critical),
-          _AfterValidation (non-critical), _FinalizeOnlyStep].
+    Предусловия:
+        - Пайплайн: [_FakeManifestStep, _FailValidation (некритичный),
+          _AfterValidation (некритичный), _FinalizeOnlyStep].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - ``_AfterValidation.ran`` is ``True``.
+    Ожидаемый результат:
+        - ``_AfterValidation.ran`` равен ``True``.
     """
 
     class _FailValidation(BaseParseStep):
@@ -667,22 +667,22 @@ def test_context_components_empty_before_manifest_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-07: ctx.components is empty at the very start of the pipeline.
+    """BL-PP-07: ctx.components пусто в самом начале пайплайна.
 
-    Business Rule:
-        The initial ``PipelineContext`` must start with an empty component
-        list.  Only the ManifestStep (or its substitute) may add to it.
-        This guards against leftover state from a previous run.
+    Бизнес-правило:
+        Начальный ``PipelineContext`` должен начинаться с пустого списка компонентов.
+        Только ManifestStep (или его заменитель) может добавлять к нему.
+        Это защищает от остаточного состояния из предыдущего запуска.
 
-    Preconditions:
-        - Pipeline: [_ObservingStep (critical), _FinalizeOnlyStep].
-        - ``_ObservingStep`` reads ``len(ctx.components)`` before writing anything.
+    Предусловия:
+        - Пайплайн: [_ObservingStep (критичный), _FinalizeOnlyStep].
+        - ``_ObservingStep`` читает ``len(ctx.components)`` перед написанием чего-либо.
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - The first observed ``len(ctx.components)`` is ``0``.
+    Ожидаемый результат:
+        - Первое наблюдаемое ``len(ctx.components)`` равно ``0``.
     """
     observed_counts: list[int] = []
 
@@ -700,15 +700,15 @@ def test_context_components_empty_before_manifest_step(
     )
     parser.parse()
 
-    assert len(observed_counts) > 0, "_ObservingStep must have executed"
+    assert len(observed_counts) > 0, "_ObservingStep должен был быть выполнен"
     assert observed_counts[0] == 0, (
-        f"ctx.components should be empty before any step populates it, "
-        f"got {observed_counts[0]}"
+        f"ctx.components должен быть пуст перед тем, как какой-либо шаг заполнит его, "
+        f"получили {observed_counts[0]}"
     )
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-08 — ctx.result is None before FinalizeStep executes
+# BL-PP-08 — ctx.result равен None перед выполнением FinalizeStep
 # ---------------------------------------------------------------------------
 
 
@@ -717,21 +717,21 @@ def test_context_result_none_before_finalize_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-08: ctx.result is None before FinalizeStep runs.
+    """BL-PP-08: ctx.result равен None перед запуском FinalizeStep.
 
-    Business Rule:
-        Only FinalizeStep is responsible for setting ``ctx.result``.  All
-        steps that execute before it must observe ``ctx.result is None``.
+    Бизнес-правило:
+        Только FinalizeStep отвечает за установку ``ctx.result``.  Все
+        шаги, которые выполняются перед ним, должны наблюдать ``ctx.result is None``.
 
-    Preconditions:
-        - Pipeline: [_FakeManifestStep, _CheckResultStep (non-critical),
+    Предусловия:
+        - Пайплайн: [_FakeManifestStep, _CheckResultStep (некритичный),
           _FinalizeOnlyStep].
 
-    Steps:
-        1. Call ``parser.parse()``.
+    Шаги:
+        1. Вызвать ``parser.parse()``.
 
-    Expected Result:
-        - The value of ``ctx.result`` captured inside ``_CheckResultStep`` is ``None``.
+    Ожидаемый результат:
+        - Значение ``ctx.result``, захваченное внутри ``_CheckResultStep``, равно ``None``.
     """
     observed_results: list = []
 
@@ -749,14 +749,14 @@ def test_context_result_none_before_finalize_step(
     )
     parser.parse()
 
-    assert len(observed_results) > 0, "_CheckResultStep must have executed"
+    assert len(observed_results) > 0, "_CheckResultStep должен был быть выполнен"
     assert (
         observed_results[0] is None
-    ), f"ctx.result should be None before FinalizeStep, got {observed_results[0]}"
+    ), f"ctx.result должен быть None перед FinalizeStep, получено {observed_results[0]}"
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-09 — with_steps_excluded removes by class, not by name similarity
+# BL-PP-09 — with_steps_excluded удаляет по классу, не по сходству имён
 # ---------------------------------------------------------------------------
 
 
@@ -765,23 +765,23 @@ def test_with_steps_excluded_removes_class_not_instance(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-09: with_steps_excluded removes steps by class type, not by name string.
+    """BL-PP-09: with_steps_excluded удаляет шаги по типу класса, не по строке имени.
 
-    Business Rule:
+    Бизнес-правило:
         ``ComponentParser.with_steps_excluded(config, data_dir, [ConanEnrichStep])``
-        filters steps using ``isinstance`` checks.  A different class that
-        happens to have a similar name is NOT removed.
+        фильтрует шаги, используя проверки ``isinstance``.  Другой класс, который
+        случайно имеет похожее имя, НЕ удаляется.
 
-    Preconditions:
-        - Create a parser with the default pipeline
-          via ``ComponentParser.with_steps_excluded(..., [ConanEnrichStep])``.
+    Предусловия:
+        - Создать парсер с пайплайном по умолчанию
+          через ``ComponentParser.with_steps_excluded(..., [ConanEnrichStep])``.
 
-    Steps:
-        1. Inspect the ``_steps`` attribute of the filtered parser.
+    Шаги:
+        1. Проверить атрибут ``_steps`` отфильтрованного парсера.
 
-    Expected Result:
-        - No instance of ``ConanEnrichStep`` is present in ``_steps``.
-        - The total number of steps is one fewer than the default pipeline.
+    Ожидаемый результат:
+        - Нет экземпляра ``ConanEnrichStep`` в ``_steps``.
+        - Общее количество шагов на один меньше, чем пайплайн по умолчанию.
     """
     from autodoc.parser.steps.conan_step import ConanEnrichStep
 
@@ -797,15 +797,15 @@ def test_with_steps_excluded_removes_class_not_instance(
     step_classes = [type(s) for s in filtered_parser._steps]
     assert (
         ConanEnrichStep not in step_classes
-    ), "ConanEnrichStep must be excluded from the filtered pipeline"
+    ), "ConanEnrichStep должен быть исключён из отфильтрованного пайплайна"
     assert len(filtered_parser._steps) == default_count - 1, (
-        f"Filtered pipeline should have {default_count - 1} steps, "
-        f"got {len(filtered_parser._steps)}"
+        f"Отфильтрованный пайплайн должен иметь {default_count - 1} шагов, "
+        f"получили {len(filtered_parser._steps)}"
     )
 
 
 # ---------------------------------------------------------------------------
-# BL-PP-10 — tmp_dir is cleaned up in finally block even on ParsingError
+# BL-PP-10 — tmp_dir очищается в finally блоке даже при ParsingError
 # ---------------------------------------------------------------------------
 
 
@@ -814,25 +814,25 @@ def test_tmp_dir_cleaned_up_in_finally_block_on_error(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-10: Temporary directory is deleted even when ParsingError is raised.
+    """BL-PP-10: Временная директория удаляется даже когда вызывается ParsingError.
 
-    Business Rule:
-        ``ComponentParser.parse()`` wraps execution in a ``try/finally`` block
-        that removes ``tmp_dir`` via ``shutil.rmtree``.  The cleanup must
-        happen regardless of whether a critical step raised a ``ParsingError``.
-        No temporary files must leak to disk after the pipeline terminates.
+    Бизнес-правило:
+        ``ComponentParser.parse()`` обёртывает выполнение в ``try/finally`` блок,
+        который удаляет ``tmp_dir`` через ``shutil.rmtree``.  Очистка должна
+        произойти независимо от того, вызвал ли критичный шаг ``ParsingError``.
+        Никакие временные файлы не должны протечь на диск после завершения пайплайна.
 
-    Preconditions:
-        - Pipeline: [_CriticalFail (critical)].
-        - ``_CriticalFail.execute`` captures ``ctx.tmp_dir`` before raising.
+    Предусловия:
+        - Пайплайн: [_CriticalFail (критичный)].
+        - ``_CriticalFail.execute`` захватывает ``ctx.tmp_dir`` перед вызовом исключения.
 
-    Steps:
-        1. Call ``parser.parse()`` inside ``pytest.raises(ParsingError)``.
-        2. Check that the captured ``tmp_dir`` path no longer exists on disk.
+    Шаги:
+        1. Вызвать ``parser.parse()`` внутри ``pytest.raises(ParsingError)``.
+        2. Проверить, что захваченный путь ``tmp_dir`` больше не существует на диске.
 
-    Expected Result:
-        - ``ParsingError`` is raised.
-        - The path that was ``ctx.tmp_dir`` does NOT exist after the call.
+    Ожидаемый результат:
+        - ``ParsingError`` вызывается.
+        - Путь, который был ``ctx.tmp_dir``, НЕ существует после вызова.
     """
     captured_tmp_dir: list[Path] = []
 
@@ -853,8 +853,8 @@ def test_tmp_dir_cleaned_up_in_finally_block_on_error(
     with pytest.raises(ParsingError):
         parser.parse()
 
-    assert len(captured_tmp_dir) == 1, "_CriticalFail must have executed"
+    assert len(captured_tmp_dir) == 1, "_CriticalFail должен был быть выполнен"
     tmp_dir_path = captured_tmp_dir[0]
     assert (
         not tmp_dir_path.exists()
-    ), f"tmp_dir {tmp_dir_path} must be deleted after ParsingError (finally block)"
+    ), f"tmp_dir {tmp_dir_path} должен быть удален после ParsingError (finally блок)"

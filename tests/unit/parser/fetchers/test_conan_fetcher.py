@@ -1,6 +1,6 @@
-"""Unit tests for autodoc/parser/fetchers/conan_fetcher.py.
+"""Юнит-тесты для autodoc/parser/fetchers/conan_fetcher.py.
 
-ConanFetcher orchestrates the full Conan enrichment pipeline:
+ConanFetcher orchestrates полный Conan enrichment pipeline:
 environment setup → task building → parallel execution → result aggregation.
 All external dependencies are mocked; no subprocess or network calls are made.
 """
@@ -31,7 +31,7 @@ def _make_mock_ctx(
     conan_config_url: str = _CONAN_CONFIG_URL,
     overrides_file: str | None = None,
 ) -> MagicMock:
-    """Build a minimal PipelineContext mock with the given conan_config_url.
+    """Построить минимальный PipelineContext mock with the given conan_config_url.
 
     Provides sensible defaults for all attributes read by ConanFetcher.configure().
     """

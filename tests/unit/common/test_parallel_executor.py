@@ -1,7 +1,7 @@
-"""Unit tests for autodoc/common/parallel_executor.py.
+"""Модульные тесты для autodoc/common/parallel_executor.py.
 
-ParallelExecutor runs a list of callables concurrently using a thread pool.
-Tests verify result ordering, exception isolation, and edge cases.
+ParallelExecutor запускает список вызываемых объектов одновременно с использованием пула потоков.
+Тесты проверяют упорядочение результатов, изоляцию исключений и граничные случаи.
 """
 
 import time
@@ -20,28 +20,28 @@ _TIMEOUT_GUARD_SEC: int = 5
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.1 — results come back in submission order despite staggered completion
+# T4A.2.1 — результаты возвращаются в порядке отправки, несмотря на неравномерное завершение
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
 def test_parallel_executor_results_in_submission_order() -> None:
-    """Results are returned in submission order, not in completion order.
+    """Результаты возвращаются в порядке отправки, а не в порядке завершения.
 
-    Task 0 sleeps longest so it finishes last; task 3 sleeps shortest so it
-    finishes first. The executor must preserve the original index mapping.
-    This is the most critical test in this file.
+    Задача 0 спит дольше всех, поэтому заканчивается последней; задача 3 спит меньше всех, поэтому
+    заканчивается первой. Исполнитель должен сохранить исходное сопоставление индексов.
+    Это самый важный тест в этом файле.
     """
     sleep_durations: list[float] = [
-        _SLEEP_LONG_SEC,  # task 0 — finishes last
+        _SLEEP_LONG_SEC,  # задача 0 — заканчивается последней
         _SLEEP_SHORT_SEC * 2,
         _SLEEP_SHORT_SEC,
-        0.0,  # task 3 — finishes first
+        0.0,  # задача 3 — заканчивается первой
     ]
     expected_values: list[int] = list(range(_TASK_COUNT))
 
     def staggered_fn(index_and_sleep: tuple[int, float]) -> int:
-        """Sleep for the given duration then return the task index as the result."""
+        """Спит заданное время, затем возвращает индекс задачи как результат."""
         index, sleep = index_and_sleep
         time.sleep(sleep)
         return index
@@ -54,20 +54,20 @@ def test_parallel_executor_results_in_submission_order() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.2 — one failing task does not cancel the others
+# T4A.2.2 — один неудачный задание не отменяет остальные
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
 def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> None:
-    """Exceptions in individual tasks are isolated; other tasks still produce results.
+    """Исключения в отдельных задачах изолированы; другие задачи всё ещё выдают результаты.
 
-    If one task raises, its slot becomes None while the remaining tasks
-    run to completion. No exception propagates to the caller.
+    Если одна задача вызывает исключение, её слот становится None, а остальные задачи
+    выполняются до конца. Исключение не распространяется на вызывающий код.
     """
 
     def task_fn(index: int) -> int | None:
-        """Return the index for tasks 0 and 2; raise ValueError for task 1."""
+        """Возвращает индекс для задач 0 и 2; вызывает ValueError для задачи 1."""
         if index == 1:
             raise ValueError("intentional failure")
         return index
@@ -75,26 +75,26 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL)
     results: list[int | None] = executor.execute(task_fn, [0, 1, 2])
 
-    assert results[0] == 0, "task 0 must produce its result"
-    assert results[1] is None, "failing task must produce None"
-    assert results[2] == 2, "task 2 must produce its result"
+    assert results[0] == 0, "задача 0 должна выдать свой результат"
+    assert results[1] is None, "неудачная задача должна выдать None"
+    assert results[2] == 2, "задача 2 должна выдать свой результат"
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.3 — all tasks raising does not hang
+# T4A.2.3 — все задачи вызывающие ошибки не вешаются
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.timeout(_TIMEOUT_GUARD_SEC)
 @pytest.mark.business_logic
 def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
-    """execute() returns without deadlocking when every task raises RuntimeError.
+    """execute() возвращается без взаимной блокировки, когда каждая задача вызывает RuntimeError.
 
-    All results are None; no exception propagates to the caller.
+    Все результаты None; исключение не распространяется на вызывающий код.
     """
 
     def always_fail(_: Any) -> None:
-        raise RuntimeError("always fails")
+        raise RuntimeError("всегда падает")
 
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL)
     results: list[None] = executor.execute(always_fail, [0, 1, 2])
@@ -103,21 +103,21 @@ def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.4 — max_workers=1 executes tasks sequentially
+# T4A.2.4 — max_workers=1 выполняет задачи последовательно
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
 def test_parallel_executor_max_workers_one_is_sequential() -> None:
-    """With max_workers=1 tasks execute sequentially in submission order.
+    """С max_workers=1 задачи выполняются последовательно в порядке отправки.
 
-    A single worker prevents any parallelism; results must be in submission order
-    and can be verified by appending to a plain list without a lock.
+    Один рабочий предотвращает любой параллелизм; результаты должны быть в порядке отправки
+    и могут быть проверены путём добавления в простой список без блокировки.
     """
     execution_order: list[int] = []
 
     def record_fn(index: int) -> int:
-        """Append to the shared list then return the index."""
+        """Добавляет в общий список, затем возвращает индекс."""
         execution_order.append(index)
         return index
 
@@ -130,16 +130,16 @@ def test_parallel_executor_max_workers_one_is_sequential() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.5 — empty input returns empty output
+# T4A.2.5 — пустой ввод возвращает пустой вывод
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
 def test_parallel_executor_empty_task_list_returns_empty() -> None:
-    """execute([]) returns [] immediately without raising or spinning up threads.
+    """execute([]) возвращает [] немедленно, не вызывая ошибку или запуская потоки.
 
-    Guards the short-circuit path that avoids creating a ThreadPoolExecutor
-    for an empty work queue.
+    Защищает короткий путь, который избегает создания ThreadPoolExecutor
+    для пустой очереди работ.
     """
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL)
     results: list[Any] = executor.execute(lambda x: x, [])

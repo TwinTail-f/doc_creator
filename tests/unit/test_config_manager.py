@@ -43,8 +43,21 @@ _VALID_CONFLUENCE_CONFIG: dict[str, Any] = {
     "target_release_version": "Platform 2.0",
 }
 
-_PARSER_CONFIG_FILENAME: str = "parser_config.json"
-_CONFLUENCE_CONFIG_FILENAME: str = "confluence_config.json"
+_PARSER_CONFIG_YAML: str = "parser_config.yaml"
+_PARSER_CONFIG_JSON: str = "parser_config.json"
+_CONFLUENCE_CONFIG_YAML: str = "confluence_config.yaml"
+_CONFLUENCE_CONFIG_JSON: str = "confluence_config.json"
+
+# Keep old names as aliases for existing tests that still use JSON
+_PARSER_CONFIG_FILENAME: str = _PARSER_CONFIG_JSON
+_CONFLUENCE_CONFIG_FILENAME: str = _CONFLUENCE_CONFIG_JSON
+
+
+def _write_yaml(directory: Path, filename: str, data: dict) -> Path:
+    """Write *data* as YAML to *directory / filename* and return the path."""
+    p = directory / filename
+    p.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
+    return p
 
 
 # ---------------------------------------------------------------------------
@@ -183,11 +196,11 @@ def test_config_manager_load_parser_config_returns_correct_type(
     Guards against the loader returning a plain dict or a wrong schema class,
     which would break all callers that use attribute access on the config.
     """
-    config_file: Path = tmp_path / _PARSER_CONFIG_FILENAME
-    config_file.write_text(json.dumps(_VALID_PARSER_CONFIG), encoding="utf-8")
+    config_file: Path = tmp_path / _PARSER_CONFIG_YAML
+    config_file.write_text(yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8")
 
     manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config(_PARSER_CONFIG_FILENAME)
+    result = manager.load_parser_config(_PARSER_CONFIG_YAML)
 
     assert isinstance(result, ParserConfigSchema)
 
@@ -206,10 +219,135 @@ def test_config_manager_load_confluence_config_returns_correct_type(
     Guards against the loader returning a plain dict or a wrong schema class,
     which would break all callers that use attribute access on the config.
     """
-    config_file: Path = tmp_path / _CONFLUENCE_CONFIG_FILENAME
-    config_file.write_text(json.dumps(_VALID_CONFLUENCE_CONFIG), encoding="utf-8")
+    config_file: Path = tmp_path / _CONFLUENCE_CONFIG_YAML
+    config_file.write_text(yaml.dump(_VALID_CONFLUENCE_CONFIG), encoding="utf-8")
 
     manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_confluence_config(_CONFLUENCE_CONFIG_FILENAME)
+    result = manager.load_confluence_config(_CONFLUENCE_CONFIG_YAML)
 
     assert isinstance(result, ConfluenceConfigSchema)
+
+
+# ---------------------------------------------------------------------------
+# T4A.3.9 — YAML имеет приоритет над JSON при автопоиске
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_config_manager_prefers_yaml_over_json_when_both_exist(tmp_path: Path) -> None:
+    """При наличии обоих файлов (yaml + json) загружается YAML-версия.
+
+    Гарантирует, что SUPPORTED_FORMATS=['.yaml', ...] применяется корректно
+    и YAML побеждает JSON при автопоиске по базовому имени.
+    """
+    yaml_file = tmp_path / "parser_config.yaml"
+    yaml_data = {**_VALID_PARSER_CONFIG, "platform_version": "yaml_wins"}
+    yaml_file.write_text(yaml.dump(yaml_data), encoding="utf-8")
+
+    json_file = tmp_path / "parser_config.json"
+    json_data = {**_VALID_PARSER_CONFIG, "platform_version": "json_loses"}
+    json_file.write_text(json.dumps(json_data), encoding="utf-8")
+
+    manager = ConfigManager(configs_dir=tmp_path)
+    result = manager.load_parser_config()  # без явного имени → автопоиск
+
+    assert result is not None
+    assert result.platform_version == "yaml_wins", (
+        "Ожидался YAML (yaml_wins), но загружен JSON (json_loses). "
+        "SUPPORTED_FORMATS должен ставить YAML перед JSON."
+    )
+
+
+# ---------------------------------------------------------------------------
+# T4A.3.10 — list_available_configs не включает содержимое examples/
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_list_available_configs_excludes_examples_subdir(tmp_path: Path) -> None:
+    """list_available_configs() не включает файлы из подпапки examples/.
+
+    Примеры — это отдельная категория; смешивать их с рабочими конфигами нельзя.
+    """
+    (tmp_path / "parser_config.yaml").write_text(
+        yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8"
+    )
+    examples_dir = tmp_path / "examples"
+    examples_dir.mkdir()
+    (examples_dir / "parser_config.yaml").write_text(
+        yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8"
+    )
+
+    manager = ConfigManager(configs_dir=tmp_path)
+    result = manager.list_available_configs()
+
+    assert result["yaml"] == ["parser_config.yaml"], (
+        "list_available_configs() должен возвращать ровно один файл (рабочий), "
+        "а не два (рабочий + пример из examples/)."
+    )
+
+
+# ---------------------------------------------------------------------------
+# T4A.3.11 — list_example_configs читает examples/
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_list_example_configs_returns_files_from_examples_subdir(tmp_path: Path) -> None:
+    """list_example_configs() возвращает файлы из configs/examples/.
+
+    Проверяет, что новый метод корректно читает подпапку examples/
+    и возвращает файлы, сгруппированные по формату.
+    """
+    examples_dir = tmp_path / "examples"
+    examples_dir.mkdir()
+    (examples_dir / "parser_config.yaml").write_text(
+        yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8"
+    )
+    (examples_dir / "parser_config.json").write_text(
+        json.dumps(_VALID_PARSER_CONFIG), encoding="utf-8"
+    )
+
+    manager = ConfigManager(configs_dir=tmp_path)
+    result = manager.list_example_configs()
+
+    assert "parser_config.yaml" in result["yaml"]
+    assert "parser_config.json" in result["json"]
+
+
+# ---------------------------------------------------------------------------
+# T4A.3.12 — list_example_configs при отсутствии examples/ возвращает пустые списки
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_list_example_configs_returns_empty_when_no_examples_dir(tmp_path: Path) -> None:
+    """list_example_configs() возвращает пустые списки, если examples/ отсутствует."""
+    manager = ConfigManager(configs_dir=tmp_path)
+    result = manager.list_example_configs()
+
+    assert all(files == [] for files in result.values()), (
+        "Ожидались пустые списки при отсутствии examples/, "
+        f"получено: {result}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T4A.3.13 — JSON конфиг всё ещё загружается (обратная совместимость)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_config_manager_still_loads_json_for_backward_compatibility(tmp_path: Path) -> None:
+    """JSON конфиг загружается корректно, даже когда YAML является приоритетным форматом.
+
+    Обратная совместимость: проекты с существующими .json конфигами не должны ломаться.
+    """
+    config_file = tmp_path / "parser_config.json"
+    config_file.write_text(json.dumps(_VALID_PARSER_CONFIG), encoding="utf-8")
+
+    manager = ConfigManager(configs_dir=tmp_path)
+    result = manager.load_parser_config()  # автопоиск — найдёт .json
+
+    assert result is not None
+    assert isinstance(result, ParserConfigSchema)

@@ -308,7 +308,7 @@ def _make_enrich_result(
     conan_settings: dict | None = None,
     variants: "list[ConanVariant] | None" = None,
 ) -> "ConanEnrichmentResult":
-    """Build a minimal ``ConanEnrichmentResult`` for a single release/profile pair.
+    """Построить минимальный ``ConanEnrichmentResult`` for a single release/profile pair.
 
     Business Rule: helper factory — no business rule of its own.
 

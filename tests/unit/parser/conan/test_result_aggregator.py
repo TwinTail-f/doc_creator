@@ -311,7 +311,7 @@ def test_aggregator_two_profiles_same_release() -> None:
 
 @pytest.mark.business_logic
 def test_aggregator_records_version_range_error_message() -> None:
-    """Aggregator records the full version-range-not-resolved error from a failed ConanRawResult.
+    """Aggregator records полный version-range-not-resolved error from a failed ConanRawResult.
 
     Simulates what happens when the runner returns success=False for a stunnel-like
     version range that could not be resolved. The error text must survive aggregation

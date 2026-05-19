@@ -1,7 +1,7 @@
 """
-Unit tests for autodoc/parser/fetchers/options_fetcher.py.
+Юнит-тесты для autodoc/parser/fetchers/options_fetcher.py.
 
-Strategy: subclass FakeTFSClient with per-scenario fakes driven by real
+Стратегия: subclass FakeTFSClient with per-scenario fakes driven by real
 options JSON file content from resources/options/.
 No real network calls are made.
 """
@@ -66,7 +66,7 @@ class _OptionsFileFakeTFSClient(FakeTFSClient):
 
 
 def _make_component(name, repo, version, channel, project="DEP_Components"):
-    """Build a minimal Component with one Release for fetcher tests."""
+    """Построить минимальный Component with one Release for fetcher tests."""
     release = Release(
         version=version,
         platform="2.0",
@@ -83,7 +83,7 @@ def _make_component(name, repo, version, channel, project="DEP_Components"):
 
 
 def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path):
-    """Build a minimal PipelineContext with the given fake TFS client."""
+    """Построить минимальный PipelineContext with the given fake TFS client."""
     return PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",

@@ -1,8 +1,8 @@
-"""Unit tests for autodoc/parser/fetchers/manifest_fetcher.py.
+"""Юнит-тесты для autodoc/parser/fetchers/manifest_fetcher.py.
 
-Strategy: fake TFS clients copy real .properties files into tmp_dir without
-any network I/O. ManifestParser is NOT mocked — the full
-ManifestFetcher → ManifestParser chain is exercised.
+Стратегия: поддельные TFS клиенты копируют реальные .properties files into tmp_dir without
+any network I/O. ManifestParser НЕ замаскирован — полный
+ManifestFetcher → ManifestParser цепь выполняется.
 """
 
 import shutil
@@ -17,12 +17,12 @@ from autodoc.parser.pipeline.context import PipelineContext
 from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient
 
 # ---------------------------------------------------------------------------
-# Local fake clients — defined here per local-ownership convention
+# Локальные поддельные клиенты — определены здесь по соглашению локального владения
 # ---------------------------------------------------------------------------
 
 
 class WritingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient that writes a single .properties file into output_dir."""
+    """FakeTFSClient, который записывает один файл .properties в output_dir."""
 
     def __init__(self, content: str, filename: str = "test.properties") -> None:
         """
@@ -41,14 +41,14 @@ class WritingFakeTFSClient(FakeTFSClient):
         output_dir: str,
         version_type=None,
     ) -> None:
-        """Writes configured content into output_dir as a .properties file."""
+        """Записывает настроенное содержимое into output_dir как файл .properties."""
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
         (out / self._filename).write_text(self._content, encoding="utf-8")
 
 
 class CopyingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient that copies a single real .properties file into output_dir."""
+    """FakeTFSClient который копирует один реальный файл .properties в output_dir."""
 
     def __init__(self, source_file: Path) -> None:
         """
@@ -65,7 +65,7 @@ class CopyingFakeTFSClient(FakeTFSClient):
         output_dir: str,
         version_type=None,
     ) -> None:
-        """Copies the source file into output_dir preserving its filename."""
+        """Копирует исходный файл into output_dir сохраняя его имя файла."""
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
         shutil.copy(self._source, out / self._source.name)

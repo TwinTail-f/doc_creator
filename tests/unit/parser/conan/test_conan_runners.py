@@ -1,4 +1,4 @@
-"""Unit tests for Conan runner classes.
+"""Юнит-тесты для Conan runner classes.
 
 Covers: Conan2Runner, ConanEnvironmentManager, BaseConanRunner.
 All subprocess.run and shutil calls are mocked — no conan binary required.

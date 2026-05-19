@@ -27,7 +27,9 @@ class ConfigManager:
         configs_dir: Путь к директории с конфигурационными файлами.
     """
 
-    SUPPORTED_FORMATS: list[str] = [".json", ".yaml", ".yml"]
+    SUPPORTED_FORMATS: list[str] = [".yaml", ".yml", ".json"]
+
+    EXAMPLES_SUBDIR: str = "examples"
 
     def __init__(self, configs_dir: str | Path) -> None:
         """
@@ -90,6 +92,8 @@ class ConfigManager:
         """
         Возвращает доступные конфиг-файлы из ``configs_dir``, сгруппированные по формату.
 
+        Файлы из подпапки ``examples/`` не включаются в результат.
+
         Returns:
             Словарь, отображающий расширение формата (без ведущей точки) на
             отсортированный список имён файлов этого формата в ``configs_dir``.
@@ -99,7 +103,29 @@ class ConfigManager:
         }
         if not self.configs_dir.is_dir():
             return result
+        examples_path = self.configs_dir / self.EXAMPLES_SUBDIR
         for item in sorted(self.configs_dir.iterdir()):
+            if item == examples_path:          # пропускаем examples/
+                continue
+            if item.is_file() and item.suffix.lower() in self.SUPPORTED_FORMATS:
+                result[item.suffix.lower().lstrip(".")].append(item.name)
+        return result
+
+    def list_example_configs(self) -> dict[str, list[str]]:
+        """
+        Возвращает файлы-примеры из ``configs/examples/``, сгруппированные по формату.
+
+        Returns:
+            Словарь расширение → список имён файлов в ``configs_dir/examples/``.
+            Если подпапка отсутствует — все списки пустые.
+        """
+        result: dict[str, list[str]] = {
+            ext.lstrip("."): [] for ext in self.SUPPORTED_FORMATS
+        }
+        examples_dir = self.configs_dir / self.EXAMPLES_SUBDIR
+        if not examples_dir.is_dir():
+            return result
+        for item in sorted(examples_dir.iterdir()):
             if item.is_file() and item.suffix.lower() in self.SUPPORTED_FORMATS:
                 result[item.suffix.lower().lstrip(".")].append(item.name)
         return result

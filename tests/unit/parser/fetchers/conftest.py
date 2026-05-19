@@ -1,1 +1,1 @@
-"""Shared fixtures for parser fetcher unit tests."""
+"""Общие фикстуры для парсера fetcher unit tests."""

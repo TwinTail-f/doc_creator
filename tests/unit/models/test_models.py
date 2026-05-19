@@ -174,7 +174,7 @@ def test_component_roundtrip_serialization() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T3.10 — ProfileDefinition and ParsedResult model tests
+# T3.10 — тесты моделей ProfileDefinition и ParsedResult
 # ---------------------------------------------------------------------------
 
 import pytest
@@ -190,11 +190,11 @@ _PLATFORM_VERSION: str = "2.0"
 
 
 class TestProfileDefinition:
-    """Unit tests for the ProfileDefinition Pydantic model."""
+    """Модульные тесты для модели Pydantic ProfileDefinition."""
 
     @pytest.mark.contract
     def test_minimal_construction(self) -> None:
-        """ProfileDefinition can be built with profile_name only; defaults apply."""
+        """ProfileDefinition можно построить только с profile_name; применяются значения по умолчанию."""
         pd = ProfileDefinition(profile_name=_PROFILE_NAME)
         assert pd.profile_name == _PROFILE_NAME
         assert pd.docker_image == ""
@@ -202,7 +202,7 @@ class TestProfileDefinition:
 
     @pytest.mark.contract
     def test_full_construction(self) -> None:
-        """ProfileDefinition accepts all optional fields."""
+        """ProfileDefinition принимает все дополнительные поля."""
         pd = ProfileDefinition(
             profile_name=_PROFILE_NAME,
             docker_image=_DOCKER_IMAGE,
@@ -212,17 +212,17 @@ class TestProfileDefinition:
 
     @pytest.mark.contract
     def test_missing_profile_name_raises(self) -> None:
-        """Omitting required profile_name must raise ValidationError."""
+        """Пропуск обязательного profile_name должен вызвать ValidationError."""
         with pytest.raises(PydanticValidationError):
             ProfileDefinition()  # type: ignore[call-arg]
 
 
 class TestParsedResult:
-    """Unit tests for the ParsedResult Pydantic model."""
+    """Модульные тесты для модели Pydantic ParsedResult."""
 
     @pytest.mark.contract
     def test_minimal_construction(self) -> None:
-        """ParsedResult can be built with required fields; list defaults are empty."""
+        """ParsedResult можно построить с обязательными полями; значения по умолчанию для списков пусты."""
         result = ParsedResult(
             generated_at=_GENERATED_AT,
             platform_version=_PLATFORM_VERSION,
@@ -233,12 +233,12 @@ class TestParsedResult:
 
     @pytest.mark.contract
     def test_missing_generated_at_raises(self) -> None:
-        """Omitting generated_at must raise ValidationError."""
+        """Пропуск generated_at должен вызвать ValidationError."""
         with pytest.raises(PydanticValidationError):
             ParsedResult(platform_version=_PLATFORM_VERSION)  # type: ignore[call-arg]
 
     @pytest.mark.contract
     def test_missing_platform_version_raises(self) -> None:
-        """Omitting platform_version must raise ValidationError."""
+        """Пропуск platform_version должен вызвать ValidationError."""
         with pytest.raises(PydanticValidationError):
             ParsedResult(generated_at=_GENERATED_AT)  # type: ignore[call-arg]

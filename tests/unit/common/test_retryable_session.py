@@ -1,16 +1,16 @@
-"""Unit tests for autodoc/common/retryable_session.py.
+"""Модульные тесты для autodoc/common/retryable_session.py.
 
-RetryableSession wraps an HTTP session with automatic retry logic
-for transient server errors (429, 503) with exponential backoff.
+RetryableSession оборачивает сеанс HTTP с автоматической логикой повторных попыток
+для временных ошибок сервера (429, 503) с экспоненциальной задержкой.
 
-Retry behaviour is enforced by urllib3's Retry adapter at the transport layer.
-Tests that verify retry triggering inspect the adapter configuration rather than
-simulating the full urllib3 retry loop, because urllib3's own retry loop runs
-inside HTTPAdapter.send — below the level that can be intercepted with a simple
-mocker.patch without replacing the transport entirely.
+Поведение повторных попыток обеспечивается адаптером Retry от urllib3 на уровне транспорта.
+Тесты, которые проверяют срабатывание повторных попыток, проверяют конфигурацию адаптера, а не
+моделируют полный цикл повторных попыток urllib3, потому что собственный цикл повторных попыток urllib3 работает
+внутри HTTPAdapter.send — ниже уровня, который можно перехватить простым
+mocker.patch без полной замены транспорта.
 
-The timeout-forwarding test exercises RetryableSession's own request() override,
-which is the only logic that lives in application code rather than in urllib3.
+Тест пересылки тайм-аута использует переопределение request() в RetryableSession,
+которое является единственной логикой, которая живёт в коде приложения, а не в urllib3.
 """
 
 from unittest.mock import MagicMock
@@ -33,22 +33,22 @@ _TEST_URL: str = "https://example.com/api"
 
 
 def _get_retry(session: RetryableSession) -> Retry:
-    """Extract the urllib3 Retry object from the session's HTTPS adapter."""
+    """Извлекает объект urllib3 Retry из HTTPS адаптера сеанса."""
     return session.get_adapter(_HTTPS_PREFIX).max_retries
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.6 — adapter is configured to retry on 429
+# T4A.2.6 — адаптер настроен для повторных попыток на 429
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.infrastructure
 def test_retryable_session_retries_on_429() -> None:
-    """Session retry adapter includes 429 in its status_forcelist.
+    """Адаптер повторных попыток сеанса включает 429 в его status_forcelist.
 
-    urllib3 will automatically retry any request that receives a 429 response.
-    This test verifies the configuration that wires that behaviour into the
-    session — testing the application-layer wiring rather than urllib3 itself.
+    urllib3 автоматически повторит любой запрос, который получит ответ 429.
+    Этот тест проверяет конфигурацию, которая подключает это поведение в
+    сеанс — тестируя проводку на уровне приложения, а не сам urllib3.
     """
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
     retry = _get_retry(session)
@@ -58,16 +58,16 @@ def test_retryable_session_retries_on_429() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.7 — adapter is configured to retry on 503
+# T4A.2.7 — адаптер настроен для повторных попыток на 503
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.infrastructure
 def test_retryable_session_retries_on_503() -> None:
-    """Session retry adapter includes 503 in its status_forcelist.
+    """Адаптер повторных попыток сеанса включает 503 в его status_forcelist.
 
-    Service-unavailable responses are transient infrastructure issues;
-    the adapter must be configured to retry them automatically.
+    Ответы "сервис недоступен" — это временные проблемы инфраструктуры;
+    адаптер должен быть настроен на автоматический повтор их.
     """
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
     retry = _get_retry(session)
@@ -76,17 +76,17 @@ def test_retryable_session_retries_on_503() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.8 — retry limit is honoured (adapter configured correctly)
+# T4A.2.8 — лимит повторных попыток соблюдается (адаптер настроен правильно)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.infrastructure
 def test_retryable_session_raises_after_exhausting_retries() -> None:
-    """Retry adapter total count matches the max_retries constructor argument.
+    """Общее количество адаптера повторных попыток соответствует аргументу конструктора max_retries.
 
-    urllib3 will raise MaxRetryError (surfaced by requests as RetryError) once
-    this limit is reached. This test verifies the limit is wired correctly so
-    that requests do not loop indefinitely.
+    urllib3 вызовет MaxRetryError (отобразится в requests как RetryError) после того, как
+    этот лимит будет достигнут. Этот тест проверяет, что лимит подключён правильно, чтобы
+    запросы не циклились бесконечно.
     """
     max_retries: int = 2
     session = RetryableSession(max_retries=max_retries, backoff_factor=0.0)
@@ -96,32 +96,32 @@ def test_retryable_session_raises_after_exhausting_retries() -> None:
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.9 — exponential backoff factor is stored in the retry adapter
+# T4A.2.9 — фактор экспоненциальной задержки хранится в адаптере повторных попыток
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.infrastructure
 def test_retryable_session_uses_exponential_backoff() -> None:
-    """The configured backoff_factor is wired into the urllib3 Retry object.
+    """Настроенный backoff_factor подключён к объекту urllib3 Retry.
 
-    urllib3 computes sleep delays as backoff_factor * (2 ** (retry_count - 1)),
-    so the second delay is always strictly greater than the first when
-    backoff_factor > 0. This test verifies the factor is stored correctly so
-    that the delays increase between retries.
+    urllib3 вычисляет задержки сна как backoff_factor * (2 ** (retry_count - 1)),
+    поэтому вторая задержка всегда строго больше первой, когда
+    backoff_factor > 0. Этот тест проверяет, что фактор сохранён правильно, чтобы
+    задержки увеличивались между повторными попытками.
     """
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=_BACKOFF_FACTOR)
     retry = _get_retry(session)
 
     assert retry.backoff_factor == _BACKOFF_FACTOR
-    # Verify that second delay > first delay for the configured backoff_factor.
-    # Delay formula: backoff_factor * (2 ** (retry_index - 1))
+    # Проверка, что вторая задержка > первой задержки для настроенного backoff_factor.
+    # Формула задержки: backoff_factor * (2 ** (retry_index - 1))
     first_delay: float = _BACKOFF_FACTOR * (2**0)  # retry 1 → backoff_factor * 1
     second_delay: float = _BACKOFF_FACTOR * (2**1)  # retry 2 → backoff_factor * 2
     assert second_delay > first_delay
 
 
 # ---------------------------------------------------------------------------
-# T4A.2.10 — request() override forwards timeout to the parent implementation
+# T4A.2.10 — переопределение request() пересылает timeout родительской реализации
 # ---------------------------------------------------------------------------
 
 
@@ -129,11 +129,11 @@ def test_retryable_session_uses_exponential_backoff() -> None:
 def test_retryable_session_timeout_forwarded_to_request(
     mocker: MockerFixture,
 ) -> None:
-    """RetryableSession.request() injects its _timeout into every super().request() call.
+    """RetryableSession.request() внедряет свой _timeout в каждый вызов super().request().
 
-    The override in RetryableSession.request() is the only application-layer
-    logic in this class; it must pass effective_timeout=self._timeout to
-    super().request() so that every HTTP call respects the configured timeout.
+    Переопределение в RetryableSession.request() — это единственная логика приложения
+    в этом классе; оно должно передавать effective_timeout=self._timeout в
+    super().request(), чтобы каждый вызов HTTP соблюдал настроенный timeout.
     """
     mock_super_request: MagicMock = mocker.patch.object(
         requests.Session, "request", return_value=MagicMock(status_code=_HTTP_OK)

@@ -1,4 +1,4 @@
-"""Unit tests for autodoc/parser/clients/tfs_client_enums.py.
+"""Юнит-тесты для autodoc/parser/clients/tfs_client_enums.py.
 
 Pins the wire-format string values of TFS API enums.
 A test failure here means a refactor changed a value sent in HTTP requests,

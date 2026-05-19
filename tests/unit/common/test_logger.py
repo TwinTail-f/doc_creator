@@ -1,6 +1,6 @@
-"""Smoke tests for autodoc/common/logger.py.
+"""Дымовые тесты для autodoc/common/logger.py.
 
-Verifies the project logger is importable and has the expected configuration.
+Проверяет, что логгер проекта импортируется и имеет ожидаемую конфигурацию.
 """
 import pytest
 
@@ -13,28 +13,28 @@ _EXPECTED_NAME_PREFIX: str = "doc_parser"
 
 @pytest.mark.infrastructure
 def test_logger_is_importable() -> None:
-    """Importing autodoc.common.logger raises no ImportError.
+    """Импорт autodoc.common.logger не вызывает ImportError.
 
-    Reaching this line proves the import at the top of the file succeeded.
+    Достижение этой строки доказывает, что импорт в начале файла прошёл успешно.
     """
     assert logger is not None
 
 
 @pytest.mark.infrastructure
 def test_logger_name_starts_with_doc_parser() -> None:
-    """The project logger name must start with 'doc_parser'.
+    """Имя логгера проекта должно начинаться с 'doc_parser'.
 
-    Guards against the logger being renamed to a generic name that
-    would pollute third-party logging output or collide with other loggers.
+    Защита от переименования логгера на универсальное имя, которое
+    могло бы загрязнить вывод логирования третьей стороны или столкнуться с другими логгерами.
     """
     assert logger.name.startswith(_EXPECTED_NAME_PREFIX)
 
 
 @pytest.mark.infrastructure
 def test_logger_is_standard_logger_instance() -> None:
-    """The exported logger must be a standard logging.Logger instance.
+    """Экспортируемый логгер должен быть стандартным экземпляром logging.Logger.
 
-    Ensures downstream code can use the full logging.Logger API without
-    surprises from a proxy or adapter object.
+    Гарантирует, что код ниже по потоку может использовать полный API logging.Logger без
+    неожиданностей от объекта-прокси или адаптера.
     """
     assert isinstance(logger, logging.Logger)

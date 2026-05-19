@@ -694,7 +694,7 @@ def _minimal_manifest(
 
 @pytest.mark.business_logic
 def test_channel_suffix_fast_extracted(tmp_path: Path) -> None:
-    """Проверить, что строка платформы, заканчивающаяся на "-fast", даёт channel="fast".
+    """Verify that a platform string ending with "-fast" yields channel="fast".
 
     Business Rule (BL-MP-01): The channel is the last hyphen-delimited segment
     of the platform string.  "2.2-fast" → channel="fast".
@@ -725,7 +725,7 @@ def test_channel_suffix_fast_extracted(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_channel_suffix_slow_extracted(tmp_path: Path) -> None:
-    """Проверить, что строка платформы, заканчивающаяся на "-slow", даёт channel="slow".
+    """Verify that a platform string ending with "-slow" yields channel="slow".
 
     Business Rule (BL-MP-02): Same rule as BL-MP-01 — the suffix after the last
     hyphen is the channel.  This test confirms the rule is not specific to "fast".
@@ -754,7 +754,7 @@ def test_channel_suffix_slow_extracted(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_channel_no_suffix_gives_empty_string(tmp_path: Path) -> None:
-    """Проверить, что строка платформы без суффикса с дефисом даёт channel="".
+    """Verify that a platform string with no hyphen-suffix yields channel="".
 
     Business Rule (BL-MP-03): When the platform string contains no hyphen
     (e.g. "2.2" with no channel qualifier), the channel is the empty string.
@@ -790,7 +790,7 @@ def test_channel_no_suffix_gives_empty_string(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_channel_multi_dash_last_segment_is_channel(tmp_path: Path) -> None:
-    """Проверить, что для строк платформы с несколькими дефисами только последний сегмент является каналом.
+    """Verify that for multi-hyphen platform strings, only the last segment is the channel.
 
     Business Rule (BL-MP-04): "2.2-extra-slow" → channel="slow".  Intermediate
     segments are treated as part of the platform identifier, not the channel.
@@ -829,7 +829,7 @@ def test_channel_multi_dash_last_segment_is_channel(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_include_filter_exact_match_only(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="include" точно совпадает с названиями компонентов.
+    """Verify that filter_mode="include" matches component names exactly.
 
     Business Rule (BL-MP-05): Only the component whose name is an exact member of
     ``component_names`` is included.  Substrings and similar names are excluded.
@@ -869,7 +869,7 @@ def test_include_filter_exact_match_only(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_exclude_filter_exact_match_only(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="exclude" исключает только именованный компонент точно.
+    """Verify that filter_mode="exclude" excludes only the named component exactly.
 
     Business Rule (BL-MP-06): Only "openssl" is excluded; "openssl-extra" is kept
     because the filter compares names for exact equality, not substring membership.
@@ -909,7 +909,7 @@ def test_exclude_filter_exact_match_only(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_include_empty_list_returns_all_components(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="include" с пустым списком имён возвращает все компоненты.
+    """Verify that filter_mode="include" with an empty names list returns all components.
 
     Business Rule (BL-MP-07): An empty ``component_names`` list in "include" mode
     means "include everything" — the filter is effectively disabled.  This is a
@@ -945,7 +945,7 @@ def test_include_empty_list_returns_all_components(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_exclude_empty_list_returns_all_components(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="exclude" с пустым списком имён возвращает все компоненты.
+    """Verify that filter_mode="exclude" with an empty names list returns all components.
 
     Business Rule (BL-MP-08): An empty ``component_names`` list in "exclude" mode
     means "exclude nothing" — all components from every manifest file are returned.
@@ -980,7 +980,7 @@ def test_exclude_empty_list_returns_all_components(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_profile_builds_created_from_profiles_property(tmp_path: Path) -> None:
-    """Проверить, что ManifestParser создаёт скелеты ProfileBuild для каждого имени профиля.
+    """Verify that ManifestParser creates ProfileBuild skeletons for each profile name.
 
     Business Rule (BL-MP-09): The parser reads the ``profiles-{cv}-{pv}`` property
     and creates one ProfileBuild skeleton for each comma-separated profile name listed
@@ -1020,7 +1020,7 @@ def test_profile_builds_created_from_profiles_property(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_profile_builds_all_have_exists_false(tmp_path: Path) -> None:
-    """Проверить, что все объекты ProfileBuild созданные ManifestParser имеют exists=False.
+    """Verify that all ProfileBuild objects created by ManifestParser have exists=False.
 
     Business Rule (BL-MP-10): ProfileBuilds produced by ManifestParser are skeletons
     only.  Their ``exists`` flag is always ``False`` at this stage — package existence
@@ -1055,7 +1055,7 @@ def test_profile_builds_all_have_exists_false(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_profile_builds_all_have_empty_variants(tmp_path: Path) -> None:
-    """Проверить, что все скелеты ProfileBuild произведённые ManifestParser имеют variants=[].
+    """Verify that all ProfileBuild skeletons produced by ManifestParser have variants=[].
 
     Business Rule (BL-MP-11): ManifestParser does not query Conan or Artifactory,
     so it cannot populate ``variants``.  All newly created ProfileBuilds carry an
@@ -1088,7 +1088,7 @@ def test_profile_builds_all_have_empty_variants(tmp_path: Path) -> None:
 def test_profile_build_names_match_manifest_profile_list_exactly(
     tmp_path: Path,
 ) -> None:
-    """Проверить, что значения ProfileBuild.profile_name точно равны записям манифеста.
+    """Verify that ProfileBuild.profile_name values exactly equal the manifest entries.
 
     Business Rule (BL-MP-12): No name transformation (trimming aside) is applied to
     profile name strings.  The value recorded in ``ProfileBuild.profile_name`` must
@@ -1123,7 +1123,7 @@ def test_profile_build_names_match_manifest_profile_list_exactly(
 
 @pytest.mark.infrastructure
 def test_git_url_set_on_component_not_release(tmp_path: Path) -> None:
-    """Проверить, что git_url является полем уровня Component, а не Release.
+    """Verify that git_url is a Component-level field, not a Release-level field.
 
     Business Rule (BL-MP-13, post-migration): All releases of a component share the
     same source repository, so git_url belongs to Component.  ManifestParser must
@@ -1168,7 +1168,7 @@ def test_git_url_set_on_component_not_release(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_git_url_format_is_tfs_git_format(tmp_path: Path) -> None:
-    """Проверить, что Component.git_url отформатирован как хорошо сформированный TFS Git URL.
+    """Verify that Component.git_url is formatted as a well-formed TFS Git URL.
 
     Business Rule (BL-MP-14): The URL follows the pattern
     ``{tfs_collection_url}/{git_project}/_git/{git_repo}`` with no duplicate or
@@ -1209,7 +1209,7 @@ def test_git_url_format_is_tfs_git_format(tmp_path: Path) -> None:
 
 @pytest.mark.business_logic
 def test_only_target_platform_releases_included(tmp_path: Path) -> None:
-    """Проверить, что ManifestParser возвращает только релизы, соответствующие целевой платформе.
+    """Verify that ManifestParser returns only releases matching the target platform.
 
     Business Rule (BL-MP-15): When ``target_platform="2.2"``, releases for
     platforms "2.1" and "2.3" must be silently ignored.  Only the release whose

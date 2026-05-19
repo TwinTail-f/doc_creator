@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 from autodoc.cli import cli
@@ -47,14 +48,39 @@ def _write_json(directory: Path, filename: str, data: dict) -> Path:
     return p
 
 
+def _write_yaml(directory: Path, filename: str, data: dict) -> Path:
+    """Write *data* as YAML to *directory / filename* and return the path."""
+    p: Path = directory / filename
+    p.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
+    return p
+
+
 @pytest.mark.business_logic
 def test_cli_config_validate_exits_zero_on_valid_config(
     configs_dir: Path,
 ) -> None:
-    """validate sub-command exits 0 when the file is syntactically valid JSON.
+    """validate sub-command exits 0 when the file is syntactically valid YAML.
 
-    Guards against the validate command crashing on valid input (it used to
-    mishandle the ConfigManager's exception-based API).
+    Guards against the validate command crashing on valid input.
+    """
+    _write_yaml(configs_dir, "parser_config.yaml", _VALID_CONFIG)
+    result = CliRunner().invoke(
+        cli,
+        ["--configs-dir", str(configs_dir), "config", "validate", "parser_config.yaml"],
+    )
+    assert result.exit_code == _EXIT_SUCCESS, (
+        f"Expected exit 0 for valid config, got {result.exit_code}.\n"
+        f"output: {result.output}\nexc: {result.exception}"
+    )
+
+
+@pytest.mark.business_logic
+def test_cli_config_validate_exits_zero_on_valid_json_config(
+    configs_dir: Path,
+) -> None:
+    """validate принимает .json файл (обратная совместимость).
+
+    Проекты с существующими .json конфигами не должны ломаться.
     """
     _write_json(configs_dir, "parser_config.json", _VALID_CONFIG)
     result = CliRunner().invoke(
@@ -62,7 +88,7 @@ def test_cli_config_validate_exits_zero_on_valid_config(
         ["--configs-dir", str(configs_dir), "config", "validate", "parser_config.json"],
     )
     assert result.exit_code == _EXIT_SUCCESS, (
-        f"Expected exit 0 for valid config, got {result.exit_code}.\n"
+        f"Expected exit 0 for valid JSON config, got {result.exit_code}.\n"
         f"output: {result.output}\nexc: {result.exception}"
     )
 
@@ -148,4 +174,50 @@ def test_cli_config_list_on_empty_dir_exits_zero(
     assert result.exit_code == _EXIT_SUCCESS, (
         f"Expected exit 0 on empty configs dir, got {result.exit_code}.\n"
         f"output: {result.output}\nexc: {result.exception}"
+    )
+
+
+@pytest.mark.business_logic
+def test_cli_config_list_shows_yaml_config_filenames(configs_dir: Path) -> None:
+    """config list отображает .yaml файлы в выводе."""
+    _write_yaml(configs_dir, "parser_config.yaml", _VALID_CONFIG)
+    result = CliRunner().invoke(
+        cli, ["--configs-dir", str(configs_dir), "config", "list"]
+    )
+    assert result.exit_code == _EXIT_SUCCESS
+    assert "parser_config.yaml" in result.output
+
+
+@pytest.mark.business_logic
+def test_cli_config_list_shows_examples_section(configs_dir: Path) -> None:
+    """config list показывает секцию примеров, если examples/ существует."""
+    examples_dir = configs_dir / "examples"
+    examples_dir.mkdir()
+    _write_yaml(examples_dir, "parser_config.yaml", _VALID_CONFIG)
+
+    result = CliRunner().invoke(
+        cli, ["--configs-dir", str(configs_dir), "config", "list"]
+    )
+    assert result.exit_code == _EXIT_SUCCESS
+    assert "examples" in result.output.lower()
+
+
+@pytest.mark.business_logic
+def test_no_dot_example_files_in_configs_root() -> None:
+    """В корне configs/ не должно быть файлов с суффиксом .example.
+
+    Паттерн <name>.json.example упразднён: примеры хранятся в configs/examples/.
+    Тест гарантирует, что старый паттерн не воспроизведётся случайно.
+    Сканирует реальный configs/ в корне репозитория.
+    """
+    repo_root = Path(__file__).parent.parent.parent
+    real_configs_dir = repo_root / "configs"
+
+    if not real_configs_dir.is_dir():
+        pytest.skip("configs/ directory not found — skipping convention check")
+
+    example_files = list(real_configs_dir.glob("*.example"))
+    assert example_files == [], (
+        f"Найдены файлы с устаревшим суффиксом .example: {example_files}. "
+        "Примеры должны храниться в configs/examples/, а не рядом с рабочими конфигами."
     )

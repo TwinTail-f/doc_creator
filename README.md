@@ -28,11 +28,11 @@ pip install -r requirements.txt
 Скопируй примеры конфигов и заполни:
 
 ```bash
-cp configs/parser_config.json.example configs/parser_config.json
-cp configs/confluence_config.json.example configs/confluence_config.json
+cp configs/examples/parser_config.yaml configs/parser_config.yaml
+cp configs/examples/confluence_config.yaml configs/confluence_config.yaml
 ```
 
-#### Обязательные поля `parser_config.json`
+#### Обязательные поля `parser_config.yaml`
 
 | Поле | Описание |
 |------|----------|
@@ -45,7 +45,7 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 | `conan_config_url` | URL zip-архива конфигурации Conan в Artifactory |
 | `artifactory_token` | PAT-токен Artifactory |
 
-#### Опциональные поля `parser_config.json`
+#### Опциональные поля `parser_config.yaml`
 
 | Поле | По умолчанию | Описание |
 |------|-------------|----------|
@@ -73,61 +73,60 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 
 Примеры:
 
-```json
-// Пропустить два компонента, остальные обработать
-"component_filter_mode": "exclude",
-"component_names": ["sqlite3", "apr-util"]
+```yaml
+# Пропустить два компонента, остальные обработать
+component_filter_mode: "exclude"
+component_names:
+  - "sqlite3"
+  - "apr-util"
 ```
 
-```json
-// Обработать только эти два компонента, остальные пропустить
-"component_filter_mode": "include",
-"component_names": ["openssl", "zlib"]
+```yaml
+# Обработать только эти два компонента, остальные пропустить
+component_filter_mode: "include"
+component_names:
+  - "openssl"
+  - "zlib"
 ```
 
-```json
-// Оба поля пустые / не указаны — обрабатываются все компоненты
-"component_filter_mode": "exclude",
-"component_names": []
+```yaml
+# Оба поля пустые / не указаны — обрабатываются все компоненты
+component_filter_mode: "exclude"
+component_names: []
 ```
 
 #### Переопределения настроек Conan-профилей (опционально)
 
 Некоторые Jinja-профили читают настройки через `os.getenv()` (например `KOS_SDK_VER` → `compiler.toolchain_config_id`). Если нужные переменные окружения не заданы, Conan не может собрать граф зависимостей.
 
-Файл `profile_settings_overrides.json` позволяет задать такие настройки явно, не трогая окружение. Он указывается в `parser_config.json`:
+Файл `profile_settings_overrides.yaml` позволяет задать такие настройки явно, не трогая окружение. Он указывается в `parser_config.yaml`:
 
-```json
-"profile_settings_overrides_file": "configs/profile_settings_overrides.json"
+```yaml
+profile_settings_overrides_file: "configs/profile_settings_overrides.yaml"
 ```
 
 Структура файла — список групп, каждая связывает профили с набором `-s` настроек:
 
-```json
-{
-  "overrides": [
-    {
-      "profiles": ["kos-x86_64-pc-clang.jinja", "mobile-kos-x86_64-pc.jinja"],
-      "settings": {
-        "compiler.toolchain_config_id": "kos-x86_64-2.1.2.31"
-      }
-    },
-    {
-      "profiles": ["mobile-kos-aarch64.jinja"],
-      "settings": {
-        "compiler.toolchain_config_id": "kos-aarch64-2.1.0.49",
-        "compiler.version": "12"
-      }
-    }
-  ]
-}
+```yaml
+overrides:
+  - profiles:
+      - "kos-x86_64-pc-clang.jinja"
+      - "mobile-kos-x86_64-pc.jinja"
+    settings:
+      compiler.toolchain_config_id: "kos-x86_64-2.1.2.31"
+  - profiles:
+      - "mobile-kos-aarch64.jinja"
+    settings:
+      compiler.toolchain_config_id: "kos-aarch64-2.1.0.49"
+      compiler.version: "12"
 ```
 
-Готовый пример с комментариями: `configs/profile_settings_overrides.json.example`.
+Готовый пример с комментариями: `configs/examples/profile_settings_overrides.yaml`
+(JSON-вариант: `configs/examples/profile_settings_overrides.json`).
 
 Если поле не указано или файл не найден — переопределения не применяются, поведение не меняется.
 
-#### Обязательные поля `confluence_config.json`
+#### Обязательные поля `confluence_config.yaml`
 
 | Поле | Описание |
 |------|----------|
@@ -137,7 +136,7 @@ cp configs/confluence_config.json.example configs/confluence_config.json
 | `parent_id` | ID родительской страницы для релизной документации |
 | `passports_root_parent_id` | ID корневой страницы для иерархии паспортов |
 
-#### Опциональные поля `confluence_config.json`
+#### Опциональные поля `confluence_config.yaml`
 
 | Поле | По умолчанию | Описание |
 |------|-------------|----------|
@@ -211,7 +210,7 @@ python -m autodoc.cli publish all --root-page 987654321 --page-title "Платф
 python -m autodoc.cli config list
 
 # Валидация конфига (автоматически определяет схему — parser или confluence)
-python -m autodoc.cli config validate parser_config.json
+python -m autodoc.cli config validate parser_config.yaml
 
 # Версия и список возможностей
 python -m autodoc.cli info
@@ -297,12 +296,19 @@ ManifestStep → OptionsResolveStep → ConanEnrichStep
 
 ```
 configs/
-├── parser_config.json       — настройки парсера (TFS, Conan, платформа)
-└── confluence_config.json   — настройки публикации (Confluence URL, токен, space)
+├── parser_config.yaml        — настройки парсера (TFS, Conan, платформа)
+├── confluence_config.yaml    — настройки публикации (Confluence URL, токен, space)
+└── examples/                 — файлы-примеры для копирования
+    ├── parser_config.yaml
+    ├── parser_config.json
+    ├── confluence_config.yaml
+    ├── confluence_config.json
+    ├── profile_settings_overrides.yaml
+    └── profile_settings_overrides.json
 ```
 
-Поддерживаемые форматы: `.json`, `.yaml`, `.yml`.
-Если файл не указан явно, он ищется автоматически в директории `configs/`.
+Первичный формат: `.yaml`. Поддерживаются также `.yml` и `.json` (обратная совместимость).
+Если файл не указан явно, он ищется автоматически — YAML имеет приоритет над JSON.
 
 ---
 

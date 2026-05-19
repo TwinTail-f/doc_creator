@@ -468,6 +468,7 @@ def config_list(ctx: click.Context) -> None:
     cli_ctx: _CliCtx = ctx.obj["cli"]
 
     available = cli_ctx.config_manager.list_available_configs()
+    examples = cli_ctx.config_manager.list_example_configs()
 
     console.print(Panel.fit("[bold]Доступные конфигурации[/bold]", style="blue"))
 
@@ -480,6 +481,14 @@ def config_list(ctx: click.Context) -> None:
             console.print(table)
         else:
             console.print(f"{fmt.upper()} конфиги: [yellow]не найдены[/yellow]")
+
+    # Примеры
+    has_examples = any(files for files in examples.values())
+    if has_examples:
+        console.print("\n[bold]Примеры (configs/examples/)[/bold]")
+        for fmt, files in examples.items():
+            for fname in files:
+                console.print(f"  [dim]{fmt}: {fname}[/dim]")
 
 
 @config.command("validate")
