@@ -3,7 +3,7 @@
 from autodoc.common.logger import logger
 from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.enrichment.data_enricher import DataEnricher
-from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
@@ -28,7 +28,7 @@ class ConanEnrichStep(BaseParseStep):
 
     def __init__(
         self,
-        fetcher: FetcherBase[ConanEnrichmentResult] | None = None,
+        fetcher: BaseFetcher[ConanEnrichmentResult] | None = None,
     ) -> None:
         """
         Args:

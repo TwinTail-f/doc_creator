@@ -3,7 +3,7 @@
 from autodoc.common.logger import logger
 from autodoc.models.component import Component
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
-from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
@@ -14,7 +14,7 @@ class ManifestStep(BaseParseStep):
     name = "Загрузка и парсинг манифестов"
     is_critical = True
 
-    def __init__(self, fetcher: FetcherBase[list[Component]] | None = None) -> None:
+    def __init__(self, fetcher: BaseFetcher[list[Component]] | None = None) -> None:
         """
         Args:
             fetcher: Фетчер манифестов. Если не передан — используется

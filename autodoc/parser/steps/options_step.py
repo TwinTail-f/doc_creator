@@ -4,7 +4,7 @@ from autodoc.common.logger import logger
 from autodoc.models.types import OptionsMap
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.options_fetcher import OptionsFetcher
-from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
@@ -15,7 +15,7 @@ class OptionsResolveStep(BaseParseStep):
     name = "Сбор опций Conan (options.json)"
     is_critical = False
 
-    def __init__(self, fetcher: FetcherBase[OptionsMap] | None = None) -> None:
+    def __init__(self, fetcher: BaseFetcher[OptionsMap] | None = None) -> None:
         """
         Args:
             fetcher: Фетчер опций Conan. Если не передан — используется

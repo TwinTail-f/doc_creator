@@ -9,16 +9,22 @@ from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
 
 _NOT_CONFIGURED_MSG: str = (
-    "fetch() called before configure(). Call configure(ctx) first."
+    "fetch() вызван до configure(). Сначала вызовите configure(ctx)."
 )
 
 
-class FetcherBase[T](ABC):
+class BaseFetcher[T](ABC):
     """
     Интерфейс двухфазового фетчера: ``configure()`` → ``fetch()``.
 
     Разделение на две фазы позволяет внедрять зависимости через ``configure(ctx)``
     без прямой передачи контекста в ``fetch()``, что упрощает тестирование.
+
+    Порядок вызова и инвариант полностью контролируются базовым классом:
+    - ``configure()`` делегирует ``_configure()`` и выставляет ``_configured = True``.
+    - ``fetch()`` проверяет ``_configured`` и делегирует ``_fetch()``.
+
+    Подклассы реализуют только ``_configure()`` и ``_fetch()``.
     """
 
     def __init__(self) -> None:
@@ -26,21 +32,44 @@ class FetcherBase[T](ABC):
         self._configured: bool = False
 
     @abstractmethod
-    def configure(self, ctx: PipelineContextProtocol) -> None:
+    def _configure(self, ctx: PipelineContextProtocol) -> None:
         """
-        Инициализирует фетчер данными из контекста пайплайна.
+        Реализует инициализацию фетчера из контекста пайплайна.
 
-        Должен вызываться перед ``fetch()``. Реализация сохраняет нужные
-        поля из ``ctx.config``.
+        Вызывается из ``configure()`` до выставления ``_configured = True``.
 
         Args:
             ctx: Контекст пайплайна с конфигурацией и состоянием.
         """
 
     @abstractmethod
+    def _fetch(self, *args: Any, **kwargs: Any) -> FetchResult[T]:
+        """
+        Реализует логику загрузки данных.
+
+        Вызывается из ``fetch()`` после проверки инварианта ``configure()`` → ``fetch()``.
+
+        Args:
+            *args: Аргументы, специфичные для конкретного фетчера.
+            **kwargs: Именованные аргументы, специфичные для конкретного фетчера.
+
+        Returns:
+            ``FetchResult`` с загруженными данными и предупреждениями.
+        """
+
+    def configure(self, ctx: PipelineContextProtocol) -> None:
+        """
+        Делегирует инициализацию ``_configure()``, затем выставляет ``_configured = True``.
+
+        Args:
+            ctx: Контекст пайплайна с конфигурацией и состоянием.
+        """
+        self._configure(ctx)
+        self._configured = True
+
     def fetch(self, *args: Any, **kwargs: Any) -> FetchResult[T]:
         """
-        Загружает данные. Должен вызываться после ``configure()``.
+        Проверяет инвариант ``configure()`` → ``fetch()`` и делегирует ``_fetch()``.
 
         Args:
             *args: Аргументы, специфичные для конкретного фетчера.
@@ -50,18 +79,8 @@ class FetcherBase[T](ABC):
             ``FetchResult`` с загруженными данными и предупреждениями.
 
         Raises:
-            RuntimeError: Если вызван до ``configure()``.
+            AssertionError: Если ``configure()`` не был вызван до ``fetch()``.
         """
+        assert self._configured is True, _NOT_CONFIGURED_MSG
+        return self._fetch(*args, **kwargs)
 
-    def _assert_configured(self) -> None:
-        """Вспомогательный метод для подклассов: бросает ``RuntimeError``, если ``fetch()``
-        вызван до ``configure()``.
-
-        Подклассы должны вызывать его в начале своей реализации ``fetch()``,
-        чтобы соблюдать контракт двухфазового взаимодействия ``configure()`` → ``fetch()``.
-
-        Raises:
-            RuntimeError: Если ``configure()`` ещё не был вызван.
-        """
-        if not self._configured:
-            raise RuntimeError(_NOT_CONFIGURED_MSG)

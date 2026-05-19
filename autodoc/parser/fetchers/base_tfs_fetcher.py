@@ -3,16 +3,16 @@
 """
 
 from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
-from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 
 
-class BaseTFSFetcher[T](FetcherBase[T]):
+class BaseTFSFetcher[T](BaseFetcher[T]):
     """
     Базовый класс для фетчеров, обращающихся к TFS.
 
     Хранит ссылку на ``TFSClientProtocol``; конкретное значение
     устанавливается в ``configure(ctx)`` подклассом.
-    Контракт ``configure()`` / ``fetch()`` унаследован от ``FetcherBase[T]``.
+    Контракт ``configure()`` / ``fetch()`` унаследован от ``BaseFetcher[T]``.
     """
 
     def __init__(self) -> None:

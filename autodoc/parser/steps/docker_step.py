@@ -5,7 +5,7 @@
 from autodoc.common.logger import logger
 from autodoc.parser.enrichment.data_enricher import DataEnricher
 from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
-from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.pipeline.context import PipelineContext
 
@@ -18,7 +18,7 @@ class DockerResolveStep(BaseParseStep):
     name = "Сбор Docker-ссылок профилей"
     is_critical = False
 
-    def __init__(self, fetcher: FetcherBase[DockerLinksMap] | None = None) -> None:
+    def __init__(self, fetcher: BaseFetcher[DockerLinksMap] | None = None) -> None:
         """
         Args:
             fetcher: Фетчер Docker-ссылок. Если не передан — используется

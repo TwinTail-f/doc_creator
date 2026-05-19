@@ -1,7 +1,7 @@
 """
 Фетчер данных Conan graph info.
 
-Реализует ``FetcherBase[ConanEnrichmentResult]``, выстраивая тот же
+Реализует ``BaseFetcher[ConanEnrichmentResult]``, выстраивая тот же
 двухфазовый протокол, что используется остальными шагами пайплайна:
 
     ConanFetcher.configure(ctx)          # извлечение параметров из контекста
@@ -27,18 +27,18 @@ from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.result_parser import ConanResultParser
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
-from autodoc.parser.fetchers.base_fetcher import FetcherBase
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 
 _DEFAULT_MAX_WORKERS: int = 64
 _LOG_PROGRESS_INTERVAL: int = 50
 
 
-class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
+class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
     """
     Фетчер данных ``conan graph info``.
 
-    Следует двухфазовому протоколу ``FetcherBase``:
+    Следует двухфазовому протоколу ``BaseFetcher``:
 
     1. ``configure(ctx)`` — извлекает таймаут, платформу, URL Artifactory
        и URL конфигурации Conan из конфигурации пайплайна.
@@ -61,7 +61,7 @@ class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
         self._username: str = ""
         self._password: str | None = None
 
-    def configure(self, ctx: PipelineContext) -> None:
+    def _configure(self, ctx: PipelineContext) -> None:
         """
         Инициализирует фетчер из контекста пайплайна.
 
@@ -88,9 +88,7 @@ class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
         else:
             self._profile_overrides = ProfileSettingsOverrides.empty()
 
-        self._configured = True
-
-    def fetch(
+    def _fetch(
         self,
         components: list[Component],
     ) -> FetchResult[ConanEnrichmentResult]:
@@ -119,7 +117,6 @@ class ConanFetcher(FetcherBase[ConanEnrichmentResult]):
         Raises:
             RuntimeError: Если установка конфигурации Conan завершилась с ошибкой.
         """
-        self._assert_configured()
 
         if not self._conan_config_url:
             raise RuntimeError(

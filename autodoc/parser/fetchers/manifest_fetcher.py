@@ -34,7 +34,7 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._platform_base_version: str = ""
         self._platform_ref_type: VersionType = VersionType.BRANCH
 
-    def configure(self, ctx: PipelineContext) -> None:
+    def _configure(self, ctx: PipelineContext) -> None:
         """
         Инициализирует фетчер из контекста пайплайна.
 
@@ -50,9 +50,8 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         self._platform_version = ctx.config.platform_version
         self._platform_base_version = ctx.config.platform_base_version
         self._platform_ref_type = VersionType(ctx.config.platform_ref_type)
-        self._configured = True
 
-    def fetch(
+    def _fetch(
         self, tmp_dir: Path, component_names: list[str], filter_mode: str
     ) -> FetchResult[list[Component]]:
         """
@@ -70,7 +69,6 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         Raises:
             ParsingError: Если в директории не найдено ни одного .properties-файла.
         """
-        self._assert_configured()
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
         items_url = f"{self._base_url}/{_MANIFESTS_PROJECT}/_apis/git/repositories/{_MANIFESTS_REPO}/items"

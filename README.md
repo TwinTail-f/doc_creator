@@ -154,66 +154,66 @@ overrides:
 #### Парсинг — собрать данные компонентов
 
 ```bash
-python -m autodoc.cli parse
+python -m autodoc.main parse
 ```
 
 Результат сохраняется в `data/parsed_data.json`. Все последующие команды `publish` читают этот файл.
 
 ```bash
 # Пропустить тяжёлые шаги для быстрой отладки
-python -m autodoc.cli parse --skip-conan --skip-validation
+python -m autodoc.main parse --skip-conan --skip-validation
 
 # Сохранять снимок состояния после каждого шага пайплайна
-python -m autodoc.cli parse --save-intermediate
+python -m autodoc.main parse --save-intermediate
 ```
 
 #### Публикация релизной документации (вид от компонентов)
 
 ```bash
-python -m autodoc.cli publish release
+python -m autodoc.main publish release
 
 # Переопределить заголовок страницы
-python -m autodoc.cli publish release --page-title "Платформа 2.2"
+python -m autodoc.main publish release --page-title "Платформа 2.2"
 
 # Без ссылок на паспорта компонентов
-python -m autodoc.cli publish release --no-passport-links
+python -m autodoc.main publish release --no-passport-links
 ```
 
 #### Публикация профиль-центричной документации (вид от профилей сборки)
 
 ```bash
-python -m autodoc.cli publish profile
+python -m autodoc.main publish profile
 
-python -m autodoc.cli publish profile --page-title "Профили 2.2" --no-passport-links
+python -m autodoc.main publish profile --page-title "Профили 2.2" --no-passport-links
 ```
 
 #### Публикация паспортов компонентов
 
 ```bash
 # ID корневой страницы берётся из passports_root_parent_id конфига
-python -m autodoc.cli publish passports
+python -m autodoc.main publish passports
 
 # Или передать явно
-python -m autodoc.cli publish passports --root-page 987654321
+python -m autodoc.main publish passports --root-page 987654321
 ```
 
 #### Паспорта + релизная страница за один вызов
 
 ```bash
-python -m autodoc.cli publish all --root-page 987654321 --page-title "Платформа 2.2"
+python -m autodoc.main publish all --root-page 987654321 --page-title "Платформа 2.2"
 ```
 
 #### Утилиты
 
 ```bash
 # Список конфигурационных файлов в configs/
-python -m autodoc.cli config list
+python -m autodoc.main config list
 
 # Валидация конфига (автоматически определяет схему — parser или confluence)
-python -m autodoc.cli config validate parser_config.yaml
+python -m autodoc.main config validate parser_config.yaml
 
 # Версия и список возможностей
-python -m autodoc.cli info
+python -m autodoc.main info
 ```
 
 ---
@@ -266,6 +266,17 @@ python -m autodoc.cli info
 
 ```
 autodoc/
+├── main.py      — точка входа CLI (тонкая обёртка, 5 строк)
+├── cli/         — все команды и группы Click
+│   ├── _app.py          — корневая группа cli + регистрация команд
+│   ├── _constants.py    — версия, имена шаблонов, заголовки по умолчанию
+│   ├── _context.py      — класс _CliCtx (общий контекст между командами)
+│   ├── _helpers.py      — общие хелперы и объект console
+│   └── commands/
+│       ├── parse.py     — команда parse
+│       ├── publish.py   — группа publish (release / profile / passports / all)
+│       ├── config.py    — группа config (list / validate)
+│       └── info.py      — команда info
 ├── parser/      — сбор данных из TFS + Conan + Docker
 └── publisher/   — публикация в Confluence
 ```

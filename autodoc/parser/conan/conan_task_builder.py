@@ -2,14 +2,11 @@
 Построитель задач для Conan graph info.
 """
 
+import re
+
 from autodoc.models.component import Component
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
-
-# Шаблон Conan version range с поддержкой pre-release версий
-_CONAN_REF_TEMPLATE: str = (
-    "{name}/[~{version},include_prerelease]@platform-{platform}/{channel}"
-)
 
 
 class ConanTaskBuilder:
@@ -50,7 +47,7 @@ class ConanTaskBuilder:
             for release in comp.releases:
                 options_dict = release._build_option_sets_internal or {"1": ""}
 
-                reference = _CONAN_REF_TEMPLATE.format(
+                reference = self._format_reference(
                     name=comp.name,
                     version=release.version,
                     platform=target_platform,
@@ -80,6 +77,37 @@ class ConanTaskBuilder:
                         )
 
         return tasks
+    
+    def _format_reference(self, name: str, version: str, platform: str, channel: str) -> str:
+        """
+        Формирует Conan-ссылку (requires).
+        Умеет работать с кастомными версиями (например, 8.4p1), вычисляя верхнюю
+        границу диапазона на стороне Python, чтобы избежать падения Conan 2.
+        """
+        # 1. Если версия соответствует строгому SemVer (только цифры и точки)
+        # Conan 2 отлично справляется с оператором ~ самостоятельно.
+        if re.match(r"^[\d\.]+$", version):
+            return f"{name}/[~{version},include_prerelease]@platform-{platform}/{channel}"
+        
+        # 2. Если версия содержит буквы (например, '8.4p1' или '1.1.1t')
+        # Извлекаем чисто числовой префикс с помощью регулярки. 
+        match = re.match(r"^(\d+(?:\.\d+)*)", version)
+        if match:
+            numeric_prefix = match.group(1) # '8.4'
+            parts = numeric_prefix.split('.')
+            
+            # Увеличиваем последнюю цифру на 1 (8.4 -> 8.5)
+            parts[-1] = str(int(parts[-1]) + 1)
+            upper_bound = '.'.join(parts)   # '8.5'
+            
+            # Вручную формируем диапазон: [>=8.4p1 <8.5,include_prerelease]
+            return (
+                f"{name}/[>={version} <{upper_bound}]"
+                f"@platform-{platform}/{channel}"
+            )
+
+        # 3. Фолбэк для версий, вообще не начинающихся с цифр (например "latest") 
+        return f"{name}/{version}@platform-{platform}/{channel}"
 
     def _build_cmd(
         self,

@@ -17,12 +17,17 @@ conan_config_url: "https://conan.example.com/config"
 
 artifactory_components_conan2_url: "https://artifactory.company.com/artifactory/conan2-local"
 
-profiles_urls:
-  - "https://tfs.company.com/tfs/DefaultCollection/DEP_Components/_git/build_profiles?path=/profiles/linux.yaml&version=GBdevelop"
+profiles_urls: [
+  "https://tfs.company.com/tfs/DefaultCollection/DEP_Components/_git/build_profiles?path=/profiles/linux.yaml&version=GBdevelop",
+  "https://tfs.company.com/tfs/DefaultCollection/DEP_Meow/_git/build_profiles?path=/profiles/linux.yaml&version=GBplatform-2.0"
+]
 
 # Поддерживаемые моды: exclude, include
 component_filter_mode: "exclude"
-component_names: []
+component_names: [
+  "llvm", "b2", "flex", "nasm", "bison", "m4", "tcl", "strawberryperl", 
+  "winflexbison", "graph_resolver", "msys2"
+]
 
 tfs_request_timeout: 15
 conan_command_timeout: 300
@@ -32,6 +37,6 @@ retry_backoff_factor: 2.0
 # Необязательно. Путь к файлу с переопределениями настроек (-s) для профилей Conan.
 # Используется как костыль для Jinja-профилей, читающих env-переменные
 # (например KOS_SDK_VER → compiler.toolchain_config_id).
-# Пример файла: configs/examples/profile_settings_overrides.yaml
-# Если поле не указано или файл не найден — костыль отключён.
-# profile_settings_overrides_file: "configs/profile_settings_overrides.yaml"
+# Пример файла: configs/examples/profile_settings_overrides.json / configs/examples/profile_settings_overrides.yaml
+# Если поле не указано или файл не найден — костыль отключён, поведение не меняется.
+profile_settings_overrides_file: "configs/profile_settings_overrides.yaml"

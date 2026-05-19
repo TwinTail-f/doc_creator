@@ -40,7 +40,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             log_progress_interval=_OPTIONS_LOG_INTERVAL,
         )
 
-    def configure(self, ctx: PipelineContext) -> None:
+    def _configure(self, ctx: PipelineContext) -> None:
         """
         Инициализирует фетчер из контекста пайплайна.
 
@@ -51,9 +51,8 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         self._tfs = ctx.tfs_client
         self._base_url = ctx.config.tfs_collection_url.rstrip("/")
-        self._configured = True
 
-    def fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
+    def _fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
         Собирает опции Conan для всех релизов компонентов.
 
@@ -68,7 +67,6 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         Returns:
             ``FetchResult`` с маппингом ``(comp_name, version, channel) → options``.
         """
-        self._assert_configured()
         logger.info("Начинаем сбор options.json…")
 
         fetch_warnings: list[str] = []
