@@ -24,6 +24,7 @@ class ConanTaskBuilder:
         target_platform: str,
         artifactory_base_url: str,
         profile_overrides: ProfileSettingsOverrides | None = None,
+        exact_range_components: list[str] | None = None,
     ) -> list[ConanTask]:
         """
         Формирует полный список задач для параллельного выполнения.
@@ -35,6 +36,11 @@ class ConanTaskBuilder:
             profile_overrides: Переопределения ``-s`` настроек по имени профиля.
                 Используется как костыль для Jinja-профилей с ``os.getenv()``.
                 Если ``None`` — переопределения не применяются.
+            exact_range_components: Список имён компонентов с нестандартным
+                версионированием. Для них вместо ``[~{version},include_prerelease]``
+                формируется точный диапазон ``[>={version} <{version+1}]``.
+                Актуально для компонентов, у которых формат версии менялся
+                (добавление/сокращение числовых сегментов).
 
         Returns:
             Список задач. Может быть пустым, если у компонентов нет профилей.
@@ -42,16 +48,19 @@ class ConanTaskBuilder:
         tasks: list[ConanTask] = []
         art_base = artifactory_base_url.rstrip("/")
         overrides = profile_overrides or ProfileSettingsOverrides.empty()
+        exact_range_set: set[str] = set(exact_range_components or [])
 
         for comp in components:
             for release in comp.releases:
                 options_dict = release._build_option_sets_internal or {"1": ""}
 
+                use_exact_range = comp.name in exact_range_set
                 reference = self._format_reference(
                     name=comp.name,
                     version=release.version,
                     platform=target_platform,
                     channel=release.channel,
+                    exact_range=use_exact_range,
                 )
 
                 for pb in release.profile_builds:
@@ -78,35 +87,80 @@ class ConanTaskBuilder:
 
         return tasks
     
-    def _format_reference(self, name: str, version: str, platform: str, channel: str) -> str:
+    @staticmethod
+    def _calc_upper_bound(numeric_prefix: str) -> str:
+        """
+        Вычисляет верхнюю границу диапазона, увеличивая последний числовой сегмент на 1.
+
+        Используется для построения диапазонов ``[>=X <Y]``, где Y = X с
+        инкрементированным последним сегментом.
+
+        Args:
+            numeric_prefix: Строго числовая строка вида ``'8.4'``, ``'20.11.10'``.
+
+        Returns:
+            Строка с увеличенным последним сегментом: ``'8.5'``, ``'20.11.11'``.
+        """
+        parts = numeric_prefix.split(".")
+        parts[-1] = str(int(parts[-1]) + 1)
+        return ".".join(parts)
+
+    def _format_reference(
+        self, name: str, version: str, platform: str, channel: str,
+        exact_range: bool = False,
+    ) -> str:
         """
         Формирует Conan-ссылку (requires).
-        Умеет работать с кастомными версиями (например, 8.4p1), вычисляя верхнюю
-        границу диапазона на стороне Python, чтобы избежать падения Conan 2.
+
+        Поддерживает три режима формирования диапазона версий:
+
+        1. ``exact_range=True`` (компоненты из ``exact_range_components``):
+           Всегда строит точный числовой диапазон ``[>={version} <{version+1}]``.
+           Актуально для компонентов с нестандартным версионированием, у которых
+           формат версии менялся (добавление/сокращение сегментов).
+           Пример: ``20.11.10`` → ``[>=20.11.10 <20.11.11]``.
+
+        2. Чисто числовая версия (только цифры и точки):
+           Conan 2 обрабатывает ``~`` самостоятельно.
+           Пример: ``1.2.3`` → ``[~1.2.3,include_prerelease]``.
+
+        3. Версия с буквами (например ``8.4p1``, ``1.1.1t``):
+           Числовой префикс извлекается регуляркой, верхняя граница вычисляется
+           на стороне Python, чтобы избежать падения Conan 2.
+           Пример: ``8.4p1`` → ``[>=8.4p1 <8.5]``.
+
+        4. Фолбэк для версий, не начинающихся с цифр (например ``latest``):
+           Версия подставляется как есть.
         """
-        # 1. Если версия соответствует строгому SemVer (только цифры и точки)
-        # Conan 2 отлично справляется с оператором ~ самостоятельно.
+        # 1. Компоненты с нестандартным версионированием — точный числовой диапазон.
+        # Работает и с чисто числовыми версиями (20.11.10), и с буквенными (8.4p1):
+        # в обоих случаях берём числовой префикс и строим [>=version <prefix+1].
+        if exact_range:
+            match = re.match(r"^(\d+(?:\.\d+)*)", version)
+            if match:
+                upper_bound = self._calc_upper_bound(match.group(1))
+                return (
+                    f"{name}/[>={version} <{upper_bound}]"
+                    f"@platform-{platform}/{channel}"
+                )
+            # Фолбэк: версия вообще не начинается с цифры
+            return f"{name}/{version}@platform-{platform}/{channel}"
+
+        # 2. Стандартная чисто числовая версия — оператор ~ Conan 2.
         if re.match(r"^[\d\.]+$", version):
             return f"{name}/[~{version},include_prerelease]@platform-{platform}/{channel}"
-        
-        # 2. Если версия содержит буквы (например, '8.4p1' или '1.1.1t')
-        # Извлекаем чисто числовой префикс с помощью регулярки. 
+
+        # 3. Версия с буквами (например '8.4p1' или '1.1.1t') —
+        # вычисляем верхнюю границу на стороне Python.
         match = re.match(r"^(\d+(?:\.\d+)*)", version)
         if match:
-            numeric_prefix = match.group(1) # '8.4'
-            parts = numeric_prefix.split('.')
-            
-            # Увеличиваем последнюю цифру на 1 (8.4 -> 8.5)
-            parts[-1] = str(int(parts[-1]) + 1)
-            upper_bound = '.'.join(parts)   # '8.5'
-            
-            # Вручную формируем диапазон: [>=8.4p1 <8.5,include_prerelease]
+            upper_bound = self._calc_upper_bound(match.group(1))
             return (
                 f"{name}/[>={version} <{upper_bound}]"
                 f"@platform-{platform}/{channel}"
             )
 
-        # 3. Фолбэк для версий, вообще не начинающихся с цифр (например "latest") 
+        # 4. Фолбэк для версий, вообще не начинающихся с цифр (например "latest").
         return f"{name}/{version}@platform-{platform}/{channel}"
 
     def _build_cmd(

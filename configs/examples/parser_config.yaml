@@ -29,6 +29,11 @@ component_names: [
   "winflexbison", "graph_resolver", "msys2"
 ]
 
+# Компоненты с нестандартным версионированием (формат версии менялся —
+# добавлялись или убирались числовые сегменты). Для них вместо стандартного
+# [~{version},include_prerelease] формируется точный диапазон [>=X.Y.Z <X.Y.(Z+1)].
+exact_range_components: []
+
 tfs_request_timeout: 15
 conan_command_timeout: 300
 max_retries: 3

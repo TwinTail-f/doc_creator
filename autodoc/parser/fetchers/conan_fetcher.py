@@ -60,6 +60,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
         )
         self._username: str = ""
         self._password: str | None = None
+        self._exact_range_components: list[str] = []
 
     def _configure(self, ctx: PipelineContext) -> None:
         """
@@ -76,6 +77,9 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
         self._conan_config_url = (ctx.config.conan_config_url or "").strip()
         self._username = ctx.config.username
         self._password = ctx.config.artifactory_token
+        self._exact_range_components = list(
+            getattr(ctx.config, "exact_range_components", None) or []
+        )
 
         # Загружаем костыль с переопределениями -s настроек для Jinja-профилей
         overrides_path = getattr(ctx.config, "profile_settings_overrides_file", None)
@@ -130,6 +134,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
             self._platform_version,
             self._artifactory_base_url,
             profile_overrides=self._profile_overrides,
+            exact_range_components=self._exact_range_components,
         )
 
         if not tasks:
