@@ -2,6 +2,7 @@
 Управляет жизненным циклом конфигурационной директории Conan.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -16,8 +17,9 @@ class ConanEnvironmentManager:
     Управляет жизненным циклом конфигурационной директории Conan.
 
     Выполняет однократную установку конфигурации из Artifactory (``conan config install``)
-    и авторизацию в удалённом репозитории (``conan remote login``). Созданная директория
-    используется как шаблон для изолированных временных копий в ``Conan2Runner.run()``.
+    и авторизацию во всех remote-репозиториях из установленной конфигурации.
+    Созданная директория используется как шаблон для изолированных временных копий
+    в ``Conan2Runner.run()``.
 
     Attributes:
         _config_url: URL zip-архива конфигурации Conan.
@@ -28,7 +30,6 @@ class ConanEnvironmentManager:
 
     _CONFIG_INSTALL_TIMEOUT: int = 120
     _LOGIN_TIMEOUT: int = 30
-    _CONAN_REMOTE_NAME: str = "components-conan2"
 
     def __init__(
         self,
@@ -49,10 +50,10 @@ class ConanEnvironmentManager:
 
     def setup(self) -> Path:
         """
-        Устанавливает конфигурацию Conan и выполняет вход в remote.
+        Устанавливает конфигурацию Conan и выполняет вход во все remotes.
 
         Создаёт изолированную временную директорию, устанавливает в неё конфигурацию
-        Conan из Artifactory и авторизуется в remote репозитории.
+        Conan из Artifactory и авторизуется в каждом remote из установленной конфигурации.
 
         Returns:
             Путь к директории-шаблону с установленной конфигурацией Conan.
@@ -68,13 +69,36 @@ class ConanEnvironmentManager:
         env = {**os.environ, "CONAN_HOME": str(self._setup_dir)}
 
         self._install_config(env)
-        self._login_remote(env)
+
+        for remote in self._get_remote_names(env):
+            self._login_remote(remote, env)
 
         return self._setup_dir
 
-    def _login_remote(self, env: dict[str, str]) -> None:
-        """Авторизуется в Conan remote через ``conan remote login``."""
-        logger.info(f'Авторизуемся в Conan remote "{self._CONAN_REMOTE_NAME}" …')
+    def _get_remote_names(self, env: dict[str, str]) -> list[str]:
+        """Возвращает список имён всех Conan remotes из установленной конфигурации."""
+        result = subprocess.run(
+            ["conan", "remote", "list", "--format=json"],
+            capture_output=True,
+            text=True,
+            timeout=self._LOGIN_TIMEOUT,
+            env=env,
+        )
+        if result.returncode != 0:
+            error = result.stderr.strip() or result.stdout.strip()
+            self.cleanup()
+            raise RuntimeError(
+                f"conan remote list завершился с ошибкой (код {result.returncode}): {error}"
+            )
+
+        remotes = json.loads(result.stdout)
+        names = [r["name"] for r in remotes]
+        logger.info(f"Найдены Conan remotes: {names}")
+        return names
+
+    def _login_remote(self, remote_name: str, env: dict[str, str]) -> None:
+        """Авторизуется в одном Conan remote через ``conan remote login``."""
+        logger.info(f'Авторизуемся в Conan remote "{remote_name}" …')
         result = subprocess.run(
             [
                 "conan",
@@ -82,7 +106,7 @@ class ConanEnvironmentManager:
                 "login",
                 "--password",
                 self._password,
-                self._CONAN_REMOTE_NAME,
+                remote_name,
                 self._username,
             ],
             capture_output=True,
@@ -94,9 +118,10 @@ class ConanEnvironmentManager:
             error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
-                f"conan remote login завершился с ошибкой (код {result.returncode}): {error}"
+                f'conan remote login в "{remote_name}" завершился с ошибкой '
+                f"(код {result.returncode}): {error}"
             )
-        logger.info(f'Авторизация в "{self._CONAN_REMOTE_NAME}" прошла успешно.')
+        logger.info(f'Авторизация в "{remote_name}" прошла успешно.')
 
     def _install_config(self, env: dict[str, str]) -> None:
         """Устанавливает конфигурацию Conan из Artifactory через ``conan config install``."""
