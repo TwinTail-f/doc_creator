@@ -20,14 +20,12 @@ from autodoc.parser.pipeline.context import PipelineContext
 class _ConcreteFetcher(BaseTFSFetcher):
     """Минимальный конкретный подкласс BaseTFSFetcher для тестирования инвариантов базового класса."""
 
-    def configure(self, ctx: PipelineContext) -> None:
+    def _configure(self, ctx: PipelineContext) -> None:
         """Сохраняет TFS-клиент из контекста (стандартный шаблон BaseTFSFetcher)."""
         self._tfs = ctx.tfs_client
-        self._configured = True
 
-    def fetch(self, *args: Any, **kwargs: Any) -> FetchResult:
-        """Проверяет что configure() вызван, затем возвращает пустой результат."""
-        self._assert_configured()
+    def _fetch(self, *args: Any, **kwargs: Any) -> FetchResult:
+        """Возвращает пустой результат."""
         return FetchResult(value=[])
 
 
@@ -84,5 +82,5 @@ def test_base_fetcher_fetch_before_configure_raises() -> None:
     misconfigured fetchers from silently returning empty or stale data.
     """
     fetcher = _ConcreteFetcher()
-    with pytest.raises(RuntimeError, match="configure"):
+    with pytest.raises(AssertionError, match="configure"):
         fetcher.fetch()

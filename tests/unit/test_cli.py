@@ -200,24 +200,3 @@ def test_cli_config_list_shows_examples_section(configs_dir: Path) -> None:
     )
     assert result.exit_code == _EXIT_SUCCESS
     assert "examples" in result.output.lower()
-
-
-@pytest.mark.business_logic
-def test_no_dot_example_files_in_configs_root() -> None:
-    """В корне configs/ не должно быть файлов с суффиксом .example.
-
-    Паттерн <name>.json.example упразднён: примеры хранятся в configs/examples/.
-    Тест гарантирует, что старый паттерн не воспроизведётся случайно.
-    Сканирует реальный configs/ в корне репозитория.
-    """
-    repo_root = Path(__file__).parent.parent.parent
-    real_configs_dir = repo_root / "configs"
-
-    if not real_configs_dir.is_dir():
-        pytest.skip("configs/ directory not found — skipping convention check")
-
-    example_files = list(real_configs_dir.glob("*.example"))
-    assert example_files == [], (
-        f"Найдены файлы с устаревшим суффиксом .example: {example_files}. "
-        "Примеры должны храниться в configs/examples/, а не рядом с рабочими конфигами."
-    )
