@@ -112,56 +112,23 @@ class ConanTaskBuilder:
         """
         Формирует Conan-ссылку (requires).
 
-        Поддерживает три режима формирования диапазона версий:
-
-        1. ``exact_range=True`` (компоненты из ``exact_range_components``):
-           Всегда строит точный числовой диапазон ``[>={version} <{version+1}]``.
-           Актуально для компонентов с нестандартным версионированием, у которых
-           формат версии менялся (добавление/сокращение сегментов).
-           Пример: ``20.11.10`` → ``[>=20.11.10 <20.11.11]``.
-
-        2. Чисто числовая версия (только цифры и точки):
-           Conan 2 обрабатывает ``~`` самостоятельно.
-           Пример: ``1.2.3`` → ``[~1.2.3,include_prerelease]``.
-
-        3. Версия с буквами (например ``8.4p1``, ``1.1.1t``):
-           Числовой префикс извлекается регуляркой, верхняя граница вычисляется
-           на стороне Python, чтобы избежать падения Conan 2.
-           Пример: ``8.4p1`` → ``[>=8.4p1 <8.5]``.
-
-        4. Фолбэк для версий, не начинающихся с цифр (например ``latest``):
-           Версия подставляется как есть.
+        Для компонентов из ``exact_range_components`` или версий с буквами
+        (``8.4p1``, ``1.1.1t``) строит точный диапазон ``[>=version <version+1]``.
+        Для чисто числовых версий использует стандартный оператор ``~`` Conan 2.
+        Версии без числового префикса (``latest``) подставляются как есть.
         """
-        # 1. Компоненты с нестандартным версионированием — точный числовой диапазон.
-        # Работает и с чисто числовыми версиями (20.11.10), и с буквенными (8.4p1):
-        # в обоих случаях берём числовой префикс и строим [>=version <prefix+1].
-        if exact_range:
-            match = re.match(r"^(\d+(?:\.\d+)*)", version)
-            if match:
-                upper_bound = self._calc_upper_bound(match.group(1))
-                return (
-                    f"{name}/[>={version} <{upper_bound}]"
-                    f"@platform-{platform}/{channel}"
-                )
-            # Фолбэк: версия вообще не начинается с цифры
-            return f"{name}/{version}@platform-{platform}/{channel}"
-
-        # 2. Стандартная чисто числовая версия — оператор ~ Conan 2.
-        if re.match(r"^[\d\.]+$", version):
-            return f"{name}/[~{version},include_prerelease]@platform-{platform}/{channel}"
-
-        # 3. Версия с буквами (например '8.4p1' или '1.1.1t') —
-        # вычисляем верхнюю границу на стороне Python.
+        suffix = f"@platform-{platform}/{channel}"
         match = re.match(r"^(\d+(?:\.\d+)*)", version)
-        if match:
-            upper_bound = self._calc_upper_bound(match.group(1))
-            return (
-                f"{name}/[>={version} <{upper_bound}]"
-                f"@platform-{platform}/{channel}"
-            )
 
-        # 4. Фолбэк для версий, вообще не начинающихся с цифр (например "latest").
-        return f"{name}/{version}@platform-{platform}/{channel}"
+        if not match:
+            return f"{name}/{version}{suffix}"
+
+        is_pure_numeric = re.match(r"^[\d\.]+$", version)
+        if is_pure_numeric and not exact_range:
+            return f"{name}/[~{version},include_prerelease]{suffix}"
+
+        upper_bound = self._calc_upper_bound(match.group(1))
+        return f"{name}/[>={version} <{upper_bound}]{suffix}"
 
     def _build_cmd(
         self,
