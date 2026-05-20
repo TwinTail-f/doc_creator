@@ -14,8 +14,7 @@ def info() -> None:
         Panel(
             f"[bold cyan]Doc Generator v{_VERSION}[/bold cyan]\n\n"
             "✓ Автоматический сбор данных компонентов из TFS\n"
-            "✓ Интеграция с Conan package manager\n"
-            "✓ Получение Docker-ссылок из YAML профилей\n"
+            "✓ Сбор данных о опубликованных компонентах на artifactory посредством вызова команды conan graph info\n"
             "✓ Публикация паспортов компонентов (publish passports)\n"
             "✓ Публикация релизной документации от компонентов (publish release)\n"
             "✓ Публикация документации от профилей (publish profile)\n"

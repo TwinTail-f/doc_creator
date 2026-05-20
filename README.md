@@ -10,7 +10,7 @@
 ## Требования
 
 - Python 3.11+
-- Conan 2.x (доступен в PATH)
+- Conan 2.x (доступен в PATH) (на текущий момент реализация поддерживает только conan 2.x)
 - Доступ к TFS и Confluence
 
 ---
@@ -163,7 +163,7 @@ python -m autodoc.main parse
 # Пропустить тяжёлые шаги для быстрой отладки
 python -m autodoc.main parse --skip-conan --skip-validation
 
-# Сохранять снимок состояния после каждого шага пайплайна
+# Сохранять снимок состояния после каждого шага пайплайна + отладочную информацию
 python -m autodoc.main parse --save-intermediate
 ```
 
@@ -266,17 +266,8 @@ python -m autodoc.main info
 
 ```
 autodoc/
-├── main.py      — точка входа CLI (тонкая обёртка, 5 строк)
+├── main.py      — точка входа CLI (тонкая обёртка)
 ├── cli/         — все команды и группы Click
-│   ├── _app.py          — корневая группа cli + регистрация команд
-│   ├── _constants.py    — версия, имена шаблонов, заголовки по умолчанию
-│   ├── _context.py      — класс _CliCtx (общий контекст между командами)
-│   ├── _helpers.py      — общие хелперы и объект console
-│   └── commands/
-│       ├── parse.py     — команда parse
-│       ├── publish.py   — группа publish (release / profile / passports / all)
-│       ├── config.py    — группа config (list / validate)
-│       └── info.py      — команда info
 ├── parser/      — сбор данных из TFS + Conan + Docker
 └── publisher/   — публикация в Confluence
 ```
