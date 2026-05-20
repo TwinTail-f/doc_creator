@@ -13,7 +13,7 @@ from autodoc.exceptions import DocGeneratorError, ParsingError
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
+from autodoc.parser.clients.artifactory_client_protocol import ArtifactoryClientProtocol
 from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
 from autodoc.parser.clients.tfs_client import TFSClient
 from autodoc.parser.steps.base_parse_step import BaseParseStep
@@ -40,7 +40,7 @@ class ComponentParser:
         data_dir: Path,
         steps: list[BaseParseStep] | None = None,
         tfs_client: TFSClientProtocol | None = None,
-        artifactory_client: IArtifactoryClient | None = None,
+        artifactory_client: ArtifactoryClientProtocol | None = None,
     ) -> None:
         """
         Args:
@@ -60,7 +60,7 @@ class ComponentParser:
             steps if steps is not None else ComponentParser._default_pipeline()
         )
         self._tfs_client: TFSClientProtocol | None = tfs_client
-        self._artifactory_client: IArtifactoryClient | None = artifactory_client
+        self._artifactory_client: ArtifactoryClientProtocol | None = artifactory_client
 
     @classmethod
     def _default_pipeline(cls) -> list[BaseParseStep]:

@@ -12,10 +12,8 @@ import requests
 import urllib3
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
-from autodoc.common.retryable_session import create_retryable_session
+from autodoc.common.retryable_session import create_pat_session
 from autodoc.common.logger import logger
-
-_MAX_RETRIES: int = 1
 
 
 class ArtifactoryClient:
@@ -26,8 +24,10 @@ class ArtifactoryClient:
     ``PipelineContext``. Не хранит глобального состояния — каждый
     экземпляр независим.
 
-    Отключает SSL-верификацию и подавляет ``InsecureRequestWarning``
-    только внутри ``head()`` — не глобально.
+    SSL-верификация отключена на уровне сессии (не только внутри ``head()``),
+    поскольку Artifactory в корпоративной сети использует самоподписанные
+    сертификаты. ``InsecureRequestWarning`` подавляется локально внутри
+    ``head()``, чтобы не засорять лог при массовых проверках.
 
     Attributes:
         session: HTTP-сессия с настроенной аутентификацией и retry-логикой.
@@ -40,18 +40,19 @@ class ArtifactoryClient:
         Args:
             config: Валидированная конфигурация парсера с PAT-токеном Artifactory.
         """
-        self.session = create_retryable_session(
+        self.session = create_pat_session(
             token=config.artifactory_token,
-            max_retries=_MAX_RETRIES,
+            max_retries=config.max_retries,
+            backoff_factor=config.retry_backoff_factor,
         )
         self.session.verify = False
 
     def head(self, url: str) -> requests.Response:
         """
-        Выполняет HTTP HEAD запрос с подавлением InsecureRequestWarning.
+        Выполняет HTTP HEAD-запрос с локальным подавлением InsecureRequestWarning.
 
-        SSL-предупреждение подавляется только внутри этого метода —
-        не на уровне всего процесса.
+        SSL-предупреждение подавляется только внутри этого метода, чтобы
+        не засорять лог при массовых проверках, — не на уровне всего процесса.
 
         Args:
             url: URL для проверки.
@@ -59,6 +60,7 @@ class ArtifactoryClient:
         Returns:
             HTTP-ответ.
         """
+        logger.debug(f"HEAD {url}")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
             return self.session.head(url, allow_redirects=True)

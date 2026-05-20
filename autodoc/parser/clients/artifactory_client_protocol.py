@@ -8,7 +8,7 @@ import requests
 
 
 @runtime_checkable
-class IArtifactoryClient(Protocol):
+class ArtifactoryClientProtocol(Protocol):
     """
     Интерфейс для проверки доступности артефактов в Artifactory.
 
