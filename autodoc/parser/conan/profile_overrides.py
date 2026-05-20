@@ -4,7 +4,7 @@
 Используется как костыль для профилей, чьи Jinja-шаблоны читают
 env-переменные (например ``KOS_SDK_VER`` → ``compiler.toolchain_config_id``).
 Вместо задания env-переменных пользователь описывает нужные ``-s`` настройки
-в файле ``profile_settings_overrides.json``.
+в файле переопределений (поддерживаются форматы YAML и JSON).
 
 Пример конфига — ``configs/examples/profile_settings_overrides.yaml``
 (JSON-вариант: ``configs/examples/profile_settings_overrides.json``).
@@ -14,6 +14,8 @@ import json
 from pathlib import Path
 from typing import Any, Self
 
+import yaml
+
 from autodoc.common.logger import logger
 
 
@@ -21,7 +23,7 @@ class ProfileSettingsOverrides:
     """
     Хранит и резолвит переопределения настроек (-s) для профилей Conan.
 
-    Загружается один раз из JSON-файла. Метод ``resolve()`` возвращает
+    Загружается один раз из YAML- или JSON-файла. Метод ``resolve()`` возвращает
     словарь ``{setting_key: value}`` для заданного имени профиля.
 
     Attributes:
@@ -49,26 +51,25 @@ class ProfileSettingsOverrides:
     @classmethod
     def from_file(cls, path: str | Path) -> Self:
         """
-        Загружает переопределения из JSON-файла.
+        Загружает переопределения из YAML- или JSON-файла.
 
-        Формат файла::
+        Формат файла (YAML-пример)::
 
-            {
-              "overrides": [
-                {
-                  "profiles": ["profile1.jinja", "profile2.jinja"],
-                  "settings": {
-                    "compiler.toolchain_config_id": "kos-kisg-3.1.0.130"
-                  }
-                }
-              ]
-            }
+            overrides:
+              - profiles:
+                  - profile1.jinja
+                  - profile2.jinja
+                settings:
+                  compiler.toolchain_config_id: kos-kisg-3.1.0.130
+
+        Формат определяется по расширению: ``.yaml`` / ``.yml`` → YAML,
+        ``.json`` (и всё остальное) → JSON.
 
         Если файл не найден или содержит ошибки — логирует предупреждение
         и возвращает пустой экземпляр, не прерывая работу пайплайна.
 
         Args:
-            path: Путь к JSON-файлу с переопределениями.
+            path: Путь к файлу с переопределениями (.yaml, .yml или .json).
 
         Returns:
             Заполненный экземпляр ``ProfileSettingsOverrides``.
@@ -83,8 +84,11 @@ class ProfileSettingsOverrides:
 
         try:
             with p.open("r", encoding="utf-8") as f:
-                raw: Any = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
+                if p.suffix.lower() in (".yaml", ".yml"):
+                    raw: Any = yaml.safe_load(f)
+                else:
+                    raw = json.load(f)
+        except (json.JSONDecodeError, yaml.YAMLError, OSError) as e:
             logger.warning(
                 f"profile_settings_overrides: не удалось прочитать {p}: {e}. "
                 "Переопределения не будут применены."
