@@ -17,9 +17,8 @@ class DataEnricher:
     объектов (``Release``, ``ProfileBuild``) во всём пайплайне.
     """
 
-    @classmethod
+    @staticmethod
     def apply_options(
-        cls,
         components: list[Component],
         options_map: OptionsMap,
     ) -> None:
@@ -49,9 +48,8 @@ class DataEnricher:
                         ConanInputOptions(id=k, options=v) for k, v in opts.items()
                     ]
 
-    @classmethod
+    @staticmethod
     def apply_docker_links(
-        cls,
         components: list[Component],
         docker_links: dict[str, str],
         profile_definitions: list[ProfileDefinition] | None = None,
@@ -84,9 +82,8 @@ class DataEnricher:
                         else:
                             pd_map[pname].docker_image = docker_url
 
-    @classmethod
+    @staticmethod
     def apply_conan_results(
-        cls,
         components: list[Component],
         result: ConanEnrichmentResult,
         profile_definitions: list[ProfileDefinition] | None = None,
