@@ -61,7 +61,9 @@ def _make_parser_with_real_steps(
     результата без операций, чтобы подпроцесс не был запущен.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
-    from autodoc.parser.clients.artifactory_client_protocol import IArtifactoryClient
+    from autodoc.parser.clients.artifactory_client_protocol import (
+        ArtifactoryClientProtocol,
+    )
     import requests
 
     class _AlwaysOkArtifactoryClient:
@@ -520,7 +522,9 @@ def test_pipeline_result_components_sorted_alphabetically(
     result: ParsedResult = parser.parse()
 
     names = [c.name for c in result.components]
-    assert len(names) >= 2, "Нужно по крайней мере 2 компонента для проверки алфавитной сортировки"
+    assert (
+        len(names) >= 2
+    ), "Нужно по крайней мере 2 компонента для проверки алфавитной сортировки"
     sorted_names = sorted(names, key=lambda n: n.lower())
     assert names == sorted_names, (
         f"Компоненты должны быть отсортированы в алфавитном порядке (без учёта регистра), "

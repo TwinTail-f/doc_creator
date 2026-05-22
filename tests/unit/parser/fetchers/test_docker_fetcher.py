@@ -5,6 +5,7 @@
 управляемое содержимое YAML. DockerParser НЕ мокируется — тестируется вся
 цепочка DockerFetcher → DockerParser.
 """
+
 import pytest
 
 from pathlib import Path

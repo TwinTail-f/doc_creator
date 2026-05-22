@@ -56,7 +56,8 @@ def result_with_header_only_unique_profile(
 
 
 @pytest.mark.contract
-def test_profile_centric_transform_returns_profiles_list(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_returns_profiles_list(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """result['profiles'] is a non-empty list."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
@@ -65,7 +66,8 @@ def test_profile_centric_transform_returns_profiles_list(publisher_multi_compone
 
 
 @pytest.mark.contract
-def test_profile_centric_transform_profile_has_required_fields(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_profile_has_required_fields(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """Each profile entry contains all mandatory keys."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
@@ -84,7 +86,8 @@ def test_profile_centric_transform_profile_has_required_fields(publisher_multi_c
 
 
 @pytest.mark.business_logic
-def test_profile_centric_transform_profile_os_from_conan_settings(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_profile_os_from_conan_settings(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """profile['os'] is read from conan_settings['os'] of the matching ProfileDefinition."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
@@ -93,7 +96,8 @@ def test_profile_centric_transform_profile_os_from_conan_settings(publisher_mult
 
 
 @pytest.mark.business_logic
-def test_profile_centric_transform_profile_docker_url(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_profile_docker_url(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """profile['docker_url'] matches the docker_image of the matching ProfileDefinition."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
@@ -102,7 +106,8 @@ def test_profile_centric_transform_profile_docker_url(publisher_multi_component_
 
 
 @pytest.mark.business_logic
-def test_profile_centric_transform_channels_grouped_by_channel(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_channels_grouped_by_channel(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """Both openssl and zlib appear under the 'tech' channel of the profile."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
@@ -112,7 +117,8 @@ def test_profile_centric_transform_channels_grouped_by_channel(publisher_multi_c
 
 
 @pytest.mark.business_logic
-def test_profile_centric_transform_comp_entry_has_reference_and_url(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_comp_entry_has_reference_and_url(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """Each component entry includes 'reference' and 'url' fields."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
@@ -123,7 +129,8 @@ def test_profile_centric_transform_comp_entry_has_reference_and_url(publisher_mu
 
 
 @pytest.mark.business_logic
-def test_profile_centric_transform_include_links_flag_in_result(publisher_multi_component_result: ParsedResult
+def test_profile_centric_transform_include_links_flag_in_result(
+    publisher_multi_component_result: ParsedResult,
 ) -> None:
     """result['include_passport_links'] reflects the constructor parameter."""
     result = ProfileCentricConverter(include_passport_links=False).transform(
@@ -168,9 +175,6 @@ def test_profile_centric_converter_profile_with_no_components_does_not_raise() -
     # so it must be absent from the profiles list (not cause a crash or spurious entry)
     profile_names = {p["profile_name"] for p in view_model["profiles"]}
     assert "hw-linux-riscv64-gcc12" not in profile_names
-
-
-
 
 
 @pytest.mark.business_logic

@@ -50,7 +50,8 @@ def converter_parsed_result_missing_profile(
 
 
 @pytest.mark.business_logic
-def test_passport_transform_raises_on_unknown_component(publisher_parsed_result: ParsedResult
+def test_passport_transform_raises_on_unknown_component(
+    publisher_parsed_result: ParsedResult,
 ) -> None:
     """transform() raises ValueError when the requested component does not exist."""
     converter = PassportConverter(UNKNOWN_COMPONENT, RELEASE_VERSION)
@@ -60,7 +61,8 @@ def test_passport_transform_raises_on_unknown_component(publisher_parsed_result:
 
 
 @pytest.mark.business_logic
-def test_passport_transform_raises_on_unknown_version(publisher_parsed_result: ParsedResult
+def test_passport_transform_raises_on_unknown_version(
+    publisher_parsed_result: ParsedResult,
 ) -> None:
     """transform() raises ValueError when the release version is not found."""
     converter = PassportConverter(COMP_NAME, UNKNOWN_VERSION)
@@ -70,7 +72,8 @@ def test_passport_transform_raises_on_unknown_version(publisher_parsed_result: P
 
 
 @pytest.mark.contract
-def test_passport_transform_returns_platform_version(publisher_parsed_result: ParsedResult
+def test_passport_transform_returns_platform_version(
+    publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['platform_version'] matches the platform_version of the ParsedResult."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
@@ -81,7 +84,8 @@ def test_passport_transform_returns_platform_version(publisher_parsed_result: Pa
 
 
 @pytest.mark.contract
-def test_passport_transform_returns_component_fields(publisher_parsed_result: ParsedResult
+def test_passport_transform_returns_component_fields(
+    publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['component'] contains the component's name and description."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
@@ -93,7 +97,8 @@ def test_passport_transform_returns_component_fields(publisher_parsed_result: Pa
 
 
 @pytest.mark.contract
-def test_passport_transform_returns_release_version(publisher_parsed_result: ParsedResult
+def test_passport_transform_returns_release_version(
+    publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['release']['version'] matches the requested release version."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
@@ -104,7 +109,8 @@ def test_passport_transform_returns_release_version(publisher_parsed_result: Par
 
 
 @pytest.mark.contract
-def test_passport_transform_returns_release_channel(publisher_parsed_result: ParsedResult
+def test_passport_transform_returns_release_channel(
+    publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['release']['channel'] matches the release's channel."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
@@ -112,7 +118,6 @@ def test_passport_transform_returns_release_channel(publisher_parsed_result: Par
     )
 
     assert result["release"]["channel"] == CHANNEL_TECH
-
 
 
 # ---------------------------------------------------------------------------

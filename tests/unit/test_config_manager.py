@@ -293,7 +293,9 @@ def test_list_available_configs_excludes_examples_subdir(tmp_path: Path) -> None
 
 
 @pytest.mark.business_logic
-def test_list_example_configs_returns_files_from_examples_subdir(tmp_path: Path) -> None:
+def test_list_example_configs_returns_files_from_examples_subdir(
+    tmp_path: Path,
+) -> None:
     """list_example_configs() возвращает файлы из configs/examples/.
 
     Проверяет, что новый метод корректно читает подпапку examples/
@@ -321,14 +323,15 @@ def test_list_example_configs_returns_files_from_examples_subdir(tmp_path: Path)
 
 
 @pytest.mark.business_logic
-def test_list_example_configs_returns_empty_when_no_examples_dir(tmp_path: Path) -> None:
+def test_list_example_configs_returns_empty_when_no_examples_dir(
+    tmp_path: Path,
+) -> None:
     """list_example_configs() возвращает пустые списки, если examples/ отсутствует."""
     manager = ConfigManager(configs_dir=tmp_path)
     result = manager.list_example_configs()
 
     assert all(files == [] for files in result.values()), (
-        "Ожидались пустые списки при отсутствии examples/, "
-        f"получено: {result}"
+        "Ожидались пустые списки при отсутствии examples/, " f"получено: {result}"
     )
 
 
@@ -338,7 +341,9 @@ def test_list_example_configs_returns_empty_when_no_examples_dir(tmp_path: Path)
 
 
 @pytest.mark.business_logic
-def test_config_manager_still_loads_json_for_backward_compatibility(tmp_path: Path) -> None:
+def test_config_manager_still_loads_json_for_backward_compatibility(
+    tmp_path: Path,
+) -> None:
     """JSON конфиг загружается корректно, даже когда YAML является приоритетным форматом.
 
     Обратная совместимость: проекты с существующими .json конфигами не должны ломаться.

@@ -105,7 +105,7 @@ class ConfigManager:
             return result
         examples_path = self.configs_dir / self.EXAMPLES_SUBDIR
         for item in sorted(self.configs_dir.iterdir()):
-            if item == examples_path:          # пропускаем examples/
+            if item == examples_path:  # пропускаем examples/
                 continue
             if item.is_file() and item.suffix.lower() in self.SUPPORTED_FORMATS:
                 result[item.suffix.lower().lstrip(".")].append(item.name)

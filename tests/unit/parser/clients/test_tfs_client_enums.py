@@ -4,6 +4,7 @@
 Сбой теста означает, что рефакторинг изменил значение, передаваемое в HTTP-запросах,
 что молча сломает результаты запросов к TFS.
 """
+
 import pytest
 
 from autodoc.parser.clients.tfs_client_enums import RecursionLevel, VersionType

@@ -111,7 +111,7 @@ def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type:
         "tempfile.mkdtemp", return_value="/tmp/conan_setup_test"
     )
     mock_run = mocker.patch("subprocess.run")
-    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="")
+    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
 
     manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
     manager.setup()
@@ -131,7 +131,7 @@ def test_conan_environment_manager_cleanup_removes_directory(
     """
     mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mock_run = mocker.patch("subprocess.run")
-    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="")
+    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
     setup_dir: Path = tmp_path / "conan_setup_fake"
     setup_dir.mkdir()
     mocker.patch("tempfile.mkdtemp", return_value=str(setup_dir))
@@ -172,7 +172,7 @@ def test_base_conan_runner_setup_semantics_on_double_call(
     """
     mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mock_run = mocker.patch("subprocess.run")
-    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="")
+    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
 
     first_dir: Path = tmp_path / "first"
     second_dir: Path = tmp_path / "second"

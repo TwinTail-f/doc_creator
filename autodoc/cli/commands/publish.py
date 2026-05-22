@@ -13,7 +13,12 @@ from autodoc.cli._constants import (
     _DEFAULT_PROFILE_PAGE_TITLE,
 )
 from autodoc.cli._context import _CliCtx
-from autodoc.cli._helpers import console, _load_parsed_data, _make_publisher, _print_publish_result
+from autodoc.cli._helpers import (
+    console,
+    _load_parsed_data,
+    _make_publisher,
+    _print_publish_result,
+)
 
 
 @click.group()

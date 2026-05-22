@@ -86,7 +86,7 @@ class ConanTaskBuilder:
                         )
 
         return tasks
-    
+
     @staticmethod
     def _calc_upper_bound(numeric_prefix: str) -> str:
         """
@@ -106,7 +106,11 @@ class ConanTaskBuilder:
         return ".".join(parts)
 
     def _format_reference(
-        self, name: str, version: str, platform: str, channel: str,
+        self,
+        name: str,
+        version: str,
+        platform: str,
+        channel: str,
         exact_range: bool = False,
     ) -> str:
         """

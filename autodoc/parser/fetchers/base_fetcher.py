@@ -83,4 +83,3 @@ class BaseFetcher[T](ABC):
         """
         assert self._configured is True, _NOT_CONFIGURED_MSG
         return self._fetch(*args, **kwargs)
-

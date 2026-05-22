@@ -234,9 +234,7 @@ def test_non_critical_failure_does_not_block_next_step(
     parser3.parse()
 
     assert "fail" in executed_steps, "Отказавший шаг никогда не был попытан"
-    assert (
-        "finalize" in executed_steps
-    ), "Шаг после некритичного отказа не был выполнен"
+    assert "finalize" in executed_steps, "Шаг после некритичного отказа не был выполнен"
 
 
 @pytest.mark.business_logic

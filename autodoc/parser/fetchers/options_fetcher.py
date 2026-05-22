@@ -100,8 +100,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
 
         empty: dict[str, Any] = {"global": {}, "channels": {}}
         options_cache: dict[str, dict[str, Any]] = {
-            key: repo_data or empty
-            for key, repo_data in zip(unique_keys, raw_results)
+            key: repo_data or empty for key, repo_data in zip(unique_keys, raw_results)
         }
 
         # Строим карту результатов из заполненного кэша — без повторных сетевых запросов.
