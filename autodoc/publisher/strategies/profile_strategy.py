@@ -61,8 +61,8 @@ class ProfileCentricStrategy(
             )
         )
 
-    @classmethod
-    def _make_converter(cls, kwargs: dict[str, Any]) -> ProfileCentricConverter:
+    @staticmethod
+    def _make_converter(kwargs: dict[str, Any]) -> ProfileCentricConverter:
         return ProfileCentricConverter(
             include_passport_links=kwargs.get("include_passport_links", True),
             passport_page_pattern=kwargs.get("passport_page_pattern", None),

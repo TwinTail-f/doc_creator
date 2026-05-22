@@ -163,9 +163,9 @@ class PassportConverter(BaseDataConverter):
 
         # Базовый URL репозитория — теперь хранится на уровне компонента.
         # Ветка вида GBrelease_{version} — стандартное соглашение TFS для бранчей релизов.
-        _raw_git_url: str = target_comp.git_url or ""
+        raw_git_url: str = target_comp.git_url or ""
         git_repo_base_url: str = (
-            _raw_git_url.split("?")[0] if "?" in _raw_git_url else _raw_git_url
+            raw_git_url.split("?")[0] if "?" in raw_git_url else raw_git_url
         )
         git_branch_version: str = f"GBrelease_{target_rel.version}"
 

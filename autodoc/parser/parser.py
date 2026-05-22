@@ -62,8 +62,8 @@ class ComponentParser:
         self._tfs_client: TFSClientProtocol | None = tfs_client
         self._artifactory_client: ArtifactoryClientProtocol | None = artifactory_client
 
-    @classmethod
-    def _default_pipeline(cls) -> list[BaseParseStep]:
+    @staticmethod
+    def _default_pipeline() -> list[BaseParseStep]:
         """
         Возвращает стандартный набор шагов пайплайна.
 
@@ -105,7 +105,7 @@ class ComponentParser:
             for step in ComponentParser._default_pipeline()
             if not isinstance(step, tuple(exclude))
         ]
-        return cls(config, data_dir, steps=steps)
+        return ComponentParser(config, data_dir, steps=steps)
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:
         """

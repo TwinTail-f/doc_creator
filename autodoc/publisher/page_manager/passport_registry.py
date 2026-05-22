@@ -42,7 +42,7 @@ class PassportPageRegistry:
             data_dir: Директория для ``passport_pages.json``.
                       По умолчанию ``Path('data')``.
         """
-        base = data_dir if data_dir is not None else _DEFAULT_DATA_DIR
+        base = data_dir or _DEFAULT_DATA_DIR
         self._file: Path = base / _REGISTRY_FILENAME
 
     def save(self, pages_map: dict[str, Any]) -> None:

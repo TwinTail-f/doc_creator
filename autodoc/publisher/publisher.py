@@ -53,7 +53,7 @@ class DocumentPublisher:
         self._config: ConfluenceConfigSchema = confluence_config
         self._client: IConfluenceClient = ConfluenceClient(confluence_config)
         self._builder: IDocumentBuilder = DocumentBuilder(rendering_dir)
-        self._data_dir: Path = data_dir if data_dir is not None else Path("data")
+        self._data_dir: Path = data_dir or Path("data")
         logger.info("Инициализирован")
 
     def publish(

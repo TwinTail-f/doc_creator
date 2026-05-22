@@ -17,17 +17,16 @@ _CI_PRIORITY: tuple[str, ...] = (_CI_DIR_V2, _CI_DIR_V1_6)
 class OptionsParser:
     """Статические методы для разбора options.json файлов Conan."""
 
-    @classmethod
-    def select_ci_prefix(cls, options_paths: list[str]) -> str:
+    @staticmethod
+    def select_ci_prefix(options_paths: list[str]) -> str:
         """Возвращает первый подходящий CI-префикс или пустую строку."""
         for prefix in _CI_PRIORITY:
             if any(prefix in p for p in options_paths):
                 return prefix
         return ""
 
-    @classmethod
+    @staticmethod
     def parse_file(
-        cls,
         text: str,
         opt_path: str,
         ci_prefix: str,
@@ -56,8 +55,8 @@ class OptionsParser:
 
         return channel_name, cleaned
 
-    @classmethod
-    def pick_options(cls, repo_data: dict, channel: str) -> dict[str, str]:
+    @staticmethod
+    def pick_options(repo_data: dict, channel: str) -> dict[str, str]:
         """Выбирает набор опций для заданного канала."""
         channels = repo_data.get("channels", {})
         if channel and channel in channels:

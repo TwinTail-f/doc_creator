@@ -50,7 +50,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
         self._tfs = ctx.tfs_client
-        self._base_url = ctx.config.tfs_collection_url.rstrip("/")
+        self._base_url = ctx.config.tfs_collection_url
 
     def _fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
@@ -74,7 +74,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         # Собираем уникальные пары (repo_name, branch) в порядке появления;
         # ключ cache_key нужен для сопоставления с параллельными результатами.
         unique_keys: list[str] = []
-        unique_pairs: list[tuple[str, str]] = []
+        unique_pairs: list[tuple[str, str, str]] = []
         seen: set[str] = set()
 
         for comp in components:
@@ -93,14 +93,14 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
 
         # Скачиваем все уникальные комбинации repo/branch параллельно.
         raw_results = self._executor.execute(
-            lambda pair: self._fetch_options_for_repo(pair[0], pair[1], pair[2]),
+            lambda pair: self._fetch_options_for_repo(*pair),
             unique_pairs,
             task_label="репозиториев",
         )
 
-        _empty: dict[str, Any] = {"global": {}, "channels": {}}
+        empty: dict[str, Any] = {"global": {}, "channels": {}}
         options_cache: dict[str, dict[str, Any]] = {
-            key: (repo_data if repo_data is not None else _empty)
+            key: repo_data or empty
             for key, repo_data in zip(unique_keys, raw_results)
         }
 

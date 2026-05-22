@@ -42,7 +42,7 @@ class ManifestParser:
                                  с учётом ``tfs_git_project`` из манифеста.
         """
         self._target_platform = target_platform
-        self._tfs_collection_url: str = tfs_collection_url.rstrip("/")
+        self._tfs_collection_url: str = tfs_collection_url
         self._executor = ParallelExecutor(
             max_workers=_MANIFEST_MAX_WORKERS,
             log_progress_interval=_MANIFEST_LOG_INTERVAL,

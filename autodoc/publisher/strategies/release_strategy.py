@@ -63,8 +63,8 @@ class ReleasePageStrategy(SinglePagePublishStrategy, strategy_type="release"):
             include_passport_links=include_passport_links,
         )
 
-    @classmethod
-    def _make_converter(cls, kwargs: dict[str, Any]) -> BaseDataConverter:
+    @staticmethod
+    def _make_converter(kwargs: dict[str, Any]) -> BaseDataConverter:
         return FullReleaseConverter(
             include_passport_links=kwargs.get("include_passport_links", True),
             passport_page_pattern=kwargs.pop("passport_page_pattern", None),

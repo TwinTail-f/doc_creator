@@ -128,7 +128,7 @@ class ConanTaskBuilder:
             return f"{name}/[~{version},include_prerelease]{suffix}"
 
         upper_bound = self._calc_upper_bound(match.group(1))
-        return f"{name}/[>={version} <{upper_bound}]{suffix}"
+        return f"{name}/[>={match.group(1)} <{upper_bound}]{suffix}"
 
     def _build_cmd(
         self,
