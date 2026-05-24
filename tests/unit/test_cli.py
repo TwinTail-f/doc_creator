@@ -11,7 +11,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from autodoc.cli import cli
+from autodoc.cli.app import cli
 
 _EXIT_SUCCESS: int = 0
 

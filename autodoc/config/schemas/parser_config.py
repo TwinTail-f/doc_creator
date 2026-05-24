@@ -3,6 +3,7 @@
 """
 
 from typing import Any, Literal
+
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 

@@ -4,6 +4,7 @@
 """
 
 import json
+from pathlib import Path
 from typing import Any
 
 from autodoc.common.logger import logger
@@ -50,7 +51,7 @@ class OptionsParser:
         }
 
         tail = opt_path.split(ci_prefix)[1]
-        parts = tail.split("/")
+        parts = Path(tail).parts
         channel_name: str | None = parts[0] if len(parts) > 1 else None
 
         return channel_name, cleaned
@@ -59,9 +60,11 @@ class OptionsParser:
     def pick_options(repo_data: dict, channel: str) -> dict[str, str]:
         """Выбирает набор опций для заданного канала."""
         channels = repo_data.get("channels", {})
-        if channel and channel in channels:
+        if channel in channels:
             return channels[channel]
         global_opts = repo_data.get("global", {})
         if global_opts:
             return global_opts
+        # Фоллбек: Conan требует хотя бы одну опцию. Используется placeholder,
+        # если options.json отсутствует или пуст.
         return {"1": ""}

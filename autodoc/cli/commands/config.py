@@ -1,48 +1,48 @@
-# autodoc/cli/commands/config.py
-
 import sys
+
 import click
+from pydantic import ValidationError as PydanticValidationError
 from rich.panel import Panel
 from rich.table import Table
 
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
-from autodoc.cli._context import _CliCtx
-from autodoc.cli._helpers import console
+from autodoc.cli.context import CliCtx
+from autodoc.cli.helpers import console
 
 
-@click.group()
-def config() -> None:
-    """Управление конфигурационными файлами."""
+config = click.Group("config", help="Управление конфигурационными файлами.")
 
 
 @config.command("list")
 @click.pass_context
 def config_list(ctx: click.Context) -> None:
     """Список доступных конфигурационных файлов."""
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    cli_ctx: CliCtx = ctx.obj
 
     available = cli_ctx.config_manager.list_available_configs()
     examples = cli_ctx.config_manager.list_example_configs()
 
     console.print(Panel.fit("[bold]Доступные конфигурации[/bold]", style="blue"))
 
-    for fmt, files in available.items():
+    for output_format, files in available.items():
         if files:
-            table = Table(title=f"{fmt.upper()} конфигурации", show_header=True)
+            table = Table(title=f"{output_format.upper()} конфигурации", show_header=True)
             table.add_column("Файл", style="cyan")
             for fname in files:
                 table.add_row(fname)
             console.print(table)
         else:
-            console.print(f"{fmt.upper()} конфиги: [yellow]не найдены[/yellow]")
+            console.print(f"{output_format.upper()} конфиги: [yellow]не найдены[/yellow]")
 
     # Примеры
-    has_examples = any(files for files in examples.values())
+    has_examples = any(examples.values())
     if has_examples:
         console.print("\n[bold]Примеры (configs/examples/)[/bold]")
-        for fmt, files in examples.items():
+        for output_format, files in examples.items():
             for fname in files:
-                console.print(f"  [dim]{fmt}: {fname}[/dim]")
+                console.print(f"  [dim]{output_format}: {fname}[/dim]")
 
 
 @config.command("validate")
@@ -50,11 +50,7 @@ def config_list(ctx: click.Context) -> None:
 @click.pass_context
 def config_validate(ctx: click.Context, config_file: str) -> None:
     """Валидировать синтаксис конфигурационного файла."""
-    from pydantic import ValidationError as PydanticValidationError
-    from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-    from autodoc.config.schemas.parser_config import ParserConfigSchema
-
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    cli_ctx: CliCtx = ctx.obj
 
     filepath = cli_ctx.configs_dir / config_file
     try:
@@ -74,7 +70,7 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
 
     # Определяем схему по наличию ключевых полей — не через перебор исключений.
     is_parser = "tfs_token" in raw and "platform_version" in raw
-    is_confluence = "url" in raw and "token" in raw and "space" in raw
+    is_confluence_publisher = "url" in raw and "token" in raw and "space" in raw
 
     if is_parser:
         try:
@@ -87,7 +83,7 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
                 f"⚠️  Схема parser: файл загружается, но содержит ошибки валидации:\n{e}",
                 style="yellow",
             )
-    elif is_confluence:
+    elif is_confluence_publisher:
         try:
             ConfluenceConfigSchema(**raw)
             console.print(

@@ -1,19 +1,18 @@
-# autodoc/cli/commands/publish.py
-
 import sys
+
 import click
 from rich.panel import Panel
 
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError
-from autodoc.cli._constants import (
-    _RELEASE_TEMPLATE,
-    _PROFILE_TEMPLATE,
-    _PASSPORT_TEMPLATE,
-    _DEFAULT_RELEASE_PAGE_TITLE,
-    _DEFAULT_PROFILE_PAGE_TITLE,
+from autodoc.cli.constants import (
+    RELEASE_TEMPLATE,
+    PROFILE_TEMPLATE,
+    PASSPORT_TEMPLATE,
+    DEFAULT_RELEASE_PAGE_TITLE,
+    DEFAULT_PROFILE_PAGE_TITLE,
 )
-from autodoc.cli._context import _CliCtx
-from autodoc.cli._helpers import (
+from autodoc.cli.context import CliCtx
+from autodoc.cli.helpers import (
     console,
     _load_parsed_data,
     _make_publisher,
@@ -41,8 +40,8 @@ def publish_release(
     page_title: str | None,
     no_passport_links: bool,
 ) -> None:
-    """Публикация релизной документации (вид от компонентов)."""
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    """Публикация релизной документации."""
+    cli_ctx: CliCtx = ctx.obj
 
     try:
         console.print(
@@ -59,7 +58,7 @@ def publish_release(
 
         publisher, conf_config = _make_publisher(cli_ctx)
         final_title = (
-            page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
+            page_title or conf_config.page_title or DEFAULT_RELEASE_PAGE_TITLE
         )
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
@@ -67,7 +66,7 @@ def publish_release(
             strategy_type="release",
             parsed_data=parsed_data,
             page_title=final_title,
-            template_name=_RELEASE_TEMPLATE,
+            template_name=RELEASE_TEMPLATE,
             parent_id=conf_config.parent_id,
             include_passport_links=not no_passport_links,
         )
@@ -95,7 +94,7 @@ def publish_profile(
     no_passport_links: bool,
 ) -> None:
     """Публикация документации от профилей сборки."""
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    cli_ctx: CliCtx = ctx.obj
 
     try:
         console.print(
@@ -112,7 +111,7 @@ def publish_profile(
 
         publisher, conf_config = _make_publisher(cli_ctx)
         final_title = (
-            page_title or conf_config.page_title or _DEFAULT_PROFILE_PAGE_TITLE
+            page_title or conf_config.page_title or DEFAULT_PROFILE_PAGE_TITLE
         )
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
@@ -120,7 +119,7 @@ def publish_profile(
             strategy_type="profile_centric",
             parsed_data=parsed_data,
             page_title=final_title,
-            template_name=_PROFILE_TEMPLATE,
+            template_name=PROFILE_TEMPLATE,
             parent_id=conf_config.parent_id,
             include_passport_links=not no_passport_links,
         )
@@ -139,7 +138,7 @@ def publish_profile(
 @click.pass_context
 def publish_passports(ctx: click.Context, root_page: str | None) -> None:
     """Публикация паспортов компонентов (иерархия страниц)."""
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    cli_ctx: CliCtx = ctx.obj
 
     try:
         console.print(
@@ -166,7 +165,7 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
             strategy_type="passports",
             parsed_data=parsed_data,
             root_page_id=target_root,
-            template_name=_PASSPORT_TEMPLATE,
+            template_name=PASSPORT_TEMPLATE,
             batch_size=conf_config.publish_batch_size,
             batch_delay_seconds=conf_config.publish_batch_delay_seconds,
             target_release_version=conf_config.target_release_version,
@@ -200,7 +199,7 @@ def publish_all(
     Сначала публикуются паспорта (генерируется карта ID),
     затем релизная страница с внедрёнными ссылками на паспорта.
     """
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    cli_ctx: CliCtx = ctx.obj
 
     try:
         console.print(
@@ -222,7 +221,7 @@ def publish_all(
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
         final_title = (
-            page_title or conf_config.page_title or _DEFAULT_RELEASE_PAGE_TITLE
+            page_title or conf_config.page_title or DEFAULT_RELEASE_PAGE_TITLE
         )
 
         console.print("🔄 Публикация…", style="cyan")
@@ -230,8 +229,8 @@ def publish_all(
             parsed_data=parsed_data,
             passports_root_page_id=target_root,
             release_page_title=final_title,
-            release_template_name=_RELEASE_TEMPLATE,
-            passport_template_name=_PASSPORT_TEMPLATE,
+            release_template_name=RELEASE_TEMPLATE,
+            passport_template_name=PASSPORT_TEMPLATE,
             release_parent_id=conf_config.parent_id,
             include_passport_links=not no_passport_links,
         )

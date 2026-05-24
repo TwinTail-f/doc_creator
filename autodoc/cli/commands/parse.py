@@ -1,6 +1,5 @@
-# autodoc/cli/commands/parse.py
-
 import sys
+
 import click
 from rich.panel import Panel
 
@@ -9,8 +8,8 @@ from autodoc.common.logger import logger
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-from autodoc.cli._context import _CliCtx
-from autodoc.cli._helpers import console
+from autodoc.cli.context import CliCtx
+from autodoc.cli.helpers import console
 
 
 @click.command()
@@ -44,7 +43,7 @@ def parse(
     Скачивает манифесты, собирает options, запускает Conan graph info,
     получает Docker-ссылки и сохраняет результат в data/parsed_data.json.
     """
-    cli_ctx: _CliCtx = ctx.obj["cli"]
+    cli_ctx: CliCtx = ctx.obj
 
     try:
         console.print(
@@ -106,6 +105,8 @@ def parse(
     except ConfigError as e:
         console.print(f"❌ Ошибка конфигурации: {e}", style="red bold")
         sys.exit(1)
+    # DocGeneratorError — базовый класс ошибок autodoc.
+    # Бросается парсером, генератором и шагами финализации.
     except DocGeneratorError as e:
         console.print(f"❌ Ошибка обработки: {e}", style="red bold")
         sys.exit(1)

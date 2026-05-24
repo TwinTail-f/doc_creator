@@ -1,2 +1,0 @@
-from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.config.schemas.parser_config import ParserConfigSchema

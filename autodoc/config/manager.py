@@ -9,9 +9,10 @@ from typing import Any, TypeVar
 import yaml
 from pydantic import ValidationError
 
-from autodoc.config.schemas import ConfluenceConfigSchema, ParserConfigSchema
-from autodoc.exceptions import ConfigError
 from autodoc.common.logger import logger
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
+from autodoc.config.schemas.parser_config import ParserConfigSchema
+from autodoc.exceptions import ConfigError
 
 _TConfig = TypeVar("_TConfig")
 
@@ -104,6 +105,8 @@ class ConfigManager:
         if not self.configs_dir.is_dir():
             return result
         examples_path = self.configs_dir / self.EXAMPLES_SUBDIR
+        # sorted() гарантирует детерминированный порядок загрузки конфигов
+        # независимо от платформы и файловой системы
         for item in sorted(self.configs_dir.iterdir()):
             if item == examples_path:  # пропускаем examples/
                 continue

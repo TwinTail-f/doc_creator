@@ -1,5 +1,3 @@
-# autodoc/cli/_helpers.py
-
 import sys
 from pathlib import Path
 
@@ -9,7 +7,10 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
 from autodoc.publisher.strategies.models.publish_report import PublishReport
-from autodoc.cli._context import _CliCtx
+from autodoc.cli.context import CliCtx
+
+# Примечание: утилита предназначена для запуска на Linux.
+# Unicode-эмодзи в выводе могут не отображаться в консоли Windows.
 
 console = Console()
 
@@ -27,7 +28,7 @@ def _load_parsed_data(base_dir: Path) -> ParsedResult:
 
 
 def _make_publisher(
-    cli_ctx: _CliCtx,
+    cli_ctx: CliCtx,
     config_file: str | None = None,
 ) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
     """Создаёт DocumentPublisher и возвращает его вместе с конфигом."""

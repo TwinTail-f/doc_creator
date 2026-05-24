@@ -94,13 +94,8 @@ class FinalizeStep(BaseParseStep):
 
     def _filter_empty_profiles(self, components: list[Component]) -> int:
         """
-        Удаляет записи ``ProfileBuild`` с ``exists=False`` из всех релизов.
-
-        Args:
-            components: Список компонентов для обработки.
-
-        Returns:
-            Количество удалённых записей профилей.
+        Удаляет из списка компоненты, у которых не найдено ни одного профиля.
+        Возвращает количество удалённых компонентов.
         """
         removed = 0
         for comp in components:
@@ -155,7 +150,7 @@ class FinalizeStep(BaseParseStep):
             result = ParsedResult(
                 generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 platform_version=ctx.config.platform_version,
-                profile_definitions=ctx.profile_definitions,  # NEW
+                profile_definitions=ctx.profile_definitions,
                 components=ctx.components,
             )
             logger.info(f"Данные валидированы. {len(result.components)} компонентов.")

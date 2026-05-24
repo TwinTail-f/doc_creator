@@ -5,10 +5,15 @@
 Собирает данные из TFS (манифесты, опции Conan, Docker-профили),
 обогащает их через `conan graph info`, валидирует и публикует в Confluence.
 
+> [!WARNING]
+> Этот README-файл является **черновым наброском**.
+> В нём описаны настройки и функционал, реализованные на текущий момент.
+
 ---
 
 ## Требования
 
+- Linux (рекомендуемая платформа; Unicode-эмодзи в выводе могут не отображаться в консоли Windows)
 - Python 3.11+
 - Conan 2.x (доступен в PATH) (на текущий момент реализация поддерживает только conan 2.x)
 - Доступ к TFS и Confluence
@@ -20,7 +25,7 @@
 ### 1. Установка зависимостей
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 ### 2. Конфигурация
@@ -154,66 +159,66 @@ overrides:
 #### Парсинг — собрать данные компонентов
 
 ```bash
-python -m autodoc.main parse
+python autodoc parse
 ```
 
 Результат сохраняется в `data/parsed_data.json`. Все последующие команды `publish` читают этот файл.
 
 ```bash
 # Пропустить тяжёлые шаги для быстрой отладки
-python -m autodoc.main parse --skip-conan --skip-validation
+python autodoc parse --skip-conan --skip-validation
 
 # Сохранять снимок состояния после каждого шага пайплайна + отладочную информацию
-python -m autodoc.main parse --save-intermediate
+python autodoc parse --save-intermediate
 ```
 
-#### Публикация релизной документации (вид от компонентов)
+#### Публикация релизной документации 
 
 ```bash
-python -m autodoc.main publish release
+python autodoc publish release
 
 # Переопределить заголовок страницы
-python -m autodoc.main publish release --page-title "Платформа 2.2"
+python autodoc publish release --page-title "Платформа 2.2"
 
 # Без ссылок на паспорта компонентов
-python -m autodoc.main publish release --no-passport-links
+python autodoc publish release --no-passport-links
 ```
 
-#### Публикация профиль-центричной документации (вид от профилей сборки)
+#### Публикация профиль-центричной документации 
 
 ```bash
-python -m autodoc.main publish profile
+python autodoc publish profile
 
-python -m autodoc.main publish profile --page-title "Профили 2.2" --no-passport-links
+python autodoc publish profile --page-title "Профили 2.2" --no-passport-links
 ```
 
 #### Публикация паспортов компонентов
 
 ```bash
 # ID корневой страницы берётся из passports_root_parent_id конфига
-python -m autodoc.main publish passports
+python autodoc publish passports
 
 # Или передать явно
-python -m autodoc.main publish passports --root-page 987654321
+python autodoc publish passports --root-page 987654321
 ```
 
 #### Паспорта + релизная страница за один вызов
 
 ```bash
-python -m autodoc.main publish all --root-page 987654321 --page-title "Платформа 2.2"
+python autodoc publish all --root-page 987654321 --page-title "Платформа 2.2"
 ```
 
 #### Утилиты
 
 ```bash
 # Список конфигурационных файлов в configs/
-python -m autodoc.main config list
+python autodoc config list
 
 # Валидация конфига (автоматически определяет схему — parser или confluence)
-python -m autodoc.main config validate parser_config.yaml
+python autodoc config validate parser_config.yaml
 
 # Версия и список возможностей
-python -m autodoc.main info
+python autodoc info
 ```
 
 ---
