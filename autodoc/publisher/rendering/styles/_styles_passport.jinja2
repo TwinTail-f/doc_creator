@@ -3,60 +3,60 @@
 /* === Шапка страницы компонента =========================================
    Блок в самом верху component_passport: разделитель, надпись платформы,
    название компонента с версией и описание.
-   ap-page-header — обёртка с нижним бордером-разделителем
-   ap-page-sub    — строка над заголовком («Документация компонента в рамках релиза …»)
-   ap-page-title  — h1 страницы
-   Примечание: ap-page-desc (описание под заголовком) живёт в _styles_base,
+   autodoc-page-header — обёртка с нижним бордером-разделителем
+   autodoc-page-sub    — строка над заголовком («Документация компонента в рамках релиза …»)
+   autodoc-page-title  — h1 страницы
+   Примечание: autodoc-page-desc (описание под заголовком) живёт в _styles_base,
    так как используется и в release_doc.
    ======================================================================= */
-.ap-page-header {padding-bottom:20px;border-bottom:2px solid var(--ds-border,#DFE1E6);margin-bottom:20px}
-.ap-page-sub    {color:var(--ds-text-subtle,#6B778C);font-size:14px;margin-bottom:8px}
-.ap-page-title  {margin-top:0;margin-bottom:6px;font-size:32px;font-weight:700;color:var(--ds-text,#172B4D)}
+.autodoc-page-header {padding-bottom:20px;border-bottom:2px solid var(--ds-border,#DFE1E6);margin-bottom:20px}
+.autodoc-page-sub    {color:var(--ds-text-subtle,#6B778C);font-size:14px;margin-bottom:8px}
+.autodoc-page-title  {margin-top:0;margin-bottom:6px;font-size:32px;font-weight:700;color:var(--ds-text,#172B4D)}
 
 /* === Git chip ==========================================================
    Строчная метка с названием git-проекта и репозитория в шапке паспорта.
-   Чуть крупнее и темнее обычного .ap-chip из base.
+   Чуть крупнее и темнее обычного .autodoc-chip из base.
    ======================================================================= */
-.ap-git-chip {font-size:12px;color:var(--ds-text,#172B4D);background:var(--ds-background-neutral,#EBECF0);border-radius:4px;padding:4px 8px;margin-right:12px;display:inline-block}
+.autodoc-git-chip {font-size:12px;color:var(--ds-text,#172B4D);background:var(--ds-background-neutral,#EBECF0);border-radius:4px;padding:4px 8px;margin-right:12px;display:inline-block}
 
 /* === Секционные заголовки внутри вкладки ================================
    h3-заголовки перед каждым блоком (Опции, Конфигурации, Профили и т.д.).
    ======================================================================= */
-.ap-h3 {margin-top:24px;color:var(--ds-text,#172B4D)}
+.autodoc-h3 {margin-top:24px;color:var(--ds-text,#172B4D)}
 
 /* === Таблица профилей (структура строк) ================================
    Многоуровневая таблица: основная строка профиля + строка с expand-подробностями.
-   ap-table-full  — таблица на всю ширину
-   ap-row-top     — верхняя граница строки профиля
-   ap-row-bottom  — нижняя граница строки expand-подробностей
-   ap-subrow-bg   — фон ячейки-обёртки expand-подробностей (утопленный)
-   ap-expand-pad  — паддинг внутри раскрытого expand
-   ap-badge-block — блок с бейджами настроек профиля (отступ снизу)
+   autodoc-table-full  — таблица на всю ширину
+   autodoc-row-top     — верхняя граница строки профиля
+   autodoc-row-bottom  — нижняя граница строки expand-подробностей
+   autodoc-subrow-bg   — фон ячейки-обёртки expand-подробностей (утопленный)
+   autodoc-expand-pad  — паддинг внутри раскрытого expand
+   autodoc-badge-block — блок с бейджами настроек профиля (отступ снизу)
    ======================================================================= */
-.ap-table-full  {width:100%}
-.ap-row-top     {border-top:1px solid var(--ds-border,#DFE1E6)}
-.ap-row-bottom  {border-bottom:2px solid var(--ds-border,#DFE1E6)}
-.ap-subrow-bg   {padding:0;background:var(--ds-surface-sunken,#F4F5F7)}
-.ap-expand-pad  {padding:16px}
-.ap-badge-block {margin-bottom:16px}
+.autodoc-table-full  {width:100%}
+.autodoc-row-top     {border-top:1px solid var(--ds-border,#DFE1E6)}
+.autodoc-row-bottom  {border-bottom:2px solid var(--ds-border,#DFE1E6)}
+.autodoc-subrow-bg   {padding:0;background:var(--ds-surface-sunken,#F4F5F7)}
+.autodoc-expand-pad  {padding:16px}
+.autodoc-badge-block {margin-bottom:16px}
 
 /* === Карточка варианта сборки ==========================================
    Один вариант (build variant) внутри раскрытого профиля.
-   ap-var-card    — обёртка карточки: белый фон, рамка, скруглённые углы
-   ap-var-header  — шапка карточки (package_id + дата + ссылка на сборку)
-   ap-pkg-id      — мелкий моноширинный package_id
-   ap-var-meta    — дата и ссылка на сборку (float right)
-   ap-var-link    — ссылка «Сборка ↗» в шапке карточки
-   ap-var-title   — «Вариант N» над бейджами опций
-   ap-var-options — блок с бейджами conan_options
+   autodoc-var-card    — обёртка карточки: белый фон, рамка, скруглённые углы
+   autodoc-var-header  — шапка карточки (package_id + дата + ссылка на сборку)
+   autodoc-pkg-id      — мелкий моноширинный package_id
+   autodoc-var-meta    — дата и ссылка на сборку (float right)
+   autodoc-var-link    — ссылка «Сборка ↗» в шапке карточки
+   autodoc-var-title   — «Вариант N» над бейджами опций
+   autodoc-var-options — блок с бейджами conan_options
    ======================================================================= */
-.ap-var-card    {padding:12px;background:var(--ds-surface,#FFFFFF);border:1px solid var(--ds-border,#DFE1E6);border-radius:6px;margin-bottom:12px}
-.ap-var-header  {margin-bottom:10px}
-.ap-pkg-id      {font-size:11px;color:var(--ds-text,#172B4D)}
-.ap-var-meta    {float:right;font-size:11px;color:var(--ds-text-subtle,#6B778C);line-height:20px}
-.ap-var-link    {color:var(--ds-link,#0052CC);font-weight:bold;margin-left:12px}
-.ap-var-title   {font-size:12px;font-weight:bold;color:var(--ds-text,#172B4D);display:block;margin-bottom:4px}
-.ap-var-options {margin-bottom:12px}
+.autodoc-var-card    {padding:12px;background:var(--ds-surface,#FFFFFF);border:1px solid var(--ds-border,#DFE1E6);border-radius:6px;margin-bottom:12px}
+.autodoc-var-header  {margin-bottom:10px}
+.autodoc-pkg-id      {font-size:11px;color:var(--ds-text,#172B4D)}
+.autodoc-var-meta    {float:right;font-size:11px;color:var(--ds-text-subtle,#6B778C);line-height:20px}
+.autodoc-var-link    {color:var(--ds-link,#0052CC);font-weight:bold;margin-left:12px}
+.autodoc-var-title   {font-size:12px;font-weight:bold;color:var(--ds-text,#172B4D);display:block;margin-bottom:4px}
+.autodoc-var-options {margin-bottom:12px}
 
 
 </style>

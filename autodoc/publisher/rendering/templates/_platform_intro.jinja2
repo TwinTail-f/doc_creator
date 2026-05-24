@@ -1,15 +1,15 @@
-<div class="ap-intro-section">
+<div class="autodoc-intro-section">
 
     {# ── Описание платформы ─────────────────────────────────────────── #}
-    <h2 class="ap-intro-heading">Описание компонентной платформы</h2>
+    <h2 class="autodoc-intro-heading">Описание компонентной платформы</h2>
 
-    <p class="ap-intro-lead">
+    <p class="autodoc-intro-lead">
         <strong>Компонентная платформа</strong> — набор заимствованных компонентов, версии которых согласованы
         между собой и исключающий возникновение конфликтов по зависимостям при использовании в других компонентах
         и продуктах.
     </p>
 
-    <p class="ap-intro-lead">
+    <p class="autodoc-intro-lead">
         Состав компонентной платформы определяют её пользователи, формируя
         <a href="https://wiki.company.com/spaces/Components/pages/167365638/%D0%A0%D0%B5%D0%B3%D0%BB%D0%B0%D0%BC%D0%B5%D0%BD%D1%82+%D1%81%D0%BE%D0%B7%D0%B4%D0%B0%D0%BD%D0%B8%D1%8F+%D0%BE%D0%B1%D1%80%D0%B0%D1%89%D0%B5%D0%BD%D0%B8%D1%8F+%D0%B2+%D0%9E%D0%A0%D0%9A">запрос</a>
         на включение используемых в продукте зависимостей в очередную версию. Предусматривается возможность
@@ -19,78 +19,78 @@
         в состав. Кроме этого определяется политика отслеживания изменений версий включаемого компонента.
     </p>
 
-    <p class="ap-intro-lead">
+    <p class="autodoc-intro-lead">
         <strong>Канал <code style="font-size:12px">slow</code></strong> компонентной платформы включает в свой набор,
         как правило, версии opensource-компонентов на базе дистрибутива Debian 11, ориентированные на HW и родственные
         продукты.
     </p>
 
-    <p class="ap-intro-lead">
+    <p class="autodoc-intro-lead">
         <strong>Канал <code style="font-size:12px">fast</code></strong> компонентной платформы включает в свой набор,
         как правило, самые свежие ванильные версии opensource-компонентов.
     </p>
 
-        <p class="ap-intro-lead">
+        <p class="autodoc-intro-lead">
         <strong>Канал <code style="font-size:12px">tech</code></strong> компонентной платформы включает в свой набор,
         как правило, версии компонентов, которые являются build-зависимостями и не являются непосредственно частью
         основного графа.
     </p>
 
-    <p class="ap-intro-lead">
+    <p class="autodoc-intro-lead">
         <strong>Канал <code style="font-size:12px">trusted</code></strong> компонентной платформы включает в свой набор,
         как правило, версии безопасных и доверенных компонентов, с патчами коалиции.
     </p>
 
     {# ── Установка профилей ─────────────────────────────────────────── #}
-    <h2 class="ap-intro-heading">Использование профилей</h2>
+    <h2 class="autodoc-intro-heading">Использование профилей</h2>
 
-    <p class="ap-intro-lead">
+    <p class="autodoc-intro-lead">
         Использование профилей сводится к установке их из репозиториев отдела мобильных решений,
         отдела разработки компонентов и отдела разработки ПАК:
     </p>
 
-    <table class="ap-install-table">
+    <table class="autodoc-install-table">
         <thead>
-            <tr><th class="ap-install-th">Установка профилей из репозиториев</th></tr>
+            <tr><th class="autodoc-install-th">Установка профилей из репозиториев</th></tr>
         </thead>
         <tbody>
             <tr>
-                <td class="ap-install-td">
-                    <code class="ap-install-code">conan config install <a href="ssh://tfs.company.com/tfs/companytc1/PRG_MobileEmb/_git/conan_mobile">ssh://tfs.company.com/tfs/companytc1/PRG_MobileEmb/_git/conan_mobile</a> --type git -sf=conan2_config --args "-b platform-2.0"</code>
-                    <code class="ap-install-code">conan config install <a href="ssh://tfs.company.com/tfs/companytc1/DEP_Components/_git/platform">ssh://tfs.company.com/tfs/companytc1/DEP_Components/_git/platform</a> --type git -sf=conan2_config --args "-b platform-2.0"</code>
-                    <code class="ap-install-code">conan config install <a href="ssh://tfs.company.com:22/tfs/companytc1/TDC_Contrib/_git/control_tools">ssh://tfs.company.com:22/tfs/companytc1/TDC_Contrib/_git/control_tools</a> --type git -sf=conan2_config --args "-b platform-2.0"</code>
+                <td class="autodoc-install-td">
+                    <code class="autodoc-install-code">conan config install <a href="ssh://tfs.company.com/tfs/companytc1/PRG_MobileEmb/_git/conan_mobile">ssh://tfs.company.com/tfs/companytc1/PRG_MobileEmb/_git/conan_mobile</a> --type git -sf=conan2_config --args "-b platform-2.0"</code>
+                    <code class="autodoc-install-code">conan config install <a href="ssh://tfs.company.com/tfs/companytc1/DEP_Components/_git/platform">ssh://tfs.company.com/tfs/companytc1/DEP_Components/_git/platform</a> --type git -sf=conan2_config --args "-b platform-2.0"</code>
+                    <code class="autodoc-install-code">conan config install <a href="ssh://tfs.company.com:22/tfs/companytc1/TDC_Contrib/_git/control_tools">ssh://tfs.company.com:22/tfs/companytc1/TDC_Contrib/_git/control_tools</a> --type git -sf=conan2_config --args "-b platform-2.0"</code>
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <table class="ap-install-table">
+    <table class="autodoc-install-table">
         <thead>
-            <tr><th class="ap-install-th">Установка профилей и конфигурации из Artifactory</th></tr>
+            <tr><th class="autodoc-install-th">Установка профилей и конфигурации из Artifactory</th></tr>
         </thead>
         <tbody>
             <tr>
-                <td class="ap-install-td">
-                    <code class="ap-install-code">conan config install <a href="https://artifactory.company.com/artifactory/components-conan2/platform_config2/1.0.1.2/conan_config.zip">https://artifactory.company.com/artifactory/components-conan2/platform_config2/1.0.1.2/conan_config.zip</a></code>
+                <td class="autodoc-install-td">
+                    <code class="autodoc-install-code">conan config install <a href="https://artifactory.company.com/artifactory/components-conan2/platform_config2/1.0.1.2/conan_config.zip">https://artifactory.company.com/artifactory/components-conan2/platform_config2/1.0.1.2/conan_config.zip</a></code>
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <table class="ap-install-table">
+    <table class="autodoc-install-table">
         <thead>
-            <tr><th class="ap-install-th">Установка conan config из репозитория ОРК</th></tr>
+            <tr><th class="autodoc-install-th">Установка conan config из репозитория ОРК</th></tr>
         </thead>
         <tbody>
             <tr>
-                <td class="ap-install-td">
-                    <code class="ap-install-code">conan config install <a href="https://tfs.company.com/tfs/companytc1/DEP_Components/_git/conan_common">https://tfs.company.com/tfs/companytc1/DEP_Components/_git/conan_common</a> --type git -sf=conan2_config</code>
+                <td class="autodoc-install-td">
+                    <code class="autodoc-install-code">conan config install <a href="https://tfs.company.com/tfs/companytc1/DEP_Components/_git/conan_common">https://tfs.company.com/tfs/companytc1/DEP_Components/_git/conan_common</a> --type git -sf=conan2_config</code>
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <p class="ap-intro-lead" style="margin-top:10px;margin-bottom:0">
+    <p class="autodoc-intro-lead" style="margin-top:10px;margin-bottom:0">
         <strong><em>Примечание</em></strong>: анонимная аутентификация в сервисе Artifactory отключена,
         для подключения воспользуйтесь документом
         <a href="https://wiki.company.com/pages/viewpage.action?pageId=299992457">Инструкция по подключению аутентификации в Ant/Ivy и Conan</a>.

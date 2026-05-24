@@ -17,7 +17,7 @@
    Возвращает inline-CSS для фона и цвета текста в зависимости от ОС.
 
    Пример использования:
-     <span class="ap-os-badge" style="{{ os_style(os) }}">{{ os }}</span>
+     <span class="autodoc-os-badge" style="{{ os_style(os) }}">{{ os }}</span>
      <strong style="{{ os_style(profile.os) }};padding:1px 6px;border-radius:4px">{{ profile.os }}</strong>
    ---------------------------------------------------------------------- #}
 {%- macro os_style(os) -%}
@@ -38,7 +38,7 @@
 
 {# ----- Docker note -----------------------------------------------------
    Рендерит поясняющий span об агентах TeamCity, когда docker_image пустой.
-   Класс ap-italic-note определён в _styles_base.
+   Класс autodoc-italic-note определён в _styles_base.
 
    Пример использования:
      {%- if build.docker_image -%}
@@ -50,10 +50,10 @@
 {%- macro docker_note(os) -%}
   {%- set os_lower = os | lower -%}
   {%- if 'windows' in os_lower -%}
-    <span class="ap-italic-note">Докер не используется, собирается на агентах TeamCity "SrvMskCiw"</span>
+    <span class="autodoc-italic-note">Докер не используется, собирается на агентах TeamCity "SrvMskCiw"</span>
   {%- elif 'macos' in os_lower or 'ios' in os_lower or 'apple' in os_lower -%}
-    <span class="ap-italic-note">Докер не используется, собирается на агентах TeamCity "Mac OS X Agent"</span>
+    <span class="autodoc-italic-note">Докер не используется, собирается на агентах TeamCity "Mac OS X Agent"</span>
   {%- else -%}
-    <span class="ap-italic-note">Докер не используется, собирается на агентах TeamCity</span>
+    <span class="autodoc-italic-note">Докер не используется, собирается на агентах TeamCity</span>
   {%- endif -%}
 {%- endmacro -%}

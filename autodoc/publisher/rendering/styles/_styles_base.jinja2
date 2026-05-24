@@ -2,116 +2,116 @@
 
 /* === Бейджи (key-value плашки) =========================================
    Используются везде для отображения пар "ключ : значение".
-   Базовый элемент — .ap-badge, модификаторы определяют сторону и цвет.
-   ap-badge-k  — левая часть (ключ), нейтральный фон
-   ap-badge-v  — правая часть (значение), белый фон
-   ap-badge-t  — правая часть, зелёный (true)
-   ap-badge-f  — правая часть, красный (false)
-   ap-badge-n  — правая часть, жёлтый (нейтральное/числовое значение)
-   ap-badge-def — правая часть, серый (значение по умолчанию)
+   Базовый элемент — .autodoc-badge, модификаторы определяют сторону и цвет.
+   autodoc-badge-k  — левая часть (ключ), нейтральный фон
+   autodoc-badge-v  — правая часть (значение), белый фон
+   autodoc-badge-t  — правая часть, зелёный (true)
+   autodoc-badge-f  — правая часть, красный (false)
+   autodoc-badge-n  — правая часть, жёлтый (нейтральное/числовое значение)
+   autodoc-badge-def — правая часть, серый (значение по умолчанию)
    ======================================================================= */
-.ap-badge     {display:inline-block;font-size:11px;border:1px solid var(--ds-border,#DFE1E6);margin:2px 4px 2px 0;white-space:nowrap;overflow:hidden;border-radius:3px}
-.ap-badge-k   {padding:2px 6px;background:var(--ds-background-neutral,#EBECF0);color:var(--ds-text-subtle,#6B778C)}
-.ap-badge-v   {padding:2px 6px;background:var(--ds-surface,#FFFFFF);color:var(--ds-text,#172B4D);font-weight:600}
-.ap-badge-t   {padding:2px 6px;background:var(--ds-background-success,#E3FCEF);color:var(--ds-text,#172B4D);font-weight:600}
-.ap-badge-f   {padding:2px 6px;background:var(--ds-background-danger,#FFEBE6);color:var(--ds-text,#172B4D);font-weight:600}
-.ap-badge-n   {padding:2px 6px;background:var(--ds-background-warning,#FFFAE6);color:var(--ds-text,#172B4D);font-weight:600}
-.ap-badge-def {padding:2px 6px;background:var(--ds-background-neutral,#DFE1E6);color:var(--ds-text,#172B4D);font-weight:600}
+.autodoc-badge     {display:inline-block;font-size:11px;border:1px solid var(--ds-border,#DFE1E6);margin:2px 4px 2px 0;white-space:nowrap;overflow:hidden;border-radius:3px}
+.autodoc-badge-k   {padding:2px 6px;background:var(--ds-background-neutral,#EBECF0);color:var(--ds-text-subtle,#6B778C)}
+.autodoc-badge-v   {padding:2px 6px;background:var(--ds-surface,#FFFFFF);color:var(--ds-text,#172B4D);font-weight:600}
+.autodoc-badge-t   {padding:2px 6px;background:var(--ds-background-success,#E3FCEF);color:var(--ds-text,#172B4D);font-weight:600}
+.autodoc-badge-f   {padding:2px 6px;background:var(--ds-background-danger,#FFEBE6);color:var(--ds-text,#172B4D);font-weight:600}
+.autodoc-badge-n   {padding:2px 6px;background:var(--ds-background-warning,#FFFAE6);color:var(--ds-text,#172B4D);font-weight:600}
+.autodoc-badge-def {padding:2px 6px;background:var(--ds-background-neutral,#DFE1E6);color:var(--ds-text,#172B4D);font-weight:600}
 
 /* === Секционная метка ==================================================
    Верхний колонтитул раздела: мелкий uppercase-текст над блоком данных.
    ======================================================================= */
-.ap-section-label {font-size:11px;color:var(--ds-text-subtle,#6B778C);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.autodoc-section-label {font-size:11px;color:var(--ds-text-subtle,#6B778C);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
 
 /* === Таблицы AUI (component_passport) ==================================
    Стили для стандартных таблиц Confluence class="aui".
-   ap-thead    — шапка таблицы, утопленный фон
-   ap-th       — ячейка заголовка, приглушённый текст
-   ap-cell     — обычная ячейка данных
-   ap-cell-s   — второстепенная ячейка (приглушённый цвет)
-   ap-vm       — выравнивание содержимого по вертикали (middle)
+   autodoc-thead    — шапка таблицы, утопленный фон
+   autodoc-th       — ячейка заголовка, приглушённый текст
+   autodoc-cell     — обычная ячейка данных
+   autodoc-cell-s   — второстепенная ячейка (приглушённый цвет)
+   autodoc-vm       — выравнивание содержимого по вертикали (middle)
    ======================================================================= */
-.ap-thead  {background:var(--ds-surface-sunken,#F4F5F7)}
-.ap-th     {color:var(--ds-text-subtle,#6B778C)}
-.ap-cell   {color:var(--ds-text,#172B4D)}
-.ap-cell-s {color:var(--ds-text-subtle,#6B778C)}
-.ap-vm     {vertical-align:middle}
+.autodoc-thead  {background:var(--ds-surface-sunken,#F4F5F7)}
+.autodoc-th     {color:var(--ds-text-subtle,#6B778C)}
+.autodoc-cell   {color:var(--ds-text,#172B4D)}
+.autodoc-cell-s {color:var(--ds-text-subtle,#6B778C)}
+.autodoc-vm     {vertical-align:middle}
 
 /* === Таблицы confluenceTable (profile_centric, release_doc) ============
    Стили для таблиц class="confluenceTable".
-   ap-cth — ячейка заголовка (th): паддинг, uppercase, мелкий шрифт
-   ap-ctd — ячейка данных (td): паддинг, выравнивание по вертикали
+   autodoc-cth — ячейка заголовка (th): паддинг, uppercase, мелкий шрифт
+   autodoc-ctd — ячейка данных (td): паддинг, выравнивание по вертикали
    ======================================================================= */
-.ap-cth {padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ds-text-subtle,#6b7280);border-bottom:1px solid var(--ds-border,#e5e7eb)}
-.ap-ctd {padding:12px 14px;border-bottom:1px solid var(--ds-border,#e5e7eb);vertical-align:middle}
+.autodoc-cth {padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ds-text-subtle,#6b7280);border-bottom:1px solid var(--ds-border,#e5e7eb)}
+.autodoc-ctd {padding:12px 14px;border-bottom:1px solid var(--ds-border,#e5e7eb);vertical-align:middle}
 
 /* === OS badge ==========================================================
    Цветной лейбл операционной системы в таблицах профилей (release_doc).
    Цвет фона и текста проставляется inline через макрос os_style().
    ======================================================================= */
-.ap-os-badge {display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
+.autodoc-os-badge {display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
 
 /* === Chip ==============================================================
    Строчная информационная метка с нейтральным фоном.
    Используется для отображения OS / архитектуры / компилятора в шапке
    профиля (profile_centric) и платформы (release_doc).
    ======================================================================= */
-.ap-chip {font-size:12px;color:var(--ds-text-subtle,#6b7280);background:var(--ds-background-neutral,#f3f4f6);border-radius:4px;padding:2px 8px;margin-right:12px;display:inline-block;margin-bottom:8px}
+.autodoc-chip {font-size:12px;color:var(--ds-text-subtle,#6b7280);background:var(--ds-background-neutral,#f3f4f6);border-radius:4px;padding:2px 8px;margin-right:12px;display:inline-block;margin-bottom:8px}
 
 /* === Кнопки-ссылки на паспорт ==========================================
-   ap-passport-btn    — компактная кнопка (в ячейке таблицы, profile_centric)
-   ap-passport-btn-lg — увеличенная кнопка (в блоке документации, release_doc)
+   autodoc-passport-btn    — компактная кнопка (в ячейке таблицы, profile_centric)
+   autodoc-passport-btn-lg — увеличенная кнопка (в блоке документации, release_doc)
    ======================================================================= */
-.ap-passport-btn    {display:inline-block;padding:4px 10px;background:var(--ds-background-neutral,#EBECF0);border-radius:4px;color:var(--ds-link,#0052CC);text-decoration:none;font-size:11px;font-weight:500;border:1px solid var(--ds-border,#C1C7D0);white-space:nowrap}
-.ap-passport-btn-lg {display:inline-block;padding:6px 12px;background:var(--ds-background-neutral,#EBECF0);border-radius:4px;color:var(--ds-link,#0052CC);text-decoration:none;font-size:12px;font-weight:500;border:1px solid var(--ds-border,#C1C7D0)}
+.autodoc-passport-btn    {display:inline-block;padding:4px 10px;background:var(--ds-background-neutral,#EBECF0);border-radius:4px;color:var(--ds-link,#0052CC);text-decoration:none;font-size:11px;font-weight:500;border:1px solid var(--ds-border,#C1C7D0);white-space:nowrap}
+.autodoc-passport-btn-lg {display:inline-block;padding:6px 12px;background:var(--ds-background-neutral,#EBECF0);border-radius:4px;color:var(--ds-link,#0052CC);text-decoration:none;font-size:12px;font-weight:500;border:1px solid var(--ds-border,#C1C7D0)}
 
 /* === Reference Card ====================================================
    Блок с Conan Reference (выделенная карточка со ссылкой в репозиторий).
-   ap-ref-card  — обёртка: утопленный фон, скруглённые углы, рамка
-   ap-ref-label — мелкий заголовок карточки ("Conan Reference")
-   ap-ref-link  — сама ссылка: моноширинный жирный шрифт
+   autodoc-ref-card  — обёртка: утопленный фон, скруглённые углы, рамка
+   autodoc-ref-label — мелкий заголовок карточки ("Conan Reference")
+   autodoc-ref-link  — сама ссылка: моноширинный жирный шрифт
    ======================================================================= */
-.ap-ref-card  {padding:14px 18px;background:var(--ds-surface-sunken,#F4F5F7);border-radius:8px;border:1px solid var(--ds-border,#DFE1E6)}
-.ap-ref-label {font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ds-text-subtle,#6b7280);margin-bottom:6px}
-.ap-ref-link  {font-size:14px;font-weight:600;font-family:monospace;color:var(--ds-link,#0052CC);text-decoration:none}
+.autodoc-ref-card  {padding:14px 18px;background:var(--ds-surface-sunken,#F4F5F7);border-radius:8px;border:1px solid var(--ds-border,#DFE1E6)}
+.autodoc-ref-label {font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ds-text-subtle,#6b7280);margin-bottom:6px}
+.autodoc-ref-link  {font-size:14px;font-weight:600;font-family:monospace;color:var(--ds-link,#0052CC);text-decoration:none}
 
 /* === Текстовые утилиты =================================================
-   ap-text-subtle   — приглушённый текст (второстепенная информация)
-   ap-text-subtlest — очень приглушённый, мелкий текст (заглушки «—»)
-   ap-italic-note   — курсивная подсказка (Docker / агенты TeamCity)
-   ap-mono          — инлайн моноширинный текст без рамки (package_id и т.п.)
-   ap-page-desc     — описание-подзаголовок страницы/компонента под h1
-   ap-help-icon     — иконка-подсказка (?), открывает tooltip при наведении
+   autodoc-text-subtle   — приглушённый текст (второстепенная информация)
+   autodoc-text-subtlest — очень приглушённый, мелкий текст (заглушки «—»)
+   autodoc-italic-note   — курсивная подсказка (Docker / агенты TeamCity)
+   autodoc-mono          — инлайн моноширинный текст без рамки (package_id и т.п.)
+   autodoc-page-desc     — описание-подзаголовок страницы/компонента под h1
+   autodoc-help-icon     — иконка-подсказка (?), открывает tooltip при наведении
    ======================================================================= */
-.ap-text-subtle   {color:var(--ds-text-subtle,#6b7280)}
-.ap-text-subtlest {color:var(--ds-text-subtlest,#9ca3af);font-size:12px}
-.ap-italic-note   {font-size:12px;color:var(--ds-text-subtle,#6b7280);font-style:italic}
-.ap-mono          {font-family:monospace;font-size:12px;color:var(--ds-text,#374151);background:transparent;border:none;padding:0}
-.ap-page-desc     {color:var(--ds-text-subtle,#6b7280);font-size:14px;margin-top:0;line-height:1.5;max-width:700px}
-.ap-help-icon     {cursor:help;margin-left:4px;color:var(--ds-icon-information,#0052CC);vertical-align:middle}
+.autodoc-text-subtle   {color:var(--ds-text-subtle,#6b7280)}
+.autodoc-text-subtlest {color:var(--ds-text-subtlest,#9ca3af);font-size:12px}
+.autodoc-italic-note   {font-size:12px;color:var(--ds-text-subtle,#6b7280);font-style:italic}
+.autodoc-mono          {font-family:monospace;font-size:12px;color:var(--ds-text,#374151);background:transparent;border:none;padding:0}
+.autodoc-page-desc     {color:var(--ds-text-subtle,#6b7280);font-size:14px;margin-top:0;line-height:1.5;max-width:700px}
+.autodoc-help-icon     {cursor:help;margin-left:4px;color:var(--ds-icon-information,#0052CC);vertical-align:middle}
 
 /* === Секция введения / описания платформы ===============================
    Обёртка для вводного блока в верхней части страниц profile_centric
    и release_doc: описание платформы + таблицы установки профилей.
-   ap-intro-section   — контейнер всей секции (отступ снизу, разделитель)
-   ap-intro-heading   — заголовок h2 внутри секции
-   ap-intro-lead      — вводный абзац серым цветом
+   autodoc-intro-section   — контейнер всей секции (отступ снизу, разделитель)
+   autodoc-intro-heading   — заголовок h2 внутри секции
+   autodoc-intro-lead      — вводный абзац серым цветом
    ======================================================================= */
-.ap-intro-section  {margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--ds-border,#e5e7eb)}
-.ap-intro-heading  {font-size:16px;font-weight:700;color:var(--ds-text,#172B4D);margin-top:20px;margin-bottom:8px}
-.ap-intro-lead     {font-size:13px;color:var(--ds-text-subtle,#6b7280);margin-bottom:14px;line-height:1.6}
+.autodoc-intro-section  {margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--ds-border,#e5e7eb)}
+.autodoc-intro-heading  {font-size:16px;font-weight:700;color:var(--ds-text,#172B4D);margin-top:20px;margin-bottom:8px}
+.autodoc-intro-lead     {font-size:13px;color:var(--ds-text-subtle,#6b7280);margin-bottom:14px;line-height:1.6}
 
 /* === Таблицы установки профилей =========================================
    Используются в блоке «Использование профилей» (intro-секция).
-   ap-install-table — таблица-карточка с одной колонкой
-   ap-install-th    — строка-заголовок (тёмный фон, uppercase-лейбл)
-   ap-install-td    — строка с кодом/контентом
-   ap-install-code  — блок команды: моноширинный, фон сниженной яркости
+   autodoc-install-table — таблица-карточка с одной колонкой
+   autodoc-install-th    — строка-заголовок (тёмный фон, uppercase-лейбл)
+   autodoc-install-td    — строка с кодом/контентом
+   autodoc-install-code  — блок команды: моноширинный, фон сниженной яркости
    ======================================================================= */
-.ap-install-table {width:100%;border:1px solid var(--ds-border,#DFE1E6);border-radius:6px;border-collapse:collapse;margin-bottom:12px;overflow:hidden}
-.ap-install-th    {padding:8px 14px;background:var(--ds-surface-sunken,#F4F5F7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-text-subtle,#6B778C);border-bottom:1px solid var(--ds-border,#DFE1E6)}
-.ap-install-td    {padding:12px 14px;background:var(--ds-surface,#FFFFFF)}
-.ap-install-code  {font-family:monospace;font-size:12px;color:var(--ds-text,#172B4D);background:var(--ds-surface-sunken,#F4F5F7);border:1px solid var(--ds-border,#DFE1E6);border-radius:4px;padding:8px 12px;display:block;margin-bottom:6px;white-space:pre-wrap;word-break:break-all}
-.ap-install-code:last-child {margin-bottom:0}
+.autodoc-install-table {width:100%;border:1px solid var(--ds-border,#DFE1E6);border-radius:6px;border-collapse:collapse;margin-bottom:12px;overflow:hidden}
+.autodoc-install-th    {padding:8px 14px;background:var(--ds-surface-sunken,#F4F5F7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-text-subtle,#6B778C);border-bottom:1px solid var(--ds-border,#DFE1E6)}
+.autodoc-install-td    {padding:12px 14px;background:var(--ds-surface,#FFFFFF)}
+.autodoc-install-code  {font-family:monospace;font-size:12px;color:var(--ds-text,#172B4D);background:var(--ds-surface-sunken,#F4F5F7);border:1px solid var(--ds-border,#DFE1E6);border-radius:4px;padding:8px 12px;display:block;margin-bottom:6px;white-space:pre-wrap;word-break:break-all}
+.autodoc-install-code:last-child {margin-bottom:0}
 
 </style>

@@ -18,8 +18,8 @@ from autodoc.publisher.rendering.document_builder import DocumentBuilder
 _RENDERING_DIR: Path = Path(__file__).parents[4] / "autodoc" / "publisher" / "rendering"
 
 # Stable string markers to assert inside rendered outputs.
-_STYLES_BASE_MARKER: str = "ap-badge"  # present in _styles_base.jinja2
-_STYLES_PP_MARKER: str = "ap-page-header"  # present in _styles_passport.jinja2
+_STYLES_BASE_MARKER: str = "autodoc-badge"  # present in _styles_base.jinja2
+_STYLES_PP_MARKER: str = "autodoc-page-header"  # present in _styles_passport.jinja2
 
 
 def _make_parsed_result(component_name: str = "testlib") -> ParsedResult:
@@ -64,7 +64,7 @@ def test_styles_base_template_renders_without_error(
 ) -> None:
     """_styles_base.jinja2 is included by release_doc.jinja2 and must render cleanly.
 
-    The rendered output must contain the stable CSS class marker 'ap-badge',
+    The rendered output must contain the stable CSS class marker 'autodoc-badge',
     confirming that the stylesheet was actually included and not silently skipped.
     """
     view_model: dict[str, Any] = _make_parsed_result().model_dump()
@@ -82,7 +82,7 @@ def test_styles_passport_template_renders_without_error(
     """_styles_passport.jinja2 is included by component_passport.jinja2; must render.
 
     Verifies that the passport stylesheet is syntactically valid and that the
-    'ap-page-header' marker from _styles_passport.jinja2 appears in the output.
+    'autodoc-page-header' marker from _styles_passport.jinja2 appears in the output.
     """
     from autodoc.models.release import Release
 

@@ -50,10 +50,10 @@
 
                             <ac:rich-text-body>
                                 <h1 style="margin-top:0;margin-bottom:6px;font-size:26px;font-weight:700;color:var(--ds-text,#111827)">{{ comp.name }}</h1>
-                                <p class="ap-page-desc">{{ comp.description }}</p>
+                                <p class="autodoc-page-desc">{{ comp.description }}</p>
 
                                 <div style="margin-top:12px;margin-bottom:24px">
-                                    <span class="ap-chip">Platform: <strong style="color:var(--ds-text,#374151)">{{ data.get('target_release_version', data.get('platform_version', '')) }}</strong></span>
+                                    <span class="autodoc-chip">Platform: <strong style="color:var(--ds-text,#374151)">{{ data.get('target_release_version', data.get('platform_version', '')) }}</strong></span>
                                 </div>
 
                                 <ac:structured-macro ac:name="tabs-group">
@@ -75,9 +75,9 @@
                                                 {%- for release in releases_in_channel -%}
                                                 <div style="margin-top:24px;margin-bottom:40px">
 
-                                                    <div class="ap-ref-card" style="margin-bottom:16px">
-                                                        <div class="ap-ref-label">Conan Reference</div>
-                                                        <a href="{{ release.artifactory_url }}" class="ap-ref-link" style="color:var(--ds-link,#2563eb)">
+                                                    <div class="autodoc-ref-card" style="margin-bottom:16px">
+                                                        <div class="autodoc-ref-label">Conan Reference</div>
+                                                        <a href="{{ release.artifactory_url }}" class="autodoc-ref-link" style="color:var(--ds-link,#2563eb)">
                                                             {{ release.conan_reference }} &#8599;
                                                         </a>
                                                         <div style="float:right;font-size:12px;color:var(--ds-text-subtle,#6b7280);margin-top:2px">
@@ -88,11 +88,11 @@
 
                                                     {%- if comp.passport_versions -%}
                                                     <div style="padding:12px 16px;background:var(--ds-surface-sunken,#F4F5F7);border:1px solid var(--ds-border,#DFE1E6);border-radius:8px;margin-bottom:16px">
-                                                        <div class="ap-section-label" style="margin-bottom:10px">Документация компонента</div>
+                                                        <div class="autodoc-section-label" style="margin-bottom:10px">Документация компонента</div>
                                                         <div style="display:flex;flex-wrap:wrap;gap:8px">
                                                             {%- for version, page_info in comp.passport_versions.items() -%}
                                                             {%- if version == release.version -%}
-                                                            <a href="/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" class="ap-passport-btn-lg">
+                                                            <a href="/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" class="autodoc-passport-btn-lg">
                                                                 {{ comp.name }} v{{ version }}
                                                             </a>
                                                             {%- endif -%}
@@ -106,7 +106,7 @@
                                                             <ac:rich-text-body>
                                                                 <p>
                                                                     <strong style="color:var(--ds-text,#111827)">Header-Only компонент</strong>
-                                                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." class="ap-help-icon">
+                                                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." class="autodoc-help-icon">
                                                                         <ac:emoticon ac:name="information" />
                                                                     </span>
                                                                 </p>
@@ -125,30 +125,30 @@
                                                                 <table class="confluenceTable" style="border:1px solid var(--ds-border,#e5e7eb);border-radius:8px;margin-bottom:0;width:100%">
                                                                     <thead style="background:var(--ds-surface-sunken,#f9fafb)">
                                                                         <tr>
-                                                                            <th class="confluenceTh ap-cth">Профиль</th>
-                                                                            <th class="confluenceTh ap-cth">OS</th>
-                                                                            <th class="confluenceTh ap-cth">Архитектура</th>
-                                                                            <th class="confluenceTh ap-cth">Компилятор</th>
-                                                                            <th class="confluenceTh ap-cth">Docker Image</th>
+                                                                            <th class="confluenceTh autodoc-cth">Профиль</th>
+                                                                            <th class="confluenceTh autodoc-cth">OS</th>
+                                                                            <th class="confluenceTh autodoc-cth">Архитектура</th>
+                                                                            <th class="confluenceTh autodoc-cth">Компилятор</th>
+                                                                            <th class="confluenceTh autodoc-cth">Docker Image</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
                                                                         {%- for build in release.profile_builds -%}
                                                                         {%- set os = build.conan_settings.get('os', 'Unknown') -%}
                                                                         <tr>
-                                                                            <td class="confluenceTd ap-ctd">
-                                                                                <code class="ap-mono">{{ build.profile_name }}</code>
+                                                                            <td class="confluenceTd autodoc-ctd">
+                                                                                <code class="autodoc-mono">{{ build.profile_name }}</code>
                                                                             </td>
-                                                                            <td class="confluenceTd ap-ctd">
-                                                                                <span class="ap-os-badge" style="{{ os_style(os) }}">{{ os }}</span>
+                                                                            <td class="confluenceTd autodoc-ctd">
+                                                                                <span class="autodoc-os-badge" style="{{ os_style(os) }}">{{ os }}</span>
                                                                             </td>
-                                                                            <td class="confluenceTd ap-ctd">
+                                                                            <td class="confluenceTd autodoc-ctd">
                                                                                 <span style="font-size:12px;font-weight:700;color:var(--ds-text,#374151)">{{ build.conan_settings.get('arch', '—') }}</span>
                                                                             </td>
-                                                                            <td class="confluenceTd ap-ctd ap-cell-s" style="font-size:12px">
+                                                                            <td class="confluenceTd autodoc-ctd autodoc-cell-s" style="font-size:12px">
                                                                                 {{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}
                                                                             </td>
-                                                                            <td class="confluenceTd ap-ctd" style="font-size:12px">
+                                                                            <td class="confluenceTd autodoc-ctd" style="font-size:12px">
                                                                                 {%- if build.docker_image -%}
                                                                                     <span style="color:var(--ds-text,#374151)">{{ build.docker_image }}</span>
                                                                                 {%- else -%}
