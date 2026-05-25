@@ -74,7 +74,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         # Собираем уникальные пары (repo_name, branch) в порядке появления;
         # ключ cache_key нужен для сопоставления с параллельными результатами.
         unique_keys: list[str] = []
-        unique_pairs: list[tuple[str, str, str]] = []
+        unique_triples: list[tuple[str, str, str]] = []
         seen: set[str] = set()
 
         for comp in components:
@@ -89,18 +89,17 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 if cache_key not in seen:
                     seen.add(cache_key)
                     unique_keys.append(cache_key)
-                    unique_pairs.append((git_project, repo_name, branch))
+                    unique_triples.append((git_project, repo_name, branch))
 
         # Скачиваем все уникальные комбинации repo/branch параллельно.
         raw_results = self._executor.execute(
             lambda pair: self._fetch_options_for_repo(*pair),
-            unique_pairs,
+            unique_triples,
             task_label="репозиториев",
         )
 
-        empty: dict[str, Any] = {"global": {}, "channels": {}}
         options_cache: dict[str, dict[str, Any]] = {
-            key: repo_data or empty for key, repo_data in zip(unique_keys, raw_results)
+            key: repo_data for key, repo_data in zip(unique_keys, raw_results)
         }
 
         # Строим карту результатов из заполненного кэша — без повторных сетевых запросов.
