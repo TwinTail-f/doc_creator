@@ -11,7 +11,6 @@ from autodoc.exceptions import ConfigError
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 
-
 config = click.Group("config", help="Управление конфигурационными файлами.")
 
 
@@ -28,13 +27,17 @@ def config_list(ctx: click.Context) -> None:
 
     for output_format, files in available.items():
         if files:
-            table = Table(title=f"{output_format.upper()} конфигурации", show_header=True)
+            table = Table(
+                title=f"{output_format.upper()} конфигурации", show_header=True
+            )
             table.add_column("Файл", style="cyan")
             for fname in files:
                 table.add_row(fname)
             console.print(table)
         else:
-            console.print(f"{output_format.upper()} конфиги: [yellow]не найдены[/yellow]")
+            console.print(
+                f"{output_format.upper()} конфиги: [yellow]не найдены[/yellow]"
+            )
 
     # Примеры
     has_examples = any(examples.values())
