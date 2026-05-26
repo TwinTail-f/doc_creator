@@ -3,8 +3,10 @@
 Разбор JSON делегируется OptionsParser.
 """
 
-import requests
 from typing import Any
+
+import requests
+
 from autodoc.exceptions import NetworkError
 from autodoc.common.logger import logger
 from autodoc.common.parallel_executor import ParallelExecutor
@@ -69,19 +71,19 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         logger.info("Начинаем сбор options.json…")
 
-        fetch_warnings: list[str] = []
+        warnings: list[str] = []
 
         # Собираем уникальные пары (repo_name, branch) в порядке появления;
         # ключ cache_key нужен для сопоставления с параллельными результатами.
         unique_keys: list[str] = []
-        unique_triples: list[tuple[str, str, str]] = []
+        unique_repo_branches: list[tuple[str, str, str]] = []
         seen: set[str] = set()
 
         for comp in components:
             repo_name = comp.git_repo
             git_project = comp.git_project
             if not repo_name:
-                fetch_warnings.append(f"{comp.name} без git_repo, пропуск")
+                warnings.append(f"{comp.name} без git_repo, пропуск")
                 continue
             for release in comp.releases:
                 branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
@@ -89,12 +91,12 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 if cache_key not in seen:
                     seen.add(cache_key)
                     unique_keys.append(cache_key)
-                    unique_triples.append((git_project, repo_name, branch))
+                    unique_repo_branches.append((git_project, repo_name, branch))
 
         # Скачиваем все уникальные комбинации repo/branch параллельно.
         raw_results = self._executor.execute(
-            lambda pair: self._fetch_options_for_repo(*pair),
-            unique_triples,
+            lambda triple: self._fetch_options_for_repo(*triple),
+            unique_repo_branches,
             task_label="репозиториев",
         )
 
@@ -116,7 +118,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 result[(comp.name, release.version, release.channel)] = chosen
 
         logger.info(f"Завершён. Собрано опций для {len(result)} релизов.")
-        return FetchResult(value=result, warnings=fetch_warnings)
+        return FetchResult(value=result, warnings=warnings)
 
     def _fetch_options_for_repo(
         self, git_project: str, repo_name: str, branch: str

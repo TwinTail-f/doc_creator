@@ -30,6 +30,9 @@ class ConfigManager:
 
     SUPPORTED_FORMATS: list[str] = [".yaml", ".yml", ".json"]
 
+    # Нормализация расширений для группировки: .yml и .yaml — один формат.
+    _EXT_TO_KEY: dict[str, str] = {".yaml": "yaml", ".yml": "yaml", ".json": "json"}
+
     EXAMPLES_SUBDIR: str = "examples"
 
     def __init__(self, configs_dir: str | Path) -> None:
@@ -99,19 +102,15 @@ class ConfigManager:
             Словарь, отображающий расширение формата (без ведущей точки) на
             отсортированный список имён файлов этого формата в ``configs_dir``.
         """
-        result: dict[str, list[str]] = {
-            ext.lstrip("."): [] for ext in self.SUPPORTED_FORMATS
-        }
+        result: dict[str, list[str]] = {key: [] for key in dict.fromkeys(self._EXT_TO_KEY.values())}
         if not self.configs_dir.is_dir():
             return result
         examples_path = self.configs_dir / self.EXAMPLES_SUBDIR
-        # sorted() гарантирует детерминированный порядок загрузки конфигов
-        # независимо от платформы и файловой системы
-        for item in sorted(self.configs_dir.iterdir()):
+        for item in self.configs_dir.iterdir():
             if item == examples_path:  # пропускаем examples/
                 continue
             if item.is_file() and item.suffix.lower() in self.SUPPORTED_FORMATS:
-                result[item.suffix.lower().lstrip(".")].append(item.name)
+                result[self._EXT_TO_KEY[item.suffix.lower()]].append(item.name)
         return result
 
     def list_example_configs(self) -> dict[str, list[str]]:
@@ -122,15 +121,13 @@ class ConfigManager:
             Словарь расширение → список имён файлов в ``configs_dir/examples/``.
             Если подпапка отсутствует — все списки пустые.
         """
-        result: dict[str, list[str]] = {
-            ext.lstrip("."): [] for ext in self.SUPPORTED_FORMATS
-        }
+        result: dict[str, list[str]] = {key: [] for key in dict.fromkeys(self._EXT_TO_KEY.values())}
         examples_dir = self.configs_dir / self.EXAMPLES_SUBDIR
         if not examples_dir.is_dir():
             return result
-        for item in sorted(examples_dir.iterdir()):
+        for item in examples_dir.iterdir():
             if item.is_file() and item.suffix.lower() in self.SUPPORTED_FORMATS:
-                result[item.suffix.lower().lstrip(".")].append(item.name)
+                result[self._EXT_TO_KEY[item.suffix.lower()]].append(item.name)
         return result
 
     def load_raw(self, filename: str) -> dict[str, Any]:
@@ -150,12 +147,15 @@ class ConfigManager:
         """
         return self._parse_file(self._resolve_path(filename))
 
-    def validate_config_file(self, filepath: str) -> None:
+    def validate_config_file(self, filepath: str) -> dict[str, Any]:
         """
-        Проверяет синтаксическую корректность файла конфигурации.
+        Проверяет синтаксическую корректность файла конфигурации и возвращает его содержимое.
 
         Args:
             filepath: Абсолютный путь к файлу.
+
+        Returns:
+            Содержимое файла в виде словаря.
 
         Raises:
             ConfigError: Если файл не найден, формат не поддерживается
@@ -172,7 +172,7 @@ class ConfigManager:
                 f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
             )
 
-        self._parse_file(path)
+        return self._parse_file(path)
 
     def _resolve_path(self, filename: str) -> Path:
         """

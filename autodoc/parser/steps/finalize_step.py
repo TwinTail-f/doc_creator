@@ -27,6 +27,10 @@ class FinalizeStep(BaseParseStep):
     name = "Финализация и валидация данных"
     is_critical = True
 
+    # SHA1 от пустой строки — стандартный нулевой package_id Conan.
+    # Conan выставляет его для header-only пакетов.
+    _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
     def execute(self, ctx: PipelineContext) -> None:
         """
         Финализирует результаты пайплайна.
@@ -51,10 +55,6 @@ class FinalizeStep(BaseParseStep):
             ctx.result = self._build_result(ctx)
         except PydanticValidationError as exc:
             raise ParsingError(f"Result validation failed: {exc}") from exc
-
-    # SHA1 от пустой строки — стандартный нулевой package_id Conan.
-    # Conan выставляет его для header-only пакетов.
-    _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
     def _compute_header_only_flags(
         self,

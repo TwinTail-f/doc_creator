@@ -57,19 +57,12 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
 
     filepath = cli_ctx.configs_dir / config_file
     try:
-        cli_ctx.config_manager.validate_config_file(str(filepath))
+        raw = cli_ctx.config_manager.validate_config_file(str(filepath))
     except ConfigError as e:
         console.print(f"❌ Файл невалиден: {e}", style="red bold")
         sys.exit(1)
 
     console.print(f"✅ Синтаксис файла корректен: {config_file}", style="green bold")
-
-    # Загружаем сырые данные один раз, до любой схемной валидации.
-    try:
-        raw = cli_ctx.config_manager.load_raw(config_file)
-    except ConfigError as e:
-        console.print(f"❌ Не удалось загрузить файл: {e}", style="red bold")
-        sys.exit(1)
 
     # Определяем схему по наличию ключевых полей — не через перебор исключений.
     is_parser = "tfs_token" in raw and "platform_version" in raw
