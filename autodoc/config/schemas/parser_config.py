@@ -122,6 +122,17 @@ class ParserConfigSchema(BaseModel):
             "получит диапазон [>=20.11.10 <20.11.11]."
         ),
     )
+    component_branch_overrides: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Словарь переопределений имён веток TFS для специфичных компонентов. "
+            "Ключ — имя компонента; значение — шаблон ветки с плейсхолдером {version}. "
+            "Используется для компонентов, чья ветка не совпадает с универсальным "
+            "шаблоном 'release_{version}' (например, когда компонент живёт в том же "
+            "репозитории, что и базовый, но имеет собственный суффикс ветки). "
+            "Пример: {\"sqlite3_extension\": \"release_{version}_ext\"}."
+        ),
+    )
 
     # Тайм-ауты
     tfs_request_timeout: int = Field(

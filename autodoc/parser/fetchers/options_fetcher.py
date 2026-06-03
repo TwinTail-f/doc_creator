@@ -37,6 +37,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """Инициализирует фетчер; перед вызовом ``fetch()`` необходимо вызвать ``configure(ctx)``."""
         super().__init__()
         self._base_url: str = ""
+        self._branch_overrides: dict[str, str] = {}
         self._executor = ParallelExecutor(
             max_workers=_OPTIONS_MAX_WORKERS,
             log_progress_interval=_OPTIONS_LOG_INTERVAL,
@@ -46,13 +47,36 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         """
         Инициализирует фетчер из контекста пайплайна.
 
-        Получает ``TFSClient`` из контекста и сохраняет базовый URL.
+        Получает ``TFSClient`` из контекста, сохраняет базовый URL
+        и словарь переопределений веток для специфичных компонентов.
 
         Args:
             ctx: Контекст пайплайна с заполненной конфигурацией и клиентами.
         """
         self._tfs = ctx.tfs_client
         self._base_url = ctx.config.tfs_collection_url
+        self._branch_overrides = ctx.config.component_branch_overrides
+
+    def _get_branch(self, comp_name: str, version: str) -> str:
+        """
+        Возвращает имя ветки TFS для заданного компонента и версии.
+
+        Если компонент присутствует в ``_branch_overrides``, подставляет версию
+        в шаблон из конфига. Иначе использует универсальный шаблон
+        ``release_{version}``.
+
+        Args:
+            comp_name: Имя компонента (ключ в словаре переопределений).
+            version: Строка версии релиза (например ``"3.34.1"``).
+
+        Returns:
+            Имя ветки TFS (например ``"release_3.34.1"`` или
+            ``"release_3.34.1_ext"``).
+        """
+        template = self._branch_overrides.get(comp_name)
+        if template:
+            return template.format(version=version)
+        return f"{_RELEASE_BRANCH_PREFIX}{version}"
 
     def _fetch(self, components: list[Component]) -> FetchResult[OptionsMap]:
         """
@@ -86,7 +110,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 warnings.append(f"{comp.name} без git_repo, пропуск")
                 continue
             for release in comp.releases:
-                branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
+                branch = self._get_branch(comp.name, release.version)
                 cache_key = f"{git_project}_{repo_name}_{branch}"
                 if cache_key not in seen:
                     seen.add(cache_key)
@@ -110,7 +134,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             if not comp.git_repo:
                 continue
             for release in comp.releases:
-                branch = f"{_RELEASE_BRANCH_PREFIX}{release.version}"
+                branch = self._get_branch(comp.name, release.version)
                 cache_key = f"{comp.git_project}_{comp.git_repo}_{branch}"
                 chosen = OptionsParser.pick_options(
                     options_cache[cache_key], release.channel

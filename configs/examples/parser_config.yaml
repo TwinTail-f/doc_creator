@@ -34,6 +34,16 @@ component_names: [
 # [~{version},include_prerelease] формируется точный диапазон [>=X.Y.Z <X.Y.(Z+1)].
 exact_range_components: []
 
+# Словарь переопределений веток TFS для специфичных компонентов.
+# Используется, когда ветка компонента не совпадает с универсальным шаблоном
+# "release_{version}" — например, компонент живёт в том же репозитории, что и
+# базовый, но имеет собственный суффикс ветки.
+# Значение — шаблон Python str.format с плейсхолдером {version}.
+# Если поле не указано или пустое — для всех компонентов используется шаблон по умолчанию.
+# Пример:
+#   sqlite3_extension: "release_{version}_ext"   →  ветка release_3.34.1_ext
+component_branch_overrides: {}
+
 tfs_request_timeout: 15
 conan_command_timeout: 300
 max_retries: 3
