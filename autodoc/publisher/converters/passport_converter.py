@@ -49,30 +49,34 @@ class PassportConverter(BaseDataConverter):
         return comp
 
     @staticmethod
-    def _find_release(component: Any, release_version: str) -> Any:
+    def _find_releases(component: Any, release_version: str) -> list[Any]:
         """
-        Находит релиз по версии внутри компонента.
+        Находит все релизы по версии внутри компонента.
+
+        Один компонент может иметь несколько релизов с одинаковой версией,
+        но разными каналами (например ``fast`` и ``slow``). Метод возвращает
+        их все в порядке, в котором они хранятся в ``component.releases``
+        (т.е. в том же порядке, что и в ``parsed_data``).
 
         Args:
             component: Объект компонента с атрибутом ``releases``.
             release_version: Строковое представление версии.
 
         Returns:
-            Объект релиза.
+            Список объектов релиза (не менее одного).
 
         Raises:
-            ValueError: Если версия не найдена.
+            ValueError: Если ни одного релиза с такой версией не найдено.
         """
-        rel = next(
-            (r for r in component.releases if str(r.version) == str(release_version)),
-            None,
-        )
-        if not rel:
+        releases = [
+            r for r in component.releases if str(r.version) == str(release_version)
+        ]
+        if not releases:
             raise ValueError(
                 f"PassportConverter: версия {release_version} "
                 f"для {component.name} не найдена"
             )
-        return rel
+        return releases
 
     def _build_enriched_profile_builds(
         self,
@@ -131,11 +135,16 @@ class PassportConverter(BaseDataConverter):
         """
         Формирует паспорт для конкретного компонента и версии.
 
+        Один компонент может публиковаться в нескольких каналах (например
+        ``fast`` и ``slow``) с одинаковой версией. В этом случае метод
+        возвращает ``releases`` — список словарей по каждому каналу в порядке
+        их следования в ``parsed_data``.
+
         Args:
             data: Полный набор данных парсера.
 
         Returns:
-            View-model словарь.
+            View-model словарь с полем ``releases`` (список каналов).
 
         Raises:
             ValueError: Если компонент или версия не найдены.
@@ -145,48 +154,54 @@ class PassportConverter(BaseDataConverter):
         }
 
         target_comp = self._find_component(data, self._component_name)
-        target_rel = self._find_release(target_comp, self._release_version)
+        # Все релизы с данной версией — сохраняем порядок из parsed_data
+        target_releases = self._find_releases(target_comp, self._release_version)
 
-        # Resolved опции — для бейджей conan_options в UI
-        os_map: dict[str, dict] = {
-            os_.id: os_.options for os_ in target_rel.total_option_sets
-        }
-        # Строки из таблицы конфигураций — для команды conan install
-        bos_map: dict[str, str] = {
-            bos.id: self._build_install_options_from_string(bos.options)
-            for bos in target_rel.build_option_sets
-        }
-
-        enriched_pbs = self._build_enriched_profile_builds(
-            target_rel, target_comp.name, pd_map, os_map, bos_map
-        )
-
-        # Базовый URL репозитория — теперь хранится на уровне компонента.
+        # Базовый URL репозитория вычисляется один раз: хранится на уровне компонента.
         # Ветка вида GBrelease_{version} — стандартное соглашение TFS для бранчей релизов.
         raw_git_url: str = target_comp.git_url or ""
         git_repo_base_url: str = (
             raw_git_url.split("?")[0] if "?" in raw_git_url else raw_git_url
         )
-        git_branch_version: str = f"GBrelease_{target_rel.version}"
 
-        release_dict = {
-            "version": target_rel.version,
-            "platform": target_rel.platform,
-            "channel": target_rel.channel,
-            "git_url": target_comp.git_url,
-            "git_repo_base_url": git_repo_base_url,
-            "git_branch_version": git_branch_version,
-            "conan_reference": target_rel.conan_reference,
-            "artifactory_url": target_rel.artifactory_url,
-            "is_header_only": target_comp.is_header_only,
-            "build_option_sets": [
-                bos.model_dump() for bos in target_rel.build_option_sets
-            ],
-            "default_options": [o.model_dump() for o in target_rel.default_options],
-            "patches": target_rel.patches,
-            "dependencies": target_rel.dependencies,
-            "profile_builds": enriched_pbs,
-        }
+        releases_list: list[dict[str, Any]] = []
+        for target_rel in target_releases:
+            # Resolved опции — для бейджей conan_options в UI
+            os_map: dict[str, dict] = {
+                os_.id: os_.options for os_ in target_rel.total_option_sets
+            }
+            # Строки из таблицы конфигураций — для команды conan install
+            bos_map: dict[str, str] = {
+                bos.id: self._build_install_options_from_string(bos.options)
+                for bos in target_rel.build_option_sets
+            }
+            enriched_pbs = self._build_enriched_profile_builds(
+                target_rel, target_comp.name, pd_map, os_map, bos_map
+            )
+            git_branch_version: str = f"GBrelease_{target_rel.version}"
+
+            releases_list.append(
+                {
+                    "version": target_rel.version,
+                    "platform": target_rel.platform,
+                    "channel": target_rel.channel,
+                    "git_url": target_comp.git_url,
+                    "git_repo_base_url": git_repo_base_url,
+                    "git_branch_version": git_branch_version,
+                    "conan_reference": target_rel.conan_reference,
+                    "artifactory_url": target_rel.artifactory_url,
+                    "is_header_only": target_comp.is_header_only,
+                    "build_option_sets": [
+                        bos.model_dump() for bos in target_rel.build_option_sets
+                    ],
+                    "default_options": [
+                        o.model_dump() for o in target_rel.default_options
+                    ],
+                    "patches": target_rel.patches,
+                    "dependencies": target_rel.dependencies,
+                    "profile_builds": enriched_pbs,
+                }
+            )
 
         return {
             "platform_version": data.platform_version,
@@ -195,8 +210,10 @@ class PassportConverter(BaseDataConverter):
                 "description": target_comp.description,
                 "git_project": target_comp.git_project,
                 "git_repo": target_comp.git_repo,
+                # git_url вынесен на уровень компонента для использования в заголовке страницы
+                "git_url": target_comp.git_url,
             },
-            # data.release — единственная точка доступа к данным релиза в шаблоне
-            "release": release_dict,
+            # data.releases — список каналов; порядок соответствует parsed_data
+            "releases": releases_list,
             "legacy_contents": {},
         }

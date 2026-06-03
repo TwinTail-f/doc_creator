@@ -3,11 +3,11 @@
 {%- from 'macros/_macros.jinja2' import os_style, docker_note -%}
 <div class="autodoc-page-header">
     <p class="autodoc-page-sub">Документация компонента в рамках релиза <strong>{{ data.target_platform }}</strong></p>
-    <h1 class="autodoc-page-title">{{ data.component.name }} {{ data.release.version }}</h1>
+    <h1 class="autodoc-page-title">{{ data.component.name }} {{ data.releases[0].version }}</h1>
     <p class="autodoc-page-desc">{{ data.component.description }}</p>
     <div style="margin-top:12px">
         <span class="autodoc-git-chip">
-            Git: <a href="{{ data.release.git_url | xmlattr }}" class="autodoc-git-chip-link"><strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong></a>
+            Git: <a href="{{ data.component.git_url | xmlattr }}" class="autodoc-git-chip-link"><strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong></a>
         </span>
     </div>
 </div>
@@ -24,15 +24,24 @@
 
                 <div style="margin-top:24px;margin-bottom:40px">
 
+                {%- for release in data.releases -%}
+
+                    {#- Заголовок канала — показывается только если каналов больше одного -#}
+                    {%- if data.releases | length > 1 -%}
+                    <h2 class="autodoc-h2" style="margin-top:32px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--autodoc-border)">
+                        Канал: <code>{{ release.channel }}</code>
+                    </h2>
+                    {%- endif -%}
+
                     <div class="autodoc-ref-card" style="margin-bottom:24px">
                         <div class="autodoc-ref-label">Conan Reference</div>
-                        <a href="{{ data.release.artifactory_url }}" class="autodoc-ref-link">
-                            {{ data.release.conan_reference }}
+                        <a href="{{ release.artifactory_url }}" class="autodoc-ref-link">
+                            {{ release.conan_reference }}
                         </a>
                     </div>
 
                     <h3 class="autodoc-h3">Опции компонента</h3>
-                    {%- if data.release.is_header_only -%}
+                    {%- if release.is_header_only -%}
                         <ac:structured-macro ac:name="info">
                             <ac:rich-text-body>
                                 <p class="autodoc-cell">Библиотека header-only, собирается без опций</p>
@@ -40,7 +49,7 @@
                         </ac:structured-macro>
                     {%- else -%}
                         <ac:structured-macro ac:name="expand">
-                            <ac:parameter ac:name="title">Раскрыть опции компонента ({{ data.release.default_options | length }})</ac:parameter>
+                            <ac:parameter ac:name="title">Раскрыть опции компонента ({{ release.default_options | length }})</ac:parameter>
                             <ac:rich-text-body>
                                 <table class="aui autodoc-table-full">
                                     <thead class="autodoc-thead">
@@ -52,8 +61,8 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {%- if data.release.default_options -%}
-                                            {%- for opt in data.release.default_options -%}
+                                        {%- if release.default_options -%}
+                                            {%- for opt in release.default_options -%}
                                             <tr>
                                                 <td class="autodoc-cell"><strong>{{ opt.name }}</strong></td>
                                                 <td class="autodoc-cell">{{ opt.type }}</td>
@@ -71,7 +80,7 @@
 
                         <h3 class="autodoc-h3">Конфигурации компонента</h3>
                         <ac:structured-macro ac:name="expand">
-                            <ac:parameter ac:name="title">Раскрыть уникальные конфигурации сборок ({{ data.release.build_option_sets | length }})</ac:parameter>
+                            <ac:parameter ac:name="title">Раскрыть уникальные конфигурации сборок ({{ release.build_option_sets | length }})</ac:parameter>
                             <ac:rich-text-body>
                                 <table class="aui autodoc-table-full">
                                     <thead class="autodoc-thead">
@@ -81,8 +90,8 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {%- if data.release.build_option_sets -%}
-                                            {%- for bos in data.release.build_option_sets -%}
+                                        {%- if release.build_option_sets -%}
+                                            {%- for bos in release.build_option_sets -%}
                                             <tr>
                                                 <td class="autodoc-cell"><strong>{{ bos.id }}</strong></td>
                                                 <td class="autodoc-cell">{%- if bos.options -%}{{ bos.options }}{%- else -%}default{%- endif -%}</td>
@@ -98,7 +107,7 @@
                     {%- endif -%}
 
                     <h3 class="autodoc-h3">Собранные профили</h3>
-                    {%- if data.release.is_header_only -%}
+                    {%- if release.is_header_only -%}
                         <ac:structured-macro ac:name="info">
                             <ac:rich-text-body>
                                 <p>
@@ -118,13 +127,13 @@
                                     <ac:parameter ac:name="wrap">true</ac:parameter>
                                     <ac:parameter ac:name="language">bash</ac:parameter>
                                     <ac:parameter ac:name="theme">Confluence</ac:parameter>
-                                    <ac:plain-text-body><![CDATA[conan install --requires {{ data.release.conan_reference }}]]></ac:plain-text-body>
+                                    <ac:plain-text-body><![CDATA[conan install --requires {{ release.conan_reference }}]]></ac:plain-text-body>
                                 </ac:structured-macro>
                             </ac:rich-text-body>
                         </ac:structured-macro>
                     {%- else -%}
                         <ac:structured-macro ac:name="expand">
-                            <ac:parameter ac:name="title">Раскрыть таблицу профилей ({{ data.release.profile_builds | length }})</ac:parameter>
+                            <ac:parameter ac:name="title">Раскрыть таблицу профилей ({{ release.profile_builds | length }})</ac:parameter>
                             <ac:rich-text-body>
                                 <table class="aui autodoc-table-full" style="border-collapse:collapse">
                                     <thead class="autodoc-thead">
@@ -137,7 +146,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {%- for build in data.release.profile_builds -%}
+                                        {%- for build in release.profile_builds -%}
                                         <tr class="autodoc-row-top">
                                             <td class="autodoc-cell autodoc-vm"><strong>{{ build.profile_name }}</strong></td>
                                             <td class="autodoc-vm">
@@ -202,7 +211,7 @@
                                                                             <ac:parameter ac:name="wrap">true</ac:parameter>
                                                                             <ac:parameter ac:name="language">bash</ac:parameter>
                                                                             <ac:parameter ac:name="theme">Confluence</ac:parameter>
-                                                                            <ac:plain-text-body><![CDATA[conan install --requires {{ data.release.conan_reference }} -pr {{ build.profile_name }}{% if var.install_options %} {{ var.install_options }}{% endif %}]]></ac:plain-text-body>
+                                                                            <ac:plain-text-body><![CDATA[conan install --requires {{ release.conan_reference }} -pr {{ build.profile_name }}{% if var.install_options %} {{ var.install_options }}{% endif %}]]></ac:plain-text-body>
                                                                         </ac:structured-macro>
                                                                     </ac:rich-text-body>
                                                                 </ac:structured-macro>
@@ -222,10 +231,10 @@
                         </ac:structured-macro>
                     {%- endif -%}
 
-                    {%- if data.release.dependencies -%}
+                    {%- if release.dependencies -%}
                     <h3 class="autodoc-h3">Зависимости компонента</h3>
                     <ac:structured-macro ac:name="expand">
-                        <ac:parameter ac:name="title">Раскрыть зависимости ({{ data.release.dependencies | length }})</ac:parameter>
+                        <ac:parameter ac:name="title">Раскрыть зависимости ({{ release.dependencies | length }})</ac:parameter>
                         <ac:rich-text-body>
                             <table class="aui autodoc-table-full">
                                 <thead class="autodoc-thead">
@@ -235,7 +244,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {%- for dep in data.release.dependencies -%}
+                                    {%- for dep in release.dependencies -%}
                                     <tr>
                                         <td class="autodoc-cell"><strong>{{ dep }}</strong></td>
                                         <td class="autodoc-cell">—</td>
@@ -247,10 +256,10 @@
                     </ac:structured-macro>
                     {%- endif -%}
 
-                    {%- if data.release.patches -%}
+                    {%- if release.patches -%}
                     <h3 class="autodoc-h3">Используемые патчи</h3>
                     <ac:structured-macro ac:name="expand">
-                        <ac:parameter ac:name="title">Раскрыть используемые патчи ({{ data.release.patches | length }})</ac:parameter>
+                        <ac:parameter ac:name="title">Раскрыть используемые патчи ({{ release.patches | length }})</ac:parameter>
                         <ac:rich-text-body>
                             <table class="aui autodoc-table-full">
                                 <thead class="autodoc-thead">
@@ -261,11 +270,11 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {%- for patch in data.release.patches -%}
+                                    {%- for patch in release.patches -%}
                                     <tr>
                                         <td class="autodoc-cell">
-                                            {%- if data.release.git_repo_base_url -%}
-                                            <a href="{{ data.release.git_repo_base_url | xmlattr }}?path=/conan/patches/{{ patch }}&amp;version={{ data.release.git_branch_version }}"><strong>{{ patch }}</strong></a>
+                                            {%- if release.git_repo_base_url -%}
+                                            <a href="{{ release.git_repo_base_url | xmlattr }}?path=/conan/patches/{{ patch }}&amp;version={{ release.git_branch_version }}"><strong>{{ patch }}</strong></a>
                                             {%- else -%}
                                             <strong>{{ patch }}</strong>
                                             {%- endif -%}
@@ -279,6 +288,8 @@
                         </ac:rich-text-body>
                     </ac:structured-macro>
                     {%- endif -%}
+
+                {%- endfor -%}
 
                 </div>
 
