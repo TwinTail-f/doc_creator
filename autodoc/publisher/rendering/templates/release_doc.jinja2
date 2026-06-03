@@ -1,0 +1,187 @@
+{%- include 'styles/_styles_base.jinja2' -%}
+{%- from 'macros/_macros.jinja2' import os_style, docker_note -%}
+{% set PAGE_SIZE = 20 %}
+{% set all_components = data.components | list %}
+{% set total = all_components | length %}
+
+{%- include 'templates/_platform_intro.jinja2' -%}
+
+<ac:structured-macro ac:name="tabs-group">
+    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+    <ac:parameter ac:name="outline">true</ac:parameter>
+
+    <ac:rich-text-body>
+
+        {%- for page_components in all_components | batch(PAGE_SIZE) -%}
+        {%- set page_idx = loop.index -%}
+        {%- set page_idx0 = loop.index0 -%}
+        {%- set page_start = page_idx0 * PAGE_SIZE + 1 -%}
+        {%- set page_end_raw = page_start + PAGE_SIZE - 1 -%}
+        {%- set page_end = page_end_raw if page_end_raw < total else total -%}
+        {%- set real_count = page_end - page_start + 1 -%}
+        {%- set first_letter = page_components[0].name[0] | lower -%}
+        {%- set last_letter = page_components[real_count - 1].name[0] | lower -%}
+        {%- if first_letter == last_letter -%}
+            {%- set tab_label = first_letter -%}
+        {%- else -%}
+            {%- set tab_label = first_letter ~ '–' ~ last_letter -%}
+        {%- endif -%}
+
+        <ac:structured-macro ac:name="tab-pane">
+            <ac:parameter ac:name="name">{{ tab_label }}</ac:parameter>
+            <ac:parameter ac:name="anchor">page-{{ page_idx }}</ac:parameter>
+            <ac:parameter ac:name="outline">true</ac:parameter>
+
+            <ac:rich-text-body>
+
+                <ac:structured-macro ac:name="tabs-group">
+                    <ac:parameter ac:name="disposition">vertical</ac:parameter>
+                    <ac:parameter ac:name="outline">true</ac:parameter>
+
+                    <ac:rich-text-body>
+
+                        {%- for comp in page_components -%}
+                        {%- if comp is not none -%}
+                        {%- set comp_index = page_idx0 * PAGE_SIZE + loop.index -%}
+                        <ac:structured-macro ac:name="tab-pane">
+                            <ac:parameter ac:name="name">{{ comp.name }}</ac:parameter>
+                            <ac:parameter ac:name="anchor">comp-{{ comp_index }}</ac:parameter>
+                            <ac:parameter ac:name="outline">true</ac:parameter>
+
+                            <ac:rich-text-body>
+                                <h1 style="margin-top:0;margin-bottom:6px;font-size:26px;font-weight:700;color:var(--ds-text,#111827)">{{ comp.name }}</h1>
+                                <p class="autodoc-page-desc">{{ comp.description }}</p>
+
+                                <div style="margin-top:12px;margin-bottom:24px">
+                                    <span class="autodoc-chip">Platform: <strong style="color:var(--ds-text,#374151)">{{ data.get('target_release_version', data.get('platform_version', '')) }}</strong></span>
+                                </div>
+
+                                <ac:structured-macro ac:name="tabs-group">
+                                    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+                                    <ac:parameter ac:name="outline">true</ac:parameter>
+
+                                    <ac:rich-text-body>
+                                        {%- set releases_by_channel = comp.releases | groupby('channel') | sort(attribute='grouper') -%}
+                                        {%- for channel_group in releases_by_channel -%}
+                                        {%- set channel_name = channel_group.grouper -%}
+                                        {%- set releases_in_channel = channel_group.list -%}
+
+                                        <ac:structured-macro ac:name="tab-pane">
+                                            <ac:parameter ac:name="name">{{ channel_name | capitalize }}</ac:parameter>
+                                            <ac:parameter ac:name="anchor">chan-{{ comp_index }}-{{ loop.index }}</ac:parameter>
+                                            <ac:parameter ac:name="outline">true</ac:parameter>
+
+                                            <ac:rich-text-body>
+                                                {%- for release in releases_in_channel -%}
+                                                <div style="margin-top:24px;margin-bottom:40px">
+
+                                                    <div class="autodoc-ref-card" style="margin-bottom:16px">
+                                                        <div class="autodoc-ref-label">Conan Reference</div>
+                                                        <a href="{{ release.artifactory_url }}" class="autodoc-ref-link" style="color:var(--ds-link,#2563eb)">
+                                                            {{ release.conan_reference }} &#8599;
+                                                        </a>
+                                                        <div style="float:right;font-size:12px;color:var(--ds-text-subtle,#6b7280);margin-top:2px">
+                                                            Версия: <strong style="color:var(--ds-text,#374151)">{{ release.version }}</strong>
+                                                        </div>
+                                                        <div style="clear:both"></div>
+                                                    </div>
+
+                                                    {%- if comp.passport_versions -%}
+                                                    <div style="padding:12px 16px;background:var(--ds-surface-sunken,#F4F5F7);border:1px solid var(--ds-border,#DFE1E6);border-radius:8px;margin-bottom:16px">
+                                                        <div class="autodoc-section-label" style="margin-bottom:10px">Документация компонента</div>
+                                                        <div style="display:flex;flex-wrap:wrap;gap:8px">
+                                                            {%- for version, page_info in comp.passport_versions.items() -%}
+                                                            {%- if version == release.version -%}
+                                                            <a href="/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" class="autodoc-passport-btn-lg">
+                                                                {{ comp.name }} v{{ version }}
+                                                            </a>
+                                                            {%- endif -%}
+                                                            {%- endfor -%}
+                                                        </div>
+                                                    </div>
+                                                    {%- endif -%}
+
+                                                    {%- if release.is_header_only -%}
+                                                        <ac:structured-macro ac:name="info">
+                                                            <ac:rich-text-body>
+                                                                <p>
+                                                                    <strong style="color:var(--ds-text,#111827)">Header-Only компонент</strong>
+                                                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." class="autodoc-help-icon">
+                                                                        <ac:emoticon ac:name="information" />
+                                                                    </span>
+                                                                </p>
+                                                                <p style="color:var(--ds-text,#111827)">Таблицы профилей для данного компонента отсутствуют, так как он собирается одинаково для всех архитектур и ОС.</p>
+                                                            </ac:rich-text-body>
+                                                        </ac:structured-macro>
+                                                    {%- else -%}
+                                                        <div style="font-size:12px;color:var(--ds-text-subtle,#6b7280);margin-bottom:8px;margin-left:4px">
+                                                            <span style="color:var(--ds-icon-information,#0052cc);font-size:14px;vertical-align:middle;margin-right:4px">&#8505;</span>
+                                                            <span style="vertical-align:middle">Для просмотра списка поддерживаемых профилей ОС, архитектур и компиляторов кликните по панели ниже.</span>
+                                                        </div>
+
+                                                        <ac:structured-macro ac:name="expand">
+                                                            <ac:parameter ac:name="title">Раскрыть список профилей ({{ release.profile_builds | length }})</ac:parameter>
+                                                            <ac:rich-text-body>
+                                                                <table class="confluenceTable" style="border:1px solid var(--ds-border,#e5e7eb);border-radius:8px;margin-bottom:0;width:100%">
+                                                                    <thead style="background:var(--ds-surface-sunken,#f9fafb)">
+                                                                        <tr>
+                                                                            <th class="confluenceTh autodoc-cth">Профиль</th>
+                                                                            <th class="confluenceTh autodoc-cth">OS</th>
+                                                                            <th class="confluenceTh autodoc-cth">Архитектура</th>
+                                                                            <th class="confluenceTh autodoc-cth">Компилятор</th>
+                                                                            <th class="confluenceTh autodoc-cth">Docker Image</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {%- for build in release.profile_builds -%}
+                                                                        {%- set os = build.conan_settings.get('os', 'Unknown') -%}
+                                                                        <tr>
+                                                                            <td class="confluenceTd autodoc-ctd">
+                                                                                <code class="autodoc-mono">{{ build.profile_name }}</code>
+                                                                            </td>
+                                                                            <td class="confluenceTd autodoc-ctd">
+                                                                                <span class="autodoc-os-badge" style="{{ os_style(os) }}">{{ os }}</span>
+                                                                            </td>
+                                                                            <td class="confluenceTd autodoc-ctd">
+                                                                                <span style="font-size:12px;font-weight:700;color:var(--ds-text,#374151)">{{ build.conan_settings.get('arch', '—') }}</span>
+                                                                            </td>
+                                                                            <td class="confluenceTd autodoc-ctd autodoc-cell-s" style="font-size:12px">
+                                                                                {{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}
+                                                                            </td>
+                                                                            <td class="confluenceTd autodoc-ctd" style="font-size:12px">
+                                                                                {%- if build.docker_image -%}
+                                                                                    <span style="color:var(--ds-text,#374151)">{{ build.docker_image }}</span>
+                                                                                {%- else -%}
+                                                                                    {{ docker_note(build.conan_settings.get('os', '')) }}
+                                                                                {%- endif -%}
+                                                                            </td>
+                                                                        </tr>
+                                                                        {%- endfor -%}
+                                                                    </tbody>
+                                                                </table>
+                                                            </ac:rich-text-body>
+                                                        </ac:structured-macro>
+                                                    {%- endif -%}
+
+                                                </div>
+                                                {%- endfor -%}
+                                            </ac:rich-text-body>
+                                        </ac:structured-macro>
+                                        {%- endfor -%}
+                                    </ac:rich-text-body>
+                                </ac:structured-macro>
+
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                        {%- endif -%}
+                        {%- endfor -%}
+
+                    </ac:rich-text-body>
+                </ac:structured-macro>
+
+            </ac:rich-text-body>
+        </ac:structured-macro>
+        {%- endfor -%}
+
+    </ac:rich-text-body>
+</ac:structured-macro>

@@ -1,0 +1,631 @@
+{
+    "graph": {
+        "nodes": {
+            "0": {
+                "ref": "conanfile",
+                "id": "0",
+                "recipe": "Cli",
+                "package_id": null,
+                "prev": null,
+                "rrev": null,
+                "rrev_timestamp": null,
+                "prev_timestamp": null,
+                "remote": null,
+                "binary_remote": null,
+                "build_id": null,
+                "binary": null,
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": null,
+                "user": null,
+                "channel": null,
+                "url": null,
+                "license": null,
+                "author": null,
+                "description": null,
+                "homepage": null,
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": null,
+                "options_description": null,
+                "version": null,
+                "topics": null,
+                "package_type": "unknown",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7hf",
+                    "compiler": "gcc",
+                    "compiler.cppstd": "17",
+                    "compiler.libcxx": "libstdc++11",
+                    "compiler.toolchain_config_id": "aarch32_universal_gcc_11",
+                    "compiler.version": "11",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {},
+                "options_definitions": {},
+                "generators": [],
+                "python_requires": null,
+                "system_requires": {},
+                "recipe_folder": null,
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "cli",
+                "vendor": false,
+                "dependencies": {
+                    "1": {
+                        "ref": "sqlite3/3.51.2.1263@platform-2.0/fast",
+                        "require": "sqlite3/[~3.51.2,include_prerelease]@platform-2.0/fast",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": null,
+                        "visible": true
+                    }
+                },
+                "context": "host",
+                "test": false
+            },
+            "1": {
+                "ref": "sqlite3/3.51.2.1263@platform-2.0/fast#4ce73a6492de83d8bf6e8f45076870ef",
+                "id": "1",
+                "recipe": "Downloaded",
+                "package_id": "8c7b3c7905519eea8fda5ff9dde7fbefec90da76",
+                "prev": "bdad4bb938a9e6d400c33a44000abec3",
+                "rrev": "4ce73a6492de83d8bf6e8f45076870ef",
+                "rrev_timestamp": 1778068449.556,
+                "prev_timestamp": 1778062343.91,
+                "remote": "components-conan2",
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Download",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "sqlite3",
+                "user": "platform-2.0",
+                "channel": "fast",
+                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_sqlite",
+                "license": "Unlicense",
+                "author": null,
+                "description": "Self-contained, serverless, in-process SQL database engine.",
+                "homepage": "https://www.sqlite.org",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "threadsafe": 1,
+                    "enable_column_metadata": true,
+                    "enable_dbstat_vtab": false,
+                    "enable_explain_comments": false,
+                    "enable_fts3": false,
+                    "enable_fts3_parenthesis": false,
+                    "enable_fts4": false,
+                    "enable_fts5": false,
+                    "enable_json1": false,
+                    "enable_soundex": false,
+                    "enable_preupdate_hook": false,
+                    "enable_rtree": true,
+                    "use_alloca": false,
+                    "omit_load_extension": false,
+                    "enable_math_functions": true,
+                    "enable_unlock_notify": true,
+                    "enable_default_secure_delete": false,
+                    "disable_gethostuuid": false,
+                    "file_permission": 420,
+                    "max_blob_size": 1000000000,
+                    "build_executable": true,
+                    "disable_werror": true,
+                    "strip_binary": false,
+                    "with_icu": false
+                },
+                "options_description": null,
+                "version": "3.51.2.1263",
+                "topics": [
+                    "conan",
+                    "sqlite",
+                    "database",
+                    "sql",
+                    "serverless"
+                ],
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7hf",
+                    "compiler": "gcc",
+                    "compiler.cppstd": "17",
+                    "compiler.toolchain_config_id": "aarch32_universal_gcc_11",
+                    "compiler.version": "11",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "RTree_patch_enable": "False",
+                    "build_executable": "True",
+                    "disable_gethostuuid": "False",
+                    "disable_werror": "True",
+                    "enable_column_metadata": "True",
+                    "enable_dbstat_vtab": "False",
+                    "enable_default_secure_delete": "False",
+                    "enable_explain_comments": "False",
+                    "enable_fts3": "False",
+                    "enable_fts3_parenthesis": "False",
+                    "enable_fts4": "False",
+                    "enable_fts5": "False",
+                    "enable_json1": "False",
+                    "enable_math_functions": "True",
+                    "enable_preupdate_hook": "False",
+                    "enable_rtree": "True",
+                    "enable_soundex": "False",
+                    "enable_unlock_notify": "True",
+                    "fPIC": "True",
+                    "file_permission": "420",
+                    "max_blob_size": "1000000000",
+                    "omit_load_extension": "False",
+                    "shared": "False",
+                    "strip_binary": "False",
+                    "threadsafe": "1",
+                    "use_alloca": "False",
+                    "with_icu": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "threadsafe": [
+                        "0",
+                        "1",
+                        "2"
+                    ],
+                    "enable_column_metadata": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_dbstat_vtab": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_explain_comments": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_fts3": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_fts3_parenthesis": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_fts4": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_fts5": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_json1": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_soundex": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_preupdate_hook": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_rtree": [
+                        "True",
+                        "False"
+                    ],
+                    "use_alloca": [
+                        "True",
+                        "False"
+                    ],
+                    "omit_load_extension": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_math_functions": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_unlock_notify": [
+                        "True",
+                        "False"
+                    ],
+                    "enable_default_secure_delete": [
+                        "True",
+                        "False"
+                    ],
+                    "disable_gethostuuid": [
+                        "True",
+                        "False"
+                    ],
+                    "max_blob_size": [
+                        null,
+                        "ANY"
+                    ],
+                    "file_permission": [
+                        null,
+                        "ANY"
+                    ],
+                    "build_executable": [
+                        "True",
+                        "False"
+                    ],
+                    "RTree_patch_enable": [
+                        "True",
+                        "False"
+                    ],
+                    "disable_werror": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ],
+                    "with_icu": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [
+                    "CMakeDeps"
+                ],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/sqlitfaacbb88ca9e4/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "sqlite3/3.51.2.1263@platform-2.0/fast",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7hf",
+                        "compiler": "gcc",
+                        "compiler.cppstd": "17",
+                        "compiler.toolchain_config_id": "aarch32_universal_gcc_11",
+                        "compiler.version": "11",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "RTree_patch_enable": "False",
+                        "build_executable": "True",
+                        "disable_gethostuuid": "False",
+                        "disable_werror": "True",
+                        "enable_column_metadata": "True",
+                        "enable_dbstat_vtab": "False",
+                        "enable_default_secure_delete": "False",
+                        "enable_explain_comments": "False",
+                        "enable_fts3": "False",
+                        "enable_fts3_parenthesis": "False",
+                        "enable_fts4": "False",
+                        "enable_fts5": "False",
+                        "enable_json1": "False",
+                        "enable_math_functions": "True",
+                        "enable_preupdate_hook": "False",
+                        "enable_rtree": "True",
+                        "enable_soundex": "False",
+                        "enable_unlock_notify": "True",
+                        "fPIC": "True",
+                        "file_permission": "420",
+                        "max_blob_size": "1000000000",
+                        "omit_load_extension": "False",
+                        "shared": "False",
+                        "strip_binary": "False",
+                        "threadsafe": "1",
+                        "use_alloca": "False",
+                        "with_icu": "False"
+                    },
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "conandata": {
+                    "patches": {
+                        "3.51.2": [
+                            {
+                                "patch_file": "patches/CVE-2025-70873.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ],
+                        "rtree": [
+                            {
+                                "patch_file": "patches/RTree.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ],
+                        "svace": [
+                            {
+                                "patch_file": "patches/svace.patch",
+                                "base_path": "source_subfolder"
+                            }
+                        ]
+                    }
+                },
+                "dependencies": {
+                    "2": {
+                        "ref": "tcl/8.6.11.230@components/platform",
+                        "require": "tcl/[,include_prerelease]@components/platform",
+                        "run": false,
+                        "libs": false,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": true,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": false,
+                        "package_id_mode": null,
+                        "visible": false
+                    }
+                },
+                "context": "host",
+                "test": false
+            },
+            "2": {
+                "ref": "tcl/8.6.11.230@components/platform#fbe6d7d155447c8462987765a6465e64",
+                "id": "2",
+                "recipe": "Downloaded",
+                "package_id": "ea54d1e67c0a87fc88db35c70fd0d94c8cc2261b",
+                "prev": "d583ce7a58efc325d763b857fb08cc72",
+                "rrev": "fbe6d7d155447c8462987765a6465e64",
+                "rrev_timestamp": 1766648287.17,
+                "prev_timestamp": 1766647902.651,
+                "remote": "components-conan2",
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Skip",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "tcl",
+                "user": "components",
+                "channel": "platform",
+                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_tcl",
+                "license": "TCL",
+                "author": null,
+                "description": "Tcl is a very powerful but easy to learn dynamic programming language.",
+                "homepage": "https://tcl.tk",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {},
+                "options_description": null,
+                "version": "8.6.11.230",
+                "topics": [
+                    "conan",
+                    "tcl",
+                    "scripting",
+                    "programming"
+                ],
+                "package_type": "unknown",
+                "languages": [],
+                "settings": {
+                    "os": "Linux"
+                },
+                "options": {},
+                "options_definitions": {},
+                "generators": [],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/tcl92434adbbbc6d/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "tcl/8.6.11.230@components/platform",
+                "info": {
+                    "settings": {
+                        "os": "Linux"
+                    },
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "conandata": {
+                    "binary": {
+                        "Macos": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-x86_64-macos.zip"
+                        },
+                        "Linux": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-x86_64.tar.gz"
+                        },
+                        "Windows": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-x86_64.zip"
+                        },
+                        "KasperskyOS": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-x86_64.tar.gz"
+                        },
+                        "alpine": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-x86_64-alpine.tar.gz"
+                        },
+                        "aurora_arm7hf": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-aurora_armv7hf.tgz"
+                        },
+                        "aurora_i486": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-aurora_i486.tgz"
+                        },
+                        "aurora_aarch64": {
+                            "url": "https://artifactory.company.ru/artifactory/components-binary/platform/tcl/8.6.11/binary/tcl-8.6.11-aurora_aarch64.tgz"
+                        }
+                    }
+                },
+                "dependencies": {},
+                "context": "build",
+                "test": false
+            }
+        },
+        "root": {
+            "0": "None"
+        },
+        "overrides": {},
+        "resolved_ranges": {
+            "sqlite3/[~3.51.2,include_prerelease]@platform-2.0/fast": "sqlite3/3.51.2.1263@platform-2.0/fast",
+            "conan_helper/[>=2.0 <3.0]@platform/python_requires": "conan_helper/2.0+95@platform/python_requires",
+            "tcl/[,include_prerelease]@components/platform": "tcl/8.6.11.230@components/platform"
+        },
+        "replaced_requires": {},
+        "error": null
+    }
+}

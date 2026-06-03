@@ -1,14 +1,18 @@
 """
 Шаг пайплайна: финализация и валидация данных.
 """
+
 import datetime
-from typing import List
+
+from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.exceptions import ParsingError
-from autodoc.infrastructure.logger import logger
+from autodoc.common.logger import logger
 from autodoc.models.component import Component
+from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.parser.steps.base_parse_step import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class FinalizeStep(BaseParseStep):
@@ -20,39 +24,79 @@ class FinalizeStep(BaseParseStep):
     Файлы не сохраняет — это делает ``ComponentParser`` при ``save_intermediate=True``.
     """
 
-    name = 'Финализация и валидация данных'
+    name = "Финализация и валидация данных"
     is_critical = True
 
+    # SHA1 от пустой строки — стандартный нулевой package_id Conan.
+    # Conan выставляет его для header-only пакетов.
+    _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
     def execute(self, ctx: PipelineContext) -> None:
-        self._compute_header_only_flags(ctx.components)
+        """
+        Финализирует результаты пайплайна.
+
+        Вычисляет флаги ``is_header_only`` на уровне компонента, удаляет профили с ``exists=False``,
+        сортирует компоненты по имени и собирает ``ParsedResult``.
+
+        Args:
+            ctx: Контекст пайплайна с накопленными компонентами.
+        """
+        self._compute_header_only_flags(ctx.components, ctx.profile_definitions)
         ctx.components.sort(key=lambda c: c.name.lower())
 
         removed = self._filter_empty_profiles(ctx.components)
         if removed:
-            logger.info('FinalizeStep: удалено %d профилей с exists=False.', removed)
+            logger.info(f"Удалено {removed} профилей с exists=False.")
 
-        ctx.result = self._build_result(ctx)
+        ctx.profile_definitions = self._deduplicate_profile_definitions(
+            ctx.profile_definitions
+        )
+        try:
+            ctx.result = self._build_result(ctx)
+        except PydanticValidationError as exc:
+            raise ParsingError(f"Result validation failed: {exc}") from exc
 
-    # ------------------------------------------------------------------
+    def _compute_header_only_flags(
+        self,
+        components: list[Component],
+        profile_definitions: list[ProfileDefinition],
+    ) -> None:
+        """
+        Устанавливает флаг ``is_header_only`` для каждого ``Component``.
 
-    @staticmethod
-    def _compute_header_only_flags(components: List[Component]) -> None:
+        Критерий: ВСЕ варианты во всех релизах и профилях компонента имеют нулевой package_id
+        (``da39a3ee5e6b4b0d3255bfef95601890afd80709`` - SHA1 от пустой строки).
+        Именно такой package_id Conan выставляет header-only пакетам.
+
+        Если у компонента нет ни одного варианта — флаг устанавливается в ``False``.
+
+        Args:
+            components: Список компонентов для обработки.
+            profile_definitions: Не используется, оставлен для совместимости сигнатуры.
+        """
+        null_id = self._NULL_PACKAGE_ID
+
         for comp in components:
-            for release in comp.releases:
-                profile_builds = release.profile_builds
-                if not profile_builds:
-                    release.is_header_only = False
-                    continue
-                all_set_empty = all(not pb.conan_settings for pb in profile_builds)
-                has_empty_opts = any(
-                    not variant.conan_options
-                    for pb in profile_builds
-                    for variant in pb.variants
-                )
-                release.is_header_only = all_set_empty and has_empty_opts
+            all_variants = [
+                variant
+                for release in comp.releases
+                for pb in release.profile_builds
+                for variant in pb.variants
+            ]
 
-    @staticmethod
-    def _filter_empty_profiles(components: List[Component]) -> int:
+            if not all_variants:
+                comp.is_header_only = False
+                continue
+
+            comp.is_header_only = all(
+                variant.package_id == null_id for variant in all_variants
+            )
+
+    def _filter_empty_profiles(self, components: list[Component]) -> int:
+        """
+        Удаляет из списка компоненты, у которых не найдено ни одного профиля.
+        Возвращает количество удалённых компонентов.
+        """
         removed = 0
         for comp in components:
             for release in comp.releases:
@@ -63,24 +107,53 @@ class FinalizeStep(BaseParseStep):
                 removed += before - len(release.profile_builds)
         return removed
 
-    @staticmethod
-    def _build_result(ctx: PipelineContext) -> ParsedResult:
+    def _deduplicate_profile_definitions(
+        self,
+        definitions: list[ProfileDefinition],
+    ) -> list[ProfileDefinition]:
+        """Возвращает список ProfileDefinition без дубликатов; при совпадении побеждает последняя запись.
+
+        Если два объекта ``ProfileDefinition`` имеют одинаковый ``profile_name``,
+        сохраняется тот, что встречается позже во входном списке. Это соответствует
+        паттерну переопределений в пайплайне: более поздние шаги могут формировать
+        более полные данные профиля.
+
+        Args:
+            definitions: Входной список, может содержать дублирующиеся ``profile_name``.
+
+        Returns:
+            Список с уникальными ``profile_name``; выживает последняя встреченная запись.
         """
-        3.4 Убрана двойная сериализация model_dump() + model_validate().
-        ParsedResult принимает объекты Component напрямую.
+        seen: dict[str, ProfileDefinition] = {}
+        for pd in definitions:
+            seen[pd.profile_name] = pd
+        return list(seen.values())
+
+    def _build_result(self, ctx: PipelineContext) -> ParsedResult:
+        """
+        Собирает финальный ``ParsedResult`` из контекста пайплайна.
+
+        Создаёт объект результата с временной меткой, версией платформы
+        и списком компонентов. При ошибке Pydantic-валидации бросает
+        ``ParsingError`` с понятным описанием — без стектрейса.
+
+        Args:
+            ctx: Контекст пайплайна с финализированными компонентами.
+
+        Returns:
+            Валидированный ``ParsedResult``.
+
+        Raises:
+            ParsingError: Если Pydantic-валидация не прошла.
         """
         try:
             result = ParsedResult(
                 generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 platform_version=ctx.config.platform_version,
+                profile_definitions=ctx.profile_definitions,
                 components=ctx.components,
             )
-            logger.info(
-                'FinalizeStep: данные валидированы. %d компонентов.',
-                len(result.components),
-            )
+            logger.info(f"Данные валидированы. {len(result.components)} компонентов.")
             return result
-        except Exception as e:
-            raise ParsingError(
-                'FinalizeStep: валидация данных не прошла: %s' % e
-            ) from e
+        except PydanticValidationError as e:
+            raise ParsingError(f"FinalizeStep: валидация данных не прошла: {e}") from e

@@ -1,17 +1,44 @@
 """Шаг пайплайна: сбор опций Conan для компонентов."""
+
+from autodoc.common.logger import logger
+from autodoc.models.types import OptionsMap
 from autodoc.parser.enrichment.data_enricher import DataEnricher
-from autodoc.parser.resolvers.options_resolver import OptionsResolver
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.parser.fetchers.options_fetcher import OptionsFetcher
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
+from autodoc.parser.steps.base_parse_step import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class OptionsResolveStep(BaseParseStep):
     """Шаг 2: Скачивает options.json и применяет опции к компонентам."""
 
-    name = 'Сбор опций Conan (options.json)'
+    name = "Сбор опций Conan (options.json)"
     is_critical = False
 
+    def __init__(self, fetcher: BaseFetcher[OptionsMap] | None = None) -> None:
+        """
+        Args:
+            fetcher: Фетчер опций Conan. Если не передан — используется
+                     ``OptionsFetcher`` по умолчанию.
+        """
+        self._fetcher = fetcher or OptionsFetcher()
+
     def execute(self, ctx: PipelineContext) -> None:
-        resolver = OptionsResolver(ctx.config)
-        options_map = resolver.fetch(ctx.components)
+        """
+        Скачивает options.json и применяет опции Conan к компонентам.
+
+        Конфигурирует OptionsFetcher из контекста, выполняет загрузку,
+        передаёт результат в DataEnricher и сохраняет карту опций
+        в ctx.intermediate для диагностики.
+
+        Args:
+            ctx: Контекст пайплайна с заполненными компонентами.
+        """
+        self._fetcher.configure(ctx)
+        result = self._fetcher.fetch(ctx.components)
+        if result.warnings:
+            for w in result.warnings:
+                logger.warning(w)
+        options_map = result.value
         DataEnricher.apply_options(ctx.components, options_map)
-        ctx.intermediate['options_map'] = options_map
+        ctx.intermediate["options_map"] = options_map

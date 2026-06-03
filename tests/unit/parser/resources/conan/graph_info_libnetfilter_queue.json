@@ -1,0 +1,626 @@
+{
+    "graph": {
+        "nodes": {
+            "0": {
+                "ref": "conanfile",
+                "id": "0",
+                "recipe": "Cli",
+                "package_id": null,
+                "prev": null,
+                "rrev": null,
+                "rrev_timestamp": null,
+                "prev_timestamp": null,
+                "remote": null,
+                "binary_remote": null,
+                "build_id": null,
+                "binary": null,
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": null,
+                "user": null,
+                "channel": null,
+                "url": null,
+                "license": null,
+                "author": null,
+                "description": null,
+                "homepage": null,
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": null,
+                "options_description": null,
+                "version": null,
+                "topics": null,
+                "package_type": "unknown",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.cppstd": "17",
+                    "compiler.libcxx": "libstdc++11",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {},
+                "options_definitions": {},
+                "generators": [],
+                "python_requires": null,
+                "system_requires": {},
+                "recipe_folder": null,
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "cli",
+                "vendor": false,
+                "dependencies": {
+                    "1": {
+                        "ref": "libnetfilter_queue/1.0.5.60@platform-2.0/slow",
+                        "require": "libnetfilter_queue/[~1.0.5,include_prerelease]@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": null,
+                        "visible": true
+                    },
+                    "2": {
+                        "ref": "libmnl/1.0.4.35@platform-2.0/slow",
+                        "require": "libmnl/1.0.4.35@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": false,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": null,
+                        "visible": true
+                    },
+                    "3": {
+                        "ref": "libnfnetlink/1.0.1.50@platform-2.0/slow",
+                        "require": "libnfnetlink/1.0.1.50@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": false,
+                        "build": false,
+                        "transitive_headers": null,
+                        "transitive_libs": null,
+                        "headers": true,
+                        "package_id_mode": null,
+                        "visible": true
+                    }
+                },
+                "context": "host",
+                "test": false
+            },
+            "1": {
+                "ref": "libnetfilter_queue/1.0.5.60@platform-2.0/slow#354473cf987fdb472e7109597dd87599",
+                "id": "1",
+                "recipe": "Downloaded",
+                "package_id": "46bf0ba807876c7591c702abfa2ba19d3133f1af",
+                "prev": "a5bfed05ff7422ed66279f63d17453dd",
+                "rrev": "354473cf987fdb472e7109597dd87599",
+                "rrev_timestamp": 1778147207.921,
+                "prev_timestamp": 1778146942.234,
+                "remote": "components-conan2",
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Download",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "libnetfilter_queue",
+                "user": "platform-2.0",
+                "channel": "slow",
+                "url": "https://company.com/tfs/companytc1/PRG_Quant/_git/contrib_libnetfilter_queue",
+                "license": "company",
+                "author": null,
+                "description": "userspace library that provides an API to packets that have been queued by the kernel packet filter",
+                "homepage": "https://netfilter.org/projects/libnetfilter_queue/index.html",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "strip_binary": false
+                },
+                "options_description": null,
+                "version": "1.0.5.60",
+                "topics": null,
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "fPIC": "True",
+                    "shared": "False",
+                    "strip_binary": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [
+                    "CMakeDeps",
+                    "AutotoolsDeps",
+                    "PkgConfigDeps"
+                ],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/libne5d0fe5959e5e7/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "libnetfilter_queue/1.0.5.60@platform-2.0/slow",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7",
+                        "compiler": "gcc",
+                        "compiler.version": "10.2",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "fPIC": "True",
+                        "shared": "False",
+                        "strip_binary": "False"
+                    },
+                    "requires": [
+                        "libmnl/1.0.4.35@platform-2.0/slow#bdabb9b89f9bc0a05c47500c40464b81:d08577a40087b749e9e36762ff68e875b6bde9d4",
+                        "libnfnetlink/1.0.1.50@platform-2.0/slow#b86568aac67c48644ffa41811efe03f0:d08577a40087b749e9e36762ff68e875b6bde9d4"
+                    ],
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "dependencies": {
+                    "2": {
+                        "ref": "libmnl/1.0.4.35@platform-2.0/slow",
+                        "require": "libmnl/[~1.0.4,include_prerelease]@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": true,
+                        "transitive_libs": true,
+                        "headers": true,
+                        "package_id_mode": "full_mode",
+                        "visible": true
+                    },
+                    "3": {
+                        "ref": "libnfnetlink/1.0.1.50@platform-2.0/slow",
+                        "require": "libnfnetlink/[~1.0.1,include_prerelease]@platform-2.0/slow",
+                        "run": false,
+                        "libs": true,
+                        "skip": false,
+                        "test": false,
+                        "force": false,
+                        "direct": true,
+                        "build": false,
+                        "transitive_headers": true,
+                        "transitive_libs": true,
+                        "headers": true,
+                        "package_id_mode": "full_mode",
+                        "visible": true
+                    }
+                },
+                "context": "host",
+                "test": false
+            },
+            "2": {
+                "ref": "libmnl/1.0.4.35@platform-2.0/slow#bdabb9b89f9bc0a05c47500c40464b81",
+                "id": "2",
+                "recipe": "Downloaded",
+                "package_id": "d08577a40087b749e9e36762ff68e875b6bde9d4",
+                "prev": "df63f14e6d1d83b745ba389da675e8e7",
+                "rrev": "bdabb9b89f9bc0a05c47500c40464b81",
+                "rrev_timestamp": 1778140149.163,
+                "prev_timestamp": 1778140056.197,
+                "remote": "components-conan2",
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Download",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "libmnl",
+                "user": "platform-2.0",
+                "channel": "slow",
+                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_libmnl",
+                "license": "company",
+                "author": null,
+                "description": "libmnl is a minimalistic user-space library oriented to Netlink developers",
+                "homepage": "https://netfilter.org/projects/libmnl/index.html",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "strip_binary": false
+                },
+                "options_description": null,
+                "version": "1.0.4.35",
+                "topics": null,
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "fPIC": "True",
+                    "shared": "False",
+                    "strip_binary": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/libmn029a4ea0be33e/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "libmnl/1.0.4.35@platform-2.0/slow",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7",
+                        "compiler": "gcc",
+                        "compiler.version": "10.2",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "fPIC": "True",
+                        "shared": "False",
+                        "strip_binary": "False"
+                    },
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "dependencies": {},
+                "context": "host",
+                "test": false
+            },
+            "3": {
+                "ref": "libnfnetlink/1.0.1.50@platform-2.0/slow#b86568aac67c48644ffa41811efe03f0",
+                "id": "3",
+                "recipe": "Downloaded",
+                "package_id": "d08577a40087b749e9e36762ff68e875b6bde9d4",
+                "prev": "918b5b5593edf8d4636f5aa7bbe60231",
+                "rrev": "b86568aac67c48644ffa41811efe03f0",
+                "rrev_timestamp": 1778140158.099,
+                "prev_timestamp": 1778139988.049,
+                "remote": "components-conan2",
+                "binary_remote": "components-conan2",
+                "build_id": null,
+                "binary": "Download",
+                "invalid_build": false,
+                "info_invalid": null,
+                "name": "libnfnetlink",
+                "user": "platform-2.0",
+                "channel": "slow",
+                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_libnfnetlink",
+                "license": "company",
+                "author": null,
+                "description": "low-level library for netfilter related kernel/userspace communication",
+                "homepage": "https://netfilter.org/projects/libnfnetlink/index.html",
+                "build_policy": null,
+                "upload_policy": null,
+                "revision_mode": "hash",
+                "provides": null,
+                "deprecated": null,
+                "win_bash": null,
+                "win_bash_run": null,
+                "default_options": {
+                    "shared": false,
+                    "fPIC": true,
+                    "strip_binary": false
+                },
+                "options_description": null,
+                "version": "1.0.1.50",
+                "topics": null,
+                "package_type": "static-library",
+                "languages": [],
+                "settings": {
+                    "os": "Linux",
+                    "arch": "armv7",
+                    "compiler": "gcc",
+                    "compiler.version": "10.2",
+                    "build_type": "RelWithDebInfo"
+                },
+                "options": {
+                    "fPIC": "True",
+                    "shared": "False",
+                    "strip_binary": "False"
+                },
+                "options_definitions": {
+                    "shared": [
+                        "True",
+                        "False"
+                    ],
+                    "fPIC": [
+                        "True",
+                        "False"
+                    ],
+                    "strip_binary": [
+                        "True",
+                        "False"
+                    ]
+                },
+                "generators": [],
+                "python_requires": {
+                    "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
+                        "remote": null,
+                        "recipe": "Cache",
+                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                    }
+                },
+                "system_requires": {},
+                "recipe_folder": "/home/maxim/.conan2/p/libnfb13aa6318ba05/e",
+                "source_folder": null,
+                "build_folder": null,
+                "generators_folder": null,
+                "package_folder": null,
+                "immutable_package_folder": null,
+                "cpp_info": {
+                    "root": {
+                        "includedirs": [
+                            "include"
+                        ],
+                        "srcdirs": null,
+                        "libdirs": [
+                            "lib"
+                        ],
+                        "resdirs": null,
+                        "bindirs": [
+                            "bin"
+                        ],
+                        "builddirs": null,
+                        "frameworkdirs": null,
+                        "system_libs": null,
+                        "frameworks": null,
+                        "libs": null,
+                        "defines": null,
+                        "cflags": null,
+                        "cxxflags": null,
+                        "sharedlinkflags": null,
+                        "exelinkflags": null,
+                        "objects": null,
+                        "sources": null,
+                        "sysroot": null,
+                        "requires": null,
+                        "properties": null,
+                        "exe": null,
+                        "type": null,
+                        "location": null,
+                        "link_location": null,
+                        "languages": null
+                    }
+                },
+                "conf_info": {},
+                "label": "libnfnetlink/1.0.1.50@platform-2.0/slow",
+                "info": {
+                    "settings": {
+                        "os": "Linux",
+                        "arch": "armv7",
+                        "compiler": "gcc",
+                        "compiler.version": "10.2",
+                        "build_type": "RelWithDebInfo"
+                    },
+                    "options": {
+                        "fPIC": "True",
+                        "shared": "False",
+                        "strip_binary": "False"
+                    },
+                    "python_requires": [
+                        "conan_helper/2.0.Z@platform/python_requires"
+                    ]
+                },
+                "vendor": false,
+                "dependencies": {},
+                "context": "host",
+                "test": false
+            }
+        },
+        "root": {
+            "0": "None"
+        },
+        "overrides": {},
+        "resolved_ranges": {
+            "libnetfilter_queue/[~1.0.5,include_prerelease]@platform-2.0/slow": "libnetfilter_queue/1.0.5.60@platform-2.0/slow",
+            "conan_helper/[>=2.0 <3.0]@platform/python_requires": "conan_helper/2.0+95@platform/python_requires",
+            "libmnl/[~1.0.4,include_prerelease]@platform-2.0/slow": "libmnl/1.0.4.35@platform-2.0/slow",
+            "libnfnetlink/[~1.0.1,include_prerelease]@platform-2.0/slow": "libnfnetlink/1.0.1.50@platform-2.0/slow"
+        },
+        "replaced_requires": {},
+        "error": null
+    }
+}

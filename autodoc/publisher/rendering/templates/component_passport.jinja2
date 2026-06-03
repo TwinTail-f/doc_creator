@@ -1,0 +1,310 @@
+{%- include 'styles/_styles_base.jinja2' -%}
+{%- include 'styles/_styles_passport.jinja2' -%}
+{%- from 'macros/_macros.jinja2' import os_style, docker_note -%}
+<div class="autodoc-page-header">
+    <p class="autodoc-page-sub">Документация компонента в рамках релиза <strong>{{ data.target_platform }}</strong></p>
+    <h1 class="autodoc-page-title">{{ data.component.name }} {{ data.releases[0].version }}</h1>
+    <p class="autodoc-page-desc">{{ data.component.description }}</p>
+    <div style="margin-top:12px">
+        <span class="autodoc-git-chip">
+            Git: <a href="{{ data.component.git_url | xmlattr }}" class="autodoc-git-chip-link"><strong>{{ data.component.git_project }} / {{ data.component.git_repo }}</strong></a>
+        </span>
+    </div>
+</div>
+
+<ac:structured-macro ac:name="tabs-group">
+    <ac:parameter ac:name="outline">true</ac:parameter>
+    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+    <ac:rich-text-body>
+
+        <ac:structured-macro ac:name="tab-pane">
+            <ac:parameter ac:name="name">{{ data.target_platform }}</ac:parameter>
+            <ac:parameter ac:name="outline">true</ac:parameter>
+            <ac:rich-text-body>
+
+                <div style="margin-top:24px;margin-bottom:40px">
+
+                {%- for release in data.releases -%}
+
+                    {#- Заголовок канала — показывается только если каналов больше одного -#}
+                    {%- if data.releases | length > 1 -%}
+                    <h2 class="autodoc-h2" style="margin-top:32px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--autodoc-border)">
+                        Канал: <code>{{ release.channel }}</code>
+                    </h2>
+                    {%- endif -%}
+
+                    <div class="autodoc-ref-card" style="margin-bottom:24px">
+                        <div class="autodoc-ref-label">Conan Reference</div>
+                        <a href="{{ release.artifactory_url }}" class="autodoc-ref-link">
+                            {{ release.conan_reference }}
+                        </a>
+                    </div>
+
+                    <h3 class="autodoc-h3">Опции компонента</h3>
+                    {%- if release.is_header_only -%}
+                        <ac:structured-macro ac:name="info">
+                            <ac:rich-text-body>
+                                <p class="autodoc-cell">Библиотека header-only, собирается без опций</p>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                    {%- else -%}
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Раскрыть опции компонента ({{ release.default_options | length }})</ac:parameter>
+                            <ac:rich-text-body>
+                                <table class="aui autodoc-table-full">
+                                    <thead class="autodoc-thead">
+                                        <tr>
+                                            <th class="autodoc-th">Опция</th>
+                                            <th class="autodoc-th">Тип</th>
+                                            <th class="autodoc-th">Значение по умолчанию</th>
+                                            <th class="autodoc-th">Пояснение</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {%- if release.default_options -%}
+                                            {%- for opt in release.default_options -%}
+                                            <tr>
+                                                <td class="autodoc-cell"><strong>{{ opt.name }}</strong></td>
+                                                <td class="autodoc-cell">{{ opt.type }}</td>
+                                                <td class="autodoc-cell"><code>{{ opt.default_value }}</code></td>
+                                                <td class="autodoc-cell">—</td>
+                                            </tr>
+                                            {%- endfor -%}
+                                        {%- else -%}
+                                            <tr><td colspan="4" class="autodoc-cell">Опции по умолчанию отсутствуют.</td></tr>
+                                        {%- endif -%}
+                                    </tbody>
+                                </table>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+
+                        <h3 class="autodoc-h3">Конфигурации компонента</h3>
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Раскрыть уникальные конфигурации сборок ({{ release.build_option_sets | length }})</ac:parameter>
+                            <ac:rich-text-body>
+                                <table class="aui autodoc-table-full">
+                                    <thead class="autodoc-thead">
+                                        <tr>
+                                            <th class="autodoc-th" style="width:10%">Номер</th>
+                                            <th class="autodoc-th">Конфигурация (conan_options)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {%- if release.build_option_sets -%}
+                                            {%- for bos in release.build_option_sets -%}
+                                            <tr>
+                                                <td class="autodoc-cell"><strong>{{ bos.id }}</strong></td>
+                                                <td class="autodoc-cell">{%- if bos.options -%}{{ bos.options }}{%- else -%}default{%- endif -%}</td>
+                                            </tr>
+                                            {%- endfor -%}
+                                        {%- else -%}
+                                            <tr><td colspan="2" class="autodoc-cell">Конфигурации отсутствуют.</td></tr>
+                                        {%- endif -%}
+                                    </tbody>
+                                </table>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                    {%- endif -%}
+
+                    <h3 class="autodoc-h3">Собранные профили</h3>
+                    {%- if release.is_header_only -%}
+                        <ac:structured-macro ac:name="info">
+                            <ac:rich-text-body>
+                                <p>
+                                    <strong class="autodoc-cell">Header-Only компонент (информация)</strong>
+                                    <span title="Данный компонент поставляется только в виде заголовочных файлов. Он не требует компиляции, не зависит от архитектуры и универсален для любых профилей сборки платформы." class="autodoc-help-icon">
+                                        <ac:emoticon ac:name="information" />
+                                    </span>
+                                </p>
+                                <p class="autodoc-cell">Таблицы профилей для данного компонента отсутствуют, так как он собирается одинаково для всех архитектур и ОС.</p>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Команда для установки (conan install)</ac:parameter>
+                            <ac:rich-text-body>
+                                <ac:structured-macro ac:name="code">
+                                    <ac:parameter ac:name="wrap">true</ac:parameter>
+                                    <ac:parameter ac:name="language">bash</ac:parameter>
+                                    <ac:parameter ac:name="theme">Confluence</ac:parameter>
+                                    <ac:plain-text-body><![CDATA[conan install --requires {{ release.conan_reference }}]]></ac:plain-text-body>
+                                </ac:structured-macro>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                    {%- else -%}
+                        <ac:structured-macro ac:name="expand">
+                            <ac:parameter ac:name="title">Раскрыть таблицу профилей ({{ release.profile_builds | length }})</ac:parameter>
+                            <ac:rich-text-body>
+                                <table class="aui autodoc-table-full" style="border-collapse:collapse">
+                                    <thead class="autodoc-thead">
+                                        <tr>
+                                            <th class="autodoc-th">Профиль</th>
+                                            <th class="autodoc-th">OS</th>
+                                            <th class="autodoc-th">Архитектура</th>
+                                            <th class="autodoc-th">Компилятор</th>
+                                            <th class="autodoc-th">Docker Image</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {%- for build in release.profile_builds -%}
+                                        <tr class="autodoc-row-top">
+                                            <td class="autodoc-cell autodoc-vm"><strong>{{ build.profile_name }}</strong></td>
+                                            <td class="autodoc-vm">
+                                                {%- set os = build.conan_settings.get('os', 'Unknown') -%}
+                                                <span class="aui-lozenge {%- if os=='Linux' %} aui-lozenge-complete{%- elif os=='Windows' %} aui-lozenge-moved{%- elif os=='Android' %} aui-lozenge-success{%- endif %}">{{ os }}</span>
+                                            </td>
+                                            <td class="autodoc-cell autodoc-vm">{{ build.conan_settings.get('arch', '—') }}</td>
+                                            <td class="autodoc-cell-s autodoc-vm">{{ build.conan_settings.get('compiler', '') }} {{ build.conan_settings.get('compiler.version', '') }}</td>
+                                            <td class="autodoc-vm">
+                                                {%- if build.docker_image -%}
+                                                    {{ build.docker_image }}
+                                                {%- else -%}
+                                                    {{ docker_note(build.conan_settings.get('os', '')) }}
+                                                {%- endif -%}
+                                            </td>
+                                        </tr>
+
+                                        <tr class="autodoc-row-bottom">
+                                            <td colspan="5" class="autodoc-subrow-bg">
+                                                <ac:structured-macro ac:name="expand">
+                                                    <ac:parameter ac:name="title">Подробнее о профиле {{ build.profile_name }}. Варианты сборок ({{ build.variants | length }})</ac:parameter>
+                                                    <ac:rich-text-body>
+                                                        <div class="autodoc-expand-pad">
+
+                                                            <div class="autodoc-badge-block">
+                                                                <div class="autodoc-section-label">Настройки профиля</div>
+                                                                <div>
+                                                                    {%- for k, v in build.conan_settings.items() -%}
+                                                                        <span class="autodoc-badge"><span class="autodoc-badge-k">{{ k }}</span><span class="autodoc-badge-v">{{ v }}</span></span>
+                                                                    {%- endfor -%}
+                                                                </div>
+                                                            </div>
+
+                                                            {%- for var in build.variants -%}
+                                                            <div class="autodoc-var-card">
+
+                                                                <div class="autodoc-var-header">
+                                                                    <code class="autodoc-pkg-id">{{ var.package_id }}</code>
+                                                                    <span class="autodoc-var-meta">
+                                                                        {{ var.build_date[:10] }} {{ var.build_date[11:16] }}
+                                                                        <a href="{{ var.build_url }}" class="autodoc-var-link">Сборка &#8599;</a>
+                                                                    </span>
+                                                                    <div style="clear:both"></div>
+                                                                </div>
+
+                                                                <div class="autodoc-var-options">
+                                                                    <span class="autodoc-var-title">Вариант {{ var.option_ref }}</span>
+                                                                    {%- if var.conan_options -%}
+                                                                        {%- for k, v in var.conan_options.items() -%}
+                                                                            {%- set vc = 'autodoc-badge-t' if (v==True or v=='True') else ('autodoc-badge-f' if (v==False or v=='False') else 'autodoc-badge-n') -%}
+                                                                            <span class="autodoc-badge"><span class="autodoc-badge-k">{{ k }}</span><span class="{{ vc }}">{{ v }}</span></span>
+                                                                        {%- endfor -%}
+                                                                    {%- else -%}
+                                                                        <span class="autodoc-badge"><span class="autodoc-badge-k">options</span><span class="autodoc-badge-def">default</span></span>
+                                                                    {%- endif -%}
+                                                                </div>
+
+                                                                <ac:structured-macro ac:name="expand">
+                                                                    <ac:parameter ac:name="title">Команда для установки (conan install)</ac:parameter>
+                                                                    <ac:rich-text-body>
+                                                                        <ac:structured-macro ac:name="code">
+                                                                            <ac:parameter ac:name="wrap">true</ac:parameter>
+                                                                            <ac:parameter ac:name="language">bash</ac:parameter>
+                                                                            <ac:parameter ac:name="theme">Confluence</ac:parameter>
+                                                                            <ac:plain-text-body><![CDATA[conan install --requires {{ release.conan_reference }} -pr {{ build.profile_name }}{% if var.install_options %} {{ var.install_options }}{% endif %}]]></ac:plain-text-body>
+                                                                        </ac:structured-macro>
+                                                                    </ac:rich-text-body>
+                                                                </ac:structured-macro>
+
+                                                            </div>
+                                                            {%- endfor -%}
+
+                                                        </div>
+                                                    </ac:rich-text-body>
+                                                </ac:structured-macro>
+                                            </td>
+                                        </tr>
+                                        {%- endfor -%}
+                                    </tbody>
+                                </table>
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                    {%- endif -%}
+
+                    {%- if release.dependencies -%}
+                    <h3 class="autodoc-h3">Зависимости компонента</h3>
+                    <ac:structured-macro ac:name="expand">
+                        <ac:parameter ac:name="title">Раскрыть зависимости ({{ release.dependencies | length }})</ac:parameter>
+                        <ac:rich-text-body>
+                            <table class="aui autodoc-table-full">
+                                <thead class="autodoc-thead">
+                                    <tr>
+                                        <th class="autodoc-th">Зависимость</th>
+                                        <th class="autodoc-th">Тип</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {%- for dep in release.dependencies -%}
+                                    <tr>
+                                        <td class="autodoc-cell"><strong>{{ dep }}</strong></td>
+                                        <td class="autodoc-cell">—</td>
+                                    </tr>
+                                    {%- endfor -%}
+                                </tbody>
+                            </table>
+                        </ac:rich-text-body>
+                    </ac:structured-macro>
+                    {%- endif -%}
+
+                    {%- if release.patches -%}
+                    <h3 class="autodoc-h3">Используемые патчи</h3>
+                    <ac:structured-macro ac:name="expand">
+                        <ac:parameter ac:name="title">Раскрыть используемые патчи ({{ release.patches | length }})</ac:parameter>
+                        <ac:rich-text-body>
+                            <table class="aui autodoc-table-full">
+                                <thead class="autodoc-thead">
+                                    <tr>
+                                        <th class="autodoc-th">Патч</th>
+                                        <th class="autodoc-th">Назначение</th>
+                                        <th class="autodoc-th">Примечание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {%- for patch in release.patches -%}
+                                    <tr>
+                                        <td class="autodoc-cell">
+                                            {%- if release.git_repo_base_url -%}
+                                            <a href="{{ release.git_repo_base_url | xmlattr }}?path=/conan/patches/{{ patch }}&amp;version={{ release.git_branch_version }}"><strong>{{ patch }}</strong></a>
+                                            {%- else -%}
+                                            <strong>{{ patch }}</strong>
+                                            {%- endif -%}
+                                        </td>
+                                        <td class="autodoc-cell">—</td>
+                                        <td class="autodoc-cell">—</td>
+                                    </tr>
+                                    {%- endfor -%}
+                                </tbody>
+                            </table>
+                        </ac:rich-text-body>
+                    </ac:structured-macro>
+                    {%- endif -%}
+
+                {%- endfor -%}
+
+                </div>
+
+            </ac:rich-text-body>
+        </ac:structured-macro>
+
+        {%- for legacy_plat, legacy_html in data.legacy_contents.items() -%}
+        <ac:structured-macro ac:name="tab-pane">
+            <ac:parameter ac:name="name">{{ legacy_plat }}</ac:parameter>
+            <ac:parameter ac:name="outline">true</ac:parameter>
+            <ac:rich-text-body>
+                {{ legacy_html }}
+            </ac:rich-text-body>
+        </ac:structured-macro>
+        {%- endfor -%}
+
+    </ac:rich-text-body>
+</ac:structured-macro>

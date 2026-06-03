@@ -1,36 +1,14 @@
 """
 Парсер JSON-ответа команды ``conan graph info``.
 """
+
 import datetime
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from autodoc.parser.conan.task_builder import ConanTask
-
-
-@dataclass
-class ConanEnrichData:
-    """
-    Структурированные данные для обогащения моделей ``Release`` и ``ProfileBuild``.
-
-    Заполняется из JSON-ответа ``conan graph info`` для одной задачи.
-    Внутренний датакласс — не попадает в доменные модели напрямую.
-    """
-
-    base_ref: str
-    rrev: str
-    full_version: str
-    default_options: List[Dict[str, Any]]
-    patches: List[str]
-    dependencies: List[str]
-    conan_settings: Dict[str, Any]
-    package_id: str
-    build_url: str
-    build_date: str
-    conan_options: Dict[str, Any]
-    # 3.3 option_set_id и option_set_str удалены — нигде не применяются
-    #     после удаления из ConanVariant (доменной модели)
+from autodoc.models.options import DefaultOptionsSet
+from autodoc.parser.conan.models.conan_task import ConanTask
+from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 
 class ConanResultParser:
@@ -42,9 +20,9 @@ class ConanResultParser:
 
     def parse(
         self,
-        conan_json: Dict[str, Any],
+        conan_json: dict[str, Any],
         task: ConanTask,
-    ) -> Optional[ConanEnrichData]:
+    ) -> ConanEnrichData | None:
         """
         Извлекает данные о компоненте из JSON-графа зависимостей Conan.
 
@@ -55,25 +33,43 @@ class ConanResultParser:
         Returns:
             ``ConanEnrichData`` если нода компонента найдена, иначе ``None``.
         """
-        nodes: Dict = conan_json.get('graph', {}).get('nodes', {})
+        nodes: dict[str, Any] = conan_json.get("graph", {}).get("nodes", {})
         target_node = next(
-            (n for n in nodes.values() if n.get('name') == task.comp_name),
+            (n for n in nodes.values() if n.get("name") == task.comp_name),
             None,
         )
         if target_node is None:
             return None
 
+        # Conan завершается с кодом 0 даже при отсутствии бинарного пакета —
+        # проверяем поле binary явно. "Missing" означает, что собранного пакета
+        # для этого профиля нет; считаем это неудачей и исключаем профиль.
+        binary_status: str = target_node.get("binary", "")
+        if binary_status == "Missing":
+            return None
+
         base_ref, rrev, full_version = self._extract_ref_info(target_node, task.version)
         default_options = self._extract_default_options(target_node)
-        patches = self._extract_patches(target_node, task.version)
-        dependencies = self._extract_dependencies(target_node, task.comp_name)
+        patches = self._extract_patches(target_node)
+        dependencies = self._extract_dependencies(nodes, task.comp_name)
 
-        info_dict: Dict = target_node.get('info', {})
-        conan_settings: Dict = info_dict.get('settings', target_node.get('settings', {}))
-        package_id = target_node.get('package_id', '')
-        build_url = self._build_artifactory_url(task, full_version, rrev) if package_id else ''
+        info_dict: dict[str, Any] = target_node.get("info", {})
+        conan_settings: dict[str, Any] = info_dict.get(
+            "settings", target_node.get("settings", {})
+        )
+        package_id = target_node.get("package_id", "")
+        build_url = (
+            self._build_artifactory_url(task, full_version, rrev, package_id)
+            if package_id
+            else ""
+        )
         build_date = self._extract_build_date(target_node)
-        conan_options: Dict = info_dict.get('options', target_node.get('options', {}))
+
+        # Поле "options" содержит финально разрешённые опции после применения
+        # дефолтов и пользовательских переопределений — они попадают в TotalOptionsSet.
+        conan_options: dict[str, Any] = info_dict.get(
+            "options", target_node.get("options", {})
+        )
 
         return ConanEnrichData(
             base_ref=base_ref,
@@ -87,96 +83,162 @@ class ConanResultParser:
             build_url=build_url,
             build_date=build_date,
             conan_options=conan_options,
+            option_id=task.option_id,
         )
 
-    @staticmethod
     def _extract_ref_info(
-        node: Dict[str, Any],
+        self,
+        node: dict[str, Any],
         fallback_version: str,
-    ) -> tuple:
-        full_ref: str = node.get('ref', '')
-        rrev: str = node.get('rrev', '')
+    ) -> tuple[str, str, str]:
+        """
+        Извлекает base_ref, rrev и полную версию из узла графа Conan.
+
+        Conan сериализует ссылку в двух полях: ``ref`` (полная ссылка, включая ``#rrev``)
+        и ``rrev`` (отдельным полем). Метод поддерживает оба варианта.
+
+        Args:
+            node: Словарь узла из JSON-ответа ``conan graph info``.
+            fallback_version: Версия из задачи — используется, если ref отсутствует.
+
+        Returns:
+            Кортеж ``(base_ref, rrev, full_version)``:
+            - ``base_ref`` — ссылка без ``#rrev`` (например ``name/ver@user/channel``);
+            - ``rrev`` — recipe revision;
+            - ``full_version`` — версия компонента, извлечённая из ref или fallback.
+        """
+        full_ref: str = node.get("ref", "")
+        rrev: str = node.get("rrev", "")
         full_version = fallback_version
 
         if not full_ref:
-            return '', rrev, full_version
+            return "", rrev, full_version
 
-        base_ref = full_ref.split('#')[0]
-        if not rrev and '#' in full_ref:
-            rrev = full_ref.split('#')[1]
-        if '@' in base_ref and '/' in base_ref.split('@')[0]:
-            full_version = base_ref.split('@')[0].split('/')[1]
+        base_ref = full_ref.split("#")[0]
+        if not rrev and "#" in full_ref:
+            rrev = full_ref.split("#")[1]
+        if "@" in base_ref and "/" in base_ref.split("@")[0]:
+            full_version = base_ref.split("@")[0].split("/")[1]
 
         return base_ref, rrev, full_version
 
-    @staticmethod
-    def _extract_default_options(node: Dict[str, Any]) -> List[Dict[str, Any]]:
-        opt_defs: Dict = node.get('options_definitions', {}) or {}
-        def_opts: Dict = node.get('default_options', {}) or {}
-        result: List[Dict[str, Any]] = []
+    def _extract_default_options(self, node: dict[str, Any]) -> list[DefaultOptionsSet]:
+        """Извлекает поле default_options → list[DefaultOptionsSet]."""
+        opt_defs: dict[str, Any] = node.get("options_definitions", {}) or {}
+        def_opts: dict[str, Any] = node.get("default_options", {}) or {}
+        result: list[DefaultOptionsSet] = []
 
         for opt_name, opt_val in def_opts.items():
-            opt_type = 'string'
+            opt_type = "string"
             definition = opt_defs.get(opt_name)
             if isinstance(definition, list) and len(definition) >= 2:
-                if 'ANY' in definition:
-                    opt_type = 'ANY'
-                elif set(definition).issubset({'True', 'False', True, False, 'None', None}):
-                    opt_type = 'bool'
+                if "ANY" in definition:
+                    opt_type = "ANY"
+                elif set(definition).issubset(
+                    {"True", "False", True, False, "None", None}
+                ):
+                    opt_type = "bool"
                 else:
-                    opt_type = 'enum'
-            result.append({'name': opt_name, 'type': opt_type, 'default_value': opt_val})
+                    opt_type = "enum"
+            result.append(
+                DefaultOptionsSet(name=opt_name, type=opt_type, default_value=opt_val)
+            )
 
         return result
 
-    @staticmethod
-    def _extract_patches(node: Dict[str, Any], version: str) -> List[str]:
-        patches_dict: Dict = node.get('conandata', {}).get('patches', {})
+    def _extract_patches(self, node: dict[str, Any]) -> list[str]:
+        """Извлекает имена всех патч-файлов из conandata -> patches.
+
+        Обходит **все** ключи словаря patches (версии, строки вроде "all",
+        "KasperskyOS" и т.п.) и собирает имена файлов без учёта ключа.
+        Дубликаты удаляются с сохранением порядка первого вхождения.
+        """
+        patches_dict: dict[str, Any] = node.get("conandata", {}).get("patches", {})
         if not isinstance(patches_dict, dict):
             return []
 
-        extracted: List[str] = []
-        for key, patch_list in patches_dict.items():
-            if not (str(version).startswith(str(key)) or not str(key)[0].isdigit()):
+        extracted: list[str] = []
+        for patch_list in patches_dict.values():
+            if not isinstance(patch_list, list):
                 continue
-            if isinstance(patch_list, list):
-                for p in patch_list:
-                    patch_file = p.get('patch_file', '')
-                    if patch_file:
-                        extracted.append(Path(patch_file).name)
+            for p in patch_list:
+                if not isinstance(p, dict):
+                    continue
+                patch_file = p.get("patch_file", "")
+                if patch_file:
+                    extracted.append(Path(patch_file).name)
 
         return list(dict.fromkeys(extracted))
 
-    @staticmethod
-    def _extract_dependencies(node: Dict[str, Any], comp_name: str) -> List[str]:
-        deps_node: Dict = node.get('dependencies', {})
-        deps: List[str] = []
-        for dep_info in deps_node.values():
-            ref: str = dep_info.get('ref', '')
+    def _extract_dependencies(self, nodes: dict[str, Any], comp_name: str) -> list[str]:
+        """Собирает имена всех пакетов из графа зависимостей, кроме самого
+        компонента и виртуальной ноды conanfile.
+
+        Обходит все узлы графа (включая транзитивные зависимости), а не только
+        прямые зависимости целевого узла.
+        """
+        deps: list[str] = []
+        for node in nodes.values():
+            name: str = node.get("name", "")
+            if not name or name == comp_name or name == "conanfile":
+                continue
+            ref: str = node.get("ref", "")
             if ref:
-                dep_name = ref.split('/')[0]
+                dep_name = ref.split("/")[0]
                 if dep_name and dep_name != comp_name:
                     deps.append(dep_name)
         return sorted(set(deps))
 
-    @staticmethod
-    def _build_artifactory_url(task: ConanTask, full_version: str, rrev: str) -> str:
-        if not task.artifactory_base_url or not rrev:
-            return ''
-        return (
-            '%s/platform-%s/%s/%s/%s/%s'
-            % (task.artifactory_base_url, task.target_platform,
-               task.comp_name, full_version, task.channel, rrev)
-        )
+    def _build_artifactory_url(
+        self, task: ConanTask, full_version: str, rrev: str, package_id: str = ""
+    ) -> str:
+        """
+        Строит URL пакета в Artifactory для данного варианта сборки.
 
-    @staticmethod
-    def _extract_build_date(node: Dict[str, Any]) -> str:
-        prev_timestamp = node.get('prev_timestamp')
+        Возвращает пустую строку, если ``task.artifactory_base_url`` не задан
+        или ``rrev`` пуст — в этих случаях URL сформировать невозможно.
+
+        Args:
+            task: Задача Conan с метаданными компонента и URL Artifactory.
+            full_version: Полная версия компонента (из ref или fallback).
+            rrev: Recipe revision.
+            package_id: Идентификатор конкретного бинарного пакета.
+                        Если задан — добавляется суффикс ``/package/<id>``.
+
+        Returns:
+            Полный URL пакета в Artifactory или пустая строка.
+        """
+        if not task.artifactory_base_url or not rrev:
+            return ""
+        url = (
+            f"{task.artifactory_base_url}/platform-{task.target_platform}"
+            f"/{task.comp_name}/{full_version}/{task.channel}/{rrev}"
+        )
+        if package_id:
+            url += f"/package/{package_id}"
+        return url
+
+    def _extract_build_date(self, node: dict[str, Any]) -> str:
+        """
+        Извлекает дату сборки пакета из поля ``prev_timestamp`` узла.
+
+        ``prev_timestamp`` — POSIX-время последнего изменения recipe revision в Artifactory.
+        Конвертируется в ISO 8601 UTC строку. При любой ошибке конвертации (невалидное
+        значение, переполнение) возвращает пустую строку — это не критично для пайплайна.
+
+        Args:
+            node: Словарь узла из JSON-ответа ``conan graph info``.
+
+        Returns:
+            Дата в формате ISO 8601 (UTC) или пустая строка, если поле отсутствует или
+            содержит невалидное значение.
+        """
+        prev_timestamp = node.get("prev_timestamp")
         if not prev_timestamp:
-            return ''
+            return ""
         try:
             return datetime.datetime.fromtimestamp(
                 float(prev_timestamp), datetime.timezone.utc
             ).isoformat()
         except (ValueError, OSError, OverflowError):
-            return ''
+            return ""

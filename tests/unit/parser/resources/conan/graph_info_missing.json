@@ -1,0 +1,26 @@
+{
+  "graph": {
+    "nodes": {
+      "0": {
+        "ref": "conanfile",
+        "name": null,
+        "binary": null,
+        "package_id": null
+      },
+      "1": {
+        "name": "libyang",
+        "ref": "libyang/2.0.0@platform-2.0/tech",
+        "rrev": "deadbeef00000000deadbeef00000000",
+        "binary": "Missing",
+        "package_id": "",
+        "info": {
+          "settings": {
+            "os": "Linux",
+            "arch": "armv7hf"
+          },
+          "options": {}
+        }
+      }
+    }
+  }
+}

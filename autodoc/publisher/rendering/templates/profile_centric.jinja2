@@ -1,0 +1,164 @@
+{%- include 'styles/_styles_base.jinja2' -%}
+{%- from 'macros/_macros.jinja2' import os_style, docker_note -%}
+{% set PAGE_SIZE = 20 %}
+{% set all_profiles = data.profiles | list %}
+{% set total = all_profiles | length %}
+
+{%- include 'templates/_platform_intro.jinja2' -%}
+
+<ac:structured-macro ac:name="tabs-group">
+    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+    <ac:parameter ac:name="outline">true</ac:parameter>
+
+    <ac:rich-text-body>
+
+        {%- for page_profiles in all_profiles | batch(PAGE_SIZE) -%}
+        {%- set page_idx = loop.index -%}
+        {%- set page_idx0 = loop.index0 -%}
+        {%- set page_start = page_idx0 * PAGE_SIZE + 1 -%}
+        {%- set page_end_raw = page_start + PAGE_SIZE - 1 -%}
+        {%- set page_end = page_end_raw if page_end_raw < total else total -%}
+
+        <ac:structured-macro ac:name="tab-pane">
+            <ac:parameter ac:name="name">{{ page_start }}–{{ page_end }}</ac:parameter>
+            <ac:parameter ac:name="anchor">page-{{ page_idx }}</ac:parameter>
+            <ac:parameter ac:name="outline">true</ac:parameter>
+
+            <ac:rich-text-body>
+
+                <ac:structured-macro ac:name="tabs-group">
+                    <ac:parameter ac:name="disposition">vertical</ac:parameter>
+                    <ac:parameter ac:name="outline">true</ac:parameter>
+
+                    <ac:rich-text-body>
+
+                        {%- for profile in page_profiles -%}
+                        {%- if profile is not none -%}
+                        {%- set prof_index = page_idx0 * PAGE_SIZE + loop.index -%}
+                        <ac:structured-macro ac:name="tab-pane">
+
+                            <ac:parameter ac:name="name">{{ profile.profile_name }}</ac:parameter>
+                            <ac:parameter ac:name="anchor">prof-{{ prof_index }}</ac:parameter>
+                            <ac:parameter ac:name="outline">true</ac:parameter>
+
+                            <ac:rich-text-body>
+
+                                <h1 style="margin-top:0;margin-bottom:6px;font-size:24px;font-weight:700;color:var(--ds-text,#111827);font-family:monospace">{{ profile.profile_name }}</h1>
+
+                                <div style="margin-top:12px;margin-bottom:12px">
+
+                                    <span class="autodoc-chip">
+                                        OS: <strong style="{{ os_style(profile.os) }};padding:1px 6px;border-radius:4px;margin-left:4px">{{ profile.os }}</strong>
+                                    </span>
+
+                                    <span class="autodoc-chip">
+                                        Архитектура: <strong style="color:var(--ds-text,#374151)">{{ profile.arch }}</strong>
+                                    </span>
+
+                                    <span class="autodoc-chip">
+                                        Компилятор: <strong style="color:var(--ds-text,#374151)">{{ profile.compiler }} {{ profile.compiler_version }}</strong>
+                                    </span>
+                                </div>
+
+                                <ac:structured-macro ac:name="expand">
+                                    <ac:parameter ac:name="title">Подробное описание профиля {{ profile.profile_name }}</ac:parameter>
+                                    <ac:rich-text-body>
+                                        <div class="autodoc-ref-card">
+                                            <div class="autodoc-section-label" style="margin-bottom:10px">Полные настройки профиля</div>
+                                            <div style="margin-bottom:14px">
+                                                <span class="autodoc-badge"><span class="autodoc-badge-k">os</span><span class="autodoc-badge-v">{{ profile.os }}</span></span>
+                                                <span class="autodoc-badge"><span class="autodoc-badge-k">arch</span><span class="autodoc-badge-v">{{ profile.arch }}</span></span>
+                                                <span class="autodoc-badge"><span class="autodoc-badge-k">compiler</span><span class="autodoc-badge-v">{{ profile.compiler }}</span></span>
+                                                <span class="autodoc-badge"><span class="autodoc-badge-k">compiler.version</span><span class="autodoc-badge-v">{{ profile.compiler_version }}</span></span>
+                                            </div>
+                                            <div class="autodoc-section-label">Docker</div>
+                                            {%- if profile.docker_url -%}
+                                                <span class="autodoc-mono">{{ profile.docker_url }}</span>
+                                            {%- else -%}
+                                                {{ docker_note(profile.os) }}
+                                            {%- endif -%}
+                                        </div>
+                                    </ac:rich-text-body>
+                                </ac:structured-macro>
+
+                                <ac:structured-macro ac:name="tabs-group">
+                                    <ac:parameter ac:name="disposition">horizontal</ac:parameter>
+                                    <ac:parameter ac:name="outline">true</ac:parameter>
+
+                                    <ac:rich-text-body>
+
+                                        {%- for channel_name, components in profile.channels.items() | sort -%}
+                                        <ac:structured-macro ac:name="tab-pane">
+
+                                            <ac:parameter ac:name="name">{{ channel_name | capitalize }} ({{ components | length }})</ac:parameter>
+                                            <ac:parameter ac:name="anchor">prof-{{ prof_index }}-chan-{{ loop.index }}</ac:parameter>
+                                            <ac:parameter ac:name="outline">true</ac:parameter>
+
+                                            <ac:rich-text-body>
+
+                                                <div style="margin-top:16px;margin-bottom:24px">
+                                                    <h4 style="font-size:13px;font-weight:600;color:var(--ds-text,#374151);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Собранные компоненты</h4>
+
+                                                    <table class="confluenceTable" style="border:1px solid var(--ds-border,#e5e7eb);border-radius:8px;margin-bottom:0;width:100%">
+                                                        <thead style="background:var(--ds-surface-sunken,#f9fafb)">
+                                                            <tr>
+                                                                <th class="confluenceTh autodoc-cth">Компонент</th>
+                                                                <th class="confluenceTh autodoc-cth">Версия</th>
+                                                                <th class="confluenceTh autodoc-cth">Conan Reference</th>
+                                                                {%- if data.include_passport_links -%}
+                                                                <th class="confluenceTh autodoc-cth">Паспорт</th>
+                                                                {%- endif -%}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {%- for comp in components -%}
+                                                            <tr>
+                                                                <td class="confluenceTd autodoc-ctd">
+                                                                    <strong style="color:var(--ds-text,#111827);font-size:13px">{{ comp.name }}</strong>
+                                                                </td>
+                                                                <td class="confluenceTd autodoc-ctd">
+                                                                    <span style="font-size:12px;color:var(--ds-text,#374151)">{{ comp.version }}</span>
+                                                                </td>
+                                                                <td class="confluenceTd autodoc-ctd">
+                                                                    <a href="{{ comp.url }}" style="font-family:monospace;font-size:12px;font-weight:600;color:var(--ds-link,#2563eb);text-decoration:none">
+                                                                        {{ comp.reference }} &#8599;
+                                                                    </a>
+                                                                </td>
+                                                                {%- if data.include_passport_links -%}
+                                                                <td class="confluenceTd autodoc-ctd">
+                                                                    {%- if comp.passport_link -%}
+                                                                        <a href="{{ comp.passport_link }}" class="autodoc-passport-btn">
+                                                                            📋 Паспорт
+                                                                        </a>
+                                                                    {%- else -%}
+                                                                        <span class="autodoc-text-subtlest">—</span>
+                                                                    {%- endif -%}
+                                                                </td>
+                                                                {%- endif -%}
+                                                            </tr>
+                                                            {%- endfor -%}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                            </ac:rich-text-body>
+                                        </ac:structured-macro>
+                                        {%- endfor -%}
+
+                                    </ac:rich-text-body>
+                                </ac:structured-macro>
+
+                            </ac:rich-text-body>
+                        </ac:structured-macro>
+                        {%- endif -%}
+                        {%- endfor -%}
+
+                    </ac:rich-text-body>
+                </ac:structured-macro>
+
+            </ac:rich-text-body>
+        </ac:structured-macro>
+        {%- endfor -%}
+
+    </ac:rich-text-body>
+</ac:structured-macro>

@@ -1,32 +1,52 @@
 """
 Шаг пайплайна: сбор Docker-ссылок и их применение к профилям сборки.
 """
+
+from autodoc.common.logger import logger
 from autodoc.parser.enrichment.data_enricher import DataEnricher
-from autodoc.parser.resolvers.docker_resolver import DockerResolver
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+from autodoc.parser.fetchers.docker_fetcher import DockerLinksMap, DockerFetcher
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
+from autodoc.parser.steps.base_parse_step import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class DockerResolveStep(BaseParseStep):
     """
     Шаг 4: Собирает Docker-образы и сразу применяет их к ProfileBuild.
-
-    2.3 apply_docker_links вызывается здесь — обогащение происходит
-    в шаге, который за него отвечает.
-
-    3.15 Ссылки больше не записываются в ctx.docker_links (поле удалено).
-    Для диагностики/save_intermediate данные доступны через
-    ctx.intermediate['docker_links'].
     """
 
-    name = 'Сбор Docker-ссылок профилей'
+    name = "Сбор Docker-ссылок профилей"
     is_critical = False
 
+    def __init__(self, fetcher: BaseFetcher[DockerLinksMap] | None = None) -> None:
+        """
+        Args:
+            fetcher: Фетчер Docker-ссылок. Если не передан — используется
+                     ``DockerFetcher`` по умолчанию.
+        """
+        self._fetcher = fetcher or DockerFetcher()
+
     def execute(self, ctx: PipelineContext) -> None:
-        resolver = DockerResolver(ctx.config)
-        docker_links = resolver.fetch(
+        """
+        Собирает Docker-ссылки профилей и применяет их к ProfileBuild.
+
+        Конфигурирует DockerFetcher, загружает ссылки по URL профилей из
+        конфигурации, передаёт результат в DataEnricher и сохраняет карту
+        в ctx.intermediate для диагностики и save_intermediate.
+
+        Args:
+            ctx: Контекст пайплайна с заполненными компонентами и конфигурацией.
+        """
+        self._fetcher.configure(ctx)
+        result = self._fetcher.fetch(
             urls=ctx.config.profiles_urls or [],
             target_platform=ctx.config.platform_version,
         )
-        DataEnricher.apply_docker_links(ctx.components, docker_links)
-        # 3.15 для save_intermediate и диагностики
-        ctx.intermediate['docker_links'] = docker_links
+        if result.warnings:
+            for w in result.warnings:
+                logger.warning(w)
+        docker_links = result.value
+        DataEnricher.apply_docker_links(
+            ctx.components, docker_links, profile_definitions=ctx.profile_definitions
+        )
+        ctx.intermediate["docker_links"] = docker_links

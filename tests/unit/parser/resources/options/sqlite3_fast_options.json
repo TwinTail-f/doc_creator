@@ -1,0 +1,7 @@
+{
+    "1": "",
+    "2": "sqlite3:enable_json1=True",
+    "3": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True",
+    "4": "sqlite3:RTree_patch_enable=True, sqlite3:enable_json1=True, sqlite3:enable_fts3=True, sqlite3:enable_fts5=True, sqlite3:enable_dbstat_vtab=True, sqlite3:enable_explain_comments=True",
+    "5": "sqlite3:with_icu=True"
+}

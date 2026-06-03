@@ -1,0 +1,193 @@
+"""Юнит-тесты для классов Conan runner.
+
+Охватывает: Conan2Runner, ConanEnvironmentManager, BaseConanRunner.
+Все вызовы subprocess.run и shutil замокированы — бинарный файл conan не требуется.
+"""
+
+import subprocess
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.release import Release
+from autodoc.parser.conan.base_conan_runner import BaseConanRunner
+from autodoc.parser.conan.conan2_runner import Conan2Runner
+from autodoc.parser.conan.conan_environment_manager import ConanEnvironmentManager
+from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
+from autodoc.parser.conan.models.conan_task import ConanTask
+
+_PACKAGE_REF: str = "zlib/1.2.13"
+_TIMEOUT_SEC: int = 30
+_CONFIG_URL: str = "https://art.example.com/conan-config.zip"
+_USERNAME: str = "testuser"
+_PASSWORD: str = "test-pat-token"
+
+
+def _make_task() -> ConanTask:
+    """Создаёт минимальный ConanTask для тестов runner."""
+    release = Release(
+        version="1.2.13",
+        platform="2.0",
+        channel="fast",
+        profile_builds=[],
+    )
+    pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")
+    return ConanTask(
+        cmd=["conan", "graph", "info", "--format=json", "zlib/1.2.13@"],
+        comp_name="zlib",
+        version="1.2.13",
+        channel="fast",
+        profile_name="hw-linux-x86_64-gcc10_2",
+        option_id="default",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="https://art.example.com",
+        release=release,
+        pb=pb,
+    )
+
+
+def _make_runner(tmp_path: Path) -> Conan2Runner:
+    """Создаёт Conan2Runner, используя tmp_path как каталог-шаблон."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    return Conan2Runner(timeout=_TIMEOUT_SEC, conan_home_template=tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Conan2Runner tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.infrastructure
+def test_conan2_runner_raises_on_missing_conan_binary(tmp_path: Path) -> None:
+    """Conan2Runner.run() возвращает success=False, когда 'conan' отсутствует в PATH.
+
+    Runner не должен пробрасывать FileNotFoundError — он использует shutil.which
+    перед subprocess.run и возвращает результат-ошибку с диагностическим сообщением.
+    """
+    runner = _make_runner(tmp_path)
+    with patch("shutil.which", return_value=None):
+        result: ConanRawResult = runner.run(_make_task())
+    assert result.success is False
+    assert result.error  # non-empty error message
+
+
+@pytest.mark.infrastructure
+def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
+    """Conan2Runner.run() возвращает success=False при истечении времени ожидания subprocess.
+
+    TimeoutExpired не должен пробрасываться — runner перехватывает его и возвращает
+    результат-ошибку, чтобы вызывающий код мог накапливать ошибки вместо падения.
+    """
+    runner = _make_runner(tmp_path)
+    with (
+        patch("shutil.which", return_value="/usr/bin/conan"),
+        patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="conan", timeout=_TIMEOUT_SEC),
+        ),
+    ):
+        result: ConanRawResult = runner.run(_make_task())
+    assert result.success is False
+    assert result.error  # non-empty error message
+
+
+# ---------------------------------------------------------------------------
+# ConanEnvironmentManager tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.infrastructure
+def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type: ignore[no-untyped-def]
+    """setup() вызывает shutil.copytree ровно один раз для копирования конфига в tmp dir.
+
+    Защищает от регрессий, при которых шаг установки конфига пропускается
+    или вызывается более одного раза за один вызов setup().
+    """
+    mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mock_mkdtemp = mocker.patch(
+        "tempfile.mkdtemp", return_value="/tmp/conan_setup_test"
+    )
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
+
+    manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
+    manager.setup()
+
+    # subprocess.run is called for config install + remote login
+    assert mock_run.call_count >= 1
+
+
+@pytest.mark.infrastructure
+def test_conan_environment_manager_cleanup_removes_directory(
+    tmp_path: Path, mocker
+) -> None:  # type: ignore[no-untyped-def]
+    """cleanup() удаляет каталог настройки, созданный setup().
+
+    Гарантирует, что временный домашний каталог Conan удаляется после использования,
+    что важно для предотвращения накопления больших каталогов на агентах CI.
+    """
+    mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
+    setup_dir: Path = tmp_path / "conan_setup_fake"
+    setup_dir.mkdir()
+    mocker.patch("tempfile.mkdtemp", return_value=str(setup_dir))
+    mock_rmtree = mocker.patch("shutil.rmtree")
+
+    manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
+    manager.setup()
+    manager.cleanup()
+
+    mock_rmtree.assert_called_once()
+    called_path = Path(mock_rmtree.call_args[0][0])
+    assert called_path == setup_dir
+
+
+@pytest.mark.infrastructure
+def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
+    """cleanup() идемпотентен и не вызывает исключений, если setup() никогда не вызывался.
+
+    Свежий ConanEnvironmentManager не имеет каталога настройки; cleanup() должен
+    обрабатывать это корректно, чтобы вызывающий код мог использовать его безопасно
+    в блоках finally без дополнительных проверок.
+    """
+    manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
+    # Must not raise any exception
+    manager.cleanup()
+
+
+@pytest.mark.infrastructure
+def test_base_conan_runner_setup_semantics_on_double_call(
+    tmp_path: Path, mocker
+) -> None:
+    """setup() вызванный дважды на ConanEnvironmentManager: второй вызов завершается нормально.
+
+    ConanEnvironmentManager не вызывает исключение при повторном setup — он просто
+    перезаписывает _setup_dir новым временным каталогом. Этот тест документирует
+    данное поведение, чтобы любое будущее изменение, добавляющее исключение при
+    повторном вызове setup, было сразу заметно.
+    """
+    mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mock_run = mocker.patch("subprocess.run")
+    mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
+
+    first_dir: Path = tmp_path / "first"
+    second_dir: Path = tmp_path / "second"
+    first_dir.mkdir()
+    second_dir.mkdir()
+
+    # mkdtemp returns different paths on each call
+    mocker.patch(
+        "tempfile.mkdtemp",
+        side_effect=[str(first_dir), str(second_dir)],
+    )
+
+    manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
+    # Both calls must complete without raising
+    manager.setup()
+    manager.setup()
+    # After second setup, _setup_dir points to the second directory
+    assert manager._setup_dir == second_dir

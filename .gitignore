@@ -40,12 +40,15 @@ htmlcov/
 .tox/
 
 # Configs with secrets — только примеры в репо
-configs/parser_config.json
-configs/parser_config.yaml
-configs/parser_config.yml
-configs/confluence_config.json
-configs/confluence_config.yaml
-configs/confluence_config.yml
+configs/*
+
+!configs/examples
 
 # Logs
 *.log
+
+#zip
+*.zip
+*.7z
+
+archive

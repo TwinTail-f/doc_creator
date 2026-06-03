@@ -1,0 +1,14 @@
+{
+    "1": "",
+    "2": "sqlite3:shared=True",
+    "3": "sqlite3:enable_json1=True",
+    "4": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True",
+    "5": "sqlite3:enable_json1=True, sqlite3:shared=True",
+    "6": "sqlite3:shared=True, sqlite3:RTree_patch_enable=True",
+    "7": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True, sqlite3:shared=True",
+    "8": "sqlite3:shared=True, sqlite3:strip_binary=True",
+    "9": "sqlite3:enable_json1=True, sqlite3:shared=True, sqlite3:strip_binary=True",
+    "10": "sqlite3:shared=True, sqlite3:RTree_patch_enable=True, sqlite3:strip_binary=True",
+    "11": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True, sqlite3:shared=True, sqlite3:strip_binary=True",
+    "12": "sqlite3:with_icu=True"
+}

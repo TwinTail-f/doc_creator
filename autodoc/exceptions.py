@@ -1,5 +1,5 @@
 """
-Иерархия пользовательских исключений проекта autodoc.
+Единый модуль исключений проекта autodoc.
 """
 
 
@@ -34,7 +34,7 @@ class ComponentParsingError(ParsingError):
         self,
         component_name: str,
         message: str,
-        original_error: Exception = None,
+        original_error: Exception | None = None,
     ) -> None:
         """
         Args:
@@ -44,7 +44,7 @@ class ComponentParsingError(ParsingError):
         """
         self.component_name = component_name
         self.original_error = original_error
-        super().__init__(f"Компонент '{component_name}': {message}")
+        super().__init__(f'Компонент "{component_name}": {message}')
 
 
 class PublishError(DocGeneratorError):

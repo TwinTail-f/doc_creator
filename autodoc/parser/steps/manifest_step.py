@@ -1,17 +1,43 @@
 """Шаг пайплайна: загрузка и парсинг манифестов компонентов."""
-from autodoc.parser.manifest.manifest_parser import ManifestParser
-from autodoc.parser.steps.base import BaseParseStep, PipelineContext
+
+from autodoc.common.logger import logger
+from autodoc.models.component import Component
+from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
+from autodoc.parser.fetchers.base_fetcher import BaseFetcher
+from autodoc.parser.steps.base_parse_step import BaseParseStep
+from autodoc.parser.pipeline.context import PipelineContext
 
 
 class ManifestStep(BaseParseStep):
     """Шаг 1: Скачивает манифесты из TFS и парсит их в модели Component."""
 
-    name = 'Загрузка и парсинг манифестов'
+    name = "Загрузка и парсинг манифестов"
     is_critical = True
 
+    def __init__(self, fetcher: BaseFetcher[list[Component]] | None = None) -> None:
+        """
+        Args:
+            fetcher: Фетчер манифестов. Если не передан — используется
+                     ``ManifestFetcher`` по умолчанию.
+        """
+        self._fetcher = fetcher or ManifestFetcher()
+
     def execute(self, ctx: PipelineContext) -> None:
-        parser = ManifestParser(ctx.config)
-        ctx.components = parser.fetch(
+        """
+        Скачивает манифесты из TFS и разбирает их в модели Component.
+
+        Конфигурирует фетчер из контекста, запускает загрузку, логирует
+        предупреждения и записывает компоненты в ctx.components.
+
+        Args:
+            ctx: Контекст пайплайна с заполненной конфигурацией и tmp_dir.
+        """
+        self._fetcher.configure(ctx)
+        result = self._fetcher.fetch(
             tmp_dir=ctx.tmp_dir,
-            excluded=ctx.config.excluded_components or [],
+            component_names=ctx.config.component_names or [],
+            filter_mode=ctx.config.component_filter_mode,
         )
+        for w in result.warnings:
+            logger.warning(w)
+        ctx.components = result.value
