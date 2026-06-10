@@ -34,6 +34,8 @@ from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 from autodoc.common.logger import logger
 
+_ReleaseKey = tuple[str, str, str]  # (comp_name, version, channel)
+
 
 class ConanResultAggregator:
     """
@@ -109,15 +111,15 @@ class ConanResultAggregator:
         )
         result.failed = result.total_tasks - result.succeeded
 
-        release_deps: dict[tuple[str, str, str], set[str]] = {}
-        release_patches: dict[tuple[str, str, str], set[str]] = {}
+        release_deps: dict[_ReleaseKey, set[str]] = {}
+        release_patches: dict[_ReleaseKey, set[str]] = {}
 
         release_resolved_options: dict[
-            tuple[str, str, str], dict[str, dict[str, Any]]
+            _ReleaseKey, dict[str, dict[str, Any]]
         ] = {}
 
         for task in tasks:
-            release_key_pre: tuple[str, str, str] = (
+            release_key_pre: _ReleaseKey = (
                 task.comp_name,
                 task.version,
                 task.channel,
@@ -133,6 +135,10 @@ class ConanResultAggregator:
                 if opt_id not in merged_opts:
                     merged_opts[opt_id] = opts
 
+        # Second pass: construct the final result.
+        # Must run after the first pass because release_resolved_options, release_deps,
+        # and release_patches must be fully merged across *all* tasks for a release key
+        # before any ReleaseConanData object is created.
         visited_pbs: set[int] = set()
         for task in tasks:
             pb_id = id(task.pb)
@@ -141,7 +147,7 @@ class ConanResultAggregator:
             visited_pbs.add(pb_id)
 
             agg = pb_agg[pb_id]
-            release_key: tuple[str, str, str] = (
+            release_key: _ReleaseKey = (
                 task.comp_name,
                 task.version,
                 task.channel,
@@ -277,6 +283,8 @@ class ConanResultAggregator:
 class _ProfileBuildAggregator:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
 
+    # __slots__ reduces per-instance memory and attribute-access overhead;
+    # one aggregator is created per ProfileBuild, potentially thousands in a run.
     __slots__ = (
         "any_success",
         "unique_variants",

@@ -1,7 +1,7 @@
 """
 Загрузчик и резолвер переопределений настроек профилей Conan.
 
-Используется как костыль для профилей, чьи Jinja-шаблоны читают
+Применяется для профилей, чьи Jinja-шаблоны читают
 env-переменные (например ``KOS_SDK_VER`` → ``compiler.toolchain_config_id``).
 Вместо задания env-переменных пользователь описывает нужные ``-s`` настройки
 в файле переопределений (поддерживаются форматы YAML и JSON).
@@ -31,22 +31,19 @@ class ProfileSettingsOverrides:
                   построенный из секций ``overrides`` конфига.
     """
 
-    def __init__(self, mapping: dict[str, dict[str, str]]) -> None:
+    def __init__(self, mapping: dict[str, dict[str, str]] | None = None) -> None:
         """
         Args:
-            mapping: Готовый словарь ``{profile_name: {setting: value}}``.
+            mapping: Словарь ``{profile_name: {setting: value}}``.
                      Обычно строится через ``ProfileSettingsOverrides.from_file()``.
+                     Если не передан — переопределения не применяются.
         """
-        self._mapping = mapping
-
-    # ------------------------------------------------------------------
-    # Фабричные методы
-    # ------------------------------------------------------------------
+        self._mapping: dict[str, dict[str, str]] = mapping or {}
 
     @classmethod
     def empty(cls) -> Self:
-        """Возвращает пустой экземпляр (костыль отключён)."""
-        return cls({})
+        """Возвращает пустой экземпляр (переопределения не применяются)."""
+        return cls()
 
     @classmethod
     def from_file(cls, path: str | Path) -> Self:
@@ -110,10 +107,6 @@ class ProfileSettingsOverrides:
         """
         return cls._parse(raw, source="<dict>")
 
-    # ------------------------------------------------------------------
-    # Основной метод
-    # ------------------------------------------------------------------
-
     def resolve(self, profile_name: str) -> dict[str, str]:
         """
         Возвращает словарь настроек для заданного профиля.
@@ -134,6 +127,7 @@ class ProfileSettingsOverrides:
 
         # Совпадение по basename (на случай если в профилях указан полный путь)
         basename = Path(profile_name).name
+        # Avoid redundant lookup: if profile_name is already a bare filename, it was checked above.
         if basename != profile_name and basename in self._mapping:
             return dict(self._mapping[basename])
 
@@ -143,22 +137,21 @@ class ProfileSettingsOverrides:
         """Возвращает ``True``, если переопределения не заданы."""
         return not self._mapping
 
-    # ------------------------------------------------------------------
-    # Приватные методы
-    # ------------------------------------------------------------------
-
     @classmethod
     def _parse(cls, raw: Any, source: str) -> Self:
         """
         Разбирает содержимое конфига в плоский словарь ``{profile: {setting: value}}``.
 
         Args:
-            raw: Данные конфига (ожидается dict с ключом ``overrides``).
+            raw: Содержимое конфига произвольного типа; ожидается dict с ключом
+                 ``overrides``, но структура проверяется явно ниже.
             source: Строковое описание источника для сообщений лога.
 
         Returns:
             Заполненный экземпляр.
         """
+        # yaml.safe_load returns None for empty files and may return non-dict for
+        # malformed documents; the check guards against both cases.
         if not isinstance(raw, dict):
             logger.warning(
                 f"profile_settings_overrides ({source}): ожидался объект, "

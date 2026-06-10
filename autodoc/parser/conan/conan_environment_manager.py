@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from autodoc.common.logger import logger
 
@@ -20,12 +21,6 @@ class ConanEnvironmentManager:
     и авторизацию во всех remote-репозиториях из установленной конфигурации.
     Созданная директория используется как шаблон для изолированных временных копий
     в ``Conan2Runner.run()``.
-
-    Attributes:
-        _config_url: URL zip-архива конфигурации Conan.
-        _username: Логин пользователя Artifactory.
-        _password: PAT-токен Artifactory.
-        _setup_dir: Путь к созданной директории-шаблону; ``None`` до ``setup()``.
     """
 
     _CONFIG_INSTALL_TIMEOUT: int = 120
@@ -85,6 +80,7 @@ class ConanEnvironmentManager:
             env=env,
         )
         if result.returncode != 0:
+            # Conan occasionally writes error details to stdout instead of stderr.
             error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
@@ -115,6 +111,7 @@ class ConanEnvironmentManager:
             env=env,
         )
         if result.returncode != 0:
+            # Conan occasionally writes error details to stdout instead of stderr.
             error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
@@ -126,11 +123,11 @@ class ConanEnvironmentManager:
     def _install_config(self, env: dict[str, str]) -> None:
         """Устанавливает конфигурацию Conan из Artifactory через ``conan config install``."""
         # Встраиваем credentials в URL: https://user:token@host/...
-        parsed = self._config_url.split("://", 1)
-        if len(parsed) != 2:
+        split = urlsplit(self._config_url)
+        if not split.scheme or not split.netloc:
             raise RuntimeError(f"Некорректный config_url: {self._config_url}")
-        scheme, rest = parsed
-        url_with_creds = f"{scheme}://{self._username}:{self._password}@{rest}"
+        netloc_with_creds = f"{self._username}:{self._password}@{split.netloc}"
+        url_with_creds = urlunsplit(split._replace(netloc=netloc_with_creds))
 
         logger.info(
             f"Устанавливаем конфигурацию Conan из {self._config_url} в {self._setup_dir} …"

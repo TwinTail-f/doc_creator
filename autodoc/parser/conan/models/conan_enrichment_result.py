@@ -19,20 +19,14 @@ _ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
 
 @dataclass
 class ReleaseConanData:
-    """
-    Данные Conan для обогащения одного Release.
-
-    Поле ``default_options`` хранит уже типизированные объекты ``DefaultOptionsSet``
-    (из поля ``default_options`` в JSON conan graph info).
-
-    Поле ``total_options`` хранит типизированные объекты ``TotalOptionsSet``
-    (из поля ``options`` в JSON conan graph info), сгруппированные по option_id.
-    """
+    """Данные Conan для обогащения одного Release."""
 
     base_ref: str
     rrev: str
     full_version: str
+    #: Дефолтные опции из поля ``default_options`` вывода conan graph info.
     default_options: list[DefaultOptionsSet]
+    #: Разрешённые опции из поля ``options`` вывода conan graph info, сгруппированные по option_id.
     total_options: list[TotalOptionsSet]
     patches: list[str]
     dependencies: list[str]
@@ -55,11 +49,7 @@ class ProfileConanData:
 
 @dataclass
 class ConanEnrichmentResult:
-    """
-    Результат выполнения Conan graph info, готовый для применения к моделям.
-
-    Не мутирует модели — передаётся в ``DataEnricher.apply_conan_results()``.
-    """
+    """Результат выполнения Conan graph info, готовый для применения к моделям."""
 
     release_data: dict[tuple[str, str, str], ReleaseConanData] = field(
         default_factory=dict

@@ -4,7 +4,7 @@
 Release — версия компонента с привязкой к платформе и каналу.
 """
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field
 
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild  # noqa: F401
 from autodoc.models.options import ConanInputOptions, DefaultOptionsSet, TotalOptionsSet
@@ -48,5 +48,3 @@ class Release(BaseModel):
         default_factory=list,
         description="Список сборок по профилям",
     )
-
-    _build_option_sets_internal: dict[str, str] = PrivateAttr(default_factory=dict)

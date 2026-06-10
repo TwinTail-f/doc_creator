@@ -71,16 +71,14 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
         """
         self._timeout = ctx.config.conan_command_timeout
         self._platform_version = ctx.config.platform_base_version
-        self._artifactory_base_url = (
-            ctx.config.artifactory_components_conan2_url or ""
-        ).rstrip("/")
+        self._artifactory_base_url = ctx.config.artifactory_components_conan2_url or ""
         self._conan_config_url = (ctx.config.conan_config_url or "").strip()
         self._username = ctx.config.username
         self._password = ctx.config.artifactory_token
         self._exact_range_components = ctx.config.exact_range_components or []
 
-        # Загружаем костыль с переопределениями -s настроек для Jinja-профилей
-        overrides_path = getattr(ctx.config, "profile_settings_overrides_file", None)
+        # Загружаем переопределения -s настроек для Jinja-профилей
+        overrides_path = ctx.config.profile_settings_overrides_file
         if overrides_path:
             self._profile_overrides = ProfileSettingsOverrides.from_file(overrides_path)
             if not self._profile_overrides.is_empty():
@@ -97,19 +95,8 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
         """
         Выполняет ``conan graph info`` для всех компонентов и агрегирует результаты.
 
-        Этапы:
-        1. Установка конфигурации Conan из Artifactory в директорию-шаблон
-           (``ConanEnvironmentManager.setup()``).
-        2. Очистка кэша пакетов Conan в шаблоне.
-        3. Построение задач из моделей компонентов.
-        4. Параллельный запуск задач через ``ParallelExecutor``.
-           Каждый вызов ``Conan2Runner.run()`` копирует шаблон в отдельный tmp
-           и удаляет его по завершении.
-        5. Агрегация сырых результатов в ``ConanEnrichmentResult``.
-        6. Удаление директории-шаблона (``ConanEnvironmentManager.cleanup()``).
-
         Args:
-            components: Список компонентов с заполненными ``_build_option_sets_internal``.
+            components: Список компонентов с заполненными ``build_option_sets``.
 
         Returns:
             ``FetchResult`` с ``ConanEnrichmentResult``. Поле ``warnings`` не

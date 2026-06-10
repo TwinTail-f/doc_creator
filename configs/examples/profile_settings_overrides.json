@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "Справочный JSON-вариант. Рекомендуется использовать configs/examples/profile_settings_overrides.yaml",
-    "Костыль для профилей, использующих Jinja-шаблоны с os.getenv()."
+    "Справочный JSON-вариант файла переопределений настроек Conan-профилей.",
+    "Для профилей, использующих Jinja-шаблоны с os.getenv()."
   ],
 
   "overrides": [

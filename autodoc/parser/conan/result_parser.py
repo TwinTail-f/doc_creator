@@ -1,5 +1,9 @@
 """
-Парсер JSON-ответа команды ``conan graph info``.
+Парсер JSON-ответа команды ``conan graph info`` для Conan 2.x.
+
+Для поддержки Conan 1.x потребуется отдельный парсер.
+TODO: рассмотреть использование ``conan.api.model.refs.RecipeReference``
+      для разбора ref-строк после добавления ``conan`` в зависимости проекта.
 """
 
 import datetime
@@ -44,7 +48,7 @@ class ConanResultParser:
         # Conan завершается с кодом 0 даже при отсутствии бинарного пакета —
         # проверяем поле binary явно. "Missing" означает, что собранного пакета
         # для этого профиля нет; считаем это неудачей и исключаем профиль.
-        binary_status: str = target_node.get("binary", "")
+        binary_status = target_node.get("binary", "")
         if binary_status == "Missing":
             return None
 
@@ -53,8 +57,8 @@ class ConanResultParser:
         patches = self._extract_patches(target_node)
         dependencies = self._extract_dependencies(nodes, task.comp_name)
 
-        info_dict: dict[str, Any] = target_node.get("info", {})
-        conan_settings: dict[str, Any] = info_dict.get(
+        info_dict = target_node.get("info", {})
+        conan_settings = info_dict.get(
             "settings", target_node.get("settings", {})
         )
         package_id = target_node.get("package_id", "")
@@ -67,7 +71,7 @@ class ConanResultParser:
 
         # Поле "options" содержит финально разрешённые опции после применения
         # дефолтов и пользовательских переопределений — они попадают в TotalOptionsSet.
-        conan_options: dict[str, Any] = info_dict.get(
+        conan_options = info_dict.get(
             "options", target_node.get("options", {})
         )
 
@@ -107,6 +111,8 @@ class ConanResultParser:
             - ``rrev`` — recipe revision;
             - ``full_version`` — версия компонента, извлечённая из ref или fallback.
         """
+        # TODO: replace manual string parsing with conan.api.model.refs.RecipeReference.loads()
+        #       once 'conan' is declared as a Python dependency in pyproject.toml.
         full_ref: str = node.get("ref", "")
         rrev: str = node.get("rrev", "")
         full_version = fallback_version
@@ -184,6 +190,8 @@ class ConanResultParser:
                 continue
             ref: str = node.get("ref", "")
             if ref:
+                # TODO: replace manual string parsing with conan.api.model.refs.RecipeReference.loads()
+                #       once 'conan' is declared as a Python dependency in pyproject.toml.
                 dep_name = ref.split("/")[0]
                 if dep_name and dep_name != comp_name:
                     deps.append(dep_name)

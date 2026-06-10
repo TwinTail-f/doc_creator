@@ -33,14 +33,6 @@ class ParserConfigSchema(BaseModel):
         ...,
         description="Personal Access Token для TFS",
     )
-
-    @field_validator("tfs_token")
-    @classmethod
-    def tfs_token_not_empty(cls, v: str) -> str:
-        if not v:
-            raise ValueError("tfs_token не может быть пустой строкой")
-        return v
-
     artifactory_token: str | None = Field(
         default=None,
         validate_default=True,
@@ -50,11 +42,6 @@ class ParserConfigSchema(BaseModel):
         ...,
         description="Базовый URL коллекции TFS",
     )
-
-    @field_validator("tfs_collection_url")
-    @classmethod
-    def normalize_tfs_collection_url(cls, v: str) -> str:
-        return v.strip().rstrip("/")
 
     manifests_remotes_path: str = Field(
         ...,
@@ -161,3 +148,20 @@ class ParserConfigSchema(BaseModel):
         le=10.0,
         description="Множитель для exponential backoff (1 с, затем 2, 4, 8…)",
     )
+
+    @field_validator("tfs_token")
+    @classmethod
+    def tfs_token_not_empty(cls, v: str) -> str:
+        if not v:
+            raise ValueError("tfs_token не может быть пустой строкой")
+        return v
+
+    @field_validator("tfs_collection_url")
+    @classmethod
+    def normalize_tfs_collection_url(cls, v: str) -> str:
+        return v.strip().rstrip("/")
+
+    @field_validator("artifactory_components_conan2_url")
+    @classmethod
+    def normalize_artifactory_url(cls, v: str) -> str:
+        return v.rstrip("/")

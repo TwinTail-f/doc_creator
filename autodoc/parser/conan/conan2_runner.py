@@ -17,9 +17,8 @@ from autodoc.parser.conan.models.conan_task import ConanTask
 
 class Conan2Runner(BaseConanRunner):
     """
-    Запускает команды Conan 2.x через ``subprocess``.
+    Выполняет команды Conan 2.x, изолируя каждый вызов в собственный временный ``CONAN_HOME``.
 
-    Обрабатывает таймауты и ненулевые коды возврата.
     Каждый вызов ``run()`` копирует ``conan_home_template`` в свою изолированную
     временную директорию — безопасен для использования из нескольких потоков.
 
@@ -30,6 +29,7 @@ class Conan2Runner(BaseConanRunner):
     _CONAN_NOT_FOUND_MSG: str = "Утилита conan не найдена. Проверьте PATH."
     _CLEAN_CACHE_CMD: list[str] = ["conan", "remove", "*", "-c"]
     _CLEAN_CACHE_TIMEOUT: int = 60
+    _STDOUT_PREVIEW_LENGTH: int = 300
 
     def __init__(self, timeout: int, conan_home_template: Path) -> None:
         """
@@ -106,7 +106,11 @@ class Conan2Runner(BaseConanRunner):
                 return ConanRawResult(
                     success=False,
                     data=None,
-                    error=f"JSON decode error: {e}. STDOUT: {result.stdout[:300]}",
+                    error=(
+                        f"Ошибка декодирования JSON: {e}. "
+                        f"STDOUT (первые {self._STDOUT_PREVIEW_LENGTH} символов): "
+                        f"{result.stdout[:self._STDOUT_PREVIEW_LENGTH]}"
+                    ),
                 )
 
     def clean_cache(self) -> None:
@@ -142,18 +146,25 @@ class Conan2Runner(BaseConanRunner):
         """
         Извлекает релевантное сообщение из stderr Conan.
 
-        Ищет первое вхождение ``ERROR:`` или ``Error:`` и возвращает
-        текст начиная с найденной метки. Если маркеры не найдены —
-        возвращает весь stderr без пробелов по краям.
+        Ищет первое вхождение маркера ``error:`` (без учёта регистра) и возвращает
+        текст начиная с найденной позиции в оригинальном stderr.
+        Если маркер не найден — возвращает весь stderr без пробелов по краям.
+
+        Регистронезависимый поиск захватывает ``ERROR:``, ``Error:`` и любые
+        другие вариации написания, встречающиеся в разных версиях Conan.
+
+        Усечение до маркера убирает обширную INFO-преамбулу,
+        которую Conan выводит перед диагностическим сообщением.
 
         Args:
             stderr: Полный stderr процесса.
 
         Returns:
-            Укороченное сообщение об ошибке.
+            Сообщение об ошибке, начинающееся с маркера, или весь stderr.
         """
-        for prefix in ("ERROR:", "Error:"):
-            idx = stderr.find(prefix)
-            if idx != -1:
-                return stderr[idx:]
+        # Conan typically prefixes error messages with a long INFO preamble;
+        # we cut to the first "error:" occurrence for a cleaner message.
+        idx = stderr.lower().find("error:")
+        if idx != -1:
+            return stderr[idx:]
         return stderr.strip()

@@ -1,8 +1,6 @@
 """
-Диагностические отчёты Conan по профилям и компонентам.
-
-ConanProfileReport   — все вызовы conan graph info для одного профиля.
-ConanComponentReport — отчёт по всем вызовам одного компонента/версии/канала.
+Диагностические отчёты Conan graph info, группирующие результаты
+по компонентам и профилям.
 """
 
 from dataclasses import dataclass, field

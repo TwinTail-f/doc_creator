@@ -43,7 +43,6 @@ class DataEnricher:
                 )
                 opts = options_map.get(key)
                 if opts is not None:
-                    release._build_option_sets_internal = opts
                     release.build_option_sets = [
                         ConanInputOptions(id=k, options=v) for k, v in opts.items()
                     ]
