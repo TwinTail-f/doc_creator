@@ -6,8 +6,8 @@ from typing import Any
 
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.legacy_content.legacy_service import extract_for_platform
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
@@ -51,8 +51,8 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
 
     def __init__(
         self,
-        confluence_client: IConfluenceClient,
-        document_builder: IDocumentBuilder,
+        confluence_client: ConfluenceClientProtocol,
+        document_builder: DocumentBuilderProtocol,
         parsed_data: ParsedResult,
         space: str,
         root_page_id: str,

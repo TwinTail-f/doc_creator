@@ -7,8 +7,8 @@ from typing import Any, ClassVar
 
 from autodoc.models.parsed_result import ParsedResult
 
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 from autodoc.common.logger import logger
@@ -43,8 +43,8 @@ class BasePublishStrategy(ABC):
 
     def __init__(
         self,
-        confluence_client: IConfluenceClient,
-        document_builder: IDocumentBuilder,
+        confluence_client: ConfluenceClientProtocol,
+        document_builder: DocumentBuilderProtocol,
         parsed_data: ParsedResult,
         space: str,
     ) -> None:
@@ -52,8 +52,8 @@ class BasePublishStrategy(ABC):
         Инициализирует общие зависимости всех стратегий.
 
         Args:
-            confluence_client: Реализация ``IConfluenceClient`` (обычно ``ConfluenceClient``).
-            document_builder: Реализация ``IDocumentBuilder`` (обычно ``DocumentBuilder``).
+            confluence_client: Реализация ``ConfluenceClientProtocol`` (обычно ``ConfluenceClient``).
+            document_builder: Реализация ``DocumentBuilderProtocol`` (обычно ``DocumentBuilder``).
             parsed_data: Данные парсера (ParsedResult).
             space: Ключ Space в Confluence.
         """

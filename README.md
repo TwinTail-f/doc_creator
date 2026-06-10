@@ -138,8 +138,17 @@ overrides:
 | `url` | Базовый URL Confluence, например `"https://confluence.example.com"` |
 | `token` | Atlassian API-токен |
 | `space` | Ключ пространства в Confluence |
-| `parent_id` | ID родительской страницы для релизной документации |
-| `passports_root_parent_id` | ID корневой страницы для иерархии паспортов |
+
+#### Поля для адресации страниц в `confluence_config.yaml`
+
+Для каждой пары укажите либо `*_name` (рекомендуется), либо `*_id`. Если заданы оба — приоритет у `*_name`.
+
+| Поле | Описание |
+|------|----------|
+| `parent_name` | Название родительской страницы для релизной документации *(приоритет над `parent_id`)* |
+| `parent_id` | ID родительской страницы для релизной документации *(запасной вариант)* |
+| `passports_root_parent_name` | Название корневой страницы иерархии паспортов *(приоритет над `passports_root_parent_id`)* |
+| `passports_root_parent_id` | ID корневой страницы иерархии паспортов *(запасной вариант)* |
 
 #### Опциональные поля `confluence_config.yaml`
 
@@ -195,16 +204,20 @@ python autodoc publish profile --page-title "Профили 2.2" --no-passport-l
 #### Публикация паспортов компонентов
 
 ```bash
-# ID корневой страницы берётся из passports_root_parent_id конфига
+# Корневая страница берётся из конфига (passports_root_parent_name или passports_root_parent_id)
 python autodoc publish passports
 
-# Или передать явно
+# Явно передать ID — переопределяет конфиг
 python autodoc publish passports --root-page 987654321
 ```
 
 #### Паспорта + релизная страница за один вызов
 
 ```bash
+# Все параметры берутся из конфига (parent_name, passports_root_parent_name и т.д.)
+python autodoc publish all
+
+# Переопределить корневую страницу паспортов и заголовок
 python autodoc publish all --root-page 987654321 --page-title "Платформа 2.2"
 ```
 
@@ -253,13 +266,13 @@ python autodoc info
 
 | Флаг | Описание |
 |------|----------|
-| `--root-page` | ID корневой страницы иерархии паспортов (переопределяет `passports_root_parent_id` из конфига) |
+| `--root-page` | ID корневой страницы паспортов (переопределяет конфиг; для поиска по названию используйте `passports_root_parent_name` в конфиге) |
 
 ### `publish all`
 
 | Флаг | Описание |
 |------|----------|
-| `--root-page` | ID корневой страницы паспортов |
+| `--root-page` | ID корневой страницы паспортов (опционально — переопределяет конфиг) |
 | `--page-title` | Заголовок итоговой релизной страницы |
 | `--no-passport-links` | Не вставлять ссылки на паспорта в релизную страницу |
 

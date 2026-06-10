@@ -2,11 +2,10 @@
 Протокол (структурный интерфейс) Confluence-клиента, используемого стратегиями паблишера.
 """
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 
 
-@runtime_checkable
-class IConfluenceClient(Protocol):
+class ConfluenceClientProtocol(Protocol):
     """
     Интерфейс чтения/записи страниц Confluence для стратегий паблишера.
 
@@ -23,14 +22,14 @@ class IConfluenceClient(Protocol):
     ) -> dict[str, Any]:
         """Создаёт или обновляет страницу Confluence и возвращает её метаданные."""
 
-    def get_or_create_page(
+    def ensure_page_exists(
         self,
         space: str,
         title: str,
         parent_id: str | None = None,
         body: str = "",
     ) -> str:
-        """Возвращает ID существующей страницы или создаёт новую."""
+        """Обеспечивает существование страницы и возвращает её ID."""
 
     def find_page(
         self,

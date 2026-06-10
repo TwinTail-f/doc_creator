@@ -1,7 +1,7 @@
 """Менеджер иерархии страниц Confluence."""
 
 from autodoc.common.logger import logger
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
 
 _CHILDREN_MACRO_ID: str = "8cb4ae85-0212-4b3d-a15f-77899af1f1d7"
 
@@ -36,12 +36,12 @@ class PageHierarchyManager:
     Промежуточные страницы создаются автоматически при первом обращении.
     """
 
-    def __init__(self, confluence_client: IConfluenceClient) -> None:
+    def __init__(self, confluence_client: ConfluenceClientProtocol) -> None:
         """
         Args:
-            confluence_client: Реализация ``IConfluenceClient``.
+            confluence_client: Реализация ``ConfluenceClientProtocol``.
         """
-        self._client: IConfluenceClient = confluence_client
+        self._client: ConfluenceClientProtocol = confluence_client
         logger.debug("Инициализирован")
 
     def ensure_hierarchy_exists(

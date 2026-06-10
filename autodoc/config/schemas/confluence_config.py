@@ -33,6 +33,14 @@ class ConfluenceConfigSchema(BaseModel):
         default=None,
         description="ID родительской страницы",
     )
+    parent_name: str | None = Field(
+        default=None,
+        description=(
+            "Название родительской страницы для релизной документации. "
+            "Если задано — используется вместо parent_id "
+            "(приоритет: parent_name > parent_id)."
+        ),
+    )
     page_title: str | None = Field(
         default="Сборки компонентов Платформы",
         description="Заголовок главной страницы",
@@ -40,6 +48,14 @@ class ConfluenceConfigSchema(BaseModel):
     passports_root_parent_id: str | None = Field(
         default=None,
         description="ID родительской страницы для дерева паспортов",
+    )
+    passports_root_parent_name: str | None = Field(
+        default=None,
+        description=(
+            "Название корневой страницы для дерева паспортов. "
+            "Если задано — используется вместо passports_root_parent_id "
+            "(приоритет: passports_root_parent_name > passports_root_parent_id)."
+        ),
     )
 
     confluence_request_timeout: int = Field(
@@ -71,3 +87,11 @@ class ConfluenceConfigSchema(BaseModel):
         description='Подпись текущего релиза (например "Platform 2.2"). '
         "Используется в заголовке паспортов и метке вкладки релиза.",
     )
+    
+    @field_validator("url")
+    @classmethod
+    def _normalize_url(cls, v: str) -> str:
+        """Validates that URL is non-empty and strips a trailing slash."""
+        if not v or not v.strip():
+            raise ValueError("url не может быть пустым")
+        return v.rstrip("/")

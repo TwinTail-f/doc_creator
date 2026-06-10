@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
+from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
@@ -23,8 +23,8 @@ class SinglePagePublishStrategy(BasePublishStrategy):
 
     def __init__(
         self,
-        confluence_client: IConfluenceClient,
-        document_builder: IDocumentBuilder,
+        confluence_client: ConfluenceClientProtocol,
+        document_builder: DocumentBuilderProtocol,
         parsed_data: ParsedResult,
         space: str,
         page_title: str,

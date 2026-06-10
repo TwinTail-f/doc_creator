@@ -59,13 +59,20 @@ def publish_release(
         publisher, conf_config = _make_publisher(cli_ctx)
         final_title = page_title or conf_config.page_title or DEFAULT_RELEASE_PAGE_TITLE
 
+        parent_id = publisher.resolve_page_id(
+            conf_config.parent_name,
+            conf_config.parent_id,
+            "parent",
+            required=False,
+        )
+
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish(
             strategy_type="release",
             parsed_data=parsed_data,
             page_title=final_title,
             template_name=RELEASE_TEMPLATE,
-            parent_id=conf_config.parent_id,
+            parent_id=parent_id,
             include_passport_links=not no_passport_links,
         )
 
@@ -110,13 +117,20 @@ def publish_profile(
         publisher, conf_config = _make_publisher(cli_ctx)
         final_title = page_title or conf_config.page_title or DEFAULT_PROFILE_PAGE_TITLE
 
+        parent_id = publisher.resolve_page_id(
+            conf_config.parent_name,
+            conf_config.parent_id,
+            "parent",
+            required=False,
+        )
+
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish(
             strategy_type="profile_centric",
             parsed_data=parsed_data,
             page_title=final_title,
             template_name=PROFILE_TEMPLATE,
-            parent_id=conf_config.parent_id,
+            parent_id=parent_id,
             include_passport_links=not no_passport_links,
         )
 
@@ -129,7 +143,7 @@ def publish_profile(
 
 @publish.command("passports")
 @click.option(
-    "--root-page", default=None, help="ID корневой страницы иерархии паспортов"
+    "--root-page", default=None, help="ID корневой страницы паспортов (переопределяет конфиг; для имени используйте passports_root_parent_name в конфиге)"
 )
 @click.pass_context
 def publish_passports(ctx: click.Context, root_page: str | None) -> None:
@@ -145,14 +159,14 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
         )
 
         publisher, conf_config = _make_publisher(cli_ctx)
-        target_root = root_page or conf_config.passports_root_parent_id
-        if not target_root:
-            console.print(
-                "❌ ID корневой страницы не указан. Передайте --root-page "
-                "или добавьте passports_root_parent_id в конфиг.",
-                style="red bold",
+        if root_page:
+            target_root = root_page
+        else:
+            target_root = publisher.resolve_page_id(
+                conf_config.passports_root_parent_name,
+                conf_config.passports_root_parent_id,
+                "passports_root_parent",
             )
-            sys.exit(1)
 
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
 
@@ -175,7 +189,7 @@ def publish_passports(ctx: click.Context, root_page: str | None) -> None:
 
 
 @publish.command("all")
-@click.option("--root-page", default=None, help="ID корневой страницы паспортов")
+@click.option("--root-page", default=None, help="ID корневой страницы паспортов (переопределяет конфиг)")
 @click.option("--page-title", default=None, help="Заголовок итоговой страницы релиза")
 @click.option(
     "--no-passport-links",
@@ -206,27 +220,18 @@ def publish_all(
         )
 
         publisher, conf_config = _make_publisher(cli_ctx)
-        target_root = root_page or conf_config.passports_root_parent_id
-        if not target_root:
-            console.print(
-                "❌ ID корневой страницы не указан для паспортов. "
-                "Передайте --root-page или добавьте passports_root_parent_id в конфиг.",
-                style="red bold",
-            )
-            sys.exit(1)
-
         parsed_data = _load_parsed_data(cli_ctx.base_dir)
         final_title = page_title or conf_config.page_title or DEFAULT_RELEASE_PAGE_TITLE
 
         console.print("🔄 Публикация…", style="cyan")
         result = publisher.publish_all(
             parsed_data=parsed_data,
-            passports_root_page_id=target_root,
+            passports_root_page_id=root_page,  # None → publisher resolves from config
             release_page_title=final_title,
             release_template_name=RELEASE_TEMPLATE,
             passport_template_name=PASSPORT_TEMPLATE,
-            release_parent_id=conf_config.parent_id,
             include_passport_links=not no_passport_links,
+            # release_parent_id omitted → publisher resolves from config
         )
 
         console.print(

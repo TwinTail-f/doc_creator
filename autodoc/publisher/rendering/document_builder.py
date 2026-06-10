@@ -1,5 +1,6 @@
 """Рендеринг Jinja2-шаблонов в HTML Confluence Storage Format."""
 
+import xml.sax.saxutils
 from pathlib import Path
 from typing import Any
 
@@ -37,9 +38,11 @@ class DocumentBuilder:
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(rendering_dir))
         )
-        # в XML символ & в значениях атрибутов обязателен к экранированию как &amp
+        # Escape special XML characters in attribute values using the stdlib.
+        # xml.sax.saxutils.escape handles & → &amp; and the extras dict adds " → &quot;.
+        # Unlike manual str.replace, this avoids double-escaping already-escaped content.
         self._env.filters["xmlattr"] = (
-            lambda s: str(s).replace("&", "&amp;").replace('"', "&quot;")
+            lambda s: xml.sax.saxutils.escape(str(s), {'"': '&quot;'})
         )
         logger.info(f"Инициализирован: {rendering_dir}")
 

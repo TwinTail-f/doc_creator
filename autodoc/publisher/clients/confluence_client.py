@@ -1,20 +1,4 @@
-"""
-Клиент Confluence REST API v1.
-
-Единственный HTTP-транспорт — ``RetryableSession`` из инфраструктурного слоя.
-Зависимость от сторонней библиотеки ``atlassian-python-api`` полностью убрана:
-это устраняет дублирование retry/timeout/SSL-логики и даёт полный контроль
-над запросами.
-
-Поддерживаемые операции:
-    - поиск страницы по заголовку (``find_page``)
-    - получение страницы по ID (``get_page``)
-    - создание страницы (``create_page``)
-    - обновление страницы с автоинкрементом версии (``update_page``)
-    - создание страницы или получение существующей (``get_or_create_page``)
-    - чтение тела страницы (``get_page_body``)
-    - публикация (создание или обновление) с единым интерфейсом (``publish_page``)
-"""
+"""Клиент Confluence REST API v1."""
 
 from typing import Any
 
@@ -22,7 +6,7 @@ import requests
 import urllib3
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.exceptions import PublishError
+from autodoc.exceptions import ConfluenceError
 from autodoc.common.retryable_session import (
     RetryableSession,
     create_retryable_session,
@@ -69,16 +53,10 @@ class ConfluenceClient:
 
         Args:
             config: Валидированная конфигурация с URL, токеном и параметрами SSL.
-
-        Raises:
-            PublishError: Если конфигурация некорректна (например, пустой URL).
         """
-        if not config.url:
-            raise PublishError("ConfluenceClient: url не может быть пустым")
-
-        self._base_url: str = config.url.rstrip("/")
+        self._base_url: str = config.url
         self._space: str = config.space
-        self._session: RetryableSession = self._build_session(config)
+        self._session: RetryableSession = self._create_session(config)
 
         logger.debug(f"Инициализирован: {self._base_url} (space={self._space})")
 
@@ -107,7 +85,7 @@ class ConfluenceClient:
             Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
 
         Raises:
-            PublishError: Если создание или обновление не удалось.
+            ConfluenceError: Если создание или обновление не удалось.
         """
         logger.info(f"Публикация страницы {title} (space={space})")
 
@@ -124,7 +102,7 @@ class ConfluenceClient:
             return self._update_page(existing, parent_id, title, body_html)
         return self._create_page(space, parent_id, title, body_html)
 
-    def get_or_create_page(
+    def ensure_page_exists(
         self,
         space: str,
         title: str,
@@ -132,10 +110,7 @@ class ConfluenceClient:
         body: str = "",
     ) -> str:
         """
-        Возвращает ID существующей страницы или создаёт новую.
-
-        Используется ``PageHierarchyManager`` для идемпотентного создания
-        промежуточных страниц иерархии (компонент, версия).
+        Обеспечивает существование страницы и возвращает её ID.
 
         Страница считается «той же» только если она является прямым потомком
         ``parent_id``. Если в Space существует страница с таким же заголовком,
@@ -152,7 +127,7 @@ class ConfluenceClient:
             ID страницы в виде строки.
 
         Raises:
-            PublishError: Если страница не найдена и ``parent_id`` не указан,
+            ConfluenceError: Если страница не найдена и ``parent_id`` не указан,
                           либо если запрос к API завершился ошибкой.
         """
         existing = self.find_page(title, space=space, expand="ancestors")
@@ -167,7 +142,7 @@ class ConfluenceClient:
             return str(existing["id"])
 
         if not parent_id:
-            raise PublishError(f"не указан parent_id для создания страницы {title}")
+            raise ConfluenceError(f"не указан parent_id для создания страницы {title}")
 
         placeholder = body or (f"<p>Автоматически созданная страница: {title}</p>")
         result = self._create_page(space, parent_id, title, placeholder)
@@ -178,8 +153,7 @@ class ConfluenceClient:
         """
         Возвращает тело страницы в Confluence Storage Format.
 
-        При отсутствии страницы или любой ошибке API возвращает пустую строку —
-        вызывающий код (``PassportsStrategy``) рассматривает это как первую публикацию.
+        При отсутствии страницы или любой ошибке API возвращает пустую строку.
 
         Args:
             space: Ключ Space.
@@ -212,7 +186,7 @@ class ConfluenceClient:
             Словарь с данными страницы или ``None``, если страница не найдена.
 
         Raises:
-            PublishError: Если запрос к API завершился ошибкой.
+            ConfluenceError: Если запрос к API завершился ошибкой.
         """
         space = space or self._space
         params: dict[str, str] = {
@@ -228,9 +202,9 @@ class ConfluenceClient:
             response = self._session.get(url, params=params)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка при поиске {title}: {e}") from e
+            raise ConfluenceError(f"HTTP-ошибка при поиске {title}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка при поиске {title}: {e}") from e
+            raise ConfluenceError(f"сетевая ошибка при поиске {title}: {e}") from e
 
         results: list[dict[str, Any]] = response.json().get("results", [])
         return results[0] if results else None
@@ -251,7 +225,7 @@ class ConfluenceClient:
             Словарь с данными страницы.
 
         Raises:
-            PublishError: Если страница не найдена (HTTP 404) или запрос не удался.
+            ConfluenceError: Если страница не найдена (HTTP 404) или запрос не удался.
         """
         url = self._api_url("content", page_id)
         try:
@@ -259,61 +233,9 @@ class ConfluenceClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка для ID {page_id}: {e}") from e
+            raise ConfluenceError(f"HTTP-ошибка для ID {page_id}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка для ID {page_id}: {e}") from e
-
-    def create_page(
-        self,
-        title: str,
-        body: str,
-        parent_id: str,
-        space: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Публичный метод создания страницы с использованием Space по умолчанию.
-
-        Args:
-            title:     Заголовок страницы.
-            body:      Тело страницы в Storage Format.
-            parent_id: ID родительской страницы.
-            space:     Ключ Space. Если не указан — используется ``self._space``.
-
-        Returns:
-            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
-
-        Raises:
-            PublishError: Если API вернул ошибку.
-        """
-        return self._create_page(space or self._space, parent_id, title, body)
-
-    def update_page(
-        self,
-        page_id: str,
-        title: str,
-        body: str,
-        parent_id: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Публичный метод обновления страницы с автоинкрементом версии.
-
-        Загружает текущую версию страницы по ``page_id``, затем выполняет
-        обновление с увеличенным номером версии.
-
-        Args:
-            page_id:   ID страницы для обновления.
-            title:     Новый заголовок страницы.
-            body:      Новое тело страницы в Storage Format.
-            parent_id: ID родителя. Если не указан — используется ``page_id``.
-
-        Returns:
-            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
-
-        Raises:
-            PublishError: Если API вернул ошибку.
-        """
-        existing = self.get_page(page_id, expand=_EXPAND_VERSION)
-        return self._update_page(existing, parent_id or page_id, title, body)
+            raise ConfluenceError(f"сетевая ошибка для ID {page_id}: {e}") from e
 
     def _create_page(
         self,
@@ -335,7 +257,7 @@ class ConfluenceClient:
             Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
 
         Raises:
-            PublishError: Если API вернул ошибку.
+            ConfluenceError: Если API вернул ошибку.
         """
         payload = self._build_page_payload(
             title=title,
@@ -349,9 +271,9 @@ class ConfluenceClient:
             response = self._session.post(url, json=payload)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка при создании {title}: {e}") from e
+            raise ConfluenceError(f"HTTP-ошибка при создании {title}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка при создании {title}: {e}") from e
+            raise ConfluenceError(f"сетевая ошибка при создании {title}: {e}") from e
 
         page_id = str(response.json().get("id", ""))
         logger.info(f"Создана страница {title} (ID: {page_id})")
@@ -386,7 +308,7 @@ class ConfluenceClient:
             Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
 
         Raises:
-            PublishError: Если API вернул ошибку.
+            ConfluenceError: Если API вернул ошибку.
         """
         page_id = str(existing_page["id"])
         current_version = self._extract_version(existing_page)
@@ -408,9 +330,9 @@ class ConfluenceClient:
             response = self._session.put(url, json=payload)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise PublishError(f"HTTP-ошибка при обновлении {title}: {e}") from e
+            raise ConfluenceError(f"HTTP-ошибка при обновлении {title}: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise PublishError(f"сетевая ошибка при обновлении {title}: {e}") from e
+            raise ConfluenceError(f"сетевая ошибка при обновлении {title}: {e}") from e
 
         return {
             "id": page_id,
@@ -514,12 +436,9 @@ class ConfluenceClient:
         return any(str(a.get("id")) == str(parent_id) for a in ancestors)
 
     @staticmethod
-    def _build_session(config: ConfluenceConfigSchema) -> RetryableSession:
+    def _create_session(config: ConfluenceConfigSchema) -> RetryableSession:
         """
         Создаёт HTTP-сессию с аутентификацией и retry-логикой.
-
-        Confluence Data Center: Bearer-аутентификация через PAT —
-        токен передаётся в заголовке ``Authorization``, username не используется.
 
         Args:
             config: Конфигурация Confluence.

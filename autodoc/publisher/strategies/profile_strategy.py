@@ -5,8 +5,8 @@ from typing import Any
 from pathlib import Path
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
+from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
@@ -26,8 +26,8 @@ class ProfileCentricStrategy(
 
     def __init__(
         self,
-        confluence_client: IConfluenceClient,
-        document_builder: IDocumentBuilder,
+        confluence_client: ConfluenceClientProtocol,
+        document_builder: DocumentBuilderProtocol,
         parsed_data: ParsedResult,
         space: str,
         page_title: str,

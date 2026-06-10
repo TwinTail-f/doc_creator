@@ -6,10 +6,16 @@ token: "YOUR_ATLASSIAN_API_TOKEN"
 space: "PLATFORM"
 verify_ssl: false
 
-parent_id: "123456789"
-page_title: "Докумментация к релизу Платформы 2.2.0"
+# Page that will be the parent of the release documentation page.
+# Use parent_name (preferred) OR parent_id — name takes priority if both are set.
+parent_name: "Документация к релизу Платформы 2.2.0"
+# parent_id: "123456789"   # fallback if parent_name is not set
+page_title: "Документация к релизу Платформы 2.2.0"
 
-passports_root_parent_id: "987654321"
+# Root page for the passport hierarchy tree.
+# Use passports_root_parent_name (preferred) OR passports_root_parent_id.
+passports_root_parent_name: "Паспорта компонентов"
+# passports_root_parent_id: "987654321"   # fallback if name is not set
 
 confluence_request_timeout: 30
 

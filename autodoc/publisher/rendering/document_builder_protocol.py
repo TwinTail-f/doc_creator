@@ -2,11 +2,10 @@
 Протокол (структурный интерфейс) строителя документов, используемого стратегиями паблишера.
 """
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 
 
-@runtime_checkable
-class IDocumentBuilder(Protocol):
+class DocumentBuilderProtocol(Protocol):
     """
     Интерфейс рендеринга Jinja2-шаблонов в HTML.
 
