@@ -145,8 +145,8 @@ overrides:
 
 | Поле | Описание |
 |------|----------|
-| `parent_name` | Название родительской страницы для релизной документации *(приоритет над `parent_id`)* |
-| `parent_id` | ID родительской страницы для релизной документации *(запасной вариант)* |
+| `release_docs_root_parent_name` | Название корневой родительской страницы релизной документации *(приоритет над `release_docs_root_parent_id`)* |
+| `release_docs_root_parent_id` | ID корневой родительской страницы релизной документации *(запасной вариант)* |
 | `passports_root_parent_name` | Название корневой страницы иерархии паспортов *(приоритет над `passports_root_parent_id`)* |
 | `passports_root_parent_id` | ID корневой страницы иерархии паспортов *(запасной вариант)* |
 
@@ -155,7 +155,7 @@ overrides:
 | Поле | По умолчанию | Описание |
 |------|-------------|----------|
 | `verify_ssl` | `true` | Проверять SSL-сертификаты |
-| `page_title` | `"Сборки компонентов Платформы"` | Заголовок главной страницы релиза |
+| `release_docs_page_title` | `"Сборки компонентов Платформы"` | Заголовок корневой страницы релизной документации |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -184,10 +184,17 @@ python autodoc parse --save-intermediate
 #### Публикация релизной документации 
 
 ```bash
+# Использовать параметры из конфига
 python autodoc publish release
 
 # Переопределить заголовок страницы
 python autodoc publish release --page-title "Платформа 2.2"
+
+# Переопределить корневую страницу через название
+python autodoc publish release --root-page-name "Документация к релизу 2.2"
+
+# Переопределить через ID (альтернатива)
+python autodoc publish release --root-page-id 123456789
 
 # Без ссылок на паспорта компонентов
 python autodoc publish release --no-passport-links
@@ -196,9 +203,14 @@ python autodoc publish release --no-passport-links
 #### Публикация профиль-центричной документации 
 
 ```bash
+# Использовать параметры из конфига
 python autodoc publish profile
 
-python autodoc publish profile --page-title "Профили 2.2" --no-passport-links
+# Переопределить заголовок и корневую страницу через название
+python autodoc publish profile --page-title "Профили 2.2" --root-page-name "Релиз 2.2"
+
+# Без ссылок на паспорта
+python autodoc publish profile --no-passport-links
 ```
 
 #### Публикация паспортов компонентов
@@ -207,18 +219,37 @@ python autodoc publish profile --page-title "Профили 2.2" --no-passport-l
 # Корневая страница берётся из конфига (passports_root_parent_name или passports_root_parent_id)
 python autodoc publish passports
 
-# Явно передать ID — переопределяет конфиг
-python autodoc publish passports --root-page 987654321
+# Переопределить корневую страницу через название
+python autodoc publish passports --passports-root-parent-name "Паспорта компонентов"
+
+# Переопределить через ID (альтернатива)
+python autodoc publish passports --passports-root-parent-id 987654321
 ```
 
 #### Паспорта + релизная страница за один вызов
 
 ```bash
-# Все параметры берутся из конфига (parent_name, passports_root_parent_name и т.д.)
+# Все параметры берутся из конфига
 python autodoc publish all
 
-# Переопределить корневую страницу паспортов и заголовок
-python autodoc publish all --root-page 987654321 --page-title "Платформа 2.2"
+# Переопределить корневые страницы через названия
+python autodoc publish all \
+  --passports-root-parent-name "Паспорта компонентов" \
+  --release-root-page-name "Документация к релизу 2.2" \
+  --release-doc-page-name "Платформа 2.2"
+
+# Переопределить через ID (альтернатива)
+python autodoc publish all \
+  --passports-root-parent-id 987654321 \
+  --release-doc-page-name "Платформа 2.2"
+
+# Опубликовать с дополнительной страницей в представлении от профилей
+python autodoc publish all \
+  --with-additional-page-profile \
+  --additional-page-profile-name "Документация от профилей"
+
+# Без ссылок на паспорта
+python autodoc publish all --no-passport-links
 ```
 
 #### Утилиты
@@ -259,22 +290,30 @@ python autodoc info
 
 | Флаг | Описание |
 |------|----------|
-| `--page-title` | Заголовок страницы (переопределяет `page_title` из конфига) |
+| `--page-title` | Заголовок страницы (переопределяет `release_docs_page_title` из конфига) |
+| `--root-page-name "Название"` | Название корневой родительской страницы (переопределяет конфиг). Если содержит пробелы — заключите в кавычки. |
+| `--root-page-id ID` | ID корневой родительской страницы (переопределяет конфиг). Нельзя указывать вместе с `--root-page-name`. |
 | `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
 
 ### `publish passports`
 
 | Флаг | Описание |
 |------|----------|
-| `--root-page` | ID корневой страницы паспортов (переопределяет конфиг; для поиска по названию используйте `passports_root_parent_name` в конфиге) |
+| `--passports-root-parent-name "Название"` | Название корневой страницы иерархии паспортов (переопределяет конфиг). Если содержит пробелы — заключите в кавычки. |
+| `--passports-root-parent-id ID` | ID корневой страницы иерархии паспортов (переопределяет конфиг). Нельзя указывать вместе с `--passports-root-parent-name`. |
 
 ### `publish all`
 
 | Флаг | Описание |
 |------|----------|
-| `--root-page` | ID корневой страницы паспортов (опционально — переопределяет конфиг) |
-| `--page-title` | Заголовок итоговой релизной страницы |
-| `--no-passport-links` | Не вставлять ссылки на паспорта в релизную страницу |
+| `--passports-root-parent-name "Название"` | Название корневой страницы иерархии паспортов (переопределяет конфиг) |
+| `--passports-root-parent-id ID` | ID корневой страницы иерархии паспортов (переопределяет конфиг). Нельзя указывать вместе с `--passports-root-parent-name`. |
+| `--release-root-page-name "Название"` | Название корневой родительской страницы релизной документации (переопределяет конфиг) |
+| `--release-root-page-id ID` | ID корневой родительской страницы релизной документации (переопределяет конфиг). Нельзя указывать вместе с `--release-root-page-name`. |
+| `--release-doc-page-name` | Заголовок страницы релизной документации (переопределяет `release_docs_page_title` из конфига) |
+| `--with-additional-page-profile` | Опубликовать дополнительную страницу в представлении от профилей (дочернюю к странице релиза) |
+| `--additional-page-profile-name "Название"` | Заголовок дополнительной страницы профилей. Требует `--with-additional-page-profile`. |
+| `--no-passport-links` | Не вставлять ссылки на паспорта в страницы документации |
 
 ---
 

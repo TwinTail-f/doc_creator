@@ -2,7 +2,7 @@
 Схема конфигурации Confluence.
 """
 
-from typing import Any, Literal
+from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -29,21 +29,24 @@ class ConfluenceConfigSchema(BaseModel):
         description="Проверять SSL-сертификаты",
     )
 
-    parent_id: str | None = Field(
-        default=None,
-        description="ID родительской страницы",
-    )
-    parent_name: str | None = Field(
+    release_docs_root_parent_id: str | None = Field(
         default=None,
         description=(
-            "Название родительской страницы для релизной документации. "
-            "Если задано — используется вместо parent_id "
-            "(приоритет: parent_name > parent_id)."
+            "ID корневой родительской страницы релизной документации. "
+            "Используется как запасной вариант, если release_docs_root_parent_name не задан."
         ),
     )
-    page_title: str | None = Field(
+    release_docs_root_parent_name: str | None = Field(
+        default=None,
+        description=(
+            "Название корневой родительской страницы релизной документации. "
+            "Если задано — используется вместо release_docs_root_parent_id "
+            "(приоритет: release_docs_root_parent_name > release_docs_root_parent_id)."
+        ),
+    )
+    release_docs_page_title: str | None = Field(
         default="Сборки компонентов Платформы",
-        description="Заголовок главной страницы",
+        description="Заголовок корневой страницы релизной документации.",
     )
     passports_root_parent_id: str | None = Field(
         default=None,
@@ -87,11 +90,11 @@ class ConfluenceConfigSchema(BaseModel):
         description='Подпись текущего релиза (например "Platform 2.2"). '
         "Используется в заголовке паспортов и метке вкладки релиза.",
     )
-    
+
     @field_validator("url")
     @classmethod
     def _normalize_url(cls, v: str) -> str:
-        """Validates that URL is non-empty and strips a trailing slash."""
+        """Проверяет непустоту URL и убирает завершающий слеш."""
         if not v or not v.strip():
             raise ValueError("url не может быть пустым")
         return v.rstrip("/")

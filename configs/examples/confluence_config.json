@@ -7,10 +7,13 @@
   "space": "PLATFORM",
   "verify_ssl": false,
 
-  "parent_name": "Документация к релизу Платформы 2.2.0",
-  "page_title": "Документация к релизу Платформы 2.2.0",
+  "release_docs_root_parent_name": "Документация к релизу Платформы 2.2.0",
+  "_comment_release_id": "Или используйте release_docs_root_parent_id как запасной вариант",
+
+  "release_docs_page_title": "Документация к релизу Платформы 2.2.0",
 
   "passports_root_parent_name": "Паспорта компонентов",
+  "_comment_passports_id": "Или используйте passports_root_parent_id как запасной вариант",
 
   "confluence_request_timeout": 30,
 

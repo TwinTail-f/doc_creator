@@ -21,6 +21,7 @@ import autodoc.publisher.strategies.profile_strategy    # noqa: F401
 import autodoc.publisher.strategies.release_strategy    # noqa: F401
 
 _DEFAULT_PASSPORT_TEMPLATE: str = "component_passport.jinja2"
+_DEFAULT_PROFILE_TEMPLATE: str = "profile_centric.jinja2"
 
 
 class DocumentPublisher:
@@ -59,25 +60,23 @@ class DocumentPublisher:
         required: bool = True,
     ) -> str | None:
         """
-        Resolves a Confluence page reference to a page ID.
-
-        Resolution order: name lookup (via Confluence API) > direct ID.
-        If neither is provided, raises ``ConfigError`` when ``required=True``.
+        Разрешает ссылку на страницу Confluence в её идентификатор.
 
         Args:
-            name: Page title to search for in the configured Space.
-            page_id: Fallback page ID used when ``name`` is ``None`` or empty.
-            field_label: Config field name used in error messages (e.g. ``'parent'``).
-            required: If ``True`` and neither ``name`` nor ``page_id`` is provided,
-                      raises ``ConfigError``. If ``False``, returns ``None`` instead.
+            name: Название страницы для поиска в настроенном Space.
+            page_id: Запасной ID страницы, если ``name`` не задан или пуст.
+            field_label: Имя поля конфигурации для сообщений об ошибках
+                         (например ``'release_docs_root_parent'``).
+            required: Если ``True`` и ни ``name``, ни ``page_id`` не заданы,
+                      генерирует ``ConfigError``. Если ``False`` — возвращает ``None``.
 
         Returns:
-            Resolved page ID string, or ``None`` when ``required=False`` and
-            neither name nor ID is configured.
+            Строка с ID страницы или ``None``, если ``required=False``
+            и ни имя, ни ID не настроены.
 
         Raises:
-            ConfigError: If ``name`` is given but no matching page is found in Confluence,
-                         or if ``required=True`` and both ``name`` and ``page_id`` are absent.
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
+                         или если ``required=True`` и оба параметра отсутствуют.
         """
         if name:
             page = self._client.find_page(name, space=self._config.space)
@@ -135,36 +134,33 @@ class DocumentPublisher:
         release_parent_id: str | None = None,
         passport_template_name: str = _DEFAULT_PASSPORT_TEMPLATE,
         include_passport_links: bool = True,
+        with_additional_page_profile: bool = False,
+        additional_page_profile_name: str | None = None,
+        profile_template_name: str = _DEFAULT_PROFILE_TEMPLATE,
     ) -> PublishReport:
-        """
-        Публикует паспорта и итоговую страницу релиза за один вызов.
-
-        Порядок выполнения намеренно фиксирован: сначала паспорта (записывают
-        ``passport_pages.json``), затем релиз (читает этот файл для вставки
-        ссылок). Это гарантирует актуальность ссылок на паспорта.
-
-        Параметры пакетной публикации (``publish_batch_size`` и
-        ``publish_batch_delay_seconds``) берутся из конфигурации Confluence
-        и автоматически передаются стратегии ``passports``.
+        """Публикует паспорта, страницу релизной документации и опционально страницу профилей за один вызов.
 
         Args:
             parsed_data: Данные парсера.
+            release_page_title: Заголовок страницы релизной документации.
+            release_template_name: Имя Jinja2-шаблона для страницы релиза.
             passports_root_page_id: ID корневой страницы иерархии паспортов.
                                     Если не указан — берётся из конфигурации
                                     (``passports_root_parent_name`` > ``passports_root_parent_id``).
-            release_page_title: Заголовок итоговой страницы релиза.
-            release_template_name: Имя Jinja2-шаблона для страницы релиза.
-            release_parent_id: ID родителя страницы релиза. Если ``None`` —
-                               без родителя.
+            release_parent_id: ID родительской страницы для страницы релиза.
+                               Если не указан — берётся из конфигурации.
             passport_template_name: Имя Jinja2-шаблона паспортов.
-                                    По умолчанию ``component_passport.jinja2``.
-            include_passport_links: Если ``True``, на странице релиза будут
+            include_passport_links: Если ``True``, в страницу релиза вставляются
                                     ссылки на опубликованные паспорта.
+            with_additional_page_profile: Если ``True``, после публикации страницы релиза
+                                          публикуется дополнительная профильная страница
+                                          как её дочерняя страница.
+            additional_page_profile_name: Заголовок профильной страницы.
+                                          Используется только при ``with_additional_page_profile=True``.
+            profile_template_name: Имя Jinja2-шаблона для профильной страницы.
 
         Returns:
-            Агрегированный ``PublishReport``: поля ``success``, ``pages_published``,
-            ``pages_failed``, ``errors``, ``failed_pages`` и ``details``
-            объединяются из обоих отчётов.
+            Агрегированный ``PublishReport`` по всем опубликованным страницам.
         """
         logger.info("Публикация паспортов + релиза")
 
@@ -174,9 +170,9 @@ class DocumentPublisher:
             "passports_root_parent",
         )
         resolved_release_parent = release_parent_id or self.resolve_page_id(
-            self._config.parent_name,
-            self._config.parent_id,
-            "parent",
+            self._config.release_docs_root_parent_name,
+            self._config.release_docs_root_parent_id,
+            "release_docs_root_parent",
             required=False,
         )
 
@@ -198,6 +194,59 @@ class DocumentPublisher:
             parent_id=resolved_release_parent,
             include_passport_links=include_passport_links,
         )
+
+        if with_additional_page_profile:
+            profile_title = additional_page_profile_name or "Документация от профилей"
+            # Find the just-published release page to use as parent.
+            profile_parent_page = self._client.find_page(
+                release_page_title, space=self._config.space
+            )
+            if profile_parent_page is None:
+                logger.warning(
+                    f"Страница '{release_page_title}' не найдена после публикации; "
+                    "профильная страница будет опубликована без родителя."
+                )
+            profile_parent_id = (
+                str(profile_parent_page["id"]) if profile_parent_page else None
+            )
+
+            profile_report = self.publish(
+                strategy_type="profile_centric",
+                parsed_data=parsed_data,
+                page_title=profile_title,
+                template_name=profile_template_name,
+                parent_id=profile_parent_id,
+                include_passport_links=include_passport_links,
+            )
+
+            return PublishReport(
+                success=(
+                    passports_report.success
+                    and release_report.success
+                    and profile_report.success
+                ),
+                pages_published=(
+                    passports_report.pages_published
+                    + release_report.pages_published
+                    + profile_report.pages_published
+                ),
+                pages_failed=(
+                    passports_report.pages_failed
+                    + release_report.pages_failed
+                    + profile_report.pages_failed
+                ),
+                errors=(
+                    passports_report.errors + release_report.errors + profile_report.errors
+                ),
+                failed_pages=(
+                    passports_report.failed_pages
+                    + release_report.failed_pages
+                    + profile_report.failed_pages
+                ),
+                details=(
+                    passports_report.details + release_report.details + profile_report.details
+                ),
+            )
 
         return PublishReport(
             success=passports_report.success and release_report.success,

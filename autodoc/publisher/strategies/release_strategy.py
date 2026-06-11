@@ -23,11 +23,6 @@ class ReleasePageStrategy(SinglePagePublishStrategy, strategy_type="release"):
     Опционально вставляет ссылки на индивидуальные паспорта компонентов,
     если файл ``passport_pages.json`` был создан предшествующим запуском
     ``PassportsStrategy``.
-
-    Трансформер строится фабрикой через ``_make_converter``. Значение
-    ``include_passport_links`` попадает и в трансформер (управляет
-    генерацией URL-паттернов), и в стратегию (управляет загрузкой реестра
-    и инжекцией ссылок из ``passport_pages.json``).
     """
 
     def __init__(
