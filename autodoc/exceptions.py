@@ -51,5 +51,9 @@ class PublishError(DocGeneratorError):
     """Ошибка публикации страницы в Confluence."""
 
 
+class ConfluenceError(PublishError):
+    """Ошибка взаимодействия с Confluence REST API."""
+
+
 class ValidationError(DocGeneratorError):
     """Ошибка валидации данных (Pydantic или пользовательская)."""

@@ -208,7 +208,7 @@ class ConanResultAggregator:
         Returns:
             Список ``ConanComponentReport``, упорядоченный по компонентам.
         """
-        comp_map: dict[tuple[str, str, str], ConanComponentReport] = {}
+        comp_map: dict[_ReleaseKey, ConanComponentReport] = {}
 
         for task, raw in zip(tasks, raw_results):
             key = (task.comp_name, task.version, task.channel)

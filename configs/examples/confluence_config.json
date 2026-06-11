@@ -3,15 +3,14 @@
 
   "url": "https://confluence.company.com",
   "token": "YOUR_ATLASSIAN_API_TOKEN",
-  "username": "firstname.lastname@company.com",
 
   "space": "PLATFORM",
   "verify_ssl": false,
 
-  "parent_id": "123456789",
-  "page_title": "Докумментация к релизу Платформы 2.2.0",
+  "parent_name": "Документация к релизу Платформы 2.2.0",
+  "page_title": "Документация к релизу Платформы 2.2.0",
 
-  "passports_root_parent_id": "987654321",
+  "passports_root_parent_name": "Паспорта компонентов",
 
   "confluence_request_timeout": 30,
 

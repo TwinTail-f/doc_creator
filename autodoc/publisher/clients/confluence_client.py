@@ -43,7 +43,6 @@ class ConfluenceClient:
     Attributes:
         _base_url: Базовый URL Confluence без завершающего слеша.
         _space:    Ключ Space по умолчанию (используется во всех методах).
-        _timeout:  Таймаут каждого HTTP-запроса в секундах.
         _session:  HTTP-сессия с retry-логикой и аутентификацией.
     """
 
