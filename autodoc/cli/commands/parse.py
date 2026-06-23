@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 import click
 from rich.panel import Panel
@@ -7,12 +8,27 @@ from autodoc.exceptions import ConfigError, NetworkError, ParsingError
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
+# TODO(review): autodoc.config.schemas.parser_config отсутствует в кодовой базе —
+# импорт ниже не разрешится, пока модуль не будет добавлен. Это не входит
+# в текущую задачу (autodoc/config/** не в её рамках).
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 
 
-def _load_config(cli_ctx: CliCtx, config: str | None):
-    """Загружает конфигурацию парсера. Завершает процесс при ошибке."""
+def _load_config(cli_ctx: CliCtx, config: str | None) -> ParserConfigSchema:
+    """Загружает конфигурацию парсера. Завершает процесс при ошибке.
+
+    Args:
+        cli_ctx: Контекст CLI с доступом к менеджеру конфигураций.
+        config: Имя файла конфига парсера или ``None`` для автоопределения.
+
+    Returns:
+        Валидированная конфигурация парсера.
+
+    Raises:
+        ConfigError: Если файл не найден или содержит ошибки валидации.
+    """
     parser_config = cli_ctx.config_manager.load_parser_config(config)
     if parser_config is None:
         raise ConfigError(
@@ -27,8 +43,8 @@ def _load_config(cli_ctx: CliCtx, config: str | None):
 
 
 def _build_parser(
-    parser_config,
-    data_dir,
+    parser_config: ParserConfigSchema,
+    data_dir: Path,
     skip_conan: bool,
     skip_validation: bool,
 ) -> ComponentParser:

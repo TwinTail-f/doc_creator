@@ -13,12 +13,9 @@ class ProfileCentricConverter(BaseReleaseConverter):
 
     Перестраивает иерархию ``Компонент → Релиз → Профиль``
     в ``Профиль → Канал → Компонент`` для удобного анализа по профилям.
-    Поле ``passport_link`` каждого компонента устанавливается через
-    ``PassportLinkMixin._passport_link()`` и может быть заменено реальной
-    ссылкой в ``ProfileCentricStrategy`` через
-    ``PassportPageRegistry.inject_links_for_profiles()`` — идентично тому,
-    как ``ReleasePageStrategy`` делает это для стандартного вида через
-    ``PassportPageRegistry.inject_links()``\\.
+    Поле ``passport_link`` каждого компонента заполняется реальной ссылкой
+    в ``ProfileCentricStrategy`` через ``PassportPageRegistry.inject_links_for_profiles()``
+    после публикации паспортов.
     """
 
     def _collect_profile_meta(
@@ -98,7 +95,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
                     {
                         "name": comp.name,
                         "version": rel.version,
-                        "passport_link": self._passport_link(comp.name, rel.version),
+                        "passport_link": None,
                         "reference": rel.conan_reference or "—",
                         "url": rel.artifactory_url or "—",
                     }
@@ -124,9 +121,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
         """
         logger.debug("Трансформация в профиль-центричный вид")
 
-        pd_map: dict[str, Any] = {
-            pd.profile_name: pd for pd in data.profile_definitions
-        }
+        pd_map: dict[str, Any] = self._build_profile_definition_map(data)
         profile_meta = self._collect_profile_meta(data, pd_map)
 
         profiles: list[dict[str, Any]] = [
@@ -135,7 +130,6 @@ class ProfileCentricConverter(BaseReleaseConverter):
         ]
 
         return {
-            "platform_version": data.platform_version,
-            "include_passport_links": self._include_passport_links,
+            **self._base_view_model(data),
             "profiles": profiles,
         }

@@ -1,17 +1,27 @@
 import sys
 
 import click
+from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 from rich.panel import Panel
 from rich.table import Table
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
+# TODO(review): autodoc.config.schemas.parser_config отсутствует в кодовой базе —
+# импорт ниже не разрешится, пока модуль не будет добавлен. Это не входит
+# в текущую задачу (autodoc/config/** не в её рамках).
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 
 config = click.Group("config", help="Управление конфигурационными файлами.")
+
+# Порядок проверки схем при автоопределении типа конфига в config_validate().
+_CONFIG_SCHEMAS: tuple[tuple[type[BaseModel], str], ...] = (
+    (ParserConfigSchema, "parser"),
+    (ConfluenceConfigSchema, "confluence"),
+)
 
 
 @config.command("list")
@@ -64,35 +74,22 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
 
     console.print(f"✅ Синтаксис файла корректен: {config_file}", style="green bold")
 
-    # Определяем схему по наличию ключевых полей — не через перебор исключений.
-    is_parser = "tfs_token" in raw and "platform_version" in raw
-    is_confluence_publisher = "url" in raw and "token" in raw and "space" in raw
-
-    if is_parser:
+    # Определяем схему, пробуя каждую по очереди — без перебора ключей.
+    # Первая схема, которая успешно валидируется, считается подходящей.
+    validation_errors: list[str] = []
+    for schema_cls, schema_name in _CONFIG_SCHEMAS:
         try:
-            ParserConfigSchema(**raw)
-            console.print(
-                "✅ Pydantic валидация пройдена (схема: parser)", style="green"
-            )
+            schema_cls(**raw)
         except PydanticValidationError as e:
-            console.print(
-                f"⚠️  Схема parser: файл загружается, но содержит ошибки валидации:\n{e}",
-                style="yellow",
-            )
-    elif is_confluence_publisher:
-        try:
-            ConfluenceConfigSchema(**raw)
-            console.print(
-                "✅ Pydantic валидация пройдена (схема: confluence)", style="green"
-            )
-        except PydanticValidationError as e:
-            console.print(
-                f"⚠️  Схема confluence: файл загружается, но содержит ошибки валидации:\n{e}",
-                style="yellow",
-            )
-    else:
+            validation_errors.append(f"схема {schema_name}: {e}")
+            continue
         console.print(
-            "⚠️  JSON/YAML синтаксически корректен, но не соответствует "
-            "ни одной известной схеме.",
-            style="yellow",
+            f"✅ Pydantic валидация пройдена (схема: {schema_name})", style="green"
         )
+        return
+
+    console.print(
+        "⚠️  JSON/YAML синтаксически корректен, но не соответствует "
+        "ни одной известной схеме:\n" + "\n".join(validation_errors),
+        style="yellow",
+    )

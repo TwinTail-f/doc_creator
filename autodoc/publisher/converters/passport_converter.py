@@ -6,6 +6,9 @@ from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
 
+_TFS_BRANCH_PREFIX: str = "GBrelease_"
+"""Префикс ветки TFS для релизных бранчей по соглашению об именовании."""
+
 
 class PassportConverter(BaseDataConverter):
     """
@@ -149,16 +152,14 @@ class PassportConverter(BaseDataConverter):
         Raises:
             ValueError: Если компонент или версия не найдены.
         """
-        pd_map: dict[str, Any] = {
-            pd.profile_name: pd for pd in data.profile_definitions
-        }
+        pd_map: dict[str, Any] = self._build_profile_definition_map(data)
 
         target_comp = self._find_component(data, self._component_name)
         # Все релизы с данной версией — сохраняем порядок из parsed_data
         target_releases = self._find_releases(target_comp, self._release_version)
 
         # Базовый URL репозитория вычисляется один раз: хранится на уровне компонента.
-        # Ветка вида GBrelease_{version} — стандартное соглашение TFS для бранчей релизов.
+        # Ветка по стандартному соглашению TFS для релизных бранчей.
         raw_git_url: str = target_comp.git_url or ""
         git_repo_base_url: str = (
             raw_git_url.split("?")[0] if "?" in raw_git_url else raw_git_url
@@ -178,7 +179,7 @@ class PassportConverter(BaseDataConverter):
             enriched_pbs = self._build_enriched_profile_builds(
                 target_rel, target_comp.name, pd_map, os_map, bos_map
             )
-            git_branch_version: str = f"GBrelease_{target_rel.version}"
+            git_branch_version: str = f"{_TFS_BRANCH_PREFIX}{target_rel.version}"
 
             releases_list.append(
                 {
@@ -215,5 +216,4 @@ class PassportConverter(BaseDataConverter):
             },
             # data.releases — список каналов; порядок соответствует parsed_data
             "releases": releases_list,
-            "legacy_contents": {},
         }

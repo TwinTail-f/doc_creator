@@ -70,9 +70,9 @@ class ConfluenceClient:
         Создаёт или обновляет страницу Confluence.
 
         Если страница с таким заголовком уже существует в указанном Space
-        **и является дочерней для ``parent_id``** — обновляет её тело с
-        автоинкрементом номера версии. Если не существует или принадлежит
-        другому дереву — создаёт новую под ``parent_id``.
+        **и находится среди потомков ``parent_id``** (прямых или косвенных) —
+        обновляет её тело с автоинкрементом номера версии. Если не существует
+        или принадлежит другому дереву — создаёт новую под ``parent_id``.
 
         Args:
             space:     Ключ Space в Confluence.
@@ -111,10 +111,10 @@ class ConfluenceClient:
         """
         Обеспечивает существование страницы и возвращает её ID.
 
-        Страница считается «той же» только если она является прямым потомком
-        ``parent_id``. Если в Space существует страница с таким же заголовком,
-        но под другим родителем, она игнорируется и создаётся новая —
-        это предотвращает случайную запись в дерево другого корня.
+        Страница считается «той же» только если она находится среди потомков
+        ``parent_id`` (прямых или косвенных). Если в Space существует страница
+        с таким же заголовком, но под другим родителем, она игнорируется и
+        создаётся новая — это предотвращает случайную запись в дерево другого корня.
 
         Args:
             space:     Ключ Space.
@@ -197,13 +197,7 @@ class ConfluenceClient:
             params["expand"] = expand
 
         url = self._api_url("content")
-        try:
-            response = self._session.get(url, params=params)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise ConfluenceError(f"HTTP-ошибка при поиске {title}: {e}") from e
-        except requests.exceptions.RequestException as e:
-            raise ConfluenceError(f"сетевая ошибка при поиске {title}: {e}") from e
+        response = self._request("GET", url, f"поиске страницы {title}", params=params)
 
         results: list[dict[str, Any]] = response.json().get("results", [])
         return results[0] if results else None
@@ -227,14 +221,10 @@ class ConfluenceClient:
             ConfluenceError: Если страница не найдена (HTTP 404) или запрос не удался.
         """
         url = self._api_url("content", page_id)
-        try:
-            response = self._session.get(url, params={"expand": expand})
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            raise ConfluenceError(f"HTTP-ошибка для ID {page_id}: {e}") from e
-        except requests.exceptions.RequestException as e:
-            raise ConfluenceError(f"сетевая ошибка для ID {page_id}: {e}") from e
+        response = self._request(
+            "GET", url, f"получении страницы {page_id}", params={"expand": expand}
+        )
+        return response.json()
 
     def _create_page(
         self,
@@ -266,13 +256,7 @@ class ConfluenceClient:
             version_number=_INITIAL_VERSION,
         )
         url = self._api_url("content")
-        try:
-            response = self._session.post(url, json=payload)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise ConfluenceError(f"HTTP-ошибка при создании {title}: {e}") from e
-        except requests.exceptions.RequestException as e:
-            raise ConfluenceError(f"сетевая ошибка при создании {title}: {e}") from e
+        response = self._request("POST", url, f"создании {title}", json=payload)
 
         page_id = str(response.json().get("id", ""))
         logger.info(f"Создана страница {title} (ID: {page_id})")
@@ -325,13 +309,7 @@ class ConfluenceClient:
             version_number=next_version,
         )
         url = self._api_url("content", page_id)
-        try:
-            response = self._session.put(url, json=payload)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise ConfluenceError(f"HTTP-ошибка при обновлении {title}: {e}") from e
-        except requests.exceptions.RequestException as e:
-            raise ConfluenceError(f"сетевая ошибка при обновлении {title}: {e}") from e
+        self._request("PUT", url, f"обновлении {title}", json=payload)
 
         return {
             "id": page_id,
@@ -399,6 +377,37 @@ class ConfluenceClient:
         except (ValueError, TypeError, AttributeError):
             logger.warning(f"Не удалось извлечь версию из: {page}")
             return _FALLBACK_VERSION
+
+    def _request(
+        self,
+        method: str,
+        url: str,
+        action: str,
+        **kwargs: Any,
+    ) -> requests.Response:
+        """
+        Выполняет HTTP-запрос, транслируя сетевые ошибки в ConfluenceError.
+
+        Args:
+            method: HTTP-метод (GET, POST, PUT и т.д.).
+            url: Целевой URL запроса.
+            action: Описание действия для сообщения об ошибке (например, 'поиске страницы').
+            **kwargs: Дополнительные аргументы для requests.Session.request.
+
+        Returns:
+            Объект ответа requests.Response с проверенным статусом.
+
+        Raises:
+            ConfluenceError: При HTTP-ошибке или сетевом сбое.
+        """
+        try:
+            response = self._session.request(method, url, **kwargs)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.HTTPError as e:
+            raise ConfluenceError(f"HTTP-ошибка при {action}: {e}") from e
+        except requests.exceptions.RequestException as e:
+            raise ConfluenceError(f"Сетевая ошибка при {action}: {e}") from e
 
     def _api_url(self, *parts: str) -> str:
         """

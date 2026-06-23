@@ -66,6 +66,24 @@ class PassportPageRegistry:
         except OSError as e:
             logger.warning(f"Не удалось сохранить файл: {e}")
 
+    def upsert(self, pages_map: dict[str, Any]) -> None:
+        """
+        Объединяет переданную карту страниц с уже сохранённой на диске и сохраняет результат.
+
+        Загружает текущее содержимое файла, дополняет его записями из
+        ``pages_map`` по ключу ``comp_name -> version`` (новые записи
+        перезаписывают старые при совпадении версии) и сохраняет объединённый
+        результат. Это предотвращает потерю страниц, опубликованных
+        в предыдущих частичных запусках.
+
+        Args:
+            pages_map: Карта вида ``{comp_name: {version: {page_id, page_title, version}}}``.
+        """
+        merged = self.load()
+        for comp_name, versions in pages_map.items():
+            merged.setdefault(comp_name, {}).update(versions)
+        self.save(merged)
+
     def load(self) -> dict[str, Any]:
         """
         Загружает карту страниц паспортов с диска.
@@ -87,6 +105,24 @@ class PassportPageRegistry:
         except (OSError, json.JSONDecodeError) as e:
             logger.debug(f"Не удалось загрузить файл: {e}")
             return {}
+
+    @staticmethod
+    def _lookup_passport_entry(
+        passport_pages: dict[str, Any],
+        comp_name: str,
+        version: str,
+    ) -> dict[str, Any] | None:
+        """Возвращает запись реестра паспортов для компонента и версии или None.
+
+        Args:
+            passport_pages: Реестр страниц паспортов.
+            comp_name: Имя компонента.
+            version: Версия компонента.
+
+        Returns:
+            Запись реестра или None, если компонент или версия не найдены.
+        """
+        return passport_pages.get(comp_name, {}).get(version)
 
     @staticmethod
     def inject_links_for_profiles(
@@ -121,10 +157,13 @@ class PassportPageRegistry:
                 for comp in channel_comps:
                     comp_name = comp.get("name")
                     version = str(comp.get("version", ""))
-                    if not comp_name or comp_name not in passport_pages:
-                        comp["passport_link"] = None
-                        continue
-                    info = passport_pages[comp_name].get(version)
+                    info = (
+                        PassportPageRegistry._lookup_passport_entry(
+                            passport_pages, comp_name, version
+                        )
+                        if comp_name
+                        else None
+                    )
                     if not info:
                         comp["passport_link"] = None
                         continue
@@ -162,7 +201,12 @@ class PassportPageRegistry:
                 continue
             release_versions = {rel.get("version") for rel in comp.get("releases", [])}
             comp["passport_versions"] = {
-                v: info
-                for v, info in passport_pages[comp_name].items()
-                if v in release_versions
+                version: entry
+                for version in release_versions
+                if (
+                    entry := PassportPageRegistry._lookup_passport_entry(
+                        passport_pages, comp_name, version
+                    )
+                )
+                is not None
             }

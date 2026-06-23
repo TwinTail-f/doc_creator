@@ -323,7 +323,7 @@ python autodoc info
 
 ```
 autodoc/
-├── main.py      — точка входа CLI (тонкая обёртка)
+├── __main__.py  — точка входа CLI (тонкая обёртка)
 ├── cli/         — все команды и группы Click
 ├── parser/      — сбор данных из TFS + Conan + Docker
 └── publisher/   — публикация в Confluence
@@ -339,7 +339,7 @@ ManifestStep → OptionsResolveStep → ConanEnrichStep
 Каждый шаг — изолированный объект, общается с остальными только через `PipelineContext`.
 `ConanEnrichStep` и `ArtifactoryValidationStep` убираются из пайплайна при передаче флагов `--skip-conan` / `--skip-validation`.
 
-**Стратегии публикации** регистрируются через Python-метакласс (`__init_subclass__`) и создаются по строковому ключу фабричным методом `BasePublishStrategy.create()`:
+**Стратегии публикации** регистрируются через хук `__init_subclass__` и создаются по строковому ключу фабричным методом `BasePublishStrategy.create()`:
 
 | Стратегия | Команда CLI | Описание |
 |-----------|-------------|----------|
@@ -378,9 +378,8 @@ Jinja2-шаблоны для страниц Confluence хранятся в `auto
 
 ```
 autodoc/publisher/rendering/templates/
-├── release_doc_full.jinja2       — полная документация релиза
-├── release_doc_minimal.jinja2    — минимальная документация
-├── profile_centric.jinja2        — профиль-центричный вид
-├── release_doc_combined.jinja2   — комбинированный вид
-└── component_passport.jinja2     — паспорт компонента
+├── release_doc.jinja2        — страница релиза (компонентный вид)
+├── profile_centric.jinja2    — профиль-центричный вид
+├── component_passport.jinja2 — паспорт компонента
+└── _platform_intro.jinja2    — вспомогательный partial (вводный блок платформы)
 ```

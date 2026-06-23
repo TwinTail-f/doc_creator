@@ -1,9 +1,9 @@
 """Абстрактный базовый класс трансформеров документации релиза."""
 
-from autodoc.publisher.converters.passport_link_mixin import (
-    PassportLinkMixin,
-    _DEFAULT_PASSPORT_PATTERN,
-)
+from typing import Any
+
+from autodoc.models.parsed_result import ParsedResult
+from autodoc.publisher.converters.passport_link_mixin import PassportLinkMixin
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 
 
@@ -11,21 +11,33 @@ class BaseReleaseConverter(PassportLinkMixin, BaseDataConverter):
     """
     Базовый класс трансформеров документации релиза.
 
-    Наследует ``_passport_link()`` из ``PassportLinkMixin``.
     Конкретные виды реализуют ``transform()``.
+    Ссылки на паспорта внедряются ``PassportPageRegistry`` после публикации —
+    не через ``_passport_link()``, а напрямую в view-model через
+    ``inject_links`` / ``inject_links_for_profiles``.
     """
 
     def __init__(
         self,
         include_passport_links: bool = True,
-        passport_page_pattern: str | None = None,
     ) -> None:
         """
         Args:
-            include_passport_links: Добавлять ли ссылки на паспорта компонентов.
-            passport_page_pattern: Шаблон URL паспорта с плейсхолдерами
-                ``{component_name}`` и ``{release_version}``.
-                По умолчанию используется ``_DEFAULT_PASSPORT_PATTERN``.
+            include_passport_links: Передавать ли флаг включения ссылок на паспорта
+                                    в view-model шаблона.
         """
         self._include_passport_links: bool = include_passport_links
-        self._pattern: str | None = passport_page_pattern or _DEFAULT_PASSPORT_PATTERN
+
+    def _base_view_model(self, data: ParsedResult) -> dict[str, Any]:
+        """Строит общие для всех видов релиза поля view-model.
+
+        Args:
+            data: Полный набор данных парсера.
+
+        Returns:
+            Словарь с полями ``platform_version`` и ``include_passport_links``.
+        """
+        return {
+            "platform_version": data.platform_version,
+            "include_passport_links": self._include_passport_links,
+        }

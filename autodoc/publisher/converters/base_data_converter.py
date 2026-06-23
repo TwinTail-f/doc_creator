@@ -17,6 +17,18 @@ class BaseDataConverter(ABC):
     """
 
     @staticmethod
+    def _qualify_package_ref(pkg: str) -> str:
+        """Добавляет суффикс '/*' к ссылке на пакет, если он отсутствует.
+
+        Args:
+            pkg: Имя пакета или ссылка на него.
+
+        Returns:
+            Ссылка на пакет с гарантированным суффиксом '/*'.
+        """
+        return pkg if pkg.endswith("/*") else f"{pkg}/*"
+
+    @staticmethod
     def _build_install_options_from_string(options_str: str) -> str:
         """
         Преобразует строку опций из ``ConanInputOptions.options`` в флаги ``conan install``.
@@ -38,11 +50,10 @@ class BaseDataConverter(ABC):
         parts = [p.strip() for p in options_str.split(",") if p.strip()]
 
         def _qualify(p: str) -> str:
-            if ":" in p:
-                pkg, rest = p.split(":", 1)
-                if not pkg.endswith("/*"):
-                    p = f"{pkg}/*:{rest}"
-            return p
+            if ":" not in p:
+                return p
+            pkg, rest = p.split(":", 1)
+            return f"{BaseDataConverter._qualify_package_ref(pkg)}:{rest}"
 
         return " ".join(f"-o {_qualify(p)}" for p in parts)
 
@@ -70,11 +81,21 @@ class BaseDataConverter(ABC):
 
         def _qualify_key(k: str) -> str:
             pkg, opt = k.split(":", 1) if ":" in k else (component_name, k)
-            if not pkg.endswith("/*"):
-                pkg = f"{pkg}/*"
-            return f"{pkg}:{opt}"
+            return f"{BaseDataConverter._qualify_package_ref(pkg)}:{opt}"
 
         return " ".join(f"-o {_qualify_key(k)}={v}" for k, v in conan_options.items())
+
+    @staticmethod
+    def _build_profile_definition_map(data: ParsedResult) -> dict[str, Any]:
+        """Строит словарь определений профилей, индексированный по имени профиля.
+
+        Args:
+            data: Результат парсинга с полем profile_definitions.
+
+        Returns:
+            Словарь вида {profile_name: ProfileDefinition}.
+        """
+        return {pd.profile_name: pd for pd in data.profile_definitions}
 
     @staticmethod
     def _build_variant_view(
@@ -107,7 +128,7 @@ class BaseDataConverter(ABC):
             package_id=variant.package_id,
             build_url=variant.build_url,
             build_date=variant.build_date,
-            option_ref=variant.options_ref,
+            options_ref=variant.options_ref,
             conan_options=conan_options,
             install_options=install_opts,
         )

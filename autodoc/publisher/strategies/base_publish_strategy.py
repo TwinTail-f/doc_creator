@@ -1,10 +1,14 @@
 """Абстрактный базовый класс стратегий публикации с Registry-паттерном."""
 
+import inspect
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any, ClassVar
 
+from jinja2 import TemplateError, TemplateNotFound
+
+from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 
 from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
@@ -12,6 +16,9 @@ from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilde
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 from autodoc.common.logger import logger
+
+
+_CDATA_PATTERN: re.Pattern[str] = re.compile(r"(<!\[CDATA\[.*?]]>)", re.DOTALL)
 
 
 class BasePublishStrategy(ABC):
@@ -39,7 +46,12 @@ class BasePublishStrategy(ABC):
             document_builder: Реализация ``DocumentBuilderProtocol`` (обычно ``DocumentBuilder``).
             parsed_data: Данные парсера (ParsedResult).
             space: Ключ Space в Confluence.
+
+        Raises:
+            ValueError: Если ``space`` пустой.
         """
+        if not space:
+            raise ValueError("space не может быть пустым")
         self._client = confluence_client
         self._builder = document_builder
         self._data = parsed_data
@@ -68,6 +80,9 @@ class BasePublishStrategy(ABC):
         """
         Создаёт экземпляр стратегии по типу через Registry.
 
+        Фильтрует ``kwargs`` до параметров, принимаемых конструктором стратегии,
+        если у конструктора нет ``**kwargs``.
+
         Args:
             strategy_type: Ключ стратегии из реестра.
             **kwargs: Аргументы конструктора стратегии.
@@ -85,17 +100,52 @@ class BasePublishStrategy(ABC):
 
         strategy_cls = cls._registry[strategy_type]
 
-        make_converter = getattr(strategy_cls, "_make_converter", None)
-        if make_converter is not None and "converter" not in kwargs:
-            kwargs["converter"] = make_converter(kwargs)
+        sig = inspect.signature(strategy_cls.__init__)
+        params = sig.parameters
+        if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+            filtered_kwargs = kwargs
+        else:
+            accepted = {k for k in params if k != "self"}
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k in accepted}
 
         logger.debug(f"Создаём {strategy_cls.__name__} для типа {strategy_type}")
-        return strategy_cls(**kwargs)
+        return strategy_cls(**filtered_kwargs)
 
     @classmethod
     def available_strategies(cls) -> list[str]:
         """Возвращает отсортированный список зарегистрированных типов стратегий."""
         return sorted(cls._registry)
+
+    def _render_and_publish(
+        self,
+        page_title: str,
+        template_name: str,
+        view_model: dict[str, Any],
+        parent_id: str | None,
+    ) -> dict[str, Any]:
+        """
+        Рендерит шаблон и публикует страницу в Confluence.
+
+        Args:
+            page_title: Заголовок публикуемой страницы.
+            template_name: Имя Jinja2-шаблона.
+            view_model: Данные для рендеринга шаблона.
+            parent_id: Идентификатор родительской страницы или None.
+
+        Returns:
+            Словарь с полями id, version, status от Confluence API.
+
+        Raises:
+            ConfluenceError: При сбое HTTP-запроса к Confluence.
+            TemplateError: При ошибке рендеринга шаблона.
+        """
+        html_body = self._minify_html(self._builder.build(template_name, view_model))
+        return self._client.publish_page(
+            space=self._space,
+            parent_id=parent_id,
+            title=page_title,
+            body_html=html_body,
+        )
 
     def _publish_single_page(
         self,
@@ -132,14 +182,11 @@ class BasePublishStrategy(ABC):
             if inject_links is not None:
                 inject_links(view_model)
 
-            html_body = self._minify_html(
-                self._builder.build(template_name, view_model)
-            )
-            result = self._client.publish_page(
-                space=self._space,
+            result = self._render_and_publish(
+                page_title=page_title,
+                template_name=template_name,
+                view_model=view_model,
                 parent_id=parent_id,
-                title=page_title,
-                body_html=html_body,
             )
 
             details.append(
@@ -154,10 +201,10 @@ class BasePublishStrategy(ABC):
             logger.info(f"{page_title} {result['status']} (ID: {result['id']})")
             return PublishReport(success=True, pages_published=1, details=details)
 
-        except Exception as e:
+        except (ConfluenceError, TemplateError, TemplateNotFound, ValueError, KeyError) as e:
             reason = str(e)
             errors.append(reason)
-            logger.error(f"Ошибка публикации {page_title}: {reason}")
+            logger.exception(f"Ошибка публикации {page_title}: {reason}")
             return PublishReport(
                 success=False,
                 pages_published=0,
@@ -172,16 +219,27 @@ class BasePublishStrategy(ABC):
         """
         Минимизирует HTML-разметку перед публикацией в Confluence.
 
+        Сегменты внутри CDATA-блоков (``<ac:plain-text-body><![CDATA[...]]>``)
+        сохраняются без изменений, так как пробелы внутри них семантически
+        значимы (например, отступы в YAML или конфигурациях Conan).
+
         Args:
             html: Исходный HTML-текст шаблона.
 
         Returns:
             Минимизированный HTML без лишних пробелов и комментариев.
         """
-        html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
-        html = re.sub(r">\s+<", "><", html)
-        html = re.sub(r"\s{2,}", " ", html)
-        return html.strip()
+        parts = _CDATA_PATTERN.split(html)
+        result: list[str] = []
+        for i, part in enumerate(parts):
+            if i % 2 == 1:  # нечётные индексы — CDATA-блоки, сохраняем как есть
+                result.append(part)
+            else:
+                part = re.sub(r"<!--.*?-->", "", part, flags=re.DOTALL)
+                part = re.sub(r">\s+<", "><", part)
+                part = re.sub(r"\s{2,}", " ", part)
+                result.append(part)
+        return "".join(result).strip()
 
     @abstractmethod
     def execute(self) -> PublishReport:

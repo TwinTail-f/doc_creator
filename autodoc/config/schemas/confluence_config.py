@@ -48,6 +48,10 @@ class ConfluenceConfigSchema(BaseModel):
         default="Сборки компонентов Платформы",
         description="Заголовок корневой страницы релизной документации.",
     )
+    profile_docs_page_title: str | None = Field(
+        default=None,
+        description="Заголовок страницы профиль-центричной документации.",
+    )
     passports_root_parent_id: str | None = Field(
         default=None,
         description="ID родительской страницы для дерева паспортов",

@@ -1,7 +1,7 @@
-"""Команда publish release."""
+"""Команда publish profile."""
 import click
 
-from autodoc.cli.constants import DEFAULT_RELEASE_PAGE_TITLE, RELEASE_TEMPLATE
+from autodoc.cli.constants import DEFAULT_PROFILE_PAGE_TITLE, PROFILE_TEMPLATE
 from autodoc.cli.commands.publish._quote_hint import _QuoteHintCommand
 from autodoc.cli.commands.publish._single_page import (
     _single_page_options,
@@ -9,23 +9,23 @@ from autodoc.cli.commands.publish._single_page import (
 )
 
 
-@click.command("release", cls=_QuoteHintCommand)
+@click.command("profile", cls=_QuoteHintCommand)
 @_single_page_options
 @click.pass_context
-def publish_release(
+def publish_profile(
     ctx: click.Context,
     page_title: str | None,
     cli_root_page_id: str | None,
     cli_root_page_name: str | None,
     no_passport_links: bool,
 ) -> None:
-    """Публикация релизной документации."""
+    """Публикация документации в представлении от профилей сборки."""
     run_single_page_command(
         ctx,
-        strategy_type="release",
-        template_name=RELEASE_TEMPLATE,
-        default_title=DEFAULT_RELEASE_PAGE_TITLE,
-        panel_header="🚀 Публикация релизной документации",
+        strategy_type="profile_centric",
+        template_name=PROFILE_TEMPLATE,
+        default_title=DEFAULT_PROFILE_PAGE_TITLE,
+        panel_header="🚀 Публикация документации от профилей",
         page_title=page_title,
         cli_root_page_id=cli_root_page_id,
         cli_root_page_name=cli_root_page_name,

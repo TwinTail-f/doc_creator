@@ -1,9 +1,14 @@
 import sys
+from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
 
+import click
 from rich.console import Console
+from rich.panel import Panel
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
+from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
 from autodoc.publisher.strategies.models.publish_report import PublishReport
@@ -15,32 +20,76 @@ from autodoc.cli.context import CliCtx
 console = Console()
 
 
-def _load_parsed_data(base_dir: Path) -> ParsedResult:
-    """Загружает parsed_data.json и десериализует в ParsedResult."""
+def require_exclusive(
+    name: str | None,
+    page_id: str | None,
+    *,
+    name_flag: str,
+    id_flag: str,
+) -> None:
+    """Проверяет, что задан только один из двух взаимоисключающих флагов.
+
+    Args:
+        name: Значение флага имени страницы.
+        page_id: Значение флага идентификатора страницы.
+        name_flag: Имя CLI-флага для имени (используется в сообщении об ошибке).
+        id_flag: Имя CLI-флага для идентификатора (используется в сообщении об ошибке).
+
+    Raises:
+        click.UsageError: Если переданы оба флага одновременно.
+    """
+    if name and page_id:
+        raise click.UsageError(f"Укажите только один флаг: {name_flag} или {id_flag}.")
+
+
+@contextmanager
+def cli_error_boundary(panel_header: str) -> Generator[None, None, None]:
+    """Контекстный менеджер для единообразной обработки ошибок CLI-команды.
+
+    Выводит заголовок панели, перехватывает доменные исключения,
+    печатает сообщение об ошибке и завершает процесс с кодом 1.
+
+    Args:
+        panel_header: Текст заголовка панели Rich для отображения перед запуском.
+
+    Raises:
+        SystemExit: При перехвате ConfigError, DocGeneratorError или PublishError.
+    """
+    console.print(Panel.fit(f"[bold blue]{panel_header}[/bold blue]", style="blue"))
+    try:
+        yield
+    except (ConfigError, DocGeneratorError, PublishError) as e:
+        console.print(f"❌ Ошибка: {e}", style="red bold")
+        sys.exit(1)
+
+
+def load_parsed_data(base_dir: Path) -> ParsedResult:
+    """Загружает parsed_data.json и десериализует в ParsedResult.
+
+    Raises:
+        DocGeneratorError: Если файл ``parsed_data.json`` не найден.
+    """
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
-        console.print(
-            "❌ Файл parsed_data.json не найден. Сначала запустите " '"parse"',
-            style="red bold",
+        raise DocGeneratorError(
+            'Файл parsed_data.json не найден. Сначала запустите "parse".'
         )
-        sys.exit(1)
     return ParsedResult.model_validate_json(data_file.read_text(encoding="utf-8"))
 
 
-def _make_publisher(
+def make_publisher(
     cli_ctx: CliCtx,
     config_file: str | None = None,
 ) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
     """Создаёт DocumentPublisher и возвращает его вместе с конфигом."""
     conf_config = cli_ctx.config_manager.load_confluence_config(config_file)
-    rendering_dir = cli_ctx.base_dir / "autodoc" / "publisher" / "rendering"
-    return DocumentPublisher(conf_config, rendering_dir), conf_config
+    if conf_config is None:
+        raise ConfigError("Не удалось загрузить конфигурацию Confluence.")
+    return DocumentPublisher(conf_config), conf_config
 
 
-def _print_publish_result(result: PublishReport) -> None:
+def print_publish_result(result: PublishReport) -> None:
     """Выводит результат публикации в консоль."""
-    from rich.panel import Panel
-
     if result.success:
         console.print(
             Panel.fit(
@@ -53,5 +102,8 @@ def _print_publish_result(result: PublishReport) -> None:
         console.print("⚠️  Публикация завершена с ошибками:", style="yellow bold")
         for err in result.errors:
             console.print(f"  • {err}", style="yellow")
-        if result.pages_published == 0:
-            sys.exit(1)
+
+    if not result.success:
+        sys.exit(1)
+    if result.pages_published == 0:
+        sys.exit(1)

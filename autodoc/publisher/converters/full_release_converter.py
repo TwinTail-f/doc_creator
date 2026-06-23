@@ -72,7 +72,7 @@ class FullReleaseConverter(BaseReleaseConverter):
             "artifactory_url": rel.artifactory_url,
             "is_header_only": comp_is_header_only,
             "profile_builds": profile_builds,
-            "passport_link": self._passport_link(comp_name, rel.version),
+            "passport_link": None,
         }
 
     def transform(self, data: ParsedResult) -> dict[str, Any]:
@@ -86,12 +86,9 @@ class FullReleaseConverter(BaseReleaseConverter):
             Словарь view-model для шаблона полного релиза.
         """
         logger.debug("Трансформация в полный вид")
-        pd_map: dict[str, Any] = {
-            pd.profile_name: pd for pd in data.profile_definitions
-        }
+        pd_map: dict[str, Any] = self._build_profile_definition_map(data)
         return {
-            "platform_version": data.platform_version,
-            "include_passport_links": self._include_passport_links,
+            **self._base_view_model(data),
             "components": [
                 {
                     "name": comp.name,
