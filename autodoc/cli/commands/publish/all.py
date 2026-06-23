@@ -17,11 +17,10 @@ from autodoc.cli.helpers import (
     require_exclusive,
     console,
 )
-from autodoc.cli.commands.publish._quote_hint import _QuoteHintCommand
+from autodoc.cli.commands.publish._quote_hint import QuoteHintCommand
 from autodoc.cli.commands.publish._release import publish_release
 from autodoc.cli.commands.publish._profile import publish_profile
 from autodoc.cli.commands.publish._passports import publish_passports
-from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 
 @click.group()
@@ -34,7 +33,7 @@ publish.add_command(publish_profile)
 publish.add_command(publish_passports)
 
 
-@publish.command("all", cls=_QuoteHintCommand)
+@publish.command("all", cls=QuoteHintCommand)
 @click.option(
     "--passports-root-parent-id", "passports_root_parent_id", default=None,
     help="ID корневой страницы иерархии паспортов (переопределяет конфиг)",
@@ -127,6 +126,12 @@ def publish_all(
 
         include_passport_links = not no_passport_links
 
+        profile_title = (
+            additional_page_profile_name or DEFAULT_PROFILE_PAGE_TITLE
+            if with_additional_page_profile
+            else None
+        )
+
         console.print("🔄 Публикация…", style="cyan")
         result = publisher.publish_all(
             parsed_data=parsed_data,
@@ -138,18 +143,9 @@ def publish_all(
             release_template_name=RELEASE_TEMPLATE,
             passport_template_name=PASSPORT_TEMPLATE,
             include_passport_links=include_passport_links,
+            profile_title=profile_title,
+            profile_template_name=PROFILE_TEMPLATE if with_additional_page_profile else None,
         )
-
-        if with_additional_page_profile:
-            profile_title = additional_page_profile_name or DEFAULT_PROFILE_PAGE_TITLE
-            profile_report = publisher.publish_profile_page(
-                parsed_data=parsed_data,
-                profile_title=profile_title,
-                profile_template_name=PROFILE_TEMPLATE,
-                release_report=result,
-                include_passport_links=include_passport_links,
-            )
-            result = PublishReport.merge(result, profile_report)
 
         console.print(
             f"  Страниц опубликовано: {result.pages_published}",

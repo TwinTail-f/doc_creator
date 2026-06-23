@@ -336,8 +336,11 @@ class DocumentPublisher:
         release_root_page_id: str | None = None,
         passport_template_name: str = PassportsStrategy.DEFAULT_TEMPLATE,
         include_passport_links: bool = True,
+        profile_title: str | None = None,
+        profile_template_name: str | None = None,
     ) -> PublishReport:
-        """Публикует паспорта и страницу релизной документации за один вызов.
+        """Публикует паспорта, страницу релизной документации и (опционально)
+        профильную страницу за один вызов.
 
         Args:
             parsed_data: Данные парсера.
@@ -356,6 +359,11 @@ class DocumentPublisher:
             passport_template_name: Имя Jinja2-шаблона паспортов.
             include_passport_links: Если ``True``, в страницу релиза вставляются
                                     ссылки на опубликованные паспорта.
+            profile_title: Заголовок дополнительной профильной страницы.
+                           Если задан вместе с ``profile_template_name``, профильная
+                           страница публикуется как дочерняя к странице релиза.
+            profile_template_name: Имя Jinja2-шаблона для профильной страницы.
+                                   Обязателен при указании ``profile_title``.
 
         Returns:
             Агрегированный ``PublishReport`` по всем опубликованным страницам.
@@ -388,4 +396,18 @@ class DocumentPublisher:
             include_passport_links=include_passport_links,
         )
 
-        return PublishReport.merge(passports_report, release_report)
+        # Профильная страница публикуется здесь, пока release_report ещё не смешан
+        # с отчётом паспортов — это гарантирует, что details[0] будет именно
+        # страницей релиза, а не первым паспортом компонента.
+        reports: list[PublishReport] = [passports_report, release_report]
+        if profile_title and profile_template_name:
+            profile_report = self.publish_profile_page(
+                parsed_data=parsed_data,
+                profile_title=profile_title,
+                profile_template_name=profile_template_name,
+                release_report=release_report,
+                include_passport_links=include_passport_links,
+            )
+            reports.append(profile_report)
+
+        return PublishReport.merge(*reports)

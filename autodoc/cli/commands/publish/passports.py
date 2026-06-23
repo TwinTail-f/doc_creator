@@ -11,13 +11,13 @@ from autodoc.cli.helpers import (
     print_publish_result,
     require_exclusive,
 )
-from autodoc.cli.commands.publish._quote_hint import _QuoteHintCommand
+from autodoc.cli.commands.publish._quote_hint import QuoteHintCommand
 
 _PASSPORTS_ROOT_NAME_FLAG: str = "--passports-root-parent-name"
 _PASSPORTS_ROOT_ID_FLAG: str = "--passports-root-parent-id"
 
 
-@click.command("passports", cls=_QuoteHintCommand)
+@click.command("passports", cls=QuoteHintCommand)
 @click.option(
     "--passports-root-parent-id", "passports_root_parent_id", default=None,
     help="ID корневой страницы иерархии паспортов (переопределяет конфиг)",

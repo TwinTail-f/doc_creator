@@ -7,9 +7,6 @@ from rich.panel import Panel
 from rich.table import Table
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-# TODO(review): autodoc.config.schemas.parser_config отсутствует в кодовой базе —
-# импорт ниже не разрешится, пока модуль не будет добавлен. Это не входит
-# в текущую задачу (autodoc/config/** не в её рамках).
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.cli.context import CliCtx

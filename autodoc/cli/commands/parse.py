@@ -8,9 +8,6 @@ from autodoc.exceptions import ConfigError, NetworkError, ParsingError
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-# TODO(review): autodoc.config.schemas.parser_config отсутствует в кодовой базе —
-# импорт ниже не разрешится, пока модуль не будет добавлен. Это не входит
-# в текущую задачу (autodoc/config/** не в её рамках).
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console

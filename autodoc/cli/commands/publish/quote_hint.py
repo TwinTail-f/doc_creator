@@ -6,7 +6,7 @@ import click
 _NAME_FLAG_SUFFIX: str = "-name"
 
 
-class _QuoteHintCommand(click.Command):
+class QuoteHintCommand(click.Command):
     """Click-команда с подсказкой о кавычках при лишних аргументах."""
 
     def make_context(
@@ -31,18 +31,17 @@ class _QuoteHintCommand(click.Command):
             click.UsageError: Исходная ошибка использования, либо дополненная
                 подсказкой о кавычках для опций с суффиксом ``-name``.
         """
-        # TODO(review): Click мутирует список args в процессе парсинга —
-        # к моменту перехвата UsageError уже распознанные опции (включая
-        # --*-name) могут быть удалены из args, и подсказка не сработает.
-        # Этот дефект уже присутствовал в исходной реализации с _NAME_OPTIONS
-        # и не входит в текущую задачу (замена сниффинга списка флагов).
+        # Click мутирует список args в процессе парсинга — снимаем копию
+        # до вызова super(), чтобы --*-name флаги оставались доступны
+        # при формировании подсказки в except-ветке.
+        args_snapshot = list(args)
         try:
             return super().make_context(info_name, args, parent=parent, **extra)
         except click.UsageError as e:
             name_flags = sorted(
                 {
                     arg.split("=", 1)[0]
-                    for arg in args
+                    for arg in args_snapshot
                     if arg.split("=", 1)[0].endswith(_NAME_FLAG_SUFFIX)
                 }
             )

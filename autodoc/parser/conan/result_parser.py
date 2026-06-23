@@ -2,13 +2,14 @@
 Парсер JSON-ответа команды ``conan graph info`` для Conan 2.x.
 
 Для поддержки Conan 1.x потребуется отдельный парсер.
-TODO: рассмотреть использование ``conan.api.model.refs.RecipeReference``
-      для разбора ref-строк после добавления ``conan`` в зависимости проекта.
 """
 
 import datetime
 from pathlib import Path
 from typing import Any
+
+from conan.api.model.refs import RecipeReference
+from conan.errors import ConanException
 
 from autodoc.models.options import DefaultOptionsSet
 from autodoc.parser.conan.models.conan_task import ConanTask
@@ -111,8 +112,6 @@ class ConanResultParser:
             - ``rrev`` — recipe revision;
             - ``full_version`` — версия компонента, извлечённая из ref или fallback.
         """
-        # TODO: replace manual string parsing with conan.api.model.refs.RecipeReference.loads()
-        #       once 'conan' is declared as a Python dependency in pyproject.toml.
         full_ref: str = node.get("ref", "")
         rrev: str = node.get("rrev", "")
         full_version = fallback_version
@@ -120,11 +119,23 @@ class ConanResultParser:
         if not full_ref:
             return "", rrev, full_version
 
-        base_ref = full_ref.split("#")[0]
-        if not rrev and "#" in full_ref:
-            rrev = full_ref.split("#")[1]
-        if "@" in base_ref and "/" in base_ref.split("@")[0]:
-            full_version = base_ref.split("@")[0].split("/")[1]
+        try:
+            recipe_ref = RecipeReference.loads(full_ref)
+        except ConanException:
+            # Conan может прислать ref в нестандартном формате — деградируем
+            # до прежнего поведения на основе разбиения строки, не теряя данные.
+            base_ref = full_ref.split("#")[0]
+            if not rrev and "#" in full_ref:
+                rrev = full_ref.split("#")[1]
+            if "@" in base_ref and "/" in base_ref.split("@")[0]:
+                full_version = base_ref.split("@")[0].split("/")[1]
+            return base_ref, rrev, full_version
+
+        base_ref = str(recipe_ref)
+        if not rrev and recipe_ref.revision:
+            rrev = recipe_ref.revision
+        if recipe_ref.user:
+            full_version = str(recipe_ref.version)
 
         return base_ref, rrev, full_version
 
@@ -190,9 +201,11 @@ class ConanResultParser:
                 continue
             ref: str = node.get("ref", "")
             if ref:
-                # TODO: replace manual string parsing with conan.api.model.refs.RecipeReference.loads()
-                #       once 'conan' is declared as a Python dependency in pyproject.toml.
-                dep_name = ref.split("/")[0]
+                try:
+                    dep_name = RecipeReference.loads(ref).name
+                except ConanException:
+                    # Деградация до прежнего поведения для нестандартных ref-строк.
+                    dep_name = ref.split("/")[0]
                 if dep_name and dep_name != comp_name:
                     deps.append(dep_name)
         return sorted(set(deps))
