@@ -17,10 +17,10 @@ from autodoc.cli.helpers import (
     require_exclusive,
     console,
 )
-from autodoc.cli.commands.publish._quote_hint import QuoteHintCommand
-from autodoc.cli.commands.publish._release import publish_release
-from autodoc.cli.commands.publish._profile import publish_profile
-from autodoc.cli.commands.publish._passports import publish_passports
+from autodoc.cli.commands.publish.quote_hint import QuoteHintCommand
+from autodoc.cli.commands.publish.release import publish_release
+from autodoc.cli.commands.publish.profile import publish_profile
+from autodoc.cli.commands.publish.passports import publish_passports
 
 
 @click.group()

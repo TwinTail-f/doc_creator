@@ -11,7 +11,7 @@ from autodoc.cli.helpers import (
     print_publish_result,
     require_exclusive,
 )
-from autodoc.cli.commands.publish._quote_hint import QuoteHintCommand
+from autodoc.cli.commands.publish.quote_hint import QuoteHintCommand
 
 _PASSPORTS_ROOT_NAME_FLAG: str = "--passports-root-parent-name"
 _PASSPORTS_ROOT_ID_FLAG: str = "--passports-root-parent-id"

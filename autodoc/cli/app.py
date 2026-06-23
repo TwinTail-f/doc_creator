@@ -6,7 +6,7 @@ import click
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 from autodoc.cli.commands.parse import parse
-from autodoc.cli.commands.publish._all import publish
+from autodoc.cli.commands.publish.all import publish
 from autodoc.cli.commands.config import config
 from autodoc.cli.commands.info import info
 
