@@ -15,7 +15,7 @@ from autodoc.models.release import Release
 from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
-from autodoc.parser.conan.result_parser import ConanResultParser
+from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
@@ -81,7 +81,7 @@ def test_aggregator_populates_release_data_on_success() -> None:
     task = _make_task()
     enrich = _make_enrich()
 
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     mock_parser.parse.return_value = enrich
 
     raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
@@ -104,7 +104,7 @@ def test_aggregator_skips_parser_on_failed_raw_result() -> None:
     """Parser.parse() никогда не вызывается для сырых результатов с success=False."""
     task = _make_task()
 
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     raw = ConanRawResult(success=False, data=None, error="timeout")
 
     ConanResultAggregator(result_parser=mock_parser).aggregate(
@@ -130,7 +130,7 @@ def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
 
     task = _make_task()
 
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     with caplog.at_level(logging.WARNING):
         result = ConanResultAggregator(result_parser=mock_parser).aggregate(
             [task], [None], art_base="", target_platform="2.0"
@@ -157,7 +157,7 @@ def test_aggregator_handles_parser_returning_none() -> None:
     """Когда парсер возвращает None (Binary: Missing), profile_data.exists == False."""
     task = _make_task()
 
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     mock_parser.parse.return_value = None
 
     raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
@@ -181,7 +181,7 @@ def test_aggregator_counts_totals_correctly() -> None:
     task1 = _make_task(profile_name="hw-linux-x86_64")
     task2 = _make_task(profile_name="hw-linux-armv8")
 
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     mock_parser.parse.return_value = _make_enrich()
 
     raw_ok = ConanRawResult(success=True, data={})
@@ -218,7 +218,7 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
         conan_options={},
         option_id="1",
     )
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     mock_parser.parse.return_value = enrich
     raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
 
@@ -283,7 +283,7 @@ def test_aggregator_two_profiles_same_release() -> None:
         conan_options={},
         option_id="1",
     )
-    mock_parser = MagicMock(spec=ConanResultParser)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
     mock_parser.parse.return_value = enrich
     raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
     result = ConanResultAggregator(result_parser=mock_parser).aggregate(
@@ -339,7 +339,7 @@ def test_aggregator_records_version_range_error_message() -> None:
     )
     raw = ConanRawResult(success=False, data=None, error=error_msg)
 
-    aggregator = ConanResultAggregator(result_parser=ConanResultParser())
+    aggregator = ConanResultAggregator(result_parser=Conan2ResultParser())
     result = aggregator.aggregate([task], [raw], art_base="", target_platform="2.0")
 
     assert (

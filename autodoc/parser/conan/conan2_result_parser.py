@@ -16,7 +16,7 @@ from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
 
-class ConanResultParser:
+class Conan2ResultParser:
     """
     Парсит JSON-ответ ``conan graph info`` в структурированные данные.
 

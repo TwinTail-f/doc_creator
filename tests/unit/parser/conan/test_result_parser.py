@@ -15,7 +15,7 @@ import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
-from autodoc.parser.conan.result_parser import ConanResultParser
+from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 
 # NULL_PACKAGE_ID — SHA1 пустой строки (header-only компоненты)
@@ -186,7 +186,7 @@ def test_result_parser_patchelf_returns_enrich_data(
     conan_task: ConanTask,
 ) -> None:
     """parse() возвращает ConanEnrichData с корректным package_id patchelf при успехе."""
-    result = ConanResultParser().parse(success_json, conan_task)
+    result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is not None
     assert result.package_id == "461534fe50686ce31d073dc24f005bd12e08c9fd"
@@ -198,7 +198,7 @@ def test_result_parser_patchelf_base_ref_no_hash(
     conan_task: ConanTask,
 ) -> None:
     """base_ref начинается с 'patchelf/' и не содержит символа '#' (хэша ревизии)."""
-    result = ConanResultParser().parse(success_json, conan_task)
+    result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is not None
     assert result.base_ref.startswith("patchelf/")
@@ -211,7 +211,7 @@ def test_result_parser_patchelf_conan_settings_has_os_distro(
     conan_task: ConanTask,
 ) -> None:
     """conan_settings содержит os.distro='alpine' из реального профиля Alpine Linux."""
-    result = ConanResultParser().parse(success_json, conan_task)
+    result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is not None
     assert result.conan_settings.get("os.distro") == "alpine"
@@ -223,7 +223,7 @@ def test_result_parser_patchelf_empty_default_options(
     conan_task: ConanTask,
 ) -> None:
     """patchelf не имеет default_options в graph JSON — результат должен быть пустым списком."""
-    result = ConanResultParser().parse(success_json, conan_task)
+    result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is not None
     assert result.default_options == []
@@ -240,7 +240,7 @@ def test_result_parser_nlohmann_json_null_package_id(
     nlohmann_task: ConanTask,
 ) -> None:
     """nlohmann_json возвращает SHA1 NULL_PACKAGE_ID, характерный для header-only библиотек."""
-    result = ConanResultParser().parse(nlohmann_json_graph, nlohmann_task)
+    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
 
     assert result is not None
     assert result.package_id == NULL_PACKAGE_ID
@@ -252,7 +252,7 @@ def test_result_parser_nlohmann_json_no_default_options(
     nlohmann_task: ConanTask,
 ) -> None:
     """nlohmann_json имеет пустой словарь default_options в JSON — результат должен быть []."""
-    result = ConanResultParser().parse(nlohmann_json_graph, nlohmann_task)
+    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
 
     assert result is not None
     assert result.default_options == []
@@ -264,7 +264,7 @@ def test_result_parser_nlohmann_json_no_dependencies(
     nlohmann_task: ConanTask,
 ) -> None:
     """nlohmann_json не имеет узлов зависимостей — список dependencies должен быть пустым."""
-    result = ConanResultParser().parse(nlohmann_json_graph, nlohmann_task)
+    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
 
     assert result is not None
     assert result.dependencies == []
@@ -281,7 +281,7 @@ def test_result_parser_sqlite3_has_tcl_dependency(
     sqlite3_task: ConanTask,
 ) -> None:
     """Граф sqlite3 содержит узел зависимости tcl — он появляется в result.dependencies."""
-    result = ConanResultParser().parse(sqlite3_deps_graph, sqlite3_task)
+    result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
 
     assert result is not None
     assert "tcl" in result.dependencies
@@ -293,7 +293,7 @@ def test_result_parser_sqlite3_has_default_options(
     sqlite3_task: ConanTask,
 ) -> None:
     """sqlite3 имеет несколько default_options, включая 'shared' — список должен быть непустым."""
-    result = ConanResultParser().parse(sqlite3_deps_graph, sqlite3_task)
+    result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
 
     assert result is not None
     assert len(result.default_options) > 0
@@ -307,7 +307,7 @@ def test_result_parser_sqlite3_dependency_nodes_not_matched(
     sqlite3_task: ConanTask,
 ) -> None:
     """parse() сопоставляет только узел '1' (sqlite3); узел '2' (tcl) пропускается как зависимость."""
-    result = ConanResultParser().parse(sqlite3_deps_graph, sqlite3_task)
+    result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
 
     assert result is not None
     assert result.package_id == "8c7b3c7905519eea8fda5ff9dde7fbefec90da76"
@@ -324,7 +324,7 @@ def test_result_parser_libnetfilter_queue_returns_result(
     libnetfilter_queue_task: ConanTask,
 ) -> None:
     """parse() для libnetfilter_queue возвращает результат с корректным package_id."""
-    result = ConanResultParser().parse(
+    result = Conan2ResultParser().parse(
         libnetfilter_queue_graph, libnetfilter_queue_task
     )
 
@@ -338,7 +338,7 @@ def test_result_parser_libnetfilter_queue_two_deps(
     libnetfilter_queue_task: ConanTask,
 ) -> None:
     """Граф libnetfilter_queue содержит узлы libmnl и libnfnetlink — оба появляются в dependencies."""
-    result = ConanResultParser().parse(
+    result = Conan2ResultParser().parse(
         libnetfilter_queue_graph, libnetfilter_queue_task
     )
 
@@ -358,7 +358,7 @@ def test_result_parser_poco_missing_binary_returns_none(
     poco_task: ConanTask,
 ) -> None:
     """parse() возвращает None, когда целевой узел имеет binary='Missing' (случай poco)."""
-    result = ConanResultParser().parse(poco_missing_graph, poco_task)
+    result = Conan2ResultParser().parse(poco_missing_graph, poco_task)
 
     assert result is None
 
@@ -375,7 +375,7 @@ def test_result_parser_returns_none_when_node_not_found(
 ) -> None:
     """parse() возвращает None, когда ни один узел не совпадает с заданным comp_name."""
     object.__setattr__(conan_task, "comp_name", "nonexistent")
-    result = ConanResultParser().parse(success_json, conan_task)
+    result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is None
 
@@ -387,7 +387,7 @@ def test_result_parser_returns_none_on_missing_binary(
 ) -> None:
     """parse() возвращает None, когда целевой узел имеет binary='Missing' (случай libyang)."""
     object.__setattr__(conan_task, "comp_name", "libyang")
-    result = ConanResultParser().parse(missing_json, conan_task)
+    result = Conan2ResultParser().parse(missing_json, conan_task)
 
     assert result is None
 
@@ -408,7 +408,7 @@ def test_result_parser_skips_root_node(conan_task: ConanTask) -> None:
             }
         }
     }
-    result = ConanResultParser().parse(minimal_json, conan_task)
+    result = Conan2ResultParser().parse(minimal_json, conan_task)
 
     assert result is None
 
@@ -419,7 +419,7 @@ def test_result_parser_extracts_conan_settings(
     conan_task: ConanTask,
 ) -> None:
     """conan_settings — непустой словарь, содержащий как минимум 'os' или 'arch'."""
-    result = ConanResultParser().parse(success_json, conan_task)
+    result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is not None
     assert isinstance(result.conan_settings, dict)
@@ -446,7 +446,7 @@ def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> No
             }
         }
     }
-    result = ConanResultParser().parse(minimal_json, conan_task)
+    result = Conan2ResultParser().parse(minimal_json, conan_task)
 
     assert result is not None
     assert result.default_options == []
@@ -463,7 +463,7 @@ def test_result_parser_nlohmann_json_package_id_equals_null_sha1(
     nlohmann_task: ConanTask,
 ) -> None:
     """Значение NULL_PACKAGE_ID является SHA1 пустой строки — подтверждает определение header-only."""
-    result = ConanResultParser().parse(nlohmann_json_graph, nlohmann_task)
+    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
     assert result is not None
     assert result.package_id == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
     assert len(result.package_id) == 40
@@ -499,7 +499,7 @@ def test_result_parser_patchelf_016_version_uses_same_channel(
         release=release,
         pb=pb,
     )
-    result = ConanResultParser().parse(success_json, task_016)
+    result = Conan2ResultParser().parse(success_json, task_016)
     assert result is not None
     assert result.base_ref.startswith("patchelf/")
     assert result.conan_settings.get("os.distro") == "alpine"
@@ -516,7 +516,7 @@ def test_result_parser_sqlite3_fast_base_ref_format(
     sqlite3_task: ConanTask,
 ) -> None:
     """base_ref для sqlite3 fast имеет формат 'sqlite3/<version>@platform-2.0/fast' без хэша rrev."""
-    result = ConanResultParser().parse(sqlite3_deps_graph, sqlite3_task)
+    result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
     assert result is not None
     assert result.base_ref.startswith("sqlite3/")
     assert "@platform-2.0/fast" in result.base_ref
@@ -560,7 +560,7 @@ def test_result_parser_apr_returns_enrich_data(
     apr_task: ConanTask,
 ) -> None:
     """parse() для apr/1.7.6 (fast, без deps) возвращает ConanEnrichData с корректным package_id."""
-    result = ConanResultParser().parse(apr_graph, apr_task)
+    result = Conan2ResultParser().parse(apr_graph, apr_task)
     assert result is not None
     assert result.package_id == "7741115342fe6159bd16463d6d349e4c02e33237"
 
@@ -571,7 +571,7 @@ def test_result_parser_apr_no_dependencies(
     apr_task: ConanTask,
 ) -> None:
     """apr не имеет узлов зависимостей — список dependencies должен быть пустым."""
-    result = ConanResultParser().parse(apr_graph, apr_task)
+    result = Conan2ResultParser().parse(apr_graph, apr_task)
     assert result is not None
     assert result.dependencies == []
 
@@ -582,7 +582,7 @@ def test_result_parser_apr_fast_channel_in_base_ref(
     apr_task: ConanTask,
 ) -> None:
     """base_ref для apr должен содержать '@platform-2.0/fast' (канал fast, не slow или tech)."""
-    result = ConanResultParser().parse(apr_graph, apr_task)
+    result = Conan2ResultParser().parse(apr_graph, apr_task)
     assert result is not None
     assert "@platform-2.0/fast" in result.base_ref
 
@@ -593,7 +593,7 @@ def test_result_parser_apr_has_default_options(
     apr_task: ConanTask,
 ) -> None:
     """Узел apr содержит default_options (shared, fPIC, …) — список должен быть непустым."""
-    result = ConanResultParser().parse(apr_graph, apr_task)
+    result = Conan2ResultParser().parse(apr_graph, apr_task)
     assert result is not None
     assert len(result.default_options) > 0
     names = [opt.name for opt in result.default_options]
@@ -611,7 +611,7 @@ def test_result_parser_libnetfilter_queue_deps_are_plain_names(
     libnetfilter_queue_task: ConanTask,
 ) -> None:
     """Записи в result.dependencies — это чистые имена компонентов (без версии или @)."""
-    result = ConanResultParser().parse(
+    result = Conan2ResultParser().parse(
         libnetfilter_queue_graph, libnetfilter_queue_task
     )
     assert result is not None
@@ -665,7 +665,7 @@ def test_result_parser_stunnel_error_graph_returns_none(
     Имитирует сбой разрешения version range (например, stunnel/[~5.77,...] не найден).
     Парсер не должен выбрасывать исключение и должен возвращать None — узла stunnel в графе нет.
     """
-    result = ConanResultParser().parse(stunnel_error_graph, stunnel_task)
+    result = Conan2ResultParser().parse(stunnel_error_graph, stunnel_task)
     assert result is None
 
 

@@ -7,7 +7,7 @@
 Выделен из ``ConanManager`` в отдельный слой, чтобы каждый этап пайплайна
 имел единственную ответственность:
 - ``ConanFetcher``          — сбор сырых данных (запуск subprocess в параллель);
-- ``ConanResultParser``     — парсинг одного JSON-ответа;
+- ``Conan2ResultParser``     — парсинг одного JSON-ответа;
 - ``ConanResultAggregator`` — агрегация N результатов → ``ConanEnrichmentResult``.
 """
 
@@ -29,7 +29,7 @@ from autodoc.parser.conan.models.conan_report import (
 )
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.options import TotalOptionsSet
-from autodoc.parser.conan.result_parser import ConanResultParser
+from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 from autodoc.common.logger import logger
@@ -45,13 +45,13 @@ class ConanResultAggregator:
     Легко тестируется без запуска Conan или параллельного исполнителя.
     """
 
-    def __init__(self, result_parser: ConanResultParser | None = None) -> None:
+    def __init__(self, result_parser: Conan2ResultParser | None = None) -> None:
         """
         Args:
             result_parser: Парсер одного JSON-ответа. Если не передан — создаётся
                            экземпляр по умолчанию.
         """
-        self._result_parser = result_parser or ConanResultParser()
+        self._result_parser = result_parser or Conan2ResultParser()
 
     def aggregate(
         self,

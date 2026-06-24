@@ -1,7 +1,7 @@
 """
 Промежуточные типы данных пакета ``conan/``.
 
-``ConanEnrichData`` — связующая структура между ``ConanResultParser``
+``ConanEnrichData`` — связующая структура между ``Conan2ResultParser``
 и ``ConanResultAggregator``. Вынесена в отдельный файл, чтобы агрегатор
 не зависел от парсера: оба теперь импортируют из ``conan/types.py``,
 а не один из другого.

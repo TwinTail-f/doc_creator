@@ -12,7 +12,7 @@
 - ``ConanTaskBuilder``        — формирование задач из моделей компонентов;
 - ``Conan2Runner``            — запуск subprocess ``conan graph info``;
 - ``ParallelExecutor``        — параллельное выполнение задач;
-- ``ConanResultParser``       — парсинг одного JSON-ответа;
+- ``Conan2ResultParser``       — парсинг одного JSON-ответа;
 - ``ConanResultAggregator``   — агрегация N результатов → ``ConanEnrichmentResult``.
 """
 
@@ -24,7 +24,7 @@ from autodoc.parser.conan.conan2_runner import Conan2Runner
 from autodoc.parser.conan.conan_environment_manager import ConanEnvironmentManager
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
-from autodoc.parser.conan.result_parser import ConanResultParser
+from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.fetchers.base_fetcher import BaseFetcher
@@ -154,7 +154,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
                 task_label="задач Conan",
             )
 
-            aggregator = ConanResultAggregator(ConanResultParser())
+            aggregator = ConanResultAggregator(Conan2ResultParser())
             result = aggregator.aggregate(
                 tasks, raw_results, self._artifactory_base_url, self._platform_version
             )
