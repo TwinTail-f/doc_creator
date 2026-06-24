@@ -18,8 +18,19 @@ _ROOT_PAGE_NAME_FLAG: str = "--root-page-name"
 _ROOT_PAGE_ID_FLAG: str = "--root-page-id"
 
 
-def _single_page_options(f: Callable) -> Callable:
-    """Применяет общий набор Click-опций к команде публикации одной страницы."""
+def single_page_options(f: Callable) -> Callable:
+    """Декоратор: добавляет к команде общий набор Click-опций для публикации одной страницы.
+
+    Команды ``publish release`` и ``publish profile`` принимают одинаковый
+    набор флагов (``--page-title``, ``--root-page-id`` и т.д.) — вынесен
+    сюда, чтобы не дублировать одинаковые ``@click.option`` в обоих файлах.
+
+    Args:
+        f: Функция Click-команды, к которой применяются опции.
+
+    Returns:
+        Та же функция, обёрнутая декораторами ``click.option``.
+    """
     decorators = [
         click.option(
             "--page-title", default=None,

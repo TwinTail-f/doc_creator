@@ -45,7 +45,21 @@ def _build_parser(
     skip_conan: bool,
     skip_validation: bool,
 ) -> ComponentParser:
-    """Собирает пайплайн парсера, опционально исключая шаги."""
+    """Собирает пайплайн парсера, опционально исключая шаги Conan и валидации.
+
+    Так как ``ComponentParser`` сам по умолчанию включает все шаги, при
+    наличии флагов пропуска используется ``with_steps_excluded`` вместо
+    обычного конструктора.
+
+    Args:
+        parser_config: Валидированная конфигурация парсера.
+        data_dir: Директория для промежуточных и итоговых данных пайплайна.
+        skip_conan: Исключить шаг ``ConanEnrichStep`` (``conan graph info``).
+        skip_validation: Исключить шаг ``ArtifactoryValidationStep``.
+
+    Returns:
+        Собранный ``ComponentParser``, готовый к вызову ``parse()``.
+    """
     if not skip_conan and not skip_validation:
         return ComponentParser(parser_config, data_dir)
 

@@ -49,7 +49,7 @@ def cli(
     ctx.obj = CliCtx(base, cfgs, verbose)
 
 
-# Register all commands and subgroups
+# Регистрируем все команды и подгруппы
 cli.add_command(parse)
 cli.add_command(publish)
 cli.add_command(config)

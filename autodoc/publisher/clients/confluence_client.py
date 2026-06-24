@@ -88,20 +88,14 @@ class ConfluenceClient:
         """
         logger.info(f"Публикация страницы {title} (space={space})")
 
-        existing = self.find_page(
-            title, space=space, expand=f"{_EXPAND_VERSION},ancestors"
+        existing = self._find_existing_page(
+            title, space, parent_id, expand=f"{_EXPAND_VERSION},ancestors"
         )
         if existing:
-            if not self._is_child_of(existing, parent_id):
-                logger.warning(
-                    f"Страница {title} найдена в другом дереве "
-                    f"(parent_id страницы не совпадает с {parent_id}). "
-                    f"Страница будет обновлена и перемещена под указанного родителя."
-                )
             return self._update_page(existing, parent_id, title, body_html)
         return self._create_page(space, parent_id, title, body_html)
 
-    def ensure_page_exists(
+    def get_or_create_page(
         self,
         space: str,
         title: str,
@@ -109,7 +103,7 @@ class ConfluenceClient:
         body: str = "",
     ) -> str:
         """
-        Обеспечивает существование страницы и возвращает её ID.
+        Возвращает ID существующей страницы или создаёт новую.
 
         Страница считается «той же» только если она находится среди потомков
         ``parent_id`` (прямых или косвенных). Если в Space существует страница
@@ -129,15 +123,8 @@ class ConfluenceClient:
             ConfluenceError: Если страница не найдена и ``parent_id`` не указан,
                           либо если запрос к API завершился ошибкой.
         """
-        existing = self.find_page(title, space=space, expand="ancestors")
+        existing = self._find_existing_page(title, space, parent_id)
         if existing:
-            if parent_id and not self._is_child_of(existing, parent_id):
-                logger.warning(
-                    f"Страница {title} найдена в другом дереве "
-                    f"(ожидаемый parent_id={parent_id}). "
-                    f"Возвращается ID существующей страницы — "
-                    f"создать новую с тем же заголовком в Space невозможно."
-                )
             return str(existing["id"])
 
         if not parent_id:
@@ -422,10 +409,37 @@ class ConfluenceClient:
         """
         return f"{self._base_url}/rest/api/{'/'.join(parts)}"
 
-    @staticmethod
-    def _is_child_of(page: dict[str, Any], parent_id: str) -> bool:
+    def _find_existing_page(
+        self,
+        title: str,
+        space: str,
+        parent_id: str | None,
+        expand: str = "ancestors",
+    ) -> dict[str, Any] | None:
         """
-        Проверяет, является ли страница прямым потомком указанного родителя.
+        Ищет страницу по заголовку и логгирует warning если она в другом дереве.
+
+        Args:
+            title:     Заголовок страницы.
+            space:     Ключ Space.
+            parent_id: Ожидаемый ID родителя для проверки дерева.
+            expand:    Поля для раскрытия в ответе Confluence API.
+
+        Returns:
+            Словарь данных страницы или ``None`` если страница не найдена.
+        """
+        existing = self.find_page(title, space=space, expand=expand)
+        if existing and parent_id and not self._is_descendant_of(existing, parent_id):
+            logger.warning(
+                f"Страница {title} найдена в другом дереве "
+                f"(ожидаемый parent_id={parent_id})."
+            )
+        return existing
+
+    @staticmethod
+    def _is_descendant_of(page: dict[str, Any], parent_id: str) -> bool:
+        """
+        Проверяет, является ли страница потомком указанного предка.
 
         Confluence возвращает список предков в поле ``ancestors`` при запросе
         с ``expand=ancestors``. Метод проверяет, присутствует ли ``parent_id``
@@ -435,7 +449,7 @@ class ConfluenceClient:
         Args:
             page:      Словарь страницы с полем ``ancestors`` (из ``find_page``
                        с ``expand='ancestors'``).
-            parent_id: ID ожидаемого родителя.
+            parent_id: ID ожидаемого предка.
 
         Returns:
             ``True`` если ``parent_id`` найден среди предков, иначе ``False``.

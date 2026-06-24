@@ -13,10 +13,9 @@ from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilde
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
-# Импорт из пакета стратегий выполняет strategies/__init__.py, который
-# регистрирует все конкретные стратегии в BasePublishStrategy._registry.
-# PassportsStrategy используется явно ниже (DEFAULT_TEMPLATE).
-from autodoc.publisher.strategies import PassportsStrategy
+# Импорт модулей стратегий регистрирует их в BasePublishStrategy._registry
+# через __init_subclass__.
+from autodoc.publisher.strategies import passports_strategy, profile_strategy, release_strategy  # noqa: F401
 
 _RENDERING_DIR: Path = Path(__file__).resolve().parent / "rendering"
 """Путь к директории rendering/ внутри установленного пакета publisher."""
@@ -334,7 +333,7 @@ class DocumentPublisher:
         passports_root_parent_id: str | None = None,
         release_root_page_name: str | None = None,
         release_root_page_id: str | None = None,
-        passport_template_name: str = PassportsStrategy.DEFAULT_TEMPLATE,
+        passport_template_name: str = passports_strategy.PassportsStrategy.DEFAULT_TEMPLATE,
         include_passport_links: bool = True,
         profile_title: str | None = None,
         profile_template_name: str | None = None,

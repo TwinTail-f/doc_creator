@@ -22,14 +22,14 @@ class ConfluenceClientProtocol(Protocol):
     ) -> dict[str, Any]:
         """Создаёт или обновляет страницу Confluence и возвращает её метаданные."""
 
-    def ensure_page_exists(
+    def get_or_create_page(
         self,
         space: str,
         title: str,
         parent_id: str | None = None,
         body: str = "",
     ) -> str:
-        """Обеспечивает существование страницы и возвращает её ID."""
+        """Возвращает ID существующей страницы или создаёт новую."""
 
     def find_page(
         self,

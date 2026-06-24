@@ -66,6 +66,12 @@ def cli_error_boundary(panel_header: str) -> Generator[None, None, None]:
 def load_parsed_data(base_dir: Path) -> ParsedResult:
     """Загружает parsed_data.json и десериализует в ParsedResult.
 
+    Args:
+        base_dir: Базовая директория проекта; файл ищется в ``<base_dir>/data/parsed_data.json``.
+
+    Returns:
+        Десериализованный результат парсинга.
+
     Raises:
         DocGeneratorError: Если файл ``parsed_data.json`` не найден.
     """
@@ -81,7 +87,22 @@ def make_publisher(
     cli_ctx: CliCtx,
     config_file: str | None = None,
 ) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
-    """Создаёт DocumentPublisher и возвращает его вместе с конфигом."""
+    """Создаёт DocumentPublisher для публикации в Confluence.
+
+    Загружает конфигурацию Confluence через ``cli_ctx.config_manager`` и
+    оборачивает её в готовый к использованию ``DocumentPublisher``, чтобы
+    каждой команде публикации не приходилось повторять эту инициализацию.
+
+    Args:
+        cli_ctx: Контекст CLI с доступом к менеджеру конфигураций.
+        config_file: Имя файла конфига Confluence или ``None`` для автоопределения.
+
+    Returns:
+        Пара из ``DocumentPublisher`` и загруженной конфигурации Confluence.
+
+    Raises:
+        ConfigError: Если конфигурацию Confluence не удалось загрузить.
+    """
     conf_config = cli_ctx.config_manager.load_confluence_config(config_file)
     if conf_config is None:
         raise ConfigError("Не удалось загрузить конфигурацию Confluence.")
@@ -89,7 +110,19 @@ def make_publisher(
 
 
 def print_publish_result(result: PublishReport) -> None:
-    """Выводит результат публикации в консоль."""
+    """Выводит результат публикации в консоль в едином для всех команд формате.
+
+    При неуспехе или если ни одна страница не была опубликована — завершает
+    процесс с кодом 1, чтобы CI/скрипты, вызывающие CLI, могли отличить
+    неудачную публикацию от успешной.
+
+    Args:
+        result: Отчёт о публикации, возвращённый ``DocumentPublisher``.
+
+    Raises:
+        SystemExit: Если публикация завершилась с ошибками либо
+            ``result.pages_published == 0``.
+    """
     if result.success:
         console.print(
             Panel.fit(
