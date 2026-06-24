@@ -55,9 +55,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
         self._platform_version: str = ""
         self._artifactory_base_url: str = ""
         self._conan_config_url: str = ""
-        self._profile_overrides: ProfileSettingsOverrides = (
-            ProfileSettingsOverrides.empty()
-        )
+        self._profile_overrides: ProfileSettingsOverrides = ProfileSettingsOverrides()
         self._username: str = ""
         self._password: str | None = None
         self._exact_range_components: list[str] = []
@@ -86,7 +84,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
                     f'ConanFetcher: загружены переопределения настроек профилей из "{overrides_path}".'
                 )
         else:
-            self._profile_overrides = ProfileSettingsOverrides.empty()
+            self._profile_overrides = ProfileSettingsOverrides()
 
     def _fetch(
         self,

@@ -48,7 +48,7 @@ class ConanTaskBuilder:
             Список задач. Может быть пустым, если у компонентов нет профилей.
         """
         tasks: list[ConanTask] = []
-        overrides = profile_overrides or ProfileSettingsOverrides.empty()
+        overrides = profile_overrides or ProfileSettingsOverrides()
         exact_range_set: set[str] = set(exact_range_components or [])
 
         for comp in components:

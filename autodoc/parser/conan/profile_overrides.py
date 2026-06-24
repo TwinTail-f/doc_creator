@@ -41,11 +41,6 @@ class ProfileSettingsOverrides:
         self._mapping: dict[str, dict[str, str]] = mapping or {}
 
     @classmethod
-    def empty(cls) -> Self:
-        """Возвращает пустой экземпляр (переопределения не применяются)."""
-        return cls()
-
-    @classmethod
     def from_file(cls, path: str | Path) -> Self:
         """
         Загружает переопределения из YAML- или JSON-файла.
@@ -77,7 +72,7 @@ class ProfileSettingsOverrides:
                 f"profile_settings_overrides: файл не найден: {p}. "
                 "Переопределения настроек профилей не будут применены."
             )
-            return cls.empty()
+            return cls()
 
         try:
             with p.open("r", encoding="utf-8") as f:
@@ -90,7 +85,7 @@ class ProfileSettingsOverrides:
                 f"profile_settings_overrides: не удалось прочитать {p}: {e}. "
                 "Переопределения не будут применены."
             )
-            return cls.empty()
+            return cls()
 
         return cls._parse(raw, source=str(p))
 
@@ -144,8 +139,11 @@ class ProfileSettingsOverrides:
         Разбирает содержимое конфига в плоский словарь ``{profile: {setting: value}}``.
 
         Args:
-            raw: Содержимое конфига произвольного типа; ожидается dict с ключом
-                 ``overrides``, но структура проверяется явно ниже.
+            raw: Содержимое конфига — тип не гарантирован: это либо результат
+                 ``yaml.safe_load()``/``json.load()`` (может оказаться чем угодно —
+                 list, str, None и т.д.), либо уже валидный dict из ``from_dict()``.
+                 Именно поэтому здесь ``Any``, а не ``dict`` — структура ничего
+                 не "ожидает" на уровне типа, она проверяется явно ниже.
             source: Строковое описание источника для сообщений лога.
 
         Returns:
@@ -159,21 +157,21 @@ class ProfileSettingsOverrides:
                 f"profile_settings_overrides ({source}): ожидался объект, "
                 f"получен {type(raw).__name__}. Переопределения не будут применены."
             )
-            return cls.empty()
+            return cls()
 
         overrides_list = raw.get("overrides")
         if not overrides_list:
             logger.debug(
                 f'profile_settings_overrides ({source}): секция "overrides" пуста или отсутствует.'
             )
-            return cls.empty()
+            return cls()
 
         if not isinstance(overrides_list, list):
             logger.warning(
                 f'profile_settings_overrides ({source}): "overrides" должен быть списком. '
                 "Переопределения не будут применены."
             )
-            return cls.empty()
+            return cls()
 
         mapping: dict[str, dict[str, str]] = {}
         for idx, entry in enumerate(overrides_list):
