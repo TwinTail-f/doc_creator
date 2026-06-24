@@ -6,7 +6,7 @@ from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentR
 from autodoc.models.component import Component
 from autodoc.models.options import ConanInputOptions
 from autodoc.models.profile_definition import ProfileDefinition
-from autodoc.models.types import OptionsMap
+from autodoc.models.types import OptionsMap, ReleaseKey
 
 
 class DataEnricher:
@@ -36,11 +36,7 @@ class DataEnricher:
         """
         for comp in components:
             for release in comp.releases:
-                key: tuple[str, str, str] = (
-                    comp.name,
-                    release.version,
-                    release.channel,
-                )
+                key = ReleaseKey(comp.name, release.version, release.channel)
                 opts = options_map.get(key)
                 if opts is not None:
                     release.build_option_sets = [
@@ -110,7 +106,7 @@ class DataEnricher:
 
         for comp in components:
             for release in comp.releases:
-                release_key = (comp.name, release.version, release.channel)
+                release_key = ReleaseKey(comp.name, release.version, release.channel)
                 rel_data = result.release_data.get(release_key)
                 if rel_data:
                     release.conan_reference = rel_data.base_ref

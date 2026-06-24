@@ -146,7 +146,7 @@ class ConanTaskBuilder:
         self,
         reference: str,
         profile_name: str,
-        options: list[str] | None = None,
+        options: list[str],
         extra_settings: dict[str, str] | None = None,
     ) -> list[str]:
         """
@@ -164,7 +164,7 @@ class ConanTaskBuilder:
         Args:
             reference: Conan-ссылка с диапазоном версии.
             profile_name: Имя профиля сборки.
-            options: Список отдельных строк опций (может быть пустым или None).
+            options: Список отдельных строк опций (может быть пустым списком).
             extra_settings: Словарь дополнительных настроек ``{key: value}``
                 для добавления в команду флагами ``-s``. Если ``None`` или пуст —
                 игнорируется.
@@ -186,9 +186,8 @@ class ConanTaskBuilder:
             for key, value in extra_settings.items():
                 cmd.extend(["-s", f"{key}={value}"])
 
-        if options:
-            for opt in options:
-                cmd.extend(["-o", self._normalize_option(opt)])
+        for opt in options:
+            cmd.extend(["-o", self._normalize_option(opt)])
 
         return cmd
 

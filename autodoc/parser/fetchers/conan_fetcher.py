@@ -72,7 +72,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
         self._timeout = ctx.config.conan_command_timeout
         self._platform_version = ctx.config.platform_base_version
         self._artifactory_base_url = ctx.config.artifactory_components_conan2_url or ""
-        self._conan_config_url = (ctx.config.conan_config_url or "").strip()
+        self._conan_config_url = ctx.config.conan_config_url or ""
         self._username = ctx.config.username
         self._password = ctx.config.artifactory_token
         self._exact_range_components = ctx.config.exact_range_components or []

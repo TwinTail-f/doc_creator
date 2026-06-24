@@ -12,6 +12,7 @@ from typing import Any
 from autodoc.parser.conan.models.conan_report import ConanComponentReport
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.options import DefaultOptionsSet, TotalOptionsSet
+from autodoc.models.types import ReleaseKey
 
 # Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}
 _ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
@@ -51,7 +52,7 @@ class ProfileConanData:
 class ConanEnrichmentResult:
     """Результат выполнения Conan graph info, готовый для применения к моделям."""
 
-    release_data: dict[tuple[str, str, str], ReleaseConanData] = field(
+    release_data: dict[ReleaseKey, ReleaseConanData] = field(
         default_factory=dict
     )
     profile_data: dict[int, ProfileConanData] = field(default_factory=dict)

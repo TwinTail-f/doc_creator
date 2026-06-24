@@ -80,7 +80,7 @@ class ConanEnvironmentManager:
             env=env,
         )
         if result.returncode != 0:
-            # Conan occasionally writes error details to stdout instead of stderr.
+            # Conan иногда пишет детали ошибки в stdout вместо stderr.
             error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
@@ -111,7 +111,7 @@ class ConanEnvironmentManager:
             env=env,
         )
         if result.returncode != 0:
-            # Conan occasionally writes error details to stdout instead of stderr.
+            # Conan иногда пишет детали ошибки в stdout вместо stderr.
             error = result.stderr.strip() or result.stdout.strip()
             self.cleanup()
             raise RuntimeError(
@@ -127,6 +127,10 @@ class ConanEnvironmentManager:
         if not split.scheme or not split.netloc:
             raise RuntimeError(f"Некорректный config_url: {self._config_url}")
         netloc_with_creds = f"{self._username}:{self._password}@{split.netloc}"
+        # SplitResult — это NamedTuple, и _replace() — его официальный публичный
+        # метод "вернуть копию с заменёнными полями" (наследуется от namedtuple).
+        # Префикс "_" здесь — не маркер приватности, а соглашение namedtuple,
+        # чтобы не пересекаться с именами полей самого тапла (netloc, scheme и т.д.).
         url_with_creds = urlunsplit(split._replace(netloc=netloc_with_creds))
 
         logger.info(

@@ -127,7 +127,8 @@ class ProfileSettingsOverrides:
 
         # Совпадение по basename (на случай если в профилях указан полный путь)
         basename = Path(profile_name).name
-        # Avoid redundant lookup: if profile_name is already a bare filename, it was checked above.
+        # Избегаем повторного поиска: если profile_name уже было простым именем
+        # файла без пути, оно уже было проверено выше.
         if basename != profile_name and basename in self._mapping:
             return dict(self._mapping[basename])
 
@@ -150,8 +151,9 @@ class ProfileSettingsOverrides:
         Returns:
             Заполненный экземпляр.
         """
-        # yaml.safe_load returns None for empty files and may return non-dict for
-        # malformed documents; the check guards against both cases.
+        # yaml.safe_load() возвращает None для пустых файлов и может вернуть
+        # не-dict для некорректно оформленного документа; проверка ниже
+        # защищает от обоих случаев.
         if not isinstance(raw, dict):
             logger.warning(
                 f"profile_settings_overrides ({source}): ожидался объект, "

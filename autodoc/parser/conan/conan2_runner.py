@@ -153,8 +153,8 @@ class Conan2Runner(BaseConanRunner):
         Returns:
             Сообщение об ошибке, начинающееся с маркера, или весь stderr.
         """
-        # Conan typically prefixes error messages with a long INFO preamble;
-        # we cut to the first "error:" occurrence for a cleaner message.
+        # Conan обычно предваряет сообщение об ошибке длинной INFO-преамбулой;
+        # обрезаем до первого вхождения "error:" для более чистого сообщения.
         idx = stderr.lower().find("error:")
         if idx != -1:
             return stderr[idx:]

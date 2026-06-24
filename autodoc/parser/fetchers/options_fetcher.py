@@ -11,7 +11,7 @@ from autodoc.exceptions import NetworkError
 from autodoc.common.logger import logger
 from autodoc.common.parallel_executor import ParallelExecutor
 from autodoc.models.component import Component
-from autodoc.models.types import OptionsMap
+from autodoc.models.types import OptionsMap, ReleaseKey
 from autodoc.parser.parsers.options_parser import OptionsParser
 from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
@@ -139,7 +139,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
                 chosen = OptionsParser.pick_options(
                     options_cache[cache_key], release.channel
                 )
-                result[(comp.name, release.version, release.channel)] = chosen
+                result[ReleaseKey(comp.name, release.version, release.channel)] = chosen
 
         logger.info(f"Завершён. Собрано опций для {len(result)} релизов.")
         return FetchResult(value=result, warnings=warnings)

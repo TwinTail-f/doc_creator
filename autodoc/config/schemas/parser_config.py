@@ -165,3 +165,8 @@ class ParserConfigSchema(BaseModel):
     @classmethod
     def normalize_artifactory_url(cls, v: str) -> str:
         return v.rstrip("/")
+
+    @field_validator("conan_config_url")
+    @classmethod
+    def normalize_conan_config_url(cls, v: str) -> str:
+        return v.strip()

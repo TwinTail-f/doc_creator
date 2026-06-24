@@ -11,6 +11,7 @@ from typing import Any
 from conan.api.model.refs import RecipeReference
 from conan.errors import ConanException
 
+from autodoc.common.logger import logger
 from autodoc.models.options import DefaultOptionsSet
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
@@ -121,15 +122,16 @@ class Conan2ResultParser:
 
         try:
             recipe_ref = RecipeReference.loads(full_ref)
-        except ConanException:
-            # Conan может прислать ref в нестандартном формате — деградируем
-            # до прежнего поведения на основе разбиения строки, не теряя данные.
-            base_ref = full_ref.split("#")[0]
-            if not rrev and "#" in full_ref:
-                rrev = full_ref.split("#")[1]
-            if "@" in base_ref and "/" in base_ref.split("@")[0]:
-                full_version = base_ref.split("@")[0].split("/")[1]
-            return base_ref, rrev, full_version
+        except ConanException as e:
+            # Не пытаемся повторно разобрать ref вручную через split() — встроенный
+            # парсер Conan надёжнее любой самодельной эвристики для его собственного
+            # формата ссылок. Если он не справился, считаем base_ref неизвестным,
+            # а не угадываем его частичным разбором строки.
+            logger.warning(
+                f'Conan2ResultParser: не удалось разобрать ref "{full_ref}" ({e}); '
+                "base_ref будет пустым."
+            )
+            return "", rrev, full_version
 
         base_ref = str(recipe_ref)
         if not rrev and recipe_ref.revision:
@@ -200,14 +202,20 @@ class Conan2ResultParser:
             if not name or name == comp_name or name == "conanfile":
                 continue
             ref: str = node.get("ref", "")
-            if ref:
-                try:
-                    dep_name = RecipeReference.loads(ref).name
-                except ConanException:
-                    # Деградация до прежнего поведения для нестандартных ref-строк.
-                    dep_name = ref.split("/")[0]
-                if dep_name and dep_name != comp_name:
-                    deps.append(dep_name)
+            if not ref:
+                continue
+            try:
+                dep_name = RecipeReference.loads(ref).name
+            except ConanException as e:
+                # Не угадываем имя через split("/") — если специализированный
+                # парсер Conan не смог разобрать ref, пропускаем зависимость
+                # вместо того, чтобы рисковать неверным именем.
+                logger.warning(
+                    f'Conan2ResultParser: не удалось разобрать ref зависимости "{ref}" ({e}); пропускаем.'
+                )
+                continue
+            if dep_name and dep_name != comp_name:
+                deps.append(dep_name)
         return sorted(set(deps))
 
     def _build_artifactory_url(

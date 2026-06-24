@@ -29,12 +29,11 @@ from autodoc.parser.conan.models.conan_report import (
 )
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.options import TotalOptionsSet
+from autodoc.models.types import ReleaseKey
 from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 from autodoc.common.logger import logger
-
-_ReleaseKey = tuple[str, str, str]  # (comp_name, version, channel)
 
 
 class ConanResultAggregator:
@@ -66,6 +65,13 @@ class ConanResultAggregator:
         Не мутирует переданные модели — только формирует структуру данных
         для последующей передачи в ``DataEnricher.apply_conan_results()``.
 
+        Состоит из двух шагов:
+            1. ``_apply_raw_results`` — применяет каждый сырой результат к
+               агрегатору соответствующего ProfileBuild и попутно объединяет
+               зависимости/патчи/resolved-опции по релизам.
+            2. ``_build_final_result`` — один раз на каждый ProfileBuild
+               формирует итоговые ``ReleaseConanData`` и ``ProfileConanData``.
+
         Args:
             tasks: Список задач в том же порядке, что и ``raw_results``.
             raw_results: Сырые результаты параллельного выполнения.
@@ -79,16 +85,75 @@ class ConanResultAggregator:
         pb_agg: dict[int, _ProfileBuildAggregator] = {
             id(task.pb): _ProfileBuildAggregator() for task in tasks
         }
+        release_deps: dict[ReleaseKey, set[str]] = {}
+        release_patches: dict[ReleaseKey, set[str]] = {}
+        release_resolved_options: dict[ReleaseKey, dict[str, dict[str, Any]]] = {}
 
+        self._apply_raw_results(
+            tasks,
+            raw_results,
+            pb_agg,
+            release_deps,
+            release_patches,
+            release_resolved_options,
+        )
+
+        result = ConanEnrichmentResult(
+            total_tasks=len(tasks),
+            succeeded=sum(1 for r in raw_results if r and r.success),
+        )
+        result.failed = result.total_tasks - result.succeeded
+
+        self._build_final_result(
+            tasks,
+            pb_agg,
+            release_deps,
+            release_patches,
+            release_resolved_options,
+            art_base,
+            target_platform,
+            result,
+        )
+
+        return result
+
+    def _apply_raw_results(
+        self,
+        tasks: list[ConanTask],
+        raw_results: list[ConanRawResult | None],
+        pb_agg: dict[int, "_ProfileBuildAggregator"],
+        release_deps: dict[ReleaseKey, set[str]],
+        release_patches: dict[ReleaseKey, set[str]],
+        release_resolved_options: dict[ReleaseKey, dict[str, dict[str, Any]]],
+    ) -> None:
+        """
+        Применяет каждый сырой результат к агрегатору соответствующего ProfileBuild
+        и в том же проходе объединяет его зависимости/патчи/resolved-опции по ReleaseKey.
+
+        Объединение по ReleaseKey безопасно делать в этом же проходе, без
+        отдельного цикла после: ``release_deps``/``release_patches`` — множества,
+        а ``release_resolved_options`` заполняется по принципу "первый встретившийся
+        option_id выигрывает", поэтому повторный union/merge для одного и того же
+        release_key только дополняет уже накопленные данные и не зависит от порядка
+        обработки задач.
+
+        Args:
+            tasks: Список задач в том же порядке, что и ``raw_results``.
+            raw_results: Сырые результаты параллельного выполнения.
+            pb_agg: Агрегатор на каждый ProfileBuild (``id(task.pb) → _ProfileBuildAggregator``).
+            release_deps: Накопитель зависимостей по ``ReleaseKey`` (заполняется здесь).
+            release_patches: Накопитель патчей по ``ReleaseKey`` (заполняется здесь).
+            release_resolved_options: Накопитель resolved-опций по ``ReleaseKey`` (заполняется здесь).
+        """
         for task, raw in zip(tasks, raw_results):
+            agg = pb_agg[id(task.pb)]
+
             if raw is None:
                 logger.warning(
-                    "ConanResultAggregator: received None raw result — "
-                    "a parallel task may have crashed or been cancelled."
+                    "ConanResultAggregator: получен пустой сырой результат — "
+                    "параллельная задача могла завершиться с ошибкой или быть отменена."
                 )
-                continue
-            agg = pb_agg[id(task.pb)]
-            if raw.success and raw.data:
+            elif raw.success and raw.data:
                 enrich = self._result_parser.parse(raw.data, task)
                 if enrich:
                     agg.apply_enrich(enrich)
@@ -105,40 +170,45 @@ class ConanResultAggregator:
             else:
                 agg.errors.append({" ".join(task.cmd): raw.error})
 
-        result = ConanEnrichmentResult(
-            total_tasks=len(tasks),
-            succeeded=sum(1 for r in raw_results if r and r.success),
-        )
-        result.failed = result.total_tasks - result.succeeded
+            release_key = ReleaseKey(task.comp_name, task.version, task.channel)
+            release_deps.setdefault(release_key, set()).update(agg.all_dependencies)
+            release_patches.setdefault(release_key, set()).update(agg.all_patches)
+            merged_opts = release_resolved_options.setdefault(release_key, {})
+            for opt_id, opts in agg.resolved_options_by_id.items():
+                merged_opts.setdefault(opt_id, opts)
 
-        release_deps: dict[_ReleaseKey, set[str]] = {}
-        release_patches: dict[_ReleaseKey, set[str]] = {}
+    def _build_final_result(
+        self,
+        tasks: list[ConanTask],
+        pb_agg: dict[int, "_ProfileBuildAggregator"],
+        release_deps: dict[ReleaseKey, set[str]],
+        release_patches: dict[ReleaseKey, set[str]],
+        release_resolved_options: dict[ReleaseKey, dict[str, dict[str, Any]]],
+        art_base: str,
+        target_platform: str,
+        result: ConanEnrichmentResult,
+    ) -> None:
+        """
+        Заполняет ``result.release_data`` и ``result.profile_data`` — по одному
+        разу для каждого ProfileBuild.
 
-        release_resolved_options: dict[
-            _ReleaseKey, dict[str, dict[str, Any]]
-        ] = {}
+        Должен выполняться после ``_apply_raw_results``: ``release_deps``,
+        ``release_patches`` и ``release_resolved_options`` должны быть полностью
+        объединены по *всем* задачам для данного ``ReleaseKey``, прежде чем для
+        него будет создан ``ReleaseConanData`` (иначе в него попадёт только
+        часть зависимостей/опций — от задач, обработанных к этому моменту).
 
-        for task in tasks:
-            release_key_pre: _ReleaseKey = (
-                task.comp_name,
-                task.version,
-                task.channel,
-            )
-            release_deps.setdefault(release_key_pre, set()).update(
-                pb_agg[id(task.pb)].all_dependencies
-            )
-            release_patches.setdefault(release_key_pre, set()).update(
-                pb_agg[id(task.pb)].all_patches
-            )
-            merged_opts = release_resolved_options.setdefault(release_key_pre, {})
-            for opt_id, opts in pb_agg[id(task.pb)].resolved_options_by_id.items():
-                if opt_id not in merged_opts:
-                    merged_opts[opt_id] = opts
-
-        # Second pass: construct the final result.
-        # Must run after the first pass because release_resolved_options, release_deps,
-        # and release_patches must be fully merged across *all* tasks for a release key
-        # before any ReleaseConanData object is created.
+        Args:
+            tasks: Список задач (используется порядок для выбора первого
+                ProfileBuild каждого релиза).
+            pb_agg: Агрегатор на каждый ProfileBuild.
+            release_deps: Полностью объединённые зависимости по ``ReleaseKey``.
+            release_patches: Полностью объединённые патчи по ``ReleaseKey``.
+            release_resolved_options: Полностью объединённые resolved-опции по ``ReleaseKey``.
+            art_base: Базовый URL Artifactory (без завершающего слэша).
+            target_platform: Целевая платформа (используется в URL пакета).
+            result: Результат, который заполняется (мутируется).
+        """
         visited_pbs: set[int] = set()
         for task in tasks:
             pb_id = id(task.pb)
@@ -147,36 +217,18 @@ class ConanResultAggregator:
             visited_pbs.add(pb_id)
 
             agg = pb_agg[pb_id]
-            release_key: _ReleaseKey = (
-                task.comp_name,
-                task.version,
-                task.channel,
-            )
+            release_key = ReleaseKey(task.comp_name, task.version, task.channel)
 
             if agg.first_enrich and release_key not in result.release_data:
-                fe = agg.first_enrich
-                art_url = ""
-                if art_base:
-                    art_url = (
-                        f"{art_base}/platform-{target_platform}"
-                        f"/{task.comp_name}/{fe.full_version}/{task.channel}/{fe.rrev}"
-                    )
-
-                total_options = [
-                    TotalOptionsSet(id=opt_id, options=opts)
-                    for opt_id, opts in release_resolved_options.get(
-                        release_key, {}
-                    ).items()
-                ]
-                result.release_data[release_key] = ReleaseConanData(
-                    base_ref=fe.base_ref,
-                    rrev=fe.rrev,
-                    full_version=fe.full_version,
-                    default_options=fe.default_options,
-                    total_options=total_options,
-                    patches=sorted(release_patches.get(release_key, set())),
-                    dependencies=sorted(release_deps.get(release_key, set())),
-                    artifactory_url=art_url,
+                result.release_data[release_key] = self._build_release_data(
+                    task,
+                    agg.first_enrich,
+                    release_key,
+                    release_deps,
+                    release_patches,
+                    release_resolved_options,
+                    art_base,
+                    target_platform,
                 )
 
             result.profile_data[pb_id] = ProfileConanData(
@@ -188,7 +240,57 @@ class ConanResultAggregator:
             if not agg.any_success:
                 _record_error(result.errors, task, agg.errors)
 
-        return result
+    def _build_release_data(
+        self,
+        task: ConanTask,
+        first_enrich: ConanEnrichData,
+        release_key: ReleaseKey,
+        release_deps: dict[ReleaseKey, set[str]],
+        release_patches: dict[ReleaseKey, set[str]],
+        release_resolved_options: dict[ReleaseKey, dict[str, dict[str, Any]]],
+        art_base: str,
+        target_platform: str,
+    ) -> ReleaseConanData:
+        """
+        Строит ``ReleaseConanData`` для одного релиза из первого успешного
+        ``ConanEnrichData`` и полностью объединённых по релизу зависимостей/
+        патчей/resolved-опций.
+
+        Args:
+            task: Любая из задач данного релиза (для имени компонента и channel в URL).
+            first_enrich: Первый успешный ``ConanEnrichData`` для этого релиза.
+            release_key: Ключ релиза, для которого строятся данные.
+            release_deps: Полностью объединённые зависимости по ``ReleaseKey``.
+            release_patches: Полностью объединённые патчи по ``ReleaseKey``.
+            release_resolved_options: Полностью объединённые resolved-опции по ``ReleaseKey``.
+            art_base: Базовый URL Artifactory (без завершающего слэша).
+            target_platform: Целевая платформа (используется в URL пакета).
+
+        Returns:
+            Заполненный ``ReleaseConanData``.
+        """
+        art_url = ""
+        if art_base:
+            art_url = (
+                f"{art_base}/platform-{target_platform}"
+                f"/{task.comp_name}/{first_enrich.full_version}/{task.channel}/{first_enrich.rrev}"
+            )
+
+        total_options = [
+            TotalOptionsSet(id=opt_id, options=opts)
+            for opt_id, opts in release_resolved_options.get(release_key, {}).items()
+        ]
+
+        return ReleaseConanData(
+            base_ref=first_enrich.base_ref,
+            rrev=first_enrich.rrev,
+            full_version=first_enrich.full_version,
+            default_options=first_enrich.default_options,
+            total_options=total_options,
+            patches=sorted(release_patches.get(release_key, set())),
+            dependencies=sorted(release_deps.get(release_key, set())),
+            artifactory_url=art_url,
+        )
 
     def build_execution_report(
         self,
@@ -208,10 +310,10 @@ class ConanResultAggregator:
         Returns:
             Список ``ConanComponentReport``, упорядоченный по компонентам.
         """
-        comp_map: dict[_ReleaseKey, ConanComponentReport] = {}
+        comp_map: dict[ReleaseKey, ConanComponentReport] = {}
 
         for task, raw in zip(tasks, raw_results):
-            key = (task.comp_name, task.version, task.channel)
+            key = ReleaseKey(task.comp_name, task.version, task.channel)
             comp_report = comp_map.setdefault(
                 key,
                 ConanComponentReport(
@@ -282,19 +384,6 @@ class ConanResultAggregator:
 
 class _ProfileBuildAggregator:
     """Внутренний агрегатор результатов по одному ProfileBuild."""
-
-    # __slots__ reduces per-instance memory and attribute-access overhead;
-    # one aggregator is created per ProfileBuild, potentially thousands in a run.
-    __slots__ = (
-        "any_success",
-        "unique_variants",
-        "first_enrich",
-        "conan_settings",
-        "errors",
-        "resolved_options_by_id",
-        "all_dependencies",
-        "all_patches",
-    )
 
     def __init__(self) -> None:
         """
