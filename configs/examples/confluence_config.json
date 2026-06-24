@@ -12,6 +12,9 @@
 
   "release_docs_page_title": "Документация к релизу Платформы 2.2.0",
 
+  "_comment_profile_root": "Корневая родительская страница profile-centric документации (publish profile); поля опциональны",
+  "_comment_profile_id": "Или используйте profile_docs_root_parent_id как запасной вариант",
+
   "passports_root_parent_name": "Паспорта компонентов",
   "_comment_passports_id": "Или используйте passports_root_parent_id как запасной вариант",
 

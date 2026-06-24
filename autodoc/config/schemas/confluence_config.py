@@ -52,6 +52,21 @@ class ConfluenceConfigSchema(BaseModel):
         default=None,
         description="Заголовок страницы профиль-центричной документации.",
     )
+    profile_docs_root_parent_id: str | None = Field(
+        default=None,
+        description=(
+            "ID корневой родительской страницы профиль-центричной документации. "
+            "Используется как запасной вариант, если profile_docs_root_parent_name не задан."
+        ),
+    )
+    profile_docs_root_parent_name: str | None = Field(
+        default=None,
+        description=(
+            "Название корневой родительской страницы профиль-центричной документации. "
+            "Если задано — используется вместо profile_docs_root_parent_id "
+            "(приоритет: profile_docs_root_parent_name > profile_docs_root_parent_id)."
+        ),
+    )
     passports_root_parent_id: str | None = Field(
         default=None,
         description="ID родительской страницы для дерева паспортов",

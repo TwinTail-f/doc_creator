@@ -147,6 +147,8 @@ overrides:
 |------|----------|
 | `release_docs_root_parent_name` | Название корневой родительской страницы релизной документации *(приоритет над `release_docs_root_parent_id`)* |
 | `release_docs_root_parent_id` | ID корневой родительской страницы релизной документации *(запасной вариант)* |
+| `profile_docs_root_parent_name` | Название корневой родительской страницы документации от профилей *(приоритет над `profile_docs_root_parent_id`)* |
+| `profile_docs_root_parent_id` | ID корневой родительской страницы документации от профилей *(запасной вариант)* |
 | `passports_root_parent_name` | Название корневой страницы иерархии паспортов *(приоритет над `passports_root_parent_id`)* |
 | `passports_root_parent_id` | ID корневой страницы иерархии паспортов *(запасной вариант)* |
 
@@ -156,6 +158,7 @@ overrides:
 |------|-------------|----------|
 | `verify_ssl` | `true` | Проверять SSL-сертификаты |
 | `release_docs_page_title` | `"Сборки компонентов Платформы"` | Заголовок корневой страницы релизной документации |
+| `profile_docs_page_title` | — | Заголовок страницы профиль-центричной документации (если не задан — используется заголовок по умолчанию `"Документация от профилей"` либо `--page-title` из CLI) |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -204,10 +207,18 @@ python autodoc publish release --no-passport-links
 
 ```bash
 # Использовать параметры из конфига
+# (заголовок — profile_docs_page_title, родительская страница —
+#  profile_docs_root_parent_name / profile_docs_root_parent_id)
 python autodoc publish profile
 
-# Переопределить заголовок и корневую страницу через название
-python autodoc publish profile --page-title "Профили 2.2" --root-page-name "Релиз 2.2"
+# Переопределить заголовок страницы
+python autodoc publish profile --page-title "Профили 2.2"
+
+# Переопределить родительскую страницу через название
+python autodoc publish profile --root-page-name "Документация платформы 2.2"
+
+# Переопределить через ID (альтернатива)
+python autodoc publish profile --root-page-id 123456789
 
 # Без ссылок на паспорта
 python autodoc publish profile --no-passport-links
@@ -288,11 +299,13 @@ python autodoc info
 
 ### `publish release` и `publish profile`
 
+Обе команды принимают одинаковый набор флагов, но запасной вариант (если флаг не передан) берётся из *разных* полей конфигурации в зависимости от команды:
+
 | Флаг | Описание |
 |------|----------|
-| `--page-title` | Заголовок страницы (переопределяет `release_docs_page_title` из конфига) |
-| `--root-page-name "Название"` | Название корневой родительской страницы (переопределяет конфиг). Если содержит пробелы — заключите в кавычки. |
-| `--root-page-id ID` | ID корневой родительской страницы (переопределяет конфиг). Нельзя указывать вместе с `--root-page-name`. |
+| `--page-title` | Заголовок страницы. Переопределяет `release_docs_page_title` (для `publish release`) или `profile_docs_page_title` (для `publish profile`) из конфига. |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет конфиг). Для `publish release` — запасной вариант `release_docs_root_parent_name`, для `publish profile` — `profile_docs_root_parent_name`. Если содержит пробелы — заключите в кавычки. |
+| `--root-page-id ID` | ID родительской страницы (переопределяет конфиг). Для `publish release` — запасной вариант `release_docs_root_parent_id`, для `publish profile` — `profile_docs_root_parent_id`. Нельзя указывать вместе с `--root-page-name`. |
 | `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
 
 ### `publish passports`

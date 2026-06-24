@@ -158,7 +158,7 @@ class DocumentPublisher:
         page_id: str | None,
     ) -> str | None:
         """
-        Резолвит ID родительской страницы для релизной/профильной документации.
+        Резолвит ID родительской страницы для релизной документации.
 
         Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
         Confluence как запасной вариант. В отличие от паспортов, родитель
@@ -178,6 +178,63 @@ class DocumentPublisher:
             "release_docs_root_parent",
             required=False,
         )
+
+    def _resolve_profile_parent(
+        self,
+        name: str | None,
+        page_id: str | None,
+    ) -> str | None:
+        """
+        Резолвит ID родительской страницы для профиль-центричной документации.
+
+        Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
+        Confluence (``profile_docs_root_parent_name`` / ``profile_docs_root_parent_id``)
+        как запасной вариант. Родитель не обязателен — публикация допускается
+        без родительской страницы.
+
+        Args:
+            name: Название родительской страницы, введённое пользователем.
+            page_id: ID родительской страницы, введённый пользователем.
+
+        Returns:
+            ID родительской страницы или ``None``, если ни одно из значений
+            не настроено.
+        """
+        return self.resolve_page_id(
+            name or self._config.profile_docs_root_parent_name,
+            page_id or self._config.profile_docs_root_parent_id,
+            "profile_docs_root_parent",
+            required=False,
+        )
+
+    def _resolve_single_page_parent(
+        self,
+        strategy_type: str,
+        name: str | None,
+        page_id: str | None,
+    ) -> str | None:
+        """
+        Резолвит родительскую страницу для команд ``publish release`` / ``publish profile``.
+
+        У каждой стратегии — своя пара полей конфигурации для запасного
+        варианта: ``release`` берёт ``release_docs_root_parent_*``,
+        ``profile_centric`` берёт ``profile_docs_root_parent_*``. Раньше обе
+        стратегии ошибочно резолвились через ``release_docs_root_parent_*``,
+        из-за чего конфиг не позволял задать отдельную родительскую страницу
+        для профиль-центричной документации.
+
+        Args:
+            strategy_type: Тип стратегии (``'release'`` или ``'profile_centric'``).
+            name: Название родительской страницы, введённое пользователем.
+            page_id: ID родительской страницы, введённый пользователем.
+
+        Returns:
+            ID родительской страницы или ``None``, если ни одно из значений
+            не настроено.
+        """
+        if strategy_type == "profile_centric":
+            return self._resolve_profile_parent(name, page_id)
+        return self._resolve_release_parent(name, page_id)
 
     def _resolve_root_pages(
         self,
@@ -272,8 +329,18 @@ class DocumentPublisher:
 
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
+
+        Note:
+            Запасной вариант родительской страницы (если ``root_page_name``/
+            ``root_page_id`` не заданы) берётся из конфигурации Confluence
+            и зависит от ``strategy_type``: для ``'release'`` — это
+            ``release_docs_root_parent_name``/``release_docs_root_parent_id``,
+            для ``'profile_centric'`` — ``profile_docs_root_parent_name``/
+            ``profile_docs_root_parent_id``.
         """
-        parent_id = self._resolve_release_parent(root_page_name, root_page_id)
+        parent_id = self._resolve_single_page_parent(
+            strategy_type, root_page_name, root_page_id
+        )
         return self.publish(
             strategy_type=strategy_type,
             parsed_data=parsed_data,

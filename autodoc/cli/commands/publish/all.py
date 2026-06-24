@@ -46,14 +46,14 @@ publish.add_command(publish_passports)
     ),
 )
 @click.option(
-    "--root-page-id", "root_page_id", default=None,
+    "--release-root-page-id", "root_page_id", default=None,
     help="ID корневой родительской страницы релизной документации (переопределяет конфиг)",
 )
 @click.option(
-    "--root-page-name", "root_page_name", default=None,
+    "--release-root-page-name", "root_page_name", default=None,
     help=(
         "Название корневой родительской страницы релизной документации (переопределяет конфиг). "
-        'Если содержит пробелы — заключите в кавычки: --root-page-name "Моя страница"'
+        'Если содержит пробелы — заключите в кавычки: --release-root-page-name "Моя страница"'
     ),
 )
 @click.option(
@@ -104,8 +104,8 @@ def publish_all(
     require_exclusive(
         root_page_name,
         root_page_id,
-        name_flag="--root-page-name",
-        id_flag="--root-page-id",
+        name_flag="--release-root-page-name",
+        id_flag="--release-root-page-id",
     )
     if additional_page_profile_name and not with_additional_page_profile:
         raise click.UsageError(

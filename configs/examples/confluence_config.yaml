@@ -7,15 +7,22 @@ space: "PLATFORM"
 verify_ssl: false
 
 # Корневая родительская страница релизной документации.
-# Укажите release_docs_root_parent_name (рекомендуется) ИЛИ release_docs_root_parent_id.
+# Укажите release_docs_root_parent_name ИЛИ release_docs_root_parent_id.
 # Если заданы оба — приоритет у _name.
 release_docs_root_parent_name: "Документация к релизу Платформы 2.2.0"
 # release_docs_root_parent_id: "123456789"   # запасной вариант
 
 release_docs_page_title: "Документация к релизу Платформы 2.2.0"
 
+# Корневая родительская страница профиль-центричной документации (publish profile).
+# Укажите profile_docs_root_parent_name ИЛИ profile_docs_root_parent_id.
+# profile_docs_root_parent_name: "Документация от профилей Платформы 2.2.0"
+# profile_docs_root_parent_id: "123456789"   # запасной вариант
+
+# profile_docs_page_title: "Документация от профилей Платформы 2.2.0"
+
 # Корневая страница для иерархии паспортов компонентов.
-# Укажите passports_root_parent_name (рекомендуется) ИЛИ passports_root_parent_id.
+# Укажите passports_root_parent_name ИЛИ passports_root_parent_id.
 passports_root_parent_name: "Паспорта компонентов"
 # passports_root_parent_id: "987654321"   # запасной вариант
 
