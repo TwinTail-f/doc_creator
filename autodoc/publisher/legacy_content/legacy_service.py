@@ -15,11 +15,7 @@ def extract_for_platform(
     current_platform_version: str,
 ) -> dict[str, str]:
     """
-    Извлекает все legacy-секции платформ, кроме текущей.
-
-    Использует ``extract_platform_versions`` для
-    получения всех секций, затем исключает ту, что соответствует текущей
-    версии платформы по суффиксу строки версии (например ``'2.2'``).
+    Извлекает legacy-секции всех платформ, кроме указанной текущей.
 
     Args:
         existing_html: Текущее тело страницы (Confluence Storage Format).

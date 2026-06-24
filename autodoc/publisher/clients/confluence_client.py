@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from autodoc.publisher.clients.confluence_client_protocol import PageResult
+
 import requests
 import urllib3
 
@@ -31,14 +33,11 @@ _FALLBACK_VERSION: int = 0
 
 class ConfluenceClient:
     """
-    Клиент Confluence REST API v1.
+    Клиент для публикации и чтения страниц Confluence через REST API v1.
 
-    Все запросы идут через единственный ``RetryableSession`` —
-    retry-логика, таймауты и SSL-конфигурация применяются однородно
-    ко всем обращениям к Confluence.
-
-    Клиент не хранит состояния страниц и безопасен для повторного
-    использования в рамках одного процесса.
+    Предназначен для использования стратегиями паблишера. Управляет
+    жизненным циклом страниц: создаёт, обновляет и ищет их по заголовку
+    и Space.
 
     Attributes:
         _base_url: Базовый URL Confluence без завершающего слеша.
@@ -48,7 +47,7 @@ class ConfluenceClient:
 
     def __init__(self, config: ConfluenceConfigSchema) -> None:
         """
-        Инициализирует клиент из конфигурации Confluence.
+        Создаёт клиент, готовый к работе с Confluence.
 
         Args:
             config: Валидированная конфигурация с URL, токеном и параметрами SSL.
@@ -65,14 +64,13 @@ class ConfluenceClient:
         parent_id: str,
         title: str,
         body_html: str,
-    ) -> dict[str, Any]:
+    ) -> PageResult:
         """
-        Создаёт или обновляет страницу Confluence.
+        Публикует страницу в Confluence: создаёт новую или обновляет существующую.
 
-        Если страница с таким заголовком уже существует в указанном Space
-        **и находится среди потомков ``parent_id``** (прямых или косвенных) —
-        обновляет её тело с автоинкрементом номера версии. Если не существует
-        или принадлежит другому дереву — создаёт новую под ``parent_id``.
+        Если страница с таким заголовком найдена в дереве ``parent_id`` —
+        обновляет её. Если отсутствует или принадлежит другому дереву —
+        создаёт новую.
 
         Args:
             space:     Ключ Space в Confluence.
@@ -81,7 +79,7 @@ class ConfluenceClient:
             body_html: Тело страницы в Confluence Storage Format (HTML).
 
         Returns:
-            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+            Результат операции в виде ``PageResult``.
 
         Raises:
             ConfluenceError: Если создание или обновление не удалось.
@@ -105,10 +103,8 @@ class ConfluenceClient:
         """
         Возвращает ID существующей страницы или создаёт новую.
 
-        Страница считается «той же» только если она находится среди потомков
-        ``parent_id`` (прямых или косвенных). Если в Space существует страница
-        с таким же заголовком, но под другим родителем, она игнорируется и
-        создаётся новая — это предотвращает случайную запись в дерево другого корня.
+        Если страница с таким заголовком найдена в дереве ``parent_id`` —
+        возвращает её ID. Иначе создаёт новую страницу под ``parent_id``.
 
         Args:
             space:     Ключ Space.
@@ -132,14 +128,11 @@ class ConfluenceClient:
 
         placeholder = body or (f"<p>Автоматически созданная страница: {title}</p>")
         result = self._create_page(space, parent_id, title, placeholder)
-        logger.info(f"Создана страница {title} (ID: {result['id']})")
         return str(result["id"])
 
     def get_page_body(self, space: str, title: str) -> str:
         """
         Возвращает тело страницы в Confluence Storage Format.
-
-        При отсутствии страницы или любой ошибке API возвращает пустую строку.
 
         Args:
             space: Ключ Space.
@@ -165,7 +158,7 @@ class ConfluenceClient:
         Args:
             title:  Заголовок страницы.
             space:  Ключ Space. Если не указан — используется ``self._space``.
-            expand: Опциональный параметр ``expand`` для Confluence API
+            expand: Параметр ``expand`` для Confluence API
                     (например ``'version'`` или ``'body.storage'``).
 
         Returns:
@@ -205,7 +198,7 @@ class ConfluenceClient:
             Словарь с данными страницы.
 
         Raises:
-            ConfluenceError: Если страница не найдена (HTTP 404) или запрос не удался.
+            ConfluenceError: Если страница не найдена или запрос завершился ошибкой.
         """
         url = self._api_url("content", page_id)
         response = self._request(
@@ -219,9 +212,9 @@ class ConfluenceClient:
         parent_id: str,
         title: str,
         body_html: str,
-    ) -> dict[str, Any]:
+    ) -> PageResult:
         """
-        Выполняет POST-запрос для создания новой страницы.
+        Создаёт новую страницу в Confluence.
 
         Args:
             space:     Ключ Space.
@@ -230,7 +223,7 @@ class ConfluenceClient:
             body_html: Тело страницы в Storage Format.
 
         Returns:
-            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+            Результат операции в виде ``PageResult``.
 
         Raises:
             ConfluenceError: Если API вернул ошибку.
@@ -247,12 +240,12 @@ class ConfluenceClient:
 
         page_id = str(response.json().get("id", ""))
         logger.info(f"Создана страница {title} (ID: {page_id})")
-        return {
-            "id": page_id,
-            "version": _INITIAL_VERSION,
-            "status": "created",
-            "message": f"Страница создана с версией {_INITIAL_VERSION}",
-        }
+        return PageResult(
+            id=page_id,
+            version=_INITIAL_VERSION,
+            status="created",
+            message=f"Страница создана с версией {_INITIAL_VERSION}",
+        )
 
     def _update_page(
         self,
@@ -260,22 +253,18 @@ class ConfluenceClient:
         parent_id: str,
         title: str,
         body_html: str,
-    ) -> dict[str, Any]:
+    ) -> PageResult:
         """
-        Выполняет PUT-запрос для обновления существующей страницы.
-
-        Номер следующей версии вычисляется из данных существующей страницы.
-        При невозможности извлечь версию используется ``_FALLBACK_VERSION``,
-        что даёт следующую версию 1 — безопасный минимум для Confluence.
+        Обновляет тело и версию существующей страницы в Confluence.
 
         Args:
-            existing_page: Словарь с данными текущей страницы (из ``find_page``).
+            existing_page: Данные текущей страницы из ``find_page``.
             parent_id:     ID родительской страницы.
             title:         Заголовок страницы.
             body_html:     Новое тело страницы.
 
         Returns:
-            Словарь ``{'id': str, 'version': int, 'status': str, 'message': str}``.
+            Результат операции в виде ``PageResult``.
 
         Raises:
             ConfluenceError: Если API вернул ошибку.
@@ -285,7 +274,7 @@ class ConfluenceClient:
         next_version = current_version + 1
 
         logger.info(
-            f"обновление {title}: v{current_version} → v{next_version} (ID: {page_id})"
+            f"Обновление {title}: v{current_version} → v{next_version} (ID: {page_id})"
         )
 
         payload = self._build_page_payload(
@@ -298,12 +287,12 @@ class ConfluenceClient:
         url = self._api_url("content", page_id)
         self._request("PUT", url, f"обновлении {title}", json=payload)
 
-        return {
-            "id": page_id,
-            "version": next_version,
-            "status": "updated",
-            "message": f"Страница обновлена до версии {next_version}",
-        }
+        return PageResult(
+            id=page_id,
+            version=next_version,
+            status="updated",
+            message=f"Страница обновлена до версии {next_version}",
+        )
 
     @staticmethod
     def _build_page_payload(
@@ -314,17 +303,14 @@ class ConfluenceClient:
         space: str | None = None,
     ) -> dict[str, Any]:
         """
-        Собирает тело JSON-запроса для создания или обновления страницы.
-
-        ``space`` включается только при создании (POST). При обновлении (PUT)
-        Confluence принимает пейлоад без поля ``space``.
+        Формирует тело запроса к Confluence API для создания или обновления страницы.
 
         Args:
             title:          Заголовок страницы.
             body_html:      Тело в Storage Format.
             version_number: Номер версии (для PUT — следующая версия).
             parent_id:      ID родительской страницы.
-            space:          Ключ Space. ``None`` при обновлении.
+            space:          Ключ Space. Передаётся только при создании, ``None`` при обновлении.
 
         Returns:
             Словарь, готовый для сериализации в JSON.
@@ -348,16 +334,13 @@ class ConfluenceClient:
     @staticmethod
     def _extract_version(page: dict[str, Any]) -> int:
         """
-        Извлекает номер версии из словаря страницы.
-
-        Confluence возвращает версию в структуре ``{'version': {'number': N}}``.
-        При отсутствии или некорректном типе возвращает ``_FALLBACK_VERSION``.
+        Извлекает номер текущей версии страницы из ответа Confluence API.
 
         Args:
-            page: Словарь с данными страницы из ``find_page`` или ``get_page``.
+            page: Словарь с данными страницы.
 
         Returns:
-            Текущий номер версии или ``_FALLBACK_VERSION`` (0) при ошибке парсинга.
+            Номер версии или 0, если версия недоступна.
         """
         try:
             return int(page.get("version", {}).get("number", _FALLBACK_VERSION))
@@ -373,16 +356,16 @@ class ConfluenceClient:
         **kwargs: Any,
     ) -> requests.Response:
         """
-        Выполняет HTTP-запрос, транслируя сетевые ошибки в ConfluenceError.
+        Выполняет HTTP-запрос к Confluence и возвращает ответ.
 
         Args:
             method: HTTP-метод (GET, POST, PUT и т.д.).
-            url: Целевой URL запроса.
-            action: Описание действия для сообщения об ошибке (например, 'поиске страницы').
-            **kwargs: Дополнительные аргументы для requests.Session.request.
+            url:      Целевой URL.
+            action:   Описание действия для сообщения об ошибке (например, ``'поиске страницы'``).
+            **kwargs: Дополнительные аргументы для ``requests.Session.request``.
 
         Returns:
-            Объект ответа requests.Response с проверенным статусом.
+            Ответ с проверенным статусом.
 
         Raises:
             ConfluenceError: При HTTP-ошибке или сетевом сбое.
@@ -398,11 +381,10 @@ class ConfluenceClient:
 
     def _api_url(self, *parts: str) -> str:
         """
-        Собирает URL к Confluence REST API v1.
+        Строит URL к ресурсу Confluence REST API v1.
 
         Args:
-            *parts: Сегменты пути после ``/rest/api/`` (например ``'content'``,
-                    ``'content'``, ``'12345'``).
+            *parts: Сегменты пути после ``/rest/api/`` (например ``'content'``, ``'12345'``).
 
         Returns:
             Полный URL вида ``https://confluence.example.com/rest/api/content/12345``.
@@ -417,42 +399,37 @@ class ConfluenceClient:
         expand: str = "ancestors",
     ) -> dict[str, Any] | None:
         """
-        Ищет страницу по заголовку и логгирует warning если она в другом дереве.
+        Ищет страницу по заголовку в пределах указанного дерева.
 
         Args:
             title:     Заголовок страницы.
             space:     Ключ Space.
-            parent_id: Ожидаемый ID родителя для проверки дерева.
+            parent_id: ID ожидаемого предка для проверки принадлежности дереву.
             expand:    Поля для раскрытия в ответе Confluence API.
 
         Returns:
-            Словарь данных страницы или ``None`` если страница не найдена.
+            Словарь данных страницы или ``None``, если не найдена или в другом дереве.
         """
         existing = self.find_page(title, space=space, expand=expand)
         if existing and parent_id and not self._is_descendant_of(existing, parent_id):
             logger.warning(
                 f"Страница {title} найдена в другом дереве "
-                f"(ожидаемый parent_id={parent_id})."
+                f"(ожидаемый parent_id={parent_id}), будет создана новая."
             )
+            return None
         return existing
 
     @staticmethod
     def _is_descendant_of(page: dict[str, Any], parent_id: str) -> bool:
         """
-        Проверяет, является ли страница потомком указанного предка.
-
-        Confluence возвращает список предков в поле ``ancestors`` при запросе
-        с ``expand=ancestors``. Метод проверяет, присутствует ли ``parent_id``
-        среди предков страницы — это покрывает как прямых, так и косвенных
-        потомков, что достаточно для защиты от записи в чужое дерево.
+        Проверяет, принадлежит ли страница дереву указанного предка.
 
         Args:
-            page:      Словарь страницы с полем ``ancestors`` (из ``find_page``
-                       с ``expand='ancestors'``).
+            page:      Словарь страницы с полем ``ancestors``.
             parent_id: ID ожидаемого предка.
 
         Returns:
-            ``True`` если ``parent_id`` найден среди предков, иначе ``False``.
+            ``True``, если ``parent_id`` есть среди предков страницы, иначе ``False``.
         """
         ancestors = page.get("ancestors", [])
         return any(str(a.get("id")) == str(parent_id) for a in ancestors)
@@ -460,13 +437,13 @@ class ConfluenceClient:
     @staticmethod
     def _create_session(config: ConfluenceConfigSchema) -> RetryableSession:
         """
-        Создаёт HTTP-сессию с аутентификацией и retry-логикой.
+        Создаёт и настраивает HTTP-сессию для работы с Confluence.
 
         Args:
             config: Конфигурация Confluence.
 
         Returns:
-            Настроенная ``RetryableSession``.
+            Готовая к работе ``RetryableSession``.
         """
         session = create_retryable_session(
             token=config.token,

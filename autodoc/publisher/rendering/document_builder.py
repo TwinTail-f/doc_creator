@@ -21,11 +21,7 @@ class DocumentBuilder:
         """
         Args:
             rendering_dir: Путь к директории ``rendering/`` (содержит
-                ``templates/``, ``styles/``, ``macros/``). Корень
-                ``FileSystemLoader`` устанавливается именно сюда, чтобы
-                пути вида ``../styles/...`` и ``../macros/...`` внутри
-                шаблонов корректно разрешались без выхода за пределы
-                корня загрузчика.
+                ``templates/``, ``styles/``, ``macros/``).
 
         Raises:
             FileNotFoundError: Если директория не существует.
@@ -38,9 +34,9 @@ class DocumentBuilder:
         self._env: Environment = Environment(
             loader=FileSystemLoader(str(rendering_dir))
         )
-        # Escape special XML characters in attribute values using the stdlib.
-        # xml.sax.saxutils.escape handles & → &amp; and the extras dict adds " → &quot;.
-        # Unlike manual str.replace, this avoids double-escaping already-escaped content.
+        # Экранирование спецсимволов XML в значениях атрибутов.
+        # Обрабатывает & → &amp;; extras-словарь добавляет " → &quot;.
+        # Исключает двойное экранирование уже экранированного содержимого.
         self._env.filters["xmlattr"] = (
             lambda s: xml.sax.saxutils.escape(str(s), {'"': '&quot;'})
         )

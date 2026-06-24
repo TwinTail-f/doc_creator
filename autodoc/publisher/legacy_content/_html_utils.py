@@ -10,7 +10,7 @@ legacy_extractor и legacy_merger.
     extract_tab_sections         — парсинг вкладок Confluence в {name: content}
     extract_platform_h1_sections — парсинг секций Platform X.Y по <h1>
     find_h1_sections             — сканирование всех <h1> в документе
-    parse_page_sections          — unified fallback parser (tabs → h1 → h2/h3)
+    parse_page_sections          — единый парсер с fallback (вкладки → h1 → h2/h3)
 """
 
 import re
@@ -19,7 +19,7 @@ from typing import NamedTuple
 from autodoc.common.logger import logger
 
 # ---------------------------------------------------------------------------
-# Compiled patterns
+# Скомпилированные паттерны
 # ---------------------------------------------------------------------------
 
 H1_OPEN_RE: re.Pattern[str] = re.compile(r"<h1\b[^>]*>")
@@ -49,7 +49,7 @@ _RICH_TEXT_BODY_CLOSE: str = "</ac:rich-text-body>"
 
 
 # ---------------------------------------------------------------------------
-# H1 utilities
+# Утилиты для работы с h1
 # ---------------------------------------------------------------------------
 
 
@@ -87,10 +87,6 @@ def extract_platform_h1_sections(html: str) -> dict[str, str]:
     """
     Извлекает секции ``Platform X.Y`` из страниц по заголовкам ``<h1>``.
 
-    Находит элементы h1, текст которых соответствует ``Platform X.Y``,
-    затем собирает всё между закрывающим ``</h1>`` этого заголовка и
-    началом следующего ``<h1>`` как содержимое секции.
-
     Args:
         html: Полный HTML-документ в Confluence Storage Format.
 
@@ -115,17 +111,13 @@ def extract_platform_h1_sections(html: str) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Depth-balanced rich-text-body extractor
+# Извлечение rich-text-body с учётом глубины вложенности
 # ---------------------------------------------------------------------------
 
 
 def extract_rich_text_body(html: str, body_start: int) -> tuple[str, int]:
     """
     Извлекает содержимое ``<ac:rich-text-body>`` с учётом вложенности.
-
-    Использует счётчик глубины ``depth`` для корректной балансировки
-    вложенных тегов ``<ac:rich-text-body>`` / ``</ac:rich-text-body>``
-    (например, внутри таблиц или панелей Confluence).
 
     Args:
         html: Полный HTML документа.
@@ -165,22 +157,13 @@ def extract_rich_text_body(html: str, body_start: int) -> tuple[str, int]:
 
 
 # ---------------------------------------------------------------------------
-# Tab section extractor
+# Парсер вкладок
 # ---------------------------------------------------------------------------
 
 
 def extract_tab_sections(html: str) -> dict[str, str]:
     """
     Разбирает HTML с вкладками Confluence в словарь ``{имя_вкладки: контент}``.
-
-    Алгоритм:
-
-    1. Собирает уникальные имена вкладок в порядке документа через ``_TAB_NAME_RE``
-       (атрибуты ``name`` и ``title``).
-    2. Для каждого имени находит маркер вкладки, затем первый
-       ``<ac:rich-text-body>`` после него и вызывает ``extract_rich_text_body``
-       для depth-balanced извлечения содержимого.
-    3. Вкладки без тела и с пустым контентом в результат не включаются.
 
     Args:
         html: HTML страницы Confluence в Storage Format.
@@ -198,7 +181,7 @@ def extract_tab_sections(html: str) -> dict[str, str]:
     if _TAG_TAB not in html and _TAG_TAB_PANE not in html:
         return {}
 
-    # Single pass: collect unique (name, start_position) in document order
+    # Один проход: собираем уникальные имена вкладок в порядке документа
     seen: dict[str, int] = {}
     for match in _TAB_NAME_RE.finditer(html):
         name = match.group(1).strip()
@@ -218,7 +201,7 @@ def extract_tab_sections(html: str) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# H2/H3 version fallback (historical)
+# Исторический fallback по заголовкам h2/h3
 # ---------------------------------------------------------------------------
 
 _VERSION_HEADER_PATTERN: str = r"<h[2-3]>.*?([vV][\d.]+).*?</h[2-3]>"
@@ -258,7 +241,7 @@ def _parse_h2_version_sections(html: str) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Unified section parser
+# Единый парсер секций
 # ---------------------------------------------------------------------------
 
 
