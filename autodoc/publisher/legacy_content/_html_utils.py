@@ -18,10 +18,6 @@ from typing import NamedTuple
 
 from autodoc.common.logger import logger
 
-# ---------------------------------------------------------------------------
-# Скомпилированные паттерны
-# ---------------------------------------------------------------------------
-
 H1_OPEN_RE: re.Pattern[str] = re.compile(r"<h1\b[^>]*>")
 INNER_TAG_RE: re.Pattern[str] = re.compile(r"<[^>]+>")
 
@@ -40,17 +36,8 @@ _TAB_NAME_RE: re.Pattern[str] = re.compile(
 _TAG_TAB: str = '<ac:structured-macro ac:name="tab"'
 _TAG_TAB_PANE: str = '<ac:structured-macro ac:name="tab-pane"'
 
-# ---------------------------------------------------------------------------
-# Rich-text-body constants (используются внутри модуля и в legacy_extractor)
-# ---------------------------------------------------------------------------
-
 _RICH_TEXT_BODY_OPEN: str = "<ac:rich-text-body>"
 _RICH_TEXT_BODY_CLOSE: str = "</ac:rich-text-body>"
-
-
-# ---------------------------------------------------------------------------
-# Утилиты для работы с h1
-# ---------------------------------------------------------------------------
 
 
 class _H1Section(NamedTuple):
@@ -110,11 +97,6 @@ def extract_platform_h1_sections(html: str) -> dict[str, str]:
     return result
 
 
-# ---------------------------------------------------------------------------
-# Извлечение rich-text-body с учётом глубины вложенности
-# ---------------------------------------------------------------------------
-
-
 def extract_rich_text_body(html: str, body_start: int) -> tuple[str, int]:
     """
     Извлекает содержимое ``<ac:rich-text-body>`` с учётом вложенности.
@@ -156,11 +138,6 @@ def extract_rich_text_body(html: str, body_start: int) -> tuple[str, int]:
     return "", search_idx
 
 
-# ---------------------------------------------------------------------------
-# Парсер вкладок
-# ---------------------------------------------------------------------------
-
-
 def extract_tab_sections(html: str) -> dict[str, str]:
     """
     Разбирает HTML с вкладками Confluence в словарь ``{имя_вкладки: контент}``.
@@ -200,10 +177,6 @@ def extract_tab_sections(html: str) -> dict[str, str]:
     return result
 
 
-# ---------------------------------------------------------------------------
-# Исторический fallback по заголовкам h2/h3
-# ---------------------------------------------------------------------------
-
 _VERSION_HEADER_PATTERN: str = r"<h[2-3]>.*?([vV][\d.]+).*?</h[2-3]>"
 _UNKNOWN_SECTION_KEY: str = "unknown"
 
@@ -238,11 +211,6 @@ def _parse_h2_version_sections(html: str) -> dict[str, str]:
         del sections[_UNKNOWN_SECTION_KEY]
 
     return sections
-
-
-# ---------------------------------------------------------------------------
-# Единый парсер секций
-# ---------------------------------------------------------------------------
 
 
 def parse_page_sections(html: str) -> dict[str, str]:
