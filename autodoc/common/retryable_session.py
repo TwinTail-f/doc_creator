@@ -35,8 +35,7 @@ class RetryableSession(requests.Session):
     """
     HTTP-сессия с автоматической retry-логикой и exponential backoff.
 
-    Таймаут задаётся при инициализации и применяется ко всем запросам
-    через переопределённый метод ``request()``.
+    Таймаут задаётся при инициализации и применяется ко всем запросам.
 
     Example::
 
@@ -70,7 +69,7 @@ class RetryableSession(requests.Session):
         self.mount("https://", adapter)
 
     def request(
-        self, method: str, url: str, *, timeout: int | None = None, **kwargs
+        self, method: str, url: str, *, timeout: int | None = None, **kwargs: object
     ) -> requests.Response:
         """Все HTTP-методы проходят сюда — таймаут подставляется один раз."""
         effective_timeout = timeout or self._timeout
@@ -117,9 +116,6 @@ def create_pat_session(
     """
     Создаёт ``RetryableSession`` с PAT / Basic-аутентификацией.
 
-    Username подставляется как пустая строка — корректное поведение для
-    Azure DevOps / TFS, где PAT не привязан к конкретному пользователю.
-
     Args:
         token: Personal Access Token. Если ``None`` — аутентификация не устанавливается.
         max_retries: Максимальное количество retry-попыток.
@@ -157,8 +153,7 @@ def create_retryable_session(
     Args:
         timeout: Таймаут запроса в секундах.
         token: Токен / PAT.
-        bearer: Если ``True`` — делегирует в ``create_bearer_session()``,
-            иначе — в ``create_pat_session()``.
+        bearer: Если ``True`` — используется Bearer-аутентификация, иначе — PAT/Basic.
         max_retries: Максимальное количество retry-попыток.
         backoff_factor: Множитель для exponential backoff.
 
