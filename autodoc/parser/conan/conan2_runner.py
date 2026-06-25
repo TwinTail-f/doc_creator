@@ -26,7 +26,6 @@ class Conan2Runner(BaseConanRunner):
     ``ConanEnvironmentManager.setup()`` и передан при создании экземпляра.
     """
 
-    _CONAN_NOT_FOUND_MSG: str = "Утилита conan не найдена. Проверьте PATH."
     _CLEAN_CACHE_CMD: list[str] = ["conan", "remove", "*", "-c"]
     _CLEAN_CACHE_TIMEOUT: int = 60
     _STDOUT_PREVIEW_LENGTH: int = 300
@@ -46,14 +45,16 @@ class Conan2Runner(BaseConanRunner):
         """
         Выполняет ``conan graph info`` и возвращает сырой результат.
 
-        Проверяет наличие ``conan`` в PATH до запуска subprocess.
+        Наличие ``conan`` в PATH проверяется один раз при старте утилиты, в
+        ``ConanEnvironmentManager.setup()`` — этот метод вызывается только после
+        успешного прохождения той проверки и не повторяет её.
+
         Для каждого вызова создаётся изолированный временный ``CONAN_HOME``
         путём копирования директории-шаблона (``conan_home_template``).
         Это устраняет race condition в кэше Conan 2.x при параллельных вызовах.
         Временная директория удаляется автоматически после завершения вызова.
 
-        При таймауте или отсутствии утилиты возвращает ``success=False``
-        с описанием ошибки — не бросает исключений.
+        При таймауте возвращает ``success=False`` с описанием ошибки — не бросает исключений.
 
         Args:
             task: Задача с готовой CLI-командой.
@@ -61,13 +62,6 @@ class Conan2Runner(BaseConanRunner):
         Returns:
             ``ConanRawResult`` с данными или описанием ошибки.
         """
-        if not shutil.which("conan"):
-            return ConanRawResult(
-                success=False,
-                data=None,
-                error=self._CONAN_NOT_FOUND_MSG,
-            )
-
         with tempfile.TemporaryDirectory(prefix="conan_run_") as tmp_run:
             tmp_run_path = Path(tmp_run)
             shutil.copytree(
@@ -117,12 +111,9 @@ class Conan2Runner(BaseConanRunner):
         """
         Очищает локальный кэш пакетов Conan 2 в директории-шаблоне.
 
-        Raises:
-            RuntimeError: Если утилита ``conan`` не найдена в PATH.
+        Наличие ``conan`` в PATH уже гарантировано предшествующим вызовом
+        ``ConanEnvironmentManager.setup()`` — здесь повторно не проверяется.
         """
-        if not shutil.which("conan"):
-            raise RuntimeError(self._CONAN_NOT_FOUND_MSG)
-
         logger.info("Очищаем локальный кэш Conan 2…")
         env = {**os.environ, "CONAN_HOME": str(self._conan_home_template)}
         try:

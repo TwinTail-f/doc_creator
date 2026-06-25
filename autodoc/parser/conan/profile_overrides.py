@@ -122,9 +122,7 @@ class ProfileSettingsOverrides:
 
         # Совпадение по basename (на случай если в профилях указан полный путь)
         basename = Path(profile_name).name
-        # Избегаем повторного поиска: если profile_name уже было простым именем
-        # файла без пути, оно уже было проверено выше.
-        if basename != profile_name and basename in self._mapping:
+        if basename in self._mapping:
             return dict(self._mapping[basename])
 
         return {}

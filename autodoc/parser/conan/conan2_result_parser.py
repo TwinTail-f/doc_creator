@@ -39,7 +39,7 @@ class Conan2ResultParser:
         Returns:
             ``ConanEnrichData`` если нода компонента найдена, иначе ``None``.
         """
-        nodes: dict[str, Any] = conan_json.get("graph", {}).get("nodes", {})
+        nodes: dict[str, dict[str, Any]] = conan_json.get("graph", {}).get("nodes", {})
         target_node = next(
             (n for n in nodes.values() if n.get("name") == task.comp_name),
             None,
@@ -142,6 +142,10 @@ class Conan2ResultParser:
             Список ``DefaultOptionsSet`` с именем, типом и значением по умолчанию
             для каждой опции компонента.
         """
+        # ".get(key, {})" подставляет {} только если ключ отсутствует. Если Conan
+        # выводит ключ с явным null (валидный JSON), .get() вернёт None, и
+        # последующие .items()/.get() на этом значении упадут с AttributeError.
+        # "or {}" защищает от этого случая «ключ есть, но значение — null».
         opt_defs: dict[str, Any] = node.get("options_definitions", {}) or {}
         def_opts: dict[str, Any] = node.get("default_options", {}) or {}
         result: list[DefaultOptionsSet] = []
@@ -189,7 +193,7 @@ class Conan2ResultParser:
 
         return list(dict.fromkeys(extracted))
 
-    def _extract_dependencies(self, nodes: dict[str, Any], comp_name: str) -> list[str]:
+    def _extract_dependencies(self, nodes: dict[str, dict[str, Any]], comp_name: str) -> list[str]:
         """
         Собирает имена прямых и транзитивных зависимостей компонента из графа Conan.
 

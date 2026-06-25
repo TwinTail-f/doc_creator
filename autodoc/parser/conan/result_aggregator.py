@@ -1,14 +1,5 @@
 """
 Агрегатор результатов Conan graph info.
-
-Принимает сырые результаты параллельного выполнения команд и собирает
-``ConanEnrichmentResult``, готовый для передачи в ``DataEnricher``.
-
-Выделен из ``ConanManager`` в отдельный слой, чтобы каждый этап пайплайна
-имел единственную ответственность:
-- ``ConanFetcher``          — сбор сырых данных (запуск subprocess в параллель);
-- ``Conan2ResultParser``     — парсинг одного JSON-ответа;
-- ``ConanResultAggregator`` — агрегация N результатов → ``ConanEnrichmentResult``.
 """
 
 from typing import Any

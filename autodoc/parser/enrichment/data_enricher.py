@@ -84,12 +84,6 @@ class DataEnricher:
         """
         Применяет результаты Conan graph info к моделям ``Release`` и ``ProfileBuild``.
 
-        ``ReleaseConanData.default_options`` хранит типизированные объекты
-        ``DefaultOptionsSet`` (из поля ``default_options`` в JSON).
-        ``ReleaseConanData.total_options`` хранит типизированные объекты
-        ``TotalOptionsSet`` (из поля ``options`` в JSON — resolved-опции).
-        ``ProfileConanData.variants`` хранит типизированные объекты ``ConanVariant``.
-
         Args:
             components: Список компонентов для обогащения.
             result: ``ConanEnrichmentResult`` из ``ConanFetcher.fetch()``.
@@ -130,5 +124,6 @@ class DataEnricher:
                                 )
                                 pd_map[pname] = entry
                                 profile_definitions.append(entry)
-                            elif pb_data.conan_settings:  # не затираем непустые данные пустыми
+                            # не затираем непустые данные пустыми
+                            elif pb_data.conan_settings:
                                 pd_map[pname].conan_settings = pb_data.conan_settings
