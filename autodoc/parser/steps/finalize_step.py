@@ -40,6 +40,9 @@ class FinalizeStep(BaseParseStep):
 
         Args:
             ctx: Контекст пайплайна с накопленными компонентами.
+
+        Returns:
+            None. Результат записывается в ``ctx.result``.
         """
         self._compute_header_only_flags(ctx.components, ctx.profile_definitions)
         ctx.components.sort(key=lambda c: c.name.lower())
@@ -54,7 +57,7 @@ class FinalizeStep(BaseParseStep):
         try:
             ctx.result = self._build_result(ctx)
         except PydanticValidationError as exc:
-            raise ParsingError(f"Result validation failed: {exc}") from exc
+            raise ParsingError(f"Валидация результата не прошла: {exc}") from exc
 
     def _compute_header_only_flags(
         self,
@@ -94,8 +97,13 @@ class FinalizeStep(BaseParseStep):
 
     def _filter_empty_profiles(self, components: list[Component]) -> int:
         """
-        Удаляет из списка компоненты, у которых не найдено ни одного профиля.
-        Возвращает количество удалённых компонентов.
+        Удаляет профили с ``exists=False`` из всех компонентов.
+
+        Args:
+            components: Список компонентов для обработки.
+
+        Returns:
+            Количество удалённых профилей.
         """
         removed = 0
         for comp in components:

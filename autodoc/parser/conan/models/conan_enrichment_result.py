@@ -15,7 +15,7 @@ from autodoc.models.options import DefaultOptionsSet, TotalOptionsSet
 from autodoc.models.types import ReleaseKey
 
 # Тип лога ошибок: {comp_name: {version: {channel: {profile: [errors]}}}}
-_ErrorLog = dict[str, dict[str, dict[str, dict[str, list]]]]
+_ErrorLog = dict[str, dict[str, dict[str, dict[str, list[dict[str, Any]]]]]]
 
 
 @dataclass

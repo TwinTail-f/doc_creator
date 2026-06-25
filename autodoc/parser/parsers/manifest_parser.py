@@ -61,8 +61,14 @@ class ManifestParser:
         Порядок компонентов в результате не гарантирован —
         ``FinalizeStep`` сортирует их по имени.
 
+        Args:
+            files: Список путей к ``.properties``-файлам для разбора.
+            component_names: Список имён компонентов для фильтрации.
+            filter_mode: ``"exclude"`` — пропустить перечисленные компоненты,
+                         ``"include"`` — обрабатывать только перечисленные компоненты.
+
         Returns:
-            (components, warnings) — список компонентов и список предупреждений.
+            Кортеж ``(components, warnings)`` — список компонентов и список предупреждений.
         """
         file_results = self._executor.execute(
             lambda filepath: self._parse_single_file(
@@ -134,9 +140,9 @@ class ManifestParser:
             if name in component_names:
                 logger.debug(f"Компонент {name} исключён (режим exclude)")
                 return _FileParseResult(is_excluded=True)
-        # NOTE: An empty 'include' list means "no filter active" — all components
-        # are returned. This is intentional. To include nothing, pass a non-empty
-        # list that matches no component names.
+        # Пустой список include означает «фильтр не активен» — возвращаются все компоненты.
+        # Это намеренное поведение. Чтобы не включить ни одного, нужно передать непустой
+        # список, не совпадающий ни с одним именем компонента.
         elif filter_mode == "include":
             if component_names and name not in component_names:
                 logger.debug(
@@ -171,7 +177,16 @@ class ManifestParser:
         return _FileParseResult(component=component)
 
     def _build_releases(self, props: dict[str, str]) -> list[Release]:
-        """Строит список Release из словаря свойств манифеста."""
+        """
+        Строит список релизов компонента из словаря свойств манифеста.
+
+        Args:
+            props: Словарь свойств, прочитанный из ``.properties``-файла.
+
+        Returns:
+            Список ``Release`` для целевой платформы. Пустой список, если
+            подходящих версий не найдено.
+        """
         target_platform = self._target_platform
         comp_versions = [
             v.strip()
@@ -215,6 +230,16 @@ class ManifestParser:
         c_ver: str,
         p_ver: str,
     ) -> str:
-        """Извлекает строку со списком профилей для заданной комбинации версий."""
+        """
+        Возвращает строку со списком профилей для заданной комбинации версий компонента и платформы.
+
+        Args:
+            props: Словарь свойств манифеста.
+            c_ver: Версия компонента.
+            p_ver: Версия платформы.
+
+        Returns:
+            Строка с перечнем профилей через запятую или пустая строка, если ключ не найден.
+        """
         key_profiles = f"profiles-{c_ver}-{p_ver}"
         return props.get(key_profiles, "")

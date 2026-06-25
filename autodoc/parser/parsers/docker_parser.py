@@ -17,7 +17,14 @@ class DockerParser:
     def extract_from_yaml(
         cls, content: dict[str, Any], docker_links: DockerLinksMap
     ) -> None:
-        """Обходит раздел archs: YAML-профиля и заполняет маппинг docker_links."""
+        """
+        Обходит раздел ``archs`` YAML-профиля и заполняет маппинг Docker-образов.
+
+        Args:
+            content: Разобранное содержимое YAML-файла профиля.
+            docker_links: Изменяемый маппинг ``имя_профиля → docker_image_url``,
+                          заполняемый в процессе обхода.
+        """
         archs = content.get("archs", {})
         for key, val in archs.items():
             if key == "common" or not isinstance(val, dict):
@@ -38,7 +45,15 @@ class DockerParser:
 
     @classmethod
     def extract_docker_image(cls, arch_val: dict[str, Any]) -> str:
-        """Извлекает URL Docker-образа из словаря значений одной архитектуры."""
+        """
+        Извлекает URL Docker-образа из словаря значений одной архитектуры.
+
+        Args:
+            arch_val: Словарь значений архитектуры из раздела ``archs`` YAML-профиля.
+
+        Returns:
+            URL Docker-образа или пустая строка, если образ не задан.
+        """
         docker_val = arch_val.get("docker")
         if isinstance(docker_val, str):
             return docker_val
@@ -50,7 +65,14 @@ class DockerParser:
     def add_aliases(
         cls, name: str, docker_img: str, docker_links: DockerLinksMap
     ) -> None:
-        """Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов."""
+        """
+        Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов.
+
+        Args:
+            name: Имя профиля (может быть полным путём, например ``linux/gcc9``).
+            docker_img: URL Docker-образа для данного профиля.
+            docker_links: Изменяемый маппинг ``имя_профиля → docker_image_url``.
+        """
         if not name:
             return
         path_obj = Path(name)

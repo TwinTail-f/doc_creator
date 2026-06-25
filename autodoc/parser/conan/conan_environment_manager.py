@@ -71,7 +71,18 @@ class ConanEnvironmentManager:
         return self._setup_dir
 
     def _get_remote_names(self, env: dict[str, str]) -> list[str]:
-        """Возвращает список имён всех Conan remotes из установленной конфигурации."""
+        """
+        Возвращает список имён всех Conan remotes из установленной конфигурации.
+
+        Args:
+            env: Переменные окружения с установленным ``CONAN_HOME``.
+
+        Returns:
+            Список имён remote-репозиториев.
+
+        Raises:
+            RuntimeError: Если команда ``conan remote list`` завершилась с ошибкой.
+        """
         result = subprocess.run(
             ["conan", "remote", "list", "--format=json"],
             capture_output=True,
@@ -93,7 +104,16 @@ class ConanEnvironmentManager:
         return names
 
     def _login_remote(self, remote_name: str, env: dict[str, str]) -> None:
-        """Авторизуется в одном Conan remote через ``conan remote login``."""
+        """
+        Авторизуется в одном Conan remote через ``conan remote login``.
+
+        Args:
+            remote_name: Имя remote-репозитория Conan.
+            env: Переменные окружения с установленным ``CONAN_HOME``.
+
+        Raises:
+            RuntimeError: Если команда ``conan remote login`` завершилась с ошибкой.
+        """
         logger.info(f'Авторизуемся в Conan remote "{remote_name}" …')
         result = subprocess.run(
             [
@@ -121,7 +141,15 @@ class ConanEnvironmentManager:
         logger.info(f'Авторизация в "{remote_name}" прошла успешно.')
 
     def _install_config(self, env: dict[str, str]) -> None:
-        """Устанавливает конфигурацию Conan из Artifactory через ``conan config install``."""
+        """
+        Устанавливает конфигурацию Conan из Artifactory через ``conan config install``.
+
+        Args:
+            env: Переменные окружения с установленным ``CONAN_HOME``.
+
+        Raises:
+            RuntimeError: Если ``config_url`` некорректен или команда завершилась с ошибкой.
+        """
         # Встраиваем credentials в URL: https://user:token@host/...
         split = urlsplit(self._config_url)
         if not split.scheme or not split.netloc:

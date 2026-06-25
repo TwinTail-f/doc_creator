@@ -441,7 +441,7 @@ class _ProfileBuildAggregator:
             )
 
 
-def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: list[dict]) -> None:
+def _record_error(errors: _ErrorLog, task: ConanTask, task_errors: list[dict[str, Any]]) -> None:
     """
     Добавляет запись об ошибке в структурированный лог ошибок.
 

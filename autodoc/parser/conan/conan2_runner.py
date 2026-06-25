@@ -146,7 +146,6 @@ class Conan2Runner(BaseConanRunner):
         """
         Извлекает релевантное сообщение из stderr Conan.
 
-
         Args:
             stderr: Полный stderr процесса.
 

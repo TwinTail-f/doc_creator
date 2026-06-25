@@ -20,7 +20,16 @@ class OptionsParser:
 
     @staticmethod
     def select_ci_prefix(options_paths: list[str]) -> str:
-        """Возвращает первый подходящий CI-префикс или пустую строку."""
+        """
+        Определяет CI-префикс директории для фильтрации файлов опций.
+
+        Args:
+            options_paths: Список путей к файлам ``options.json`` в репозитории.
+
+        Returns:
+            Первый подходящий CI-префикс (например ``'/ci-2.0/'``) или пустая строка,
+            если ни один из приоритетных префиксов не найден.
+        """
         for prefix in _CI_PRIORITY:
             if any(prefix in p for p in options_paths):
                 return prefix
@@ -34,6 +43,11 @@ class OptionsParser:
     ) -> tuple[str | None, dict[str, str]]:
         """
         Разбирает текст JSON-файла опций.
+
+        Args:
+            text: Текстовое содержимое JSON-файла.
+            opt_path: Путь к файлу в репозитории (используется для логирования и разбора канала).
+            ci_prefix: Префикс CI-директории (например ``'/ci-2.0/'``).
 
         Returns:
             Кортеж ``(имя_канала_или_None, очищенные_опции)``
@@ -57,8 +71,18 @@ class OptionsParser:
         return channel_name, cleaned
 
     @staticmethod
-    def pick_options(repo_data: dict, channel: str) -> dict[str, str]:
-        """Выбирает набор опций для заданного канала."""
+    def pick_options(repo_data: dict[str, Any], channel: str) -> dict[str, str]:
+        """
+        Выбирает набор опций для заданного канала из собранных данных репозитория.
+
+        Args:
+            repo_data: Словарь с ключами ``'global'`` и ``'channels'``, собранный по репозиторию.
+            channel: Имя канала релиза (например ``'stable'``).
+
+        Returns:
+            Словарь опций для канала, глобальный набор или плейсхолдер ``{'1': ''}``
+            если данные отсутствуют.
+        """
         channels = repo_data.get("channels", {})
         if channel in channels:
             return channels[channel]

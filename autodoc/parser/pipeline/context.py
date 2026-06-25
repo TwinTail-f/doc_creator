@@ -60,7 +60,7 @@ class PipelineContext:
     # и исключить необходимость импортировать её из оркестратора.
     _DOCKER_LINKS_KEY: str = "docker_links"
 
-    def to_snapshot_dict(self) -> dict:
+    def to_snapshot_dict(self) -> dict[str, Any]:
         """
         Возвращает JSON-совместимый снимок текущего состояния контекста.
 

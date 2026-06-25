@@ -123,10 +123,6 @@ class Conan2ResultParser:
         try:
             recipe_ref = RecipeReference.loads(full_ref)
         except ConanException as e:
-            # Не пытаемся повторно разобрать ref вручную через split() — встроенный
-            # парсер Conan надёжнее любой самодельной эвристики для его собственного
-            # формата ссылок. Если он не справился, считаем base_ref неизвестным,
-            # а не угадываем его частичным разбором строки.
             logger.warning(
                 f'Conan2ResultParser: не удалось разобрать ref "{full_ref}" ({e}); '
                 "base_ref будет пустым."
@@ -142,7 +138,16 @@ class Conan2ResultParser:
         return base_ref, rrev, full_version
 
     def _extract_default_options(self, node: dict[str, Any]) -> list[DefaultOptionsSet]:
-        """Извлекает поле default_options → list[DefaultOptionsSet]."""
+        """
+        Извлекает дефолтные опции компонента из узла графа Conan.
+
+        Args:
+            node: Словарь узла из JSON-ответа ``conan graph info``.
+
+        Returns:
+            Список ``DefaultOptionsSet`` с именем, типом и значением по умолчанию
+            для каждой опции компонента.
+        """
         opt_defs: dict[str, Any] = node.get("options_definitions", {}) or {}
         def_opts: dict[str, Any] = node.get("default_options", {}) or {}
         result: list[DefaultOptionsSet] = []
@@ -166,12 +171,17 @@ class Conan2ResultParser:
         return result
 
     def _extract_patches(self, node: dict[str, Any]) -> list[str]:
-        """Извлекает имена всех патч-файлов из conandata -> patches.
-
-        Обходит **все** ключи словаря patches (версии, строки вроде "all",
-        "KasperskyOS" и т.п.) и собирает имена файлов без учёта ключа.
-        Дубликаты удаляются с сохранением порядка первого вхождения.
         """
+        Извлекает имена патч-файлов компонента из раздела ``conandata.patches``.
+
+        Args:
+            node: Словарь узла из JSON-ответа ``conan graph info``.
+
+        Returns:
+            Список уникальных имён патч-файлов в порядке первого вхождения.
+        """
+        # Обходим все ключи словаря patches (версии, «all», «KasperskyOS» и т.п.)
+        # и собираем имена файлов без учёта ключа; дубликаты удаляем через dict.fromkeys.
         patches_dict: dict[str, Any] = node.get("conandata", {}).get("patches", {})
         if not isinstance(patches_dict, dict):
             return []
@@ -190,12 +200,17 @@ class Conan2ResultParser:
         return list(dict.fromkeys(extracted))
 
     def _extract_dependencies(self, nodes: dict[str, Any], comp_name: str) -> list[str]:
-        """Собирает имена всех пакетов из графа зависимостей, кроме самого
-        компонента и виртуальной ноды conanfile.
-
-        Обходит все узлы графа (включая транзитивные зависимости), а не только
-        прямые зависимости целевого узла.
         """
+        Собирает имена прямых и транзитивных зависимостей компонента из графа Conan.
+
+        Args:
+            nodes: Словарь всех узлов из JSON-ответа ``conan graph info``.
+            comp_name: Имя целевого компонента, исключаемого из результата.
+
+        Returns:
+            Отсортированный список уникальных имён зависимостей.
+        """
+        # Обходим все узлы графа (включая транзитивные), а не только прямые зависимости.
         deps: list[str] = []
         for node in nodes.values():
             name: str = node.get("name", "")
@@ -207,9 +222,6 @@ class Conan2ResultParser:
             try:
                 dep_name = RecipeReference.loads(ref).name
             except ConanException as e:
-                # Не угадываем имя через split("/") — если специализированный
-                # парсер Conan не смог разобрать ref, пропускаем зависимость
-                # вместо того, чтобы рисковать неверным именем.
                 logger.warning(
                     f'Conan2ResultParser: не удалось разобрать ref зависимости "{ref}" ({e}); пропускаем.'
                 )

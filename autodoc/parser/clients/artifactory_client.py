@@ -49,18 +49,17 @@ class ArtifactoryClient:
 
     def head(self, url: str) -> requests.Response:
         """
-        Выполняет HTTP HEAD-запрос с локальным подавлением InsecureRequestWarning.
-
-        SSL-предупреждение подавляется только внутри этого метода, чтобы
-        не засорять лог при массовых проверках, — не на уровне всего процесса.
+        Выполняет HTTP HEAD-запрос к указанному URL.
 
         Args:
             url: URL для проверки.
 
         Returns:
-            HTTP-ответ.
+            HTTP-ответ сервера.
         """
         logger.debug(f"HEAD {url}")
         with warnings.catch_warnings():
+            # InsecureRequestWarning подавляется локально, а не на уровне всего процесса,
+            # чтобы не засорять лог при массовых проверках.
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
             return self.session.head(url, allow_redirects=True)
