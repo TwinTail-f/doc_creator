@@ -120,9 +120,7 @@ def test_ensure_hierarchy_returns_version_page_id(
     """Return value must be the ID from the second publish_page response."""
     manager = _make_manager(publisher_confluence_client)
 
-    result = manager.ensure_hierarchy_exists(
-        SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION
-    )
+    result = manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
     assert result == VERSION_PAGE_ID
 
@@ -193,9 +191,7 @@ def test_component_page_created_under_root_parent() -> None:
         release_version="1.0.0",
     )
 
-    assert (
-        len(recorded) >= 1
-    ), "At least one publish_page call must exist (component page)"
+    assert len(recorded) >= 1, "At least one publish_page call must exist (component page)"
     first_call = recorded[0]
     assert first_call["parent_id"] == "ROOT_PAGE", (
         f"First publish_page call must use root_parent_id='ROOT_PAGE', "
@@ -389,9 +385,7 @@ def test_hierarchy_calls_are_idempotent() -> None:
         release_version="1.0.0",
     )
 
-    assert (
-        id_first == id_second
-    ), "Repeated calls must return the same page_id (idempotency)"
+    assert id_first == id_second, "Repeated calls must return the same page_id (idempotency)"
 
 
 @pytest.mark.business_logic

@@ -27,19 +27,13 @@ class DocumentBuilder:
             FileNotFoundError: Если директория не существует.
         """
         if not rendering_dir.exists():
-            raise FileNotFoundError(
-                f"Директория рендеринга не найдена: {rendering_dir}"
-            )
+            raise FileNotFoundError(f"Директория рендеринга не найдена: {rendering_dir}")
 
-        self._env: Environment = Environment(
-            loader=FileSystemLoader(str(rendering_dir))
-        )
+        self._env: Environment = Environment(loader=FileSystemLoader(str(rendering_dir)))
         # Экранирование спецсимволов XML в значениях атрибутов.
         # Обрабатывает & → &amp;; extras-словарь добавляет " → &quot;.
         # Исключает двойное экранирование уже экранированного содержимого.
-        self._env.filters["xmlattr"] = (
-            lambda s: xml.sax.saxutils.escape(str(s), {'"': '&quot;'})
-        )
+        self._env.filters["xmlattr"] = lambda s: xml.sax.saxutils.escape(str(s), {'"': "&quot;"})
         logger.info(f"Инициализирован: {rendering_dir}")
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:

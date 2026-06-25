@@ -117,7 +117,7 @@ class ParserConfigSchema(BaseModel):
             "Используется для компонентов, чья ветка не совпадает с универсальным "
             "шаблоном 'release_{version}' (например, когда компонент живёт в том же "
             "репозитории, что и базовый, но имеет собственный суффикс ветки). "
-            "Пример: {\"sqlite3_extension\": \"release_{version}_ext\"}."
+            'Пример: {"sqlite3_extension": "release_{version}_ext"}.'
         ),
     )
 

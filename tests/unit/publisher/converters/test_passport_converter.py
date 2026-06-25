@@ -76,9 +76,7 @@ def test_passport_transform_returns_platform_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['platform_version'] matches the platform_version of the ParsedResult."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-        publisher_parsed_result
-    )
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["platform_version"] == PLATFORM_VERSION
 
@@ -88,9 +86,7 @@ def test_passport_transform_returns_component_fields(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['component'] contains the component's name and description."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-        publisher_parsed_result
-    )
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["component"]["name"] == COMP_NAME
     assert result["component"]["description"] == COMP_DESCRIPTION
@@ -101,9 +97,7 @@ def test_passport_transform_returns_release_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['release']['version'] matches the requested release version."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-        publisher_parsed_result
-    )
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["release"]["version"] == RELEASE_VERSION
 
@@ -113,9 +107,7 @@ def test_passport_transform_returns_release_channel(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """result['release']['channel'] matches the release's channel."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(
-        publisher_parsed_result
-    )
+    result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["release"]["channel"] == CHANNEL_TECH
 
@@ -198,9 +190,7 @@ def test_variant_with_unknown_options_ref_has_empty_options(
     patched_rel = orig_rel.model_copy(update={"profile_builds": [patched_pb]})
     orig_comp = publisher_parsed_result.components[0]
     patched_comp = orig_comp.model_copy(update={"releases": [patched_rel]})
-    patched_result = publisher_parsed_result.model_copy(
-        update={"components": [patched_comp]}
-    )
+    patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(patched_result)
@@ -365,9 +355,7 @@ def test_missing_profile_definition_gives_empty_settings_not_error(
     Expected Result:
         conan_settings == {} and docker_image == "" without KeyError or AttributeError.
     """
-    patched_result = publisher_parsed_result.model_copy(
-        update={"profile_definitions": []}
-    )
+    patched_result = publisher_parsed_result.model_copy(update={"profile_definitions": []})
 
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(patched_result)
@@ -407,9 +395,7 @@ def test_profile_builds_ordered_by_profile_name(
     view = converter.transform(publisher_two_profile_parsed_result)
 
     names = [pb["profile_name"] for pb in view["release"]["profile_builds"]]
-    assert names == sorted(
-        names
-    ), f"profile_builds must be sorted by name, got: {names}"
+    assert names == sorted(names), f"profile_builds must be sorted by name, got: {names}"
     assert (
         names[0] == "hw-linux-arm64-gcc10"
     ), "arm64 should be first (alphabetically before x86_64)"
@@ -439,9 +425,7 @@ def test_legacy_contents_initially_empty_dict(
     view = converter.transform(publisher_parsed_result)
 
     assert "legacy_contents" in view, "legacy_contents field must be present"
-    assert (
-        view["legacy_contents"] == {}
-    ), "Without injection, legacy_contents must be an empty dict"
+    assert view["legacy_contents"] == {}, "Without injection, legacy_contents must be an empty dict"
 
 
 @pytest.mark.business_logic
@@ -475,9 +459,5 @@ def test_legacy_contents_key_is_platform_version_string(
     view["legacy_contents"] = legacy
 
     for key in view["legacy_contents"]:
-        assert isinstance(
-            key, str
-        ), f"Key of legacy_contents must be a string, got {type(key)}"
-        assert any(
-            c.isdigit() for c in key
-        ), f"Key '{key}' must contain a platform version digit"
+        assert isinstance(key, str), f"Key of legacy_contents must be a string, got {type(key)}"
+        assert any(c.isdigit() for c in key), f"Key '{key}' must contain a platform version digit"

@@ -58,9 +58,7 @@ class BaseDataConverter(ABC):
         return " ".join(f"-o {_qualify(p)}" for p in parts)
 
     @staticmethod
-    def _build_install_options(
-        conan_options: dict[str, Any], component_name: str
-    ) -> str:
+    def _build_install_options(conan_options: dict[str, Any], component_name: str) -> str:
         """
         Форматирует опции варианта сборки для команды ``conan install``.
 
@@ -121,9 +119,7 @@ class BaseDataConverter(ABC):
         if resolved_opts.install_options_override is not None:
             install_opts = resolved_opts.install_options_override
         else:
-            install_opts = BaseDataConverter._build_install_options(
-                conan_options, component_name
-            )
+            install_opts = BaseDataConverter._build_install_options(conan_options, component_name)
         return ConanVariantView(
             package_id=variant.package_id,
             build_url=variant.build_url,

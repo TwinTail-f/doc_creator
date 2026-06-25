@@ -1,4 +1,5 @@
 """Команда publish release."""
+
 import click
 
 from autodoc.cli.constants import DEFAULT_RELEASE_PAGE_TITLE, RELEASE_TEMPLATE

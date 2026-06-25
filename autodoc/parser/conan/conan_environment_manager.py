@@ -161,9 +161,7 @@ class ConanEnvironmentManager:
         # чтобы не пересекаться с именами полей самого тапла (netloc, scheme и т.д.).
         url_with_creds = urlunsplit(split._replace(netloc=netloc_with_creds))
 
-        logger.info(
-            f"Устанавливаем конфигурацию Conan из {self._config_url} в {self._setup_dir} …"
-        )
+        logger.info(f"Устанавливаем конфигурацию Conan из {self._config_url} в {self._setup_dir} …")
         result = subprocess.run(
             ["conan", "config", "install", url_with_creds],
             capture_output=True,

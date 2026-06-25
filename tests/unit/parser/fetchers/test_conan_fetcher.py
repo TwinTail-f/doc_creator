@@ -68,9 +68,7 @@ def _patch_full_fetch_pipeline(
     mock_runner_cls: MagicMock = mocker.patch(f"{_MODULE}.Conan2Runner")
 
     mock_executor_cls: MagicMock = mocker.patch(f"{_MODULE}.ParallelExecutor")
-    mock_executor_cls.return_value.execute.return_value = [
-        mocker.MagicMock() for _ in tasks
-    ]
+    mock_executor_cls.return_value.execute.return_value = [mocker.MagicMock() for _ in tasks]
 
     mocker.patch(f"{_MODULE}.ConanResultParser")
     mock_agg_cls: MagicMock = mocker.patch(f"{_MODULE}.ConanResultAggregator")
@@ -262,9 +260,7 @@ def test_conan_fetcher_aggregation_errors_in_result(
     ) = _patch_full_fetch_pipeline(mocker)
 
     expected_errors: dict = {
-        "openssl": {
-            "1.0.0": {"stable": {"hw-linux-x86_64-gcc10_2": ["graph info failed"]}}
-        }
+        "openssl": {"1.0.0": {"stable": {"hw-linux-x86_64-gcc10_2": ["graph info failed"]}}}
     }
     enrichment_result_with_errors = ConanEnrichmentResult(errors=expected_errors)
     mock_agg_cls.return_value.aggregate.return_value = enrichment_result_with_errors
@@ -272,8 +268,6 @@ def test_conan_fetcher_aggregation_errors_in_result(
     ctx = _make_mock_ctx(mocker)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
-    result: FetchResult[ConanEnrichmentResult] = fetcher.fetch(
-        [mocker.MagicMock(name="component")]
-    )
+    result: FetchResult[ConanEnrichmentResult] = fetcher.fetch([mocker.MagicMock(name="component")])
 
     assert result.value.errors == expected_errors

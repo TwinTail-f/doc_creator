@@ -86,9 +86,7 @@ class TestReleaseStrategyExecute:
         )
         strategy.execute()
         publish_calls = [
-            c
-            for c in publisher_confluence_client.calls
-            if c["method"] == "publish_page"
+            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
         ]
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE
@@ -260,9 +258,7 @@ def test_publishes_exactly_one_page(
     assert (
         report.pages_published == 1
     ), f"ReleasePageStrategy must publish exactly 1 page, published: {report.pages_published}"
-    publish_calls = [
-        c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
-    ]
+    publish_calls = [c for c in publisher_confluence_client.calls if c["method"] == "publish_page"]
     assert (
         len(publish_calls) == 1
     ), f"publish_page must be called exactly 1 time, called: {len(publish_calls)}"
@@ -402,9 +398,7 @@ def test_links_injected_into_view_model_from_registry(
         (c for c in view.get("components", []) if c.get("name") == "openssl"),
         None,
     )
-    assert (
-        openssl_view is not None
-    ), "openssl component must be present in the view_model"
+    assert openssl_view is not None, "openssl component must be present in the view_model"
     passport_versions = openssl_view.get("passport_versions", {})
     assert (
         len(passport_versions) > 0

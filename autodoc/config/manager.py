@@ -48,9 +48,7 @@ class ConfigManager:
         else:
             logger.info(f"Инициализирован: {configs_dir}")
 
-    def load_parser_config(
-        self, config_file: str | None = None
-    ) -> ParserConfigSchema | None:
+    def load_parser_config(self, config_file: str | None = None) -> ParserConfigSchema | None:
         """
         Загружает и валидирует конфигурацию парсера.
 
@@ -168,8 +166,7 @@ class ConfigManager:
         suffix = path.suffix.lower()
         if suffix not in self.SUPPORTED_FORMATS:
             raise ConfigError(
-                f"Неподдерживаемый формат: {suffix}. "
-                f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
+                f"Неподдерживаемый формат: {suffix}. " f"Поддерживаемые: {self.SUPPORTED_FORMATS}"
             )
 
         return self._parse_file(path)
@@ -204,9 +201,7 @@ class ConfigManager:
             if candidate.exists():
                 return candidate
 
-        available = [
-            item.name for item in self.configs_dir.iterdir() if not item.is_dir()
-        ]
+        available = [item.name for item in self.configs_dir.iterdir() if not item.is_dir()]
         raise ConfigError(
             f'Конфиг "{filename}" не найден в {self.configs_dir}. '
             f"Доступные файлы: {available}. "

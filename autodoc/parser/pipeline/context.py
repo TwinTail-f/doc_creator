@@ -77,8 +77,7 @@ class PipelineContext:
                 continue
             if isinstance(v, dict):
                 serialized_intermediate[k] = {
-                    str(list(ik)) if isinstance(ik, tuple) else ik: iv
-                    for ik, iv in v.items()
+                    str(list(ik)) if isinstance(ik, tuple) else ik: iv for ik, iv in v.items()
                 }
             else:
                 serialized_intermediate[k] = v
@@ -88,7 +87,5 @@ class PipelineContext:
             "intermediate_keys": list(self.intermediate.keys()),
             "components": [c.model_dump() for c in self.components],
             "intermediate": serialized_intermediate,
-            "docker_links_count": len(
-                self.intermediate.get(self._DOCKER_LINKS_KEY, {})
-            ),
+            "docker_links_count": len(self.intermediate.get(self._DOCKER_LINKS_KEY, {})),
         }

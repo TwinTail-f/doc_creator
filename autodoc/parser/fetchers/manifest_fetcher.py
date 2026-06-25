@@ -71,7 +71,9 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
         """
         tmp_dir.mkdir(parents=True, exist_ok=True)
 
-        items_url = f"{self._base_url}/{_MANIFESTS_PROJECT}/_apis/git/repositories/{_MANIFESTS_REPO}/items"
+        items_url = (
+            f"{self._base_url}/{_MANIFESTS_PROJECT}/_apis/git/repositories/{_MANIFESTS_REPO}/items"
+        )
         self._tfs.download_properties(
             items_url=items_url,
             remote_path=self._manifests_remotes_path,
@@ -91,7 +93,5 @@ class ManifestFetcher(BaseTFSFetcher[list[Component]]):
             target_platform=self._platform_base_version,
             tfs_collection_url=self._base_url,
         )
-        components, warnings = parser.parse(
-            properties_files, component_names, filter_mode
-        )
+        components, warnings = parser.parse(properties_files, component_names, filter_mode)
         return FetchResult(value=components, warnings=warnings)

@@ -48,9 +48,7 @@ class FullReleaseConverter(BaseReleaseConverter):
                         else {}
                     ),
                     "docker_image": (
-                        pd_map[pb.profile_name].docker_image
-                        if pb.profile_name in pd_map
-                        else ""
+                        pd_map[pb.profile_name].docker_image if pb.profile_name in pd_map else ""
                     ),
                     "exists": pb.exists,
                     "variants": [
@@ -94,9 +92,7 @@ class FullReleaseConverter(BaseReleaseConverter):
                     "name": comp.name,
                     "description": comp.description,
                     "releases": [
-                        self._build_release_view(
-                            rel, comp.name, pd_map, comp.is_header_only
-                        )
+                        self._build_release_view(rel, comp.name, pd_map, comp.is_header_only)
                         for rel in comp.releases
                     ],
                 }

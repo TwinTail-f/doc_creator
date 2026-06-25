@@ -69,9 +69,7 @@ class DataEnricher:
                     docker_url = docker_links.get(pname, "")
                     if profile_definitions is not None:
                         if pname not in pd_map:
-                            entry = ProfileDefinition(
-                                profile_name=pname, docker_image=docker_url
-                            )
+                            entry = ProfileDefinition(profile_name=pname, docker_image=docker_url)
                             pd_map[pname] = entry
                             profile_definitions.append(entry)
                         else:
@@ -132,7 +130,5 @@ class DataEnricher:
                                 )
                                 pd_map[pname] = entry
                                 profile_definitions.append(entry)
-                            elif (
-                                pb_data.conan_settings
-                            ):  # не затираем непустые данные пустыми
+                            elif pb_data.conan_settings:  # не затираем непустые данные пустыми
                                 pd_map[pname].conan_settings = pb_data.conan_settings

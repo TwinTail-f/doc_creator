@@ -107,9 +107,7 @@ def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type:
     или вызывается более одного раза за один вызов setup().
     """
     mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
-    mock_mkdtemp = mocker.patch(
-        "tempfile.mkdtemp", return_value="/tmp/conan_setup_test"
-    )
+    mock_mkdtemp = mocker.patch("tempfile.mkdtemp", return_value="/tmp/conan_setup_test")
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
 
@@ -160,9 +158,7 @@ def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
 
 
 @pytest.mark.infrastructure
-def test_base_conan_runner_setup_semantics_on_double_call(
-    tmp_path: Path, mocker
-) -> None:
+def test_base_conan_runner_setup_semantics_on_double_call(tmp_path: Path, mocker) -> None:
     """setup() вызванный дважды на ConanEnvironmentManager: второй вызов завершается нормально.
 
     ConanEnvironmentManager не вызывает исключение при повторном setup — он просто

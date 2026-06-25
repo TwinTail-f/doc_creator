@@ -34,17 +34,13 @@ def config_list(ctx: click.Context) -> None:
 
     for output_format, files in available.items():
         if files:
-            table = Table(
-                title=f"{output_format.upper()} конфигурации", show_header=True
-            )
+            table = Table(title=f"{output_format.upper()} конфигурации", show_header=True)
             table.add_column("Файл", style="cyan")
             for fname in files:
                 table.add_row(fname)
             console.print(table)
         else:
-            console.print(
-                f"{output_format.upper()} конфиги: [yellow]не найдены[/yellow]"
-            )
+            console.print(f"{output_format.upper()} конфиги: [yellow]не найдены[/yellow]")
 
     # Примеры
     has_examples = any(examples.values())
@@ -80,9 +76,7 @@ def config_validate(ctx: click.Context, config_file: str) -> None:
         except PydanticValidationError as e:
             validation_errors.append(f"схема {schema_name}: {e}")
             continue
-        console.print(
-            f"✅ Pydantic валидация пройдена (схема: {schema_name})", style="green"
-        )
+        console.print(f"✅ Pydantic валидация пройдена (схема: {schema_name})", style="green")
         return
 
     console.print(

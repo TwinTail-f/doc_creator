@@ -109,9 +109,7 @@ def test_manifest_fetcher_returns_patchelf_with_two_releases(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
     # Only assert flow-through: correct top-level count, correct release count, no exception.
     assert len(result.value) == 1
@@ -134,9 +132,7 @@ def test_manifest_fetcher_returns_nlohmann_json(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
     # Only assert flow-through: correct top-level count, no exception.
     assert len(result.value) == 1
@@ -158,9 +154,7 @@ def test_manifest_fetcher_all_five_components(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
     assert len(result.value) >= 5
 
@@ -180,9 +174,7 @@ def test_manifest_fetcher_libnetfilter_queue_prg_quant(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
     # Only assert flow-through: correct top-level count, no exception.
     assert len(result.value) == 1
@@ -204,9 +196,7 @@ def test_manifest_fetcher_include_filter(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=["apr"], filter_mode="include"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=["apr"], filter_mode="include")
 
     # Only assert flow-through: correct top-level count, no exception.
     assert len(result.value) == 1
@@ -228,9 +218,7 @@ def test_manifest_fetcher_exclude_filter(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=["apr"], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=["apr"], filter_mode="exclude")
 
     names = [c.name for c in result.value]
     assert "apr" not in names
@@ -309,9 +297,7 @@ def test_manifest_fetcher_single_version_single_channel_fast(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
     components = result.value
 
     # Only assert flow-through: correct top-level count, correct release count, no exception.
@@ -344,9 +330,7 @@ def test_manifest_fetcher_patchelf_two_versions_one_channel(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
     components = result.value
 
     # Only assert flow-through: correct top-level count, correct release count, no exception.
@@ -380,9 +364,7 @@ def test_manifest_fetcher_external_project_no_error(
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
-    result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude"
-    )
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
     components = result.value
 
     # Only assert flow-through: correct top-level count, no exception, no unexpected warnings.

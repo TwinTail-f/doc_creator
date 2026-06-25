@@ -35,7 +35,8 @@ class ReleasePageStrategy(SinglePagePublishStrategy, strategy_type="release"):
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
         kwargs.setdefault("link_injector", PassportPageRegistry.inject_links)
         super().__init__(
-            converter=converter or self._make_converter(
+            converter=converter
+            or self._make_converter(
                 {"include_passport_links": kwargs.get("include_passport_links", True)}
             ),
             **kwargs,

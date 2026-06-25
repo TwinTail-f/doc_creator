@@ -72,9 +72,7 @@ def _patch_full_fetch_pipeline(
     mock_runner_cls: MagicMock = mocker.patch(f"{_MODULE}.Conan2Runner")
 
     mock_executor_cls: MagicMock = mocker.patch(f"{_MODULE}.ParallelExecutor")
-    mock_executor_cls.return_value.execute.return_value = [
-        mocker.MagicMock() for _ in tasks
-    ]
+    mock_executor_cls.return_value.execute.return_value = [mocker.MagicMock() for _ in tasks]
 
     mocker.patch(f"{_MODULE}.ConanResultParser")
     mock_agg_cls: MagicMock = mocker.patch(f"{_MODULE}.ConanResultAggregator")
@@ -128,10 +126,7 @@ def test_fetch_result_release_data_has_correct_key_and_base_ref(
 
     assert isinstance(result.value, ConanEnrichmentResult)
     assert expected_key in result.value.release_data
-    assert (
-        result.value.release_data[expected_key].base_ref
-        == "patchelf/0.18.0@platform-2.0/tech"
-    )
+    assert result.value.release_data[expected_key].base_ref == "patchelf/0.18.0@platform-2.0/tech"
 
 
 # ---------------------------------------------------------------------------
@@ -183,11 +178,7 @@ def test_fetch_result_nested_errors_structure_preserved(
     expected_errors = {
         "stunnel": {
             "5.71": {
-                "tech": {
-                    "hw-linux-x86_64-gcc10_2": [
-                        "version range error: openssl/[>=1.0.0]"
-                    ]
-                }
+                "tech": {"hw-linux-x86_64-gcc10_2": ["version range error: openssl/[>=1.0.0]"]}
             }
         }
     }
@@ -202,9 +193,7 @@ def test_fetch_result_nested_errors_structure_preserved(
     result: FetchResult[ConanEnrichmentResult] = fetcher.fetch([mocker.MagicMock()])
 
     assert result.value.errors == expected_errors
-    error_msg = result.value.errors["stunnel"]["5.71"]["tech"][
-        "hw-linux-x86_64-gcc10_2"
-    ][0]
+    error_msg = result.value.errors["stunnel"]["5.71"]["tech"]["hw-linux-x86_64-gcc10_2"][0]
     assert "version range" in error_msg
 
 

@@ -17,7 +17,6 @@ from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 from autodoc.common.logger import logger
 
-
 _CDATA_PATTERN: re.Pattern[str] = re.compile(r"(<!\[CDATA\[.*?]]>)", re.DOTALL)
 
 

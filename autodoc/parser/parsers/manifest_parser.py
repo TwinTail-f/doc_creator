@@ -71,9 +71,7 @@ class ManifestParser:
             Кортеж ``(components, warnings)`` — список компонентов и список предупреждений.
         """
         file_results = self._executor.execute(
-            lambda filepath: self._parse_single_file(
-                filepath, component_names, filter_mode
-            ),
+            lambda filepath: self._parse_single_file(filepath, component_names, filter_mode),
             files,
             task_label="манифестов",
         )
@@ -145,9 +143,7 @@ class ManifestParser:
         # список, не совпадающий ни с одним именем компонента.
         elif filter_mode == "include":
             if component_names and name not in component_names:
-                logger.debug(
-                    f"Компонент {name} пропущен — не в белом списке (режим include)"
-                )
+                logger.debug(f"Компонент {name} пропущен — не в белом списке (режим include)")
                 return _FileParseResult(is_excluded=True)
 
         releases = self._build_releases(props)
@@ -158,9 +154,7 @@ class ManifestParser:
         git_repo = props.get("git_repo_name", "")
         git_repo_part = f"{git_project}/_git/{git_repo}" if git_repo else ""
         if self._tfs_collection_url and git_project and git_repo:
-            component_git_url = (
-                f"{self._tfs_collection_url}/{git_project}/_git/{git_repo}"
-            )
+            component_git_url = f"{self._tfs_collection_url}/{git_project}/_git/{git_repo}"
         elif git_repo_part:
             component_git_url = git_repo_part
         else:
@@ -189,21 +183,15 @@ class ManifestParser:
         """
         target_platform = self._target_platform
         comp_versions = [
-            v.strip()
-            for v in props.get("versions.component", "").split(",")
-            if v.strip()
+            v.strip() for v in props.get("versions.component", "").split(",") if v.strip()
         ]
         plat_versions = [
-            v.strip()
-            for v in props.get("versions.platform", "").split(",")
-            if v.strip()
+            v.strip() for v in props.get("versions.platform", "").split(",") if v.strip()
         ]
         releases: list[Release] = []
 
         for p_ver in plat_versions:
-            if not (
-                p_ver.startswith(f"{target_platform}-") or p_ver == target_platform
-            ):
+            if not (p_ver.startswith(f"{target_platform}-") or p_ver == target_platform):
                 continue
             for c_ver in comp_versions:
                 profiles_str = self._get_profiles_string(props, c_ver, p_ver)
@@ -216,9 +204,7 @@ class ManifestParser:
                         version=c_ver,
                         platform=target_platform,
                         channel=channel,
-                        profile_builds=[
-                            ProfileBuild(profile_name=prof) for prof in profile_list
-                        ],
+                        profile_builds=[ProfileBuild(profile_name=prof) for prof in profile_list],
                     )
                 )
 

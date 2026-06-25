@@ -85,9 +85,7 @@ class TestRegistry:
         """If the strategy declares _make_converter, create() calls it."""
         sentinel = object()
 
-        class _ConverterStrategy(
-            BasePublishStrategy, strategy_type="__test_converter__"
-        ):
+        class _ConverterStrategy(BasePublishStrategy, strategy_type="__test_converter__"):
             """Strategy with _make_converter for testing create() factory logic."""
 
             def __init__(self, converter: Any = None, **kwargs: Any) -> None:
@@ -288,9 +286,7 @@ class TestPublishSinglePage:
             parent_id=_PARENT_ID,
         )
         publish_calls = [
-            c
-            for c in publisher_confluence_client.calls
-            if c["method"] == "publish_page"
+            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
         ]
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE

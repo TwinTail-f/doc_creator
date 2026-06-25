@@ -36,9 +36,7 @@ def make_release(
     return r
 
 
-def make_component(
-    name: str = "mylib", releases: list[Release] | None = None
-) -> Component:
+def make_component(name: str = "mylib", releases: list[Release] | None = None) -> Component:
     """Создаёт Component с необязательным списком релизов."""
     return Component(name=name, releases=releases or [])
 
@@ -193,9 +191,7 @@ def test_task_builder_empty_components_returns_empty() -> None:
 @pytest.mark.business_logic
 def test_task_builder_task_fields_populated() -> None:
     """Все скалярные поля ConanTask должны совпадать со значениями исходной модели."""
-    release = make_release(
-        version="3.2.1", channel="stable", profiles=("hw-linux-x86_64",)
-    )
+    release = make_release(version="3.2.1", channel="stable", profiles=("hw-linux-x86_64",))
     comp = make_component(name="zlib", releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
@@ -289,9 +285,7 @@ def test_option_normalization_already_wildcarded_is_idempotent() -> None:
     cmd = tasks[0].cmd
 
     # Double-wildcard must not appear
-    assert not any(
-        "mylib/*/*" in arg for arg in cmd
-    ), f"Double wildcard detected in command: {cmd}"
+    assert not any("mylib/*/*" in arg for arg in cmd), f"Double wildcard detected in command: {cmd}"
     # Correct single-wildcard form must be present
     assert any(
         "mylib/*:shared=True" in arg for arg in cmd
@@ -338,9 +332,7 @@ def test_no_option_sets_produces_one_default_task() -> None:
     assert (
         len(tasks) == 1
     ), f"Expected exactly 1 task for a release with no option sets, got {len(tasks)}"
-    assert (
-        tasks[0].option_id == "1"
-    ), f"Default option_id should be '1', got '{tasks[0].option_id}'"
+    assert tasks[0].option_id == "1", f"Default option_id should be '1', got '{tasks[0].option_id}'"
     assert (
         tasks[0].option_str == ""
     ), f"Default option_str should be empty, got '{tasks[0].option_str}'"

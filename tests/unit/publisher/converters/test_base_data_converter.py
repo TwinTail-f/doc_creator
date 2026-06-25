@@ -61,9 +61,7 @@ class TestBuildInstallOptions:
     @pytest.mark.business_logic
     def test_build_install_options_preserves_qualified_key(self) -> None:
         """A key already containing '/*:' is not double-qualified."""
-        result = PassportConverter._build_install_options(
-            {"icu/*:shared": "True"}, COMP_NAME
-        )
+        result = PassportConverter._build_install_options({"icu/*:shared": "True"}, COMP_NAME)
 
         assert result == "-o icu/*:shared=True"
 
@@ -116,14 +114,11 @@ class TestBuildInstallOptionsFromString:
     @pytest.mark.business_logic
     def test_build_install_options_from_string_multiple_options(self) -> None:
         """Multiple comma-separated options produce space-separated '-o' flags."""
-        options = (
-            f"{COMP_NAME}/*:{OPT_KEY_SHARED}=True, {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
-        )
+        options = f"{COMP_NAME}/*:{OPT_KEY_SHARED}=True, {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
         result = PassportConverter._build_install_options_from_string(options)
 
         assert result == (
-            f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
-            f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
+            f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
         )
 
     @pytest.mark.business_logic
@@ -143,14 +138,12 @@ class TestBuildInstallOptionsFromString:
     ) -> None:
         """Leading/trailing whitespace around each option token is stripped correctly."""
         options = (
-            f"  {COMP_NAME}/*:{OPT_KEY_SHARED}=True  ,"
-            f"  {COMP_NAME}/*:{OPT_KEY_FPIC}=True  "
+            f"  {COMP_NAME}/*:{OPT_KEY_SHARED}=True  ," f"  {COMP_NAME}/*:{OPT_KEY_FPIC}=True  "
         )
         result = PassportConverter._build_install_options_from_string(options)
 
         assert result == (
-            f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
-            f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
+            f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
         )
 
 
@@ -201,9 +194,7 @@ class TestBuildVariantView:
         self, sample_variant: ConanVariant
     ) -> None:
         """When override is None, install_options is built from conan_options."""
-        opts = _VariantOpts(
-            conan_options={OPT_KEY_SHARED: "True"}, install_options_override=None
-        )
+        opts = _VariantOpts(conan_options={OPT_KEY_SHARED: "True"}, install_options_override=None)
         view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
         assert view.install_options == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
@@ -349,6 +340,5 @@ def test_build_install_options_bare_key_gets_component_name_prefix() -> None:
 
     assert "-o" in result, "Result must contain the -o flag"
     assert "mylib/*:shared=True" in result, (
-        "Bare key 'shared=True' with comp_name='mylib' should result in "
-        "'mylib/*:shared=True'"
+        "Bare key 'shared=True' with comp_name='mylib' should result in " "'mylib/*:shared=True'"
     )

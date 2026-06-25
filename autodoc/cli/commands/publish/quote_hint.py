@@ -1,4 +1,5 @@
 """Вспомогательный Click-класс с подсказкой о кавычках."""
+
 from typing import Any
 
 import click
@@ -46,9 +47,7 @@ class QuoteHintCommand(click.Command):
                 }
             )
             if "unexpected extra argument" in str(e).lower() and name_flags:
-                examples = "\n".join(
-                    f'   {flag} "Название страницы"' for flag in name_flags
-                )
+                examples = "\n".join(f'   {flag} "Название страницы"' for flag in name_flags)
                 raise click.UsageError(
                     f"{e}\n\n"
                     "💡 Если название страницы содержит пробелы, заключите его в кавычки:\n"

@@ -26,9 +26,7 @@ _PLATFORM_VERSION_RE: re.Pattern[str] = re.compile(r"Platform\s+[\d.]+")
 
 # Находит имя вкладки через <ac:parameter ac:name="name">.
 # Намеренно не матчит ac:name="title" — это атрибут expand-макросов, а не вкладок.
-_TAB_NAME_RE: re.Pattern[str] = re.compile(
-    r'<ac:parameter ac:name="name">([^<]+)</ac:parameter>'
-)
+_TAB_NAME_RE: re.Pattern[str] = re.compile(r'<ac:parameter ac:name="name">([^<]+)</ac:parameter>')
 
 # Маркеры настоящих tab-макросов Confluence (используются в guard-проверке).
 # Не содержат закрывающего '>' — Confluence при сохранении добавляет атрибуты
@@ -130,9 +128,7 @@ def extract_rich_text_body(html: str, body_start: int) -> tuple[str, int]:
             depth -= 1
             search_idx = next_close + len(_RICH_TEXT_BODY_CLOSE)
             if depth == 0:
-                content = html[
-                    body_start + len(_RICH_TEXT_BODY_OPEN) : next_close
-                ].strip()
+                content = html[body_start + len(_RICH_TEXT_BODY_OPEN) : next_close].strip()
                 return content, search_idx
 
     return "", search_idx

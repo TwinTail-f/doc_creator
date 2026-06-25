@@ -134,9 +134,13 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
             task_label="паспортов",
         )
         results: list[_PagePublishResult] = [
-            r if r is not None else _PagePublishResult(
-                error="Неожиданная ошибка выполнения задачи",
-                failed_page={"page_title": "неизвестно", "reason": "None result"},
+            (
+                r
+                if r is not None
+                else _PagePublishResult(
+                    error="Неожиданная ошибка выполнения задачи",
+                    failed_page={"page_title": "неизвестно", "reason": "None result"},
+                )
             )
             for r in raw_results
         ]

@@ -33,9 +33,7 @@ def multi_result_with_unknown_profile(
     original_comp = publisher_multi_component_result.components[0]
     patched_comp = original_comp.model_copy(update={"releases": [patched_rel]})
     components = [patched_comp] + list(publisher_multi_component_result.components[1:])
-    return publisher_multi_component_result.model_copy(
-        update={"components": components}
-    )
+    return publisher_multi_component_result.model_copy(update={"components": components})
 
 
 # ── FullReleaseConverter ────────────────────────────────────────────────────
@@ -133,8 +131,7 @@ def test_full_release_transform_header_only_flag_comes_from_component(
     patched_comp = original_comp.model_copy(update={"is_header_only": True})
     patched_result = publisher_multi_component_result.model_copy(
         update={
-            "components": [patched_comp]
-            + list(publisher_multi_component_result.components[1:])
+            "components": [patched_comp] + list(publisher_multi_component_result.components[1:])
         }
     )
     result = FullReleaseConverter().transform(patched_result)
@@ -152,9 +149,7 @@ def test_full_release_transform_release_with_no_profile_builds_has_empty_list(
     result = FullReleaseConverter().transform(publisher_multi_component_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
-    empty_pb_release = next(
-        r for r in openssl_entry["releases"] if not r["profile_builds"]
-    )
+    empty_pb_release = next(r for r in openssl_entry["releases"] if not r["profile_builds"])
     assert empty_pb_release["profile_builds"] == []
 
 
@@ -224,9 +219,7 @@ def test_non_header_only_component_has_profile_builds(
 
     comp = publisher_parsed_result.components[0]
     assert comp.is_header_only is False, "Fixture must have is_header_only=False"
-    assert (
-        len(comp.releases[0].profile_builds) > 0
-    ), "Fixture must have non-empty profile_builds"
+    assert len(comp.releases[0].profile_builds) > 0, "Fixture must have non-empty profile_builds"
 
     converter = FullReleaseConverter(include_passport_links=False)
     view = converter.transform(publisher_parsed_result)
@@ -269,9 +262,7 @@ def test_components_sorted_alphabetically_in_view(
 
 @pytest.mark.parametrize("flag", [True, False])
 @pytest.mark.business_logic
-def test_include_links_flag_propagated_to_view_model(
-    publisher_parsed_result, flag: bool
-) -> None:
+def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, flag: bool) -> None:
     """
     BL-FRC-04
     Business Rule: The include_passport_links value passed to the
@@ -294,9 +285,7 @@ def test_include_links_flag_propagated_to_view_model(
     converter = FullReleaseConverter(include_passport_links=flag)
     view = converter.transform(publisher_parsed_result)
 
-    assert (
-        "include_passport_links" in view
-    ), "view_model must contain key include_passport_links"
+    assert "include_passport_links" in view, "view_model must contain key include_passport_links"
     assert (
         view["include_passport_links"] is flag
     ), f"include_passport_links should be {flag}, got {view['include_passport_links']}"
@@ -402,9 +391,7 @@ def test_passport_link_formatted_with_component_name_and_version(
 
     assert "passport_link" in release_view
     link = release_view["passport_link"]
-    assert (
-        link is not None
-    ), "With a pattern and include_links=True, link must not be None"
+    assert link is not None, "With a pattern and include_links=True, link must not be None"
     assert comp.name in link, f"passport_link must contain component name '{comp.name}'"
     assert (
         comp.releases[0].version in link

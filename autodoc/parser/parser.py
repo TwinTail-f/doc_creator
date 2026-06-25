@@ -149,9 +149,7 @@ class ComponentParser:
                     logger.info(f"ComponentParser ✓ [{step.name}]")
                 except DocGeneratorError as exc:
                     if step.is_critical:
-                        logger.error(
-                            f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}"
-                        )
+                        logger.error(f"ComponentParser ✗ [{step.name}] — критическая ошибка: {exc}")
                         raise ParsingError(
                             f"Критический шаг {step.name} завершился с ошибкой: {exc}"
                         ) from exc
@@ -171,9 +169,7 @@ class ComponentParser:
 
         return ctx.result
 
-    def _save_intermediate(
-        self, ctx: PipelineContext, step: BaseParseStep, step_idx: int
-    ) -> None:
+    def _save_intermediate(self, ctx: PipelineContext, step: BaseParseStep, step_idx: int) -> None:
         """Сохраняет снимок промежуточного состояния контекста в JSON-файл."""
         safe_name = step.name.lower().replace(" ", "_").replace("/", "_")
         filepath = self._intermediate_dir / f"{step_idx + 1:02d}_{safe_name}.json"

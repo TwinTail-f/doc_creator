@@ -42,9 +42,7 @@ def result_with_header_only_unique_profile(
         }
     )
     components = [patched_comp] + list(publisher_multi_component_result.components[1:])
-    return publisher_multi_component_result.model_copy(
-        update={"components": components}
-    )
+    return publisher_multi_component_result.model_copy(update={"components": components})
 
 
 # ── ProfileCentricConverter ─────────────────────────────────────────────────
@@ -398,6 +396,4 @@ def test_passport_link_formatted_per_component_version(
                         comp_entry["version"] in link
                     ), f"passport_link must contain version '{comp_entry['version']}'"
                     found_any_link = True
-    assert (
-        found_any_link
-    ), "At least one component should receive a non-empty passport_link"
+    assert found_any_link, "At least one component should receive a non-empty passport_link"

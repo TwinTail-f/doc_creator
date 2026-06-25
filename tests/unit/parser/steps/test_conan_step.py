@@ -232,9 +232,7 @@ def test_conan_step_apr_fast_channel_no_dependencies(
     with apr data. After ConanEnrichStep.execute, the apr release's dependencies
     list must be empty (apr has no runtime deps in production).
     """
-    comp, rel, pb = _make_release_with_pb(
-        "apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2"
-    )
+    comp, rel, pb = _make_release_with_pb("apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2")
     parser_pipeline_context.components = [comp]
     conan_result = _make_conan_result(
         "apr",
@@ -270,9 +268,7 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
     information in ctx.intermediate['conan_report'].
     """
     error_entry = {
-        "5.77": {
-            "fast": {"crypto_default_gcc_x86_64.jinja": ["Version range not resolved"]}
-        }
+        "5.77": {"fast": {"crypto_default_gcc_x86_64.jinja": ["Version range not resolved"]}}
     }
     fake_result = ConanEnrichmentResult(
         release_data={},

@@ -78,9 +78,7 @@ class TestFindPage:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """find_page returns None when the API returns an empty results list."""
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": []}
-        )
+        confluence_client._mock_session.get.return_value = _make_response({"results": []})
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is None
 
@@ -90,9 +88,7 @@ class TestFindPage:
     ) -> None:
         """find_page returns the first element of results when the page exists."""
         page_data = {"id": PAGE_ID, "title": PAGE_TITLE}
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": [page_data]}
-        )
+        confluence_client._mock_session.get.return_value = _make_response({"results": [page_data]})
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is not None
         assert result["id"] == PAGE_ID
@@ -112,9 +108,7 @@ class TestGetPageBody:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """get_page_body returns '' when the page does not exist."""
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": []}
-        )
+        confluence_client._mock_session.get.return_value = _make_response({"results": []})
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == ""
 
@@ -128,9 +122,7 @@ class TestGetPageBody:
             "title": PAGE_TITLE,
             "body": {"storage": {"value": "<p>html</p>"}},
         }
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": [page_data]}
-        )
+        confluence_client._mock_session.get.return_value = _make_response({"results": [page_data]})
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == "<p>html</p>"
 
@@ -143,9 +135,7 @@ class TestGetPageBody:
 class TestPublishPage:
     """Tests for ConfluenceClient.publish_page()."""
 
-    def _setup_not_found_then_created(
-        self, confluence_client: ConfluenceClient
-    ) -> None:
+    def _setup_not_found_then_created(self, confluence_client: ConfluenceClient) -> None:
         """Configure the mock so find_page returns None and create_page succeeds."""
         find_resp = _make_response({"results": []})
         create_resp = _make_response({"id": PAGE_ID})
@@ -230,9 +220,7 @@ class TestPublishPage:
         confluence_client._mock_session.get.return_value = _make_response(
             {"results": [existing_page]}
         )
-        confluence_client._mock_session.put.return_value = _make_response(
-            {"id": PAGE_ID}
-        )
+        confluence_client._mock_session.put.return_value = _make_response({"id": PAGE_ID})
 
         confluence_client.publish_page(
             space=SPACE,
@@ -261,9 +249,7 @@ class TestPublishPage:
         confluence_client._mock_session.get.return_value = _make_response(
             {"results": [existing_page]}
         )
-        confluence_client._mock_session.put.return_value = _make_response(
-            {"id": PAGE_ID}
-        )
+        confluence_client._mock_session.put.return_value = _make_response({"id": PAGE_ID})
 
         confluence_client.publish_page(
             space=SPACE,
@@ -295,9 +281,7 @@ class TestPublishPage:
         confluence_client._mock_session.get.return_value = _make_response(
             {"results": [existing_page]}
         )
-        confluence_client._mock_session.put.return_value = _make_response(
-            {"id": PAGE_ID}
-        )
+        confluence_client._mock_session.put.return_value = _make_response({"id": PAGE_ID})
 
         result = confluence_client.publish_page(
             space=SPACE,
@@ -328,9 +312,7 @@ class TestGetOrCreatePage:
             "title": PAGE_TITLE,
             "ancestors": [{"id": PARENT_ID}],
         }
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": [existing]}
-        )
+        confluence_client._mock_session.get.return_value = _make_response({"results": [existing]})
         result = confluence_client.get_or_create_page(
             space=SPACE, title=PAGE_TITLE, parent_id=PARENT_ID
         )
@@ -342,12 +324,8 @@ class TestGetOrCreatePage:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """Creates the page and returns the new ID when the page doesn't exist."""
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": []}
-        )
-        confluence_client._mock_session.post.return_value = _make_response(
-            {"id": PAGE_ID}
-        )
+        confluence_client._mock_session.get.return_value = _make_response({"results": []})
+        confluence_client._mock_session.post.return_value = _make_response({"id": PAGE_ID})
         result = confluence_client.get_or_create_page(
             space=SPACE, title=PAGE_TITLE, parent_id=PARENT_ID
         )
@@ -388,9 +366,7 @@ class TestTimeoutForwarding:
 
 
 @pytest.mark.contract
-def test_confluence_client_satisfies_protocol(
-    minimal_confluence_config: dict, mocker
-) -> None:
+def test_confluence_client_satisfies_protocol(minimal_confluence_config: dict, mocker) -> None:
     """ConfluenceClient must satisfy IConfluenceClient at runtime."""
     from autodoc.publisher.clients.confluence_client import ConfluenceClient
     from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient

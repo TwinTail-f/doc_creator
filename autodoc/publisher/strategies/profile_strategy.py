@@ -8,9 +8,7 @@ from autodoc.publisher.page_manager.passport_registry import PassportPageRegistr
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
-class ProfileCentricStrategy(
-    SinglePagePublishStrategy, strategy_type="profile_centric"
-):
+class ProfileCentricStrategy(SinglePagePublishStrategy, strategy_type="profile_centric"):
     """
     Публикует профиль-центричную документацию релиза на одной странице Confluence.
 
@@ -35,7 +33,8 @@ class ProfileCentricStrategy(
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
         kwargs.setdefault("link_injector", PassportPageRegistry.inject_links_for_profiles)
         super().__init__(
-            converter=converter or self._make_converter(
+            converter=converter
+            or self._make_converter(
                 {"include_passport_links": kwargs.get("include_passport_links", True)}
             ),
             **kwargs,

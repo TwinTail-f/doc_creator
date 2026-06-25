@@ -14,9 +14,7 @@ class DockerParser:
     """Статические методы для разбора YAML-профилей и извлечения Docker-ссылок."""
 
     @classmethod
-    def extract_from_yaml(
-        cls, content: dict[str, Any], docker_links: DockerLinksMap
-    ) -> None:
+    def extract_from_yaml(cls, content: dict[str, Any], docker_links: DockerLinksMap) -> None:
         """
         Обходит раздел ``archs`` YAML-профиля и заполняет маппинг Docker-образов.
 
@@ -62,9 +60,7 @@ class DockerParser:
         return ""
 
     @classmethod
-    def add_aliases(
-        cls, name: str, docker_img: str, docker_links: DockerLinksMap
-    ) -> None:
+    def add_aliases(cls, name: str, docker_img: str, docker_links: DockerLinksMap) -> None:
         """
         Добавляет имя профиля и все его псевдонимы в маппинг Docker-образов.
 

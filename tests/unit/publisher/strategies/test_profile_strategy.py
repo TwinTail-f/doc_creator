@@ -148,9 +148,7 @@ class TestProfileCentricStrategyExecute:
         )
         strategy.execute()
         publish_calls = [
-            c
-            for c in publisher_confluence_client.calls
-            if c["method"] == "publish_page"
+            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
         ]
         assert len(publish_calls) == 1
         assert publish_calls[0]["title"] == _PAGE_TITLE

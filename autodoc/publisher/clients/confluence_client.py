@@ -273,9 +273,7 @@ class ConfluenceClient:
         current_version = self._extract_version(existing_page)
         next_version = current_version + 1
 
-        logger.info(
-            f"Обновление {title}: v{current_version} → v{next_version} (ID: {page_id})"
-        )
+        logger.info(f"Обновление {title}: v{current_version} → v{next_version} (ID: {page_id})")
 
         payload = self._build_page_payload(
             title=title,
@@ -455,8 +453,6 @@ class ConfluenceClient:
         session.verify = config.verify_ssl
         if not config.verify_ssl:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            logger.debug(
-                "Проверка SSL-сертификата отключена, предупреждения urllib3 подавлены"
-            )
+            logger.debug("Проверка SSL-сертификата отключена, предупреждения urllib3 подавлены")
         session.headers.update({"Content-Type": "application/json"})
         return session

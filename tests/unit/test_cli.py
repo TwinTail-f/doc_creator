@@ -181,9 +181,7 @@ def test_cli_config_list_on_empty_dir_exits_zero(
 def test_cli_config_list_shows_yaml_config_filenames(configs_dir: Path) -> None:
     """config list отображает .yaml файлы в выводе."""
     _write_yaml(configs_dir, "parser_config.yaml", _VALID_CONFIG)
-    result = CliRunner().invoke(
-        cli, ["--configs-dir", str(configs_dir), "config", "list"]
-    )
+    result = CliRunner().invoke(cli, ["--configs-dir", str(configs_dir), "config", "list"])
     assert result.exit_code == _EXIT_SUCCESS
     assert "parser_config.yaml" in result.output
 
@@ -195,8 +193,6 @@ def test_cli_config_list_shows_examples_section(configs_dir: Path) -> None:
     examples_dir.mkdir()
     _write_yaml(examples_dir, "parser_config.yaml", _VALID_CONFIG)
 
-    result = CliRunner().invoke(
-        cli, ["--configs-dir", str(configs_dir), "config", "list"]
-    )
+    result = CliRunner().invoke(cli, ["--configs-dir", str(configs_dir), "config", "list"])
     assert result.exit_code == _EXIT_SUCCESS
     assert "examples" in result.output.lower()

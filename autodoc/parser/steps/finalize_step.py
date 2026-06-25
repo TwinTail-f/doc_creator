@@ -51,9 +51,7 @@ class FinalizeStep(BaseParseStep):
         if removed:
             logger.info(f"Удалено {removed} профилей с exists=False.")
 
-        ctx.profile_definitions = self._deduplicate_profile_definitions(
-            ctx.profile_definitions
-        )
+        ctx.profile_definitions = self._deduplicate_profile_definitions(ctx.profile_definitions)
         try:
             ctx.result = self._build_result(ctx)
         except PydanticValidationError as exc:
@@ -91,9 +89,7 @@ class FinalizeStep(BaseParseStep):
                 comp.is_header_only = False
                 continue
 
-            comp.is_header_only = all(
-                variant.package_id == null_id for variant in all_variants
-            )
+            comp.is_header_only = all(variant.package_id == null_id for variant in all_variants)
 
     def _filter_empty_profiles(self, components: list[Component]) -> int:
         """
@@ -109,9 +105,7 @@ class FinalizeStep(BaseParseStep):
         for comp in components:
             for release in comp.releases:
                 before = len(release.profile_builds)
-                release.profile_builds = [
-                    pb for pb in release.profile_builds if pb.exists
-                ]
+                release.profile_builds = [pb for pb in release.profile_builds if pb.exists]
                 removed += before - len(release.profile_builds)
         return removed
 

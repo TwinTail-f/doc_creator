@@ -155,9 +155,7 @@ class PassportPageRegistry:
                         comp["passport_link"] = None
                         continue
                     page_id = info.get("page_id")
-                    comp["passport_link"] = (
-                        f"/spaces/{space}/pages/{page_id}" if page_id else None
-                    )
+                    comp["passport_link"] = f"/spaces/{space}/pages/{page_id}" if page_id else None
 
     @staticmethod
     def inject_links(

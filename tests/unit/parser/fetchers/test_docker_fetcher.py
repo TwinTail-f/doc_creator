@@ -113,9 +113,7 @@ def test_docker_fetcher_extracts_links_from_yaml(
 
     result = fetcher.fetch(urls=[_PROFILE_URL], target_platform="2.0")
 
-    assert (
-        result.value["linux-x86_64-gcc10_2"] == "harbor.example.com/debian11:components"
-    )
+    assert result.value["linux-x86_64-gcc10_2"] == "harbor.example.com/debian11:components"
 
 
 # ---------------------------------------------------------------------------

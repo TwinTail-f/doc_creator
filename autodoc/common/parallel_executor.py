@@ -65,13 +65,9 @@ class ParallelExecutor:
             ValueError: Если ``batch_size < 0`` или ``batch_delay < 0``.
         """
         if batch_size < 0:
-            raise ValueError(
-                f"batch_size должен быть неотрицательным, получено: {batch_size}"
-            )
+            raise ValueError(f"batch_size должен быть неотрицательным, получено: {batch_size}")
         if batch_delay < 0:
-            raise ValueError(
-                f"batch_delay должен быть неотрицательным, получено: {batch_delay}"
-            )
+            raise ValueError(f"batch_delay должен быть неотрицательным, получено: {batch_delay}")
         self._max_workers: int = max_workers
         self._log_progress_interval: int = log_progress_interval
         self._batch_size: int = batch_size
@@ -127,14 +123,10 @@ class ParallelExecutor:
         total_batches = (total + self._batch_size - 1) // self._batch_size
         results: list[R | None] = [None] * total
 
-        for batch_num, batch_start in enumerate(
-            range(0, total, self._batch_size), start=1
-        ):
+        for batch_num, batch_start in enumerate(range(0, total, self._batch_size), start=1):
             batch_items = items[batch_start : batch_start + self._batch_size]
             batch_indices = list(range(batch_start, batch_start + len(batch_items)))
-            logger.debug(
-                f"Пакет {batch_num}/{total_batches}: {len(batch_items)} {task_label}"
-            )
+            logger.debug(f"Пакет {batch_num}/{total_batches}: {len(batch_items)} {task_label}")
 
             batch_results = self._execute_pool(fn, batch_items, task_label)
             for local_idx, global_idx in enumerate(batch_indices):
@@ -167,9 +159,7 @@ class ParallelExecutor:
         results: list[R | None] = [None] * len(items)
 
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
-            future_to_idx = {
-                executor.submit(fn, item): idx for idx, item in enumerate(items)
-            }
+            future_to_idx = {executor.submit(fn, item): idx for idx, item in enumerate(items)}
 
             completed = 0
             total = len(items)

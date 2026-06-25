@@ -151,9 +151,7 @@ class TestPassportsStrategyExecute:
         )
         strategy.execute()
         publish_calls = [
-            c
-            for c in publisher_confluence_client.calls
-            if c["method"] == "publish_page"
+            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
         ]
         assert len(publish_calls) >= 1
 
@@ -241,9 +239,7 @@ class TestPassportsStrategyExecute:
                 raise RuntimeError("simulated first failure")
             return dict(_STUB_TRANSFORM_RESULT)
 
-        mocker.patch.object(
-            PassportConverter, "transform", side_effect=transform_side_effect
-        )
+        mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
         strategy = make_passports_strategy(
             publisher_confluence_client,
             publisher_document_builder,
@@ -349,8 +345,7 @@ class TestPassportsStrategyUtils:
         """_make_page_title returns 'Документация <name> <version>' — exact format."""
         # sqlite3/3.51.2 comes from sqlite3.properties (versions: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
         assert (
-            PassportsStrategy._make_page_title("sqlite3", "3.51.2")
-            == "Документация sqlite3 3.51.2"
+            PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
         )
         # patchelf/0.18.0 comes from patchelf.properties
         assert (
@@ -442,12 +437,9 @@ def test_one_page_per_component_release_combination(
     )
     report = strategy.execute()
 
-    total_releases = sum(
-        len(comp.releases) for comp in publisher_multi_component_result.components
-    )
+    total_releases = sum(len(comp.releases) for comp in publisher_multi_component_result.components)
     assert report.pages_published == total_releases, (
-        f"Expected {total_releases} passport pages published, "
-        f"got {report.pages_published}"
+        f"Expected {total_releases} passport pages published, " f"got {report.pages_published}"
     )
 
 
@@ -554,9 +546,7 @@ def test_failure_of_one_page_does_not_stop_others(
             raise RuntimeError("Simulated failure on first passport page")
         return dict(_BL_PS_TRANSFORM_RESULT)
 
-    mocker.patch.object(
-        PassportConverter, "transform", side_effect=transform_side_effect
-    )
+    mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
 
     strategy = PassportsStrategy(
         confluence_client=FakeConfluenceClient(),
@@ -678,12 +668,8 @@ def test_report_pages_failed_count_equals_failed_pages(
     assert report.pages_failed == len(
         report.failed_pages
     ), "pages_failed must match len(failed_pages) — counter and list must be consistent"
-    assert (
-        report.pages_failed > 0
-    ), "With constant converter errors, pages_failed must be > 0"
-    assert (
-        report.pages_published == 0
-    ), "With constant errors, pages_published must be 0"
+    assert report.pages_failed > 0, "With constant converter errors, pages_failed must be > 0"
+    assert report.pages_published == 0, "With constant errors, pages_published must be 0"
 
 
 @pytest.mark.business_logic
@@ -808,9 +794,7 @@ def test_hierarchy_created_for_each_component(
         )
         return "hierarchy-page-id"
 
-    mocker.patch.object(
-        PageHierarchyManager, "ensure_hierarchy_exists", tracking_ensure
-    )
+    mocker.patch.object(PageHierarchyManager, "ensure_hierarchy_exists", tracking_ensure)
     mocker.patch.object(
         PassportConverter,
         "transform",
@@ -834,9 +818,7 @@ def test_hierarchy_created_for_each_component(
         for comp in publisher_multi_component_result.components
         for rel in comp.releases
     }
-    actual_pairs = {
-        (c["component_name"], c["release_version"]) for c in hierarchy_calls
-    }
+    actual_pairs = {(c["component_name"], c["release_version"]) for c in hierarchy_calls}
     assert actual_pairs == expected_pairs, (
         f"ensure_hierarchy_exists must be called for all (comp, version) pairs.\n"
         f"Expected: {expected_pairs}\nGot:      {actual_pairs}"

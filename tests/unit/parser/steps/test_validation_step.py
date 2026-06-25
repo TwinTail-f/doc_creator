@@ -35,18 +35,14 @@ def _make_component_with_variant(
         build_date="2024-01-01",
         options_ref="1",
     )
-    pb = ProfileBuild(
-        profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[variant]
-    )
+    pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[variant])
     release = Release(
         version="1.0.0",
         platform="2.0",
         channel="tech",
         profile_builds=[pb],
     )
-    component = Component(
-        name="lib", git_project="DEP", git_repo="lib", releases=[release]
-    )
+    component = Component(name="lib", git_project="DEP", git_repo="lib", releases=[release])
     return component, pb, variant
 
 
@@ -90,9 +86,7 @@ def test_validation_step_removes_404_variant(
     """Вариант, чей build_url возвращает HTTP 404, удаляется из pb.variants."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
-    parser_pipeline_context.artifactory_client = artifactory_client.__class__(
-        status_code=404
-    )
+    parser_pipeline_context.artifactory_client = artifactory_client.__class__(status_code=404)
     step = ArtifactoryValidationStep()
     step.execute(parser_pipeline_context)
     assert pb.variants == []
@@ -106,9 +100,7 @@ def test_validation_step_keeps_200_variant(
     """Вариант, чей build_url возвращает HTTP 200, остаётся в pb.variants."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
-    parser_pipeline_context.artifactory_client = artifactory_client.__class__(
-        status_code=200
-    )
+    parser_pipeline_context.artifactory_client = artifactory_client.__class__(status_code=200)
     step = ArtifactoryValidationStep()
     step.execute(parser_pipeline_context)
     assert len(pb.variants) == 1
@@ -233,9 +225,7 @@ def test_validation_step_documents_behaviour_on_reachable_404(
     """
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
-    parser_pipeline_context.artifactory_client = _RecordingClient(
-        status_code=_HTTP_NOT_FOUND
-    )
+    parser_pipeline_context.artifactory_client = _RecordingClient(status_code=_HTTP_NOT_FOUND)
 
     step = ArtifactoryValidationStep()
     step.execute(parser_pipeline_context)
@@ -426,12 +416,8 @@ def test_ui_url_converted_to_api_url_before_head(
 
     assert len(recording_client.called_urls) == 1, "Exactly one HEAD request expected"
     called = recording_client.called_urls[0]
-    assert (
-        "/ui/repos/tree/General/" not in called
-    ), f"UI path must not appear in HEAD URL: {called}"
-    assert (
-        "/artifactory/" in called
-    ), f"API path '/artifactory/' must appear in HEAD URL: {called}"
+    assert "/ui/repos/tree/General/" not in called, f"UI path must not appear in HEAD URL: {called}"
+    assert "/artifactory/" in called, f"API path '/artifactory/' must appear in HEAD URL: {called}"
 
 
 # ---------------------------------------------------------------------------

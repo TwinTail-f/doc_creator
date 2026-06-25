@@ -269,9 +269,7 @@ def test_list_available_configs_excludes_examples_subdir(tmp_path: Path) -> None
 
     Примеры — это отдельная категория; смешивать их с рабочими конфигами нельзя.
     """
-    (tmp_path / "parser_config.yaml").write_text(
-        yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8"
-    )
+    (tmp_path / "parser_config.yaml").write_text(yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8")
     examples_dir = tmp_path / "examples"
     examples_dir.mkdir()
     (examples_dir / "parser_config.yaml").write_text(

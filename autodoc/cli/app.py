@@ -27,9 +27,7 @@ from autodoc.cli.commands.info import info
 )
 @click.option("-v", "--verbose", is_flag=True, help="Подробный вывод логов")
 @click.pass_context
-def cli(
-    ctx: click.Context, base_dir: Path, configs_dir: Path | None, verbose: bool
-) -> None:
+def cli(ctx: click.Context, base_dir: Path, configs_dir: Path | None, verbose: bool) -> None:
     """
     Инструмент сбора и публикации документации компонентов платформы.
 

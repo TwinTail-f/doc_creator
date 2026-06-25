@@ -17,9 +17,7 @@ class Release(BaseModel):
     platform: str = Field(..., description="Целевая платформа")
     channel: str = Field(..., description='Conan-канал (например "fast")')
 
-    conan_reference: str = Field(
-        default="", description="Ссылка Conan (name/version@user/channel)"
-    )
+    conan_reference: str = Field(default="", description="Ссылка Conan (name/version@user/channel)")
     artifactory_url: str = Field(default="", description="URL пакета в Artifactory")
 
     build_option_sets: list[ConanInputOptions] = Field(
@@ -32,9 +30,7 @@ class Release(BaseModel):
         description="Список дефолтных опций из conan graph info (поле default_options, шаг 3)",
     )
     patches: list[str] = Field(default_factory=list, description="Список патчей")
-    dependencies: list[str] = Field(
-        default_factory=list, description="Список зависимостей"
-    )
+    dependencies: list[str] = Field(default_factory=list, description="Список зависимостей")
 
     total_option_sets: list[TotalOptionsSet] = Field(
         default_factory=list,

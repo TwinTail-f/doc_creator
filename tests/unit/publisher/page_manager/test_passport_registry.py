@@ -87,9 +87,7 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_save_on_os_error_does_not_raise(
-    tmp_path: Path, mocker: pytest.MonkeyPatch
-) -> None:
+def test_save_on_os_error_does_not_raise(tmp_path: Path, mocker: pytest.MonkeyPatch) -> None:
     """save() swallows OSError and does not propagate the exception."""
     registry = _make_registry(tmp_path)
     mocker.patch("pathlib.Path.write_text", side_effect=OSError("disk full"))
@@ -138,9 +136,7 @@ def test_load_returns_empty_dict_on_invalid_json(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_load_returns_empty_dict_on_os_error(
-    tmp_path: Path, mocker: pytest.MonkeyPatch
-) -> None:
+def test_load_returns_empty_dict_on_os_error(tmp_path: Path, mocker: pytest.MonkeyPatch) -> None:
     """load() returns {} when read_text raises OSError."""
     (tmp_path / _REGISTRY_FILE).write_text("{}", encoding="utf-8")
     registry = _make_registry(tmp_path)
@@ -180,9 +176,7 @@ def test_inject_links_adds_passport_versions_to_component(tmp_path: Path) -> Non
 
     PassportPageRegistry.inject_links(view_model, passport_pages)
 
-    assert (
-        view_model["components"][0]["passport_versions"]["1.0.0"]["page_id"] == PAGE_ID
-    )
+    assert view_model["components"][0]["passport_versions"]["1.0.0"]["page_id"] == PAGE_ID
 
 
 @pytest.mark.business_logic
@@ -233,20 +227,12 @@ def test_inject_links_noop_if_passport_pages_empty() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _make_profile_view_model(
-    comp_name: str, version: str, space: str = SPACE
-) -> dict[str, Any]:
+def _make_profile_view_model(comp_name: str, version: str, space: str = SPACE) -> dict[str, Any]:
     """Builds a minimal profile-centric view model for inject_links_for_profiles tests."""
     return {
         "space": space,
         "profiles": [
-            {
-                "channels": {
-                    "tech": [
-                        {"name": comp_name, "version": version, "passport_link": None}
-                    ]
-                }
-            }
+            {"channels": {"tech": [{"name": comp_name, "version": version, "passport_link": None}]}}
         ],
     }
 

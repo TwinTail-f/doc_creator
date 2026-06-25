@@ -187,9 +187,7 @@ def test_merge_by_tabs_three_platform_versions_all_tabs_present() -> None:
 
 
 @pytest.mark.business_logic
-def test_merge_by_tabs_current_version_not_duplicated_with_multiple_legacy_versions() -> (
-    None
-):
+def test_merge_by_tabs_current_version_not_duplicated_with_multiple_legacy_versions() -> None:
     """Current version appears exactly once even if legacy block has a stale entry for it."""
     new_html = "<p>current content</p>"
     legacy_contents = {
@@ -201,6 +199,4 @@ def test_merge_by_tabs_current_version_not_duplicated_with_multiple_legacy_versi
 
     # Tab name marker appears exactly once (stale legacy entry for current version is skipped)
     tab_occurrences = result.count(">2.0<")
-    assert (
-        tab_occurrences == 1
-    ), f"Expected exactly 1 tab marker '>2.0<', found {tab_occurrences}"
+    assert tab_occurrences == 1, f"Expected exactly 1 tab marker '>2.0<', found {tab_occurrences}"

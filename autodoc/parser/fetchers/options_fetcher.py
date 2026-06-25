@@ -136,9 +136,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             for release in comp.releases:
                 branch = self._get_branch(comp.name, release.version)
                 cache_key = f"{comp.git_project}_{comp.git_repo}_{branch}"
-                chosen = OptionsParser.pick_options(
-                    options_cache[cache_key], release.channel
-                )
+                chosen = OptionsParser.pick_options(options_cache[cache_key], release.channel)
                 result[ReleaseKey(comp.name, release.version, release.channel)] = chosen
 
         logger.info(f"Завершён. Собрано опций для {len(result)} релизов.")
@@ -159,9 +157,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             Словарь с ключами ``'global'`` и ``'channels'``.
         """
         repo_data: dict[str, Any] = {"global": {}, "channels": {}}
-        items_url = (
-            f"{self._base_url}/{git_project}/_apis/git/repositories/{repo_name}/items"
-        )
+        items_url = f"{self._base_url}/{git_project}/_apis/git/repositories/{repo_name}/items"
 
         try:
             items = self._tfs.get_items(items_url, branch)
@@ -184,9 +180,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
         for opt_path in options_paths:
             if target_ci not in opt_path:
                 continue
-            self._load_single_options_file(
-                items_url, opt_path, branch, target_ci, repo_data
-            )
+            self._load_single_options_file(items_url, opt_path, branch, target_ci, repo_data)
 
         return repo_data
 
@@ -218,9 +212,7 @@ class OptionsFetcher(BaseTFSFetcher[OptionsMap]):
             logger.debug(f"HTTP {response.status_code} для {opt_path}, пропуск")
             return
 
-        channel_name, cleaned = OptionsParser.parse_file(
-            response.text, opt_path, ci_prefix
-        )
+        channel_name, cleaned = OptionsParser.parse_file(response.text, opt_path, ci_prefix)
         if not cleaned:
             return
 

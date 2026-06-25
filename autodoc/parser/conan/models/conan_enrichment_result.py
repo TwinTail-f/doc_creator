@@ -52,9 +52,7 @@ class ProfileConanData:
 class ConanEnrichmentResult:
     """Результат выполнения Conan graph info, готовый для применения к моделям."""
 
-    release_data: dict[ReleaseKey, ReleaseConanData] = field(
-        default_factory=dict
-    )
+    release_data: dict[ReleaseKey, ReleaseConanData] = field(default_factory=dict)
     profile_data: dict[int, ProfileConanData] = field(default_factory=dict)
     errors: _ErrorLog = field(default_factory=dict)
     total_tasks: int = 0

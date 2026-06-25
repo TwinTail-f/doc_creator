@@ -21,9 +21,7 @@ REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"
 
 def _null_variant() -> ConanVariant:
     """Создаёт ConanVariant с нулевым (только заголовок) package_id."""
-    return ConanVariant(
-        package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1"
-    )
+    return ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")
 
 
 def _real_variant() -> ConanVariant:
@@ -61,12 +59,8 @@ def test_finalize_step_sets_header_only_true(
     parser_pipeline_context,
 ) -> None:
     """is_header_only равен True на компоненте, когда все варианты всех профилей имеют нулевой package_id."""
-    pb1 = ProfileBuild(
-        profile_name="profile_a", exists=True, variants=[_null_variant()]
-    )
-    pb2 = ProfileBuild(
-        profile_name="profile_b", exists=True, variants=[_null_variant()]
-    )
+    pb1 = ProfileBuild(profile_name="profile_a", exists=True, variants=[_null_variant()])
+    pb2 = ProfileBuild(profile_name="profile_b", exists=True, variants=[_null_variant()])
     release = _make_release([pb1, pb2])
     comp = _make_component("mylib", release)
     parser_pipeline_context.components = [comp]
@@ -191,9 +185,7 @@ def test_finalize_step_raises_parsing_error_on_validation_failure(
 
     # Patch on the class — Python passes `self` as the first argument,
     # so the side_effect must accept (self, ctx), not just (ctx).
-    mocker.patch.object(
-        FinalizeStep, "_build_result", side_effect=_force_validation_error
-    )
+    mocker.patch.object(FinalizeStep, "_build_result", side_effect=_force_validation_error)
     parser_pipeline_context.components = []
     step = FinalizeStep()
 
@@ -248,9 +240,7 @@ def test_finalize_step_sets_header_only_for_nlohmann_json(
         profile_name="hw-linux-x86_64-gcc10_2",
         exists=True,
         variants=[
-            ConanVariant(
-                package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1"
-            )
+            ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")
         ],
     )
     rel = Release(
@@ -284,9 +274,7 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
             profile_name="hw-linux-x86_64-gcc10_2",
             exists=True,
             variants=[
-                ConanVariant(
-                    package_id=REAL_PKG, build_url="", build_date="", options_ref="1"
-                )
+                ConanVariant(package_id=REAL_PKG, build_url="", build_date="", options_ref="1")
             ],
         )
         return Release(
@@ -296,9 +284,7 @@ def test_finalize_step_patchelf_two_versions_not_header_only(
             profile_builds=[pb],
         )
 
-    comp = Component(
-        name="patchelf", releases=[_make_rel("0.16.1"), _make_rel("0.18.0")]
-    )
+    comp = Component(name="patchelf", releases=[_make_rel("0.16.1"), _make_rel("0.18.0")])
     parser_pipeline_context.components = [comp]
 
     FinalizeStep().execute(parser_pipeline_context)
@@ -334,9 +320,7 @@ def test_finalize_step_preserves_prg_quant_component(
         channel="slow",
         profile_builds=[pb],
     )
-    comp_lfq = Component(
-        name="libnetfilter_queue", git_project="PRG_Quant", releases=[rel]
-    )
+    comp_lfq = Component(name="libnetfilter_queue", git_project="PRG_Quant", releases=[rel])
     comp_apr = Component(name="apr", releases=[])
     parser_pipeline_context.components = [comp_lfq, comp_apr]
 
@@ -392,15 +376,9 @@ def test_finalize_step_removes_non_existing_profiles(
     by verifying the filter preserves multiple surviving entries correctly — a meaningfully
     different scenario that catches off-by-one or first-only removal bugs.
     """
-    pb_live1 = ProfileBuild(
-        profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[]
-    )
-    pb_live2 = ProfileBuild(
-        profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[]
-    )
-    pb_dead = ProfileBuild(
-        profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[]
-    )
+    pb_live1 = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[])
+    pb_live2 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[])
+    pb_dead = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[])
     rel = Release(
         version="1.0.0",
         platform="2.0",
@@ -448,9 +426,7 @@ def _make_comp_with_variant(name: str, package_id: str) -> Component:
         profile_name="hw-linux-x86_64",
         exists=True,
         variants=[
-            ConanVariant(
-                package_id=package_id, build_url="", build_date="", options_ref="1"
-            )
+            ConanVariant(package_id=package_id, build_url="", build_date="", options_ref="1")
         ],
     )
     release = Release(
@@ -504,19 +480,13 @@ def test_header_only_requires_all_profiles_to_have_null_package_id(
     pb1 = ProfileBuild(
         profile_name="p1",
         exists=True,
-        variants=[
-            ConanVariant(
-                package_id=null_id, build_url="", build_date="", options_ref=""
-            )
-        ],
+        variants=[ConanVariant(package_id=null_id, build_url="", build_date="", options_ref="")],
     )
     pb2 = ProfileBuild(
         profile_name="p2",
         exists=True,
         variants=[
-            ConanVariant(
-                package_id="regular_id", build_url="", build_date="", options_ref=""
-            )
+            ConanVariant(package_id="regular_id", build_url="", build_date="", options_ref="")
         ],
     )
     release = Release(
@@ -739,12 +709,8 @@ def test_filter_empty_profiles_removes_only_false_profiles(
         - Exactly two profiles remain: ``{"p1", "p2"}``.
         - ``"p3"`` is absent from ``release.profile_builds``.
     """
-    pb_exists = ProfileBuild(
-        profile_name="p1", exists=True, variants=[make_conan_variant()]
-    )
-    pb_exists2 = ProfileBuild(
-        profile_name="p2", exists=True, variants=[make_conan_variant()]
-    )
+    pb_exists = ProfileBuild(profile_name="p1", exists=True, variants=[make_conan_variant()])
+    pb_exists2 = ProfileBuild(profile_name="p2", exists=True, variants=[make_conan_variant()])
     pb_missing = ProfileBuild(profile_name="p3", exists=False, variants=[])
 
     release = Release(
@@ -799,9 +765,7 @@ def test_filter_empty_profiles_count_returned() -> None:
         - Return value is ``2``.
         - ``len(release.profile_builds) == 1`` (only the live profile remains).
     """
-    pb_ok = ProfileBuild(
-        profile_name="p1", exists=True, variants=[make_conan_variant()]
-    )
+    pb_ok = ProfileBuild(profile_name="p1", exists=True, variants=[make_conan_variant()])
     pb_gone1 = ProfileBuild(profile_name="p2", exists=False, variants=[])
     pb_gone2 = ProfileBuild(profile_name="p3", exists=False, variants=[])
 
@@ -892,9 +856,7 @@ def test_filter_empty_profiles_removes_only_false_exists() -> None:
         - Return value is ``1`` (exactly one entry removed).
         - ``release.profile_builds`` contains only ``pb_ok``.
     """
-    pb_ok = ProfileBuild(
-        profile_name="hw-linux-x86_64", exists=True, variants=[_bl_make_variant()]
-    )
+    pb_ok = ProfileBuild(profile_name="hw-linux-x86_64", exists=True, variants=[_bl_make_variant()])
     pb_bad = ProfileBuild(profile_name="hw-linux-armv8", exists=False)
     release = _bl_make_release()
     release.profile_builds = [pb_ok, pb_bad]
@@ -931,9 +893,7 @@ def test_filter_empty_profiles_count_matches_actual_removed() -> None:
     Expected Result:
         - Return value is exactly ``5``.
     """
-    pbs_false = [
-        ProfileBuild(profile_name=f"profile-{i}", exists=False) for i in range(5)
-    ]
+    pbs_false = [ProfileBuild(profile_name=f"profile-{i}", exists=False) for i in range(5)]
     pb_true = ProfileBuild(
         profile_name="hw-linux-x86_64", exists=True, variants=[_bl_make_variant()]
     )
@@ -1097,9 +1057,7 @@ def test_dedup_profile_definitions_unique_names_all_preserved() -> None:
         - All three names are present in the result.
     """
     pds = [
-        ProfileDefinition(
-            profile_name=f"hw-linux-{arch}", docker_image="", conan_settings={}
-        )
+        ProfileDefinition(profile_name=f"hw-linux-{arch}", docker_image="", conan_settings={})
         for arch in ["x86_64", "armv8", "rpi4"]
     ]
 

@@ -56,8 +56,7 @@ def _minimal_enrich_result(
     result = ConanEnrichmentResult()
     key = (comp.name, release.version, release.channel)
     result.release_data[key] = ReleaseConanData(
-        base_ref=base_ref
-        or f"{comp.name}/{release.version}@platform-2.0/{release.channel}",
+        base_ref=base_ref or f"{comp.name}/{release.version}@platform-2.0/{release.channel}",
         rrev="abc123",
         full_version=release.version,
         default_options=[],
@@ -154,9 +153,7 @@ def test_apply_docker_links_creates_profile_definition() -> None:
 def test_apply_docker_links_updates_existing_definition() -> None:
     """apply_docker_links() обновляет docker_image в существующем ProfileDefinition."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
-    existing = ProfileDefinition(
-        profile_name="hw-linux-x86_64-gcc10_2", docker_image="old"
-    )
+    existing = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2", docker_image="old")
     profile_definitions: list[ProfileDefinition] = [existing]
     docker_links = {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"}
 
@@ -214,9 +211,7 @@ def test_apply_conan_results_sets_profile_build_exists_and_variants(
 ) -> None:
     """apply_conan_results() устанавливает pb.exists=True и заполняет pb.variants."""
     comp, rel, pb = _release()
-    result = _minimal_enrich_result(
-        comp, rel, pb, exists=True, variants=[conan_variant]
-    )
+    result = _minimal_enrich_result(comp, rel, pb, exists=True, variants=[conan_variant])
 
     DataEnricher.apply_conan_results([comp], result)
 
@@ -584,9 +579,7 @@ def test_apply_conan_results_conan_reference_format_no_revision_hash() -> None:
     """
     comp = make_component("mylib", "1.0", "fast")
     pb = comp.releases[0].profile_builds[0]
-    enrich = _make_enrich_result(
-        "mylib", "1.0", "fast", pb, base_ref="mylib/1.0@user/fast"
-    )
+    enrich = _make_enrich_result("mylib", "1.0", "fast", pb, base_ref="mylib/1.0@user/fast")
     DataEnricher.apply_conan_results([comp], enrich)
 
     ref = comp.releases[0].conan_reference
@@ -611,9 +604,7 @@ def test_apply_conan_results_multiple_profiles_each_gets_own_variants() -> None:
         - ``pb2.variants[0].package_id == "bbb222"``.
         - ``pb1.variants is not pb2.variants`` (different list objects).
     """
-    comp = make_component(
-        "mylib", "1.0", "fast", profiles=["hw-linux-x86_64", "hw-linux-armv8"]
-    )
+    comp = make_component("mylib", "1.0", "fast", profiles=["hw-linux-x86_64", "hw-linux-armv8"])
     pb1, pb2 = comp.releases[0].profile_builds
 
     variant1 = make_conan_variant(package_id="aaa111")
@@ -633,12 +624,8 @@ def test_apply_conan_results_multiple_profiles_each_gets_own_variants() -> None:
             )
         },
         profile_data={
-            id(pb1): ProfileConanData(
-                conan_settings={}, exists=True, variants=[variant1]
-            ),
-            id(pb2): ProfileConanData(
-                conan_settings={}, exists=True, variants=[variant2]
-            ),
+            id(pb1): ProfileConanData(conan_settings={}, exists=True, variants=[variant1]),
+            id(pb2): ProfileConanData(conan_settings={}, exists=True, variants=[variant2]),
         },
     )
     DataEnricher.apply_conan_results([comp], enrich)
@@ -664,9 +651,7 @@ def test_apply_conan_results_exists_false_when_profile_not_in_enrichment() -> No
         - ``pb2.exists is False`` (not enriched — retains skeleton state).
         - ``pb2.variants == []``.
     """
-    comp = make_component(
-        "mylib", "1.0", "fast", profiles=["hw-linux-x86_64", "hw-linux-armv8"]
-    )
+    comp = make_component("mylib", "1.0", "fast", profiles=["hw-linux-x86_64", "hw-linux-armv8"])
     pb1, pb2 = comp.releases[0].profile_builds
 
     # Only pb1 in profile_data; pb2 is intentionally missing.

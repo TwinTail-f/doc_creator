@@ -96,9 +96,7 @@ class TestDocumentPublisherPublish:
         """publish() forwards space from config to BasePublishStrategy.create()."""
         mock_create = mocker.patch(
             "autodoc.publisher.publisher.BasePublishStrategy.create",
-            return_value=_mock_strategy(
-                PublishReport(success=True, pages_published=1), mocker
-            ),
+            return_value=_mock_strategy(PublishReport(success=True, pages_published=1), mocker),
         )
         publisher_document_publisher.publish("release", publisher_parsed_result)
         _, kwargs = mock_create.call_args
@@ -115,9 +113,7 @@ class TestDocumentPublisherPublish:
         """publish() forwards data_dir to BasePublishStrategy.create()."""
         mock_create = mocker.patch(
             "autodoc.publisher.publisher.BasePublishStrategy.create",
-            return_value=_mock_strategy(
-                PublishReport(success=True, pages_published=1), mocker
-            ),
+            return_value=_mock_strategy(PublishReport(success=True, pages_published=1), mocker),
         )
         publisher_document_publisher.publish("release", publisher_parsed_result)
         _, kwargs = mock_create.call_args
@@ -136,9 +132,7 @@ class TestDocumentPublisherPublish:
             "autodoc.publisher.publisher.BasePublishStrategy.create",
             return_value=_mock_strategy(expected, mocker),
         )
-        result = publisher_document_publisher.publish(
-            "release", publisher_parsed_result
-        )
+        result = publisher_document_publisher.publish("release", publisher_parsed_result)
         assert result is expected
 
 
@@ -199,9 +193,9 @@ class TestDocumentPublisherPublishAll:
         ) or PublishReport(success=True, pages_published=1)
 
         release_mock = mocker.MagicMock()
-        release_mock.execute.side_effect = lambda: call_order.append(
-            "release"
-        ) or PublishReport(success=True, pages_published=1)
+        release_mock.execute.side_effect = lambda: call_order.append("release") or PublishReport(
+            success=True, pages_published=1
+        )
 
         strategies = iter([passports_mock, release_mock])
         mocker.patch(
@@ -255,9 +249,7 @@ class TestDocumentPublisherPublishAll:
         mocker: MockerFixture,
     ) -> None:
         """If either strategy report has success=False, the merged report is False."""
-        passports_report = PublishReport(
-            success=False, pages_published=0, errors=["fail"]
-        )
+        passports_report = PublishReport(success=False, pages_published=0, errors=["fail"])
         release_report = PublishReport(success=True, pages_published=1)
 
         strategies = iter(
@@ -287,12 +279,8 @@ class TestDocumentPublisherPublishAll:
         mocker: MockerFixture,
     ) -> None:
         """Errors from both strategies are combined in the merged report."""
-        passports_report = PublishReport(
-            success=False, pages_published=0, errors=["err1"]
-        )
-        release_report = PublishReport(
-            success=False, pages_published=0, errors=["err2"]
-        )
+        passports_report = PublishReport(success=False, pages_published=0, errors=["err1"])
+        release_report = PublishReport(success=False, pages_published=0, errors=["err2"])
 
         strategies = iter(
             [

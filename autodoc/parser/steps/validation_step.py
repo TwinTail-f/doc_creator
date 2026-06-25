@@ -114,9 +114,7 @@ class ArtifactoryValidationStep(BaseParseStep):
             except requests.RequestException as exc:
                 # При сетевом сбое считаем вариант живым — не удаляем данные
                 # из-за временных проблем сети; предупреждение фиксируется в лог.
-                logger.debug(
-                    f"Сетевая ошибка при проверке {url} (вариант считается живым): {exc}"
-                )
+                logger.debug(f"Сетевая ошибка при проверке {url} (вариант считается живым): {exc}")
             return pb, variant, True
 
         executor = ParallelExecutor(

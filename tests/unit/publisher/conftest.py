@@ -67,9 +67,7 @@ class FakeConfluenceClient:
         body: str = "",
     ) -> str:
         """Returns 'page-001' or the value from _pages[title]['id']."""
-        self.calls.append(
-            {"method": "get_or_create_page", "space": space, "title": title}
-        )
+        self.calls.append({"method": "get_or_create_page", "space": space, "title": title})
         return self._pages.get(title, {}).get("id", "page-001")
 
     def find_page(
@@ -121,9 +119,7 @@ from autodoc.models.options import ConanInputOptions, DefaultOptionsSet, TotalOp
 from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 
-PUBLISHER_RESOURCES_DIR: Path = (
-    Path(__file__).parent.parent.parent / "resources" / "parsed_data"
-)
+PUBLISHER_RESOURCES_DIR: Path = Path(__file__).parent.parent.parent / "resources" / "parsed_data"
 
 
 # ---------------------------------------------------------------------------
@@ -178,9 +174,7 @@ def publisher_profile_build(publisher_conan_variant: ConanVariant) -> ProfileBui
 @pytest.fixture
 def publisher_release(publisher_profile_build: ProfileBuild) -> Release:
     """Release '1.0.0' for platform 2.0 with one ProfileBuild."""
-    total_opts = TotalOptionsSet(
-        id="opt-set-1", options={"shared": "True", "fPIC": "True"}
-    )
+    total_opts = TotalOptionsSet(id="opt-set-1", options={"shared": "True", "fPIC": "True"})
     build_opts = ConanInputOptions(
         id="opt-set-1",
         options="openssl/*:shared=True, openssl/*:fPIC=True",
@@ -522,9 +516,7 @@ def fake_builder_recording():
 
         def build(self, template_name: str, view_model: dict) -> str:
             """Records the call and returns a deterministic rendered HTML string."""
-            self.calls.append(
-                {"template_name": template_name, "view_model": view_model}
-            )
+            self.calls.append({"template_name": template_name, "view_model": view_model})
             return f"<html>rendered {template_name}</html>"
 
     return RecordingBuilder()

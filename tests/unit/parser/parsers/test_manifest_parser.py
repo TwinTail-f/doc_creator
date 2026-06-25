@@ -49,9 +49,7 @@ def test_parser_returns_correct_component_count(
     all_real_properties: list[Path],
 ) -> None:
     """parse() со всеми реальными файлами возвращает по крайней мере 5 названий компонентов."""
-    components, _ = parser_20.parse(
-        all_real_properties, component_names=[], filter_mode="exclude"
-    )
+    components, _ = parser_20.parse(all_real_properties, component_names=[], filter_mode="exclude")
     assert len(components) >= 5
 
 
@@ -140,11 +138,7 @@ def test_parser_sqlite3_many_profiles(
     )
     assert len(components) == 1
     fast_release = next(
-        (
-            r
-            for r in components[0].releases
-            if r.version == "3.51.2" and r.channel == "fast"
-        ),
+        (r for r in components[0].releases if r.version == "3.51.2" and r.channel == "fast"),
         None,
     )
     assert fast_release is not None
@@ -306,9 +300,7 @@ def test_manifest_parser_missing_profiles_key_skips_version_pair(
     tmp_path: Path,
 ) -> None:
     """ManifestParser пропускает пару версий для которой не существует соответствующего ключа profiles."""
-    content = (
-        "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
-    )
+    content = "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
     path = write_props(tmp_path, "libfoo.properties", content)
     components, _ = ManifestParser(TARGET_PLATFORM).parse(
         [path], component_names=[], filter_mode="exclude"
@@ -328,9 +320,9 @@ def test_manifest_parser_git_url_constructed_correctly(tmp_path: Path) -> None:
         "git_repo_name= contrib_openssl\n"
     )
     path = write_props(tmp_path, "openssl.properties", content)
-    components, _ = ManifestParser(
-        TARGET_PLATFORM, tfs_collection_url=TFS_COLLECTION_URL
-    ).parse([path], component_names=[], filter_mode="exclude")
+    components, _ = ManifestParser(TARGET_PLATFORM, tfs_collection_url=TFS_COLLECTION_URL).parse(
+        [path], component_names=[], filter_mode="exclude"
+    )
     assert components[0].git_url.startswith(TFS_COLLECTION_URL)
 
 
@@ -411,11 +403,7 @@ def test_parser_nlohmann_json_fast_release_has_one_profile(
         filter_mode="exclude",
     )
     fast_release = next(
-        (
-            r
-            for r in components[0].releases
-            if r.version == "3.12.0" and r.channel == "fast"
-        ),
+        (r for r in components[0].releases if r.version == "3.12.0" and r.channel == "fast"),
         None,
     )
     assert fast_release is not None
@@ -497,9 +485,7 @@ def test_parser_patchelf_both_versions_have_same_profiles(
         filter_mode="exclude",
     )
     releases = components[0].releases
-    profile_sets = [
-        frozenset(pb.profile_name for pb in rel.profile_builds) for rel in releases
-    ]
+    profile_sets = [frozenset(pb.profile_name for pb in rel.profile_builds) for rel in releases]
     assert profile_sets[0] == profile_sets[1]
     assert len(profile_sets[0]) == 6
 
@@ -854,9 +840,7 @@ def test_include_filter_exact_match_only(tmp_path: Path) -> None:
 
     parser = ManifestParser(target_platform="2.2")
     files = list(tmp_path.glob("*.properties"))
-    components, _ = parser.parse(
-        files, component_names=["openssl"], filter_mode="include"
-    )
+    components, _ = parser.parse(files, component_names=["openssl"], filter_mode="include")
 
     assert len(components) == 1
     assert components[0].name == "openssl"
@@ -893,9 +877,7 @@ def test_exclude_filter_exact_match_only(tmp_path: Path) -> None:
 
     parser = ManifestParser(target_platform="2.2")
     files = list(tmp_path.glob("*.properties"))
-    components, _ = parser.parse(
-        files, component_names=["openssl"], filter_mode="exclude"
-    )
+    components, _ = parser.parse(files, component_names=["openssl"], filter_mode="exclude")
 
     names = {c.name for c in components}
     assert "openssl" not in names

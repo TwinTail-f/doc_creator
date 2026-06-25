@@ -69,9 +69,7 @@ def test_init_succeeds_with_valid_dir(tmp_path: Path) -> None:
 @pytest.mark.infrastructure
 def test_build_renders_template_with_data(tmp_path: Path) -> None:
     """build() substitutes view_model fields into the template correctly."""
-    rendering_dir = make_rendering_dir(
-        tmp_path, {TITLE_TEMPLATE_NAME: TITLE_TEMPLATE_CONTENT}
-    )
+    rendering_dir = make_rendering_dir(tmp_path, {TITLE_TEMPLATE_NAME: TITLE_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(TITLE_TEMPLATE_NAME, {"title": "Hello"})
     assert result == "Hello"
@@ -80,9 +78,7 @@ def test_build_renders_template_with_data(tmp_path: Path) -> None:
 @pytest.mark.contract
 def test_build_returns_string(tmp_path: Path) -> None:
     """build() always returns a str instance."""
-    rendering_dir = make_rendering_dir(
-        tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT}
-    )
+    rendering_dir = make_rendering_dir(tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(STATIC_TEMPLATE_NAME, {})
     assert isinstance(result, str)
@@ -100,9 +96,7 @@ def test_build_raises_template_not_found(tmp_path: Path) -> None:
 @pytest.mark.infrastructure
 def test_build_passes_view_model_as_data(tmp_path: Path) -> None:
     """The template variable 'data' contains the view_model dict passed to build()."""
-    rendering_dir = make_rendering_dir(
-        tmp_path, {KEY_TEMPLATE_NAME: KEY_TEMPLATE_CONTENT}
-    )
+    rendering_dir = make_rendering_dir(tmp_path, {KEY_TEMPLATE_NAME: KEY_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(KEY_TEMPLATE_NAME, {"key": "expected_value"})
     assert result == "expected_value"
@@ -111,9 +105,7 @@ def test_build_passes_view_model_as_data(tmp_path: Path) -> None:
 @pytest.mark.infrastructure
 def test_build_with_empty_view_model(tmp_path: Path) -> None:
     """build() renders a static template correctly when view_model is empty."""
-    rendering_dir = make_rendering_dir(
-        tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT}
-    )
+    rendering_dir = make_rendering_dir(tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(STATIC_TEMPLATE_NAME, {})
     assert result == "static"

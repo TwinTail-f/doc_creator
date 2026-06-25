@@ -60,22 +60,16 @@ class Conan2ResultParser:
         dependencies = self._extract_dependencies(nodes, task.comp_name)
 
         info_dict = target_node.get("info", {})
-        conan_settings = info_dict.get(
-            "settings", target_node.get("settings", {})
-        )
+        conan_settings = info_dict.get("settings", target_node.get("settings", {}))
         package_id = target_node.get("package_id", "")
         build_url = (
-            self._build_artifactory_url(task, full_version, rrev, package_id)
-            if package_id
-            else ""
+            self._build_artifactory_url(task, full_version, rrev, package_id) if package_id else ""
         )
         build_date = self._extract_build_date(target_node)
 
         # Поле "options" содержит финально разрешённые опции после применения
         # дефолтов и пользовательских переопределений — они попадают в TotalOptionsSet.
-        conan_options = info_dict.get(
-            "options", target_node.get("options", {})
-        )
+        conan_options = info_dict.get("options", target_node.get("options", {}))
 
         return ConanEnrichData(
             base_ref=base_ref,
@@ -158,15 +152,11 @@ class Conan2ResultParser:
             if isinstance(definition, list) and len(definition) >= 2:
                 if "ANY" in definition:
                     opt_type = "ANY"
-                elif set(definition).issubset(
-                    {"True", "False", True, False, "None", None}
-                ):
+                elif set(definition).issubset({"True", "False", True, False, "None", None}):
                     opt_type = "bool"
                 else:
                     opt_type = "enum"
-            result.append(
-                DefaultOptionsSet(name=opt_name, type=opt_type, default_value=opt_val)
-            )
+            result.append(DefaultOptionsSet(name=opt_name, type=opt_type, default_value=opt_val))
 
         return result
 

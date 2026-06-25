@@ -13,9 +13,14 @@ from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilde
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
+
 # Импорт модулей стратегий регистрирует их в BasePublishStrategy._registry
 # через __init_subclass__.
-from autodoc.publisher.strategies import passports_strategy, profile_strategy, release_strategy  # noqa: F401
+from autodoc.publisher.strategies import (
+    passports_strategy,
+    profile_strategy,
+    release_strategy,
+)  # noqa: F401
 
 _RENDERING_DIR: Path = Path(__file__).resolve().parent / "rendering"
 """Путь к директории rendering/ внутри установленного пакета publisher."""
@@ -333,9 +338,7 @@ class DocumentPublisher:
             для ``'profile_centric'`` — ``profile_docs_root_parent_name``/
             ``profile_docs_root_parent_id``.
         """
-        parent_id = self._resolve_single_page_parent(
-            strategy_type, root_page_name, root_page_id
-        )
+        parent_id = self._resolve_single_page_parent(strategy_type, root_page_name, root_page_id)
         return self.publish(
             strategy_type=strategy_type,
             parsed_data=parsed_data,
@@ -368,9 +371,7 @@ class DocumentPublisher:
             ``PublishReport`` с результатом публикации профильной страницы.
         """
         profile_parent_id = (
-            str(release_report.details[0]["page_id"])
-            if release_report.details
-            else None
+            str(release_report.details[0]["page_id"]) if release_report.details else None
         )
         if profile_parent_id is None:
             logger.warning(

@@ -58,9 +58,7 @@ def real_manifests_dir(resources_dir: Path) -> Path:
 
 
 @pytest.fixture
-def parser_pipeline_context(
-    parser_config: ParserConfigSchema, tmp_path: Path
-) -> PipelineContext:
+def parser_pipeline_context(parser_config: ParserConfigSchema, tmp_path: Path) -> PipelineContext:
     """Полностью инициализированный PipelineContext на основе parser_config и tmp_path."""
     return PipelineContext(config=parser_config, tmp_dir=tmp_path)
 

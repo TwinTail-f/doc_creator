@@ -1,4 +1,5 @@
 """Общая логика и опции команд публикации одной страницы (release, profile)."""
+
 import functools
 from typing import Callable
 
@@ -33,22 +34,28 @@ def single_page_options(f: Callable) -> Callable:
     """
     decorators = [
         click.option(
-            "--page-title", default=None,
+            "--page-title",
+            default=None,
             help="Заголовок страницы (переопределяет release_docs_page_title из конфига)",
         ),
         click.option(
-            "--root-page-id", "cli_root_page_id", default=None,
+            "--root-page-id",
+            "cli_root_page_id",
+            default=None,
             help="ID корневой родительской страницы (переопределяет конфиг)",
         ),
         click.option(
-            "--root-page-name", "cli_root_page_name", default=None,
+            "--root-page-name",
+            "cli_root_page_name",
+            default=None,
             help=(
                 "Название корневой родительской страницы (переопределяет конфиг). "
                 'Если содержит пробелы — заключите в кавычки: --root-page-name "Моя страница"'
             ),
         ),
         click.option(
-            "--no-passport-links", is_flag=True,
+            "--no-passport-links",
+            is_flag=True,
             help="Отключить ссылки на паспорта компонентов",
         ),
     ]
@@ -92,19 +99,13 @@ def run_single_page_command(
 
     with cli_error_boundary(panel_header):
         parsed_data = load_parsed_data(cli_ctx.base_dir)
-        console.print(
-            f"✅ Данных: {len(parsed_data.components)} компонентов", style="green"
-        )
+        console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
 
         publisher, conf_config = make_publisher(cli_ctx)
         if strategy_type == "release":
-            final_title = (
-                page_title or conf_config.release_docs_page_title or default_title
-            )
+            final_title = page_title or conf_config.release_docs_page_title or default_title
         else:
-            final_title = (
-                page_title or conf_config.profile_docs_page_title or default_title
-            )
+            final_title = page_title or conf_config.profile_docs_page_title or default_title
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish_single_page(

@@ -71,13 +71,10 @@ class PassportConverter(BaseDataConverter):
         Raises:
             ValueError: Если ни одного релиза с такой версией не найдено.
         """
-        releases = [
-            r for r in component.releases if str(r.version) == str(release_version)
-        ]
+        releases = [r for r in component.releases if str(r.version) == str(release_version)]
         if not releases:
             raise ValueError(
-                f"PassportConverter: версия {release_version} "
-                f"для {component.name} не найдена"
+                f"PassportConverter: версия {release_version} " f"для {component.name} не найдена"
             )
         return releases
 
@@ -123,9 +120,7 @@ class PassportConverter(BaseDataConverter):
                             comp_name,
                             _VariantOpts(
                                 conan_options=os_map.get(v.options_ref, {}),
-                                install_options_override=bos_map.get(
-                                    v.options_ref, None
-                                ),
+                                install_options_override=bos_map.get(v.options_ref, None),
                             ),
                         )
                         for v in (pb.variants or [])
@@ -161,16 +156,12 @@ class PassportConverter(BaseDataConverter):
         # Базовый URL репозитория вычисляется один раз: хранится на уровне компонента.
         # Ветка по стандартному соглашению TFS для релизных бранчей.
         raw_git_url: str = target_comp.git_url or ""
-        git_repo_base_url: str = (
-            raw_git_url.split("?")[0] if "?" in raw_git_url else raw_git_url
-        )
+        git_repo_base_url: str = raw_git_url.split("?")[0] if "?" in raw_git_url else raw_git_url
 
         releases_list: list[dict[str, Any]] = []
         for target_rel in target_releases:
             # Resolved опции — для бейджей conan_options в UI
-            os_map: dict[str, dict] = {
-                os_.id: os_.options for os_ in target_rel.total_option_sets
-            }
+            os_map: dict[str, dict] = {os_.id: os_.options for os_ in target_rel.total_option_sets}
             # Строки из таблицы конфигураций — для команды conan install
             bos_map: dict[str, str] = {
                 bos.id: self._build_install_options_from_string(bos.options)
@@ -192,12 +183,8 @@ class PassportConverter(BaseDataConverter):
                     "conan_reference": target_rel.conan_reference,
                     "artifactory_url": target_rel.artifactory_url,
                     "is_header_only": target_comp.is_header_only,
-                    "build_option_sets": [
-                        bos.model_dump() for bos in target_rel.build_option_sets
-                    ],
-                    "default_options": [
-                        o.model_dump() for o in target_rel.default_options
-                    ],
+                    "build_option_sets": [bos.model_dump() for bos in target_rel.build_option_sets],
+                    "default_options": [o.model_dump() for o in target_rel.default_options],
                     "patches": target_rel.patches,
                     "dependencies": target_rel.dependencies,
                     "profile_builds": enriched_pbs,

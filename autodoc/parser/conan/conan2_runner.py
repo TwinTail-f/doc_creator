@@ -136,9 +136,7 @@ class Conan2Runner(BaseConanRunner):
             if result.returncode == 0:
                 logger.info("Кэш Conan 2 очищен.")
             else:
-                logger.debug(
-                    f"кэш пуст или некритичная ошибка: {result.stderr.strip()}"
-                )
+                logger.debug(f"кэш пуст или некритичная ошибка: {result.stderr.strip()}")
         except subprocess.TimeoutExpired:
             logger.warning("Таймаут при очистке кэша.")
 

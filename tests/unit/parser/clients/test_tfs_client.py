@@ -70,14 +70,10 @@ def test_tfs_client_get_file_content_returns_response(mocker, parser_config) -> 
 
 
 @pytest.mark.infrastructure
-def test_tfs_client_get_file_content_raises_network_error_on_failure(
-    mocker, parser_config
-) -> None:
+def test_tfs_client_get_file_content_raises_network_error_on_failure(mocker, parser_config) -> None:
     """TFSClient.get_file_content оборачивает RequestException в NetworkError."""
     client = _make_tfs_client(parser_config)
-    mocker.patch.object(
-        client.session, "get", side_effect=requests.RequestException("timeout")
-    )
+    mocker.patch.object(client.session, "get", side_effect=requests.RequestException("timeout"))
 
     with pytest.raises(NetworkError):
         client.get_file_content(TFS_URL, "/path/file.json", BRANCH)
@@ -92,9 +88,7 @@ def test_tfs_client_get_file_content_raises_network_error_on_failure(
 def test_tfs_client_get_items_returns_item_list(mocker, parser_config) -> None:
     """TFSClient.get_items возвращает список, извлечённый из ключа 'value'."""
     items = [{"path": "/a.properties"}, {"path": "/b.properties"}]
-    mock_resp = _make_response(
-        status_code=200, content=json.dumps({"value": items}).encode()
-    )
+    mock_resp = _make_response(status_code=200, content=json.dumps({"value": items}).encode())
     client = _make_tfs_client(parser_config)
     mocker.patch.object(client.session, "get", return_value=mock_resp)
 
@@ -109,9 +103,7 @@ def test_tfs_client_get_items_returns_item_list(mocker, parser_config) -> None:
 
 
 @pytest.mark.infrastructure
-def test_tfs_client_get_items_raises_network_error_on_http_error(
-    mocker, parser_config
-) -> None:
+def test_tfs_client_get_items_raises_network_error_on_http_error(mocker, parser_config) -> None:
     """TFSClient.get_items вызывает NetworkError, когда сессия бросает RequestException."""
     client = _make_tfs_client(parser_config)
     mocker.patch.object(
@@ -128,9 +120,7 @@ def test_tfs_client_get_items_raises_network_error_on_http_error(
 
 
 @pytest.mark.infrastructure
-def test_tfs_client_download_properties_downloads_files(
-    mocker, parser_config, tmp_path
-) -> None:
+def test_tfs_client_download_properties_downloads_files(mocker, parser_config, tmp_path) -> None:
     """
     download_properties записывает .properties-файлы в tmp_path и пропускает другие расширения.
 

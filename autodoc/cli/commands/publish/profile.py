@@ -1,4 +1,5 @@
 """Команда publish profile."""
+
 import click
 
 from autodoc.cli.constants import DEFAULT_PROFILE_PAGE_TITLE, PROFILE_TEMPLATE

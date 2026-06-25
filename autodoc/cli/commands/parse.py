@@ -103,9 +103,7 @@ def parse(
     """
     cli_ctx: CliCtx = ctx.obj
 
-    console.print(
-        Panel.fit("[bold blue]🚀 Запуск парсера документации[/bold blue]", style="blue")
-    )
+    console.print(Panel.fit("[bold blue]🚀 Запуск парсера документации[/bold blue]", style="blue"))
 
     # Загрузка конфигурации — бросает ConfigError при отсутствии или невалидном файле
     console.print("📋 Загрузка конфигурации…", style="cyan")

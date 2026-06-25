@@ -1,4 +1,5 @@
 """Группа publish и команда publish all."""
+
 import click
 
 from autodoc.cli.constants import (
@@ -35,43 +36,57 @@ publish.add_command(publish_passports)
 
 @publish.command("all", cls=QuoteHintCommand)
 @click.option(
-    "--passports-root-parent-id", "passports_root_parent_id", default=None,
+    "--passports-root-parent-id",
+    "passports_root_parent_id",
+    default=None,
     help="ID корневой страницы иерархии паспортов (переопределяет конфиг)",
 )
 @click.option(
-    "--passports-root-parent-name", "passports_root_parent_name", default=None,
+    "--passports-root-parent-name",
+    "passports_root_parent_name",
+    default=None,
     help=(
         "Название корневой страницы иерархии паспортов (переопределяет конфиг). "
         'Если содержит пробелы — заключите в кавычки: --passports-root-parent-name "Моя страница"'
     ),
 )
 @click.option(
-    "--release-root-page-id", "root_page_id", default=None,
+    "--release-root-page-id",
+    "root_page_id",
+    default=None,
     help="ID корневой родительской страницы релизной документации (переопределяет конфиг)",
 )
 @click.option(
-    "--release-root-page-name", "root_page_name", default=None,
+    "--release-root-page-name",
+    "root_page_name",
+    default=None,
     help=(
         "Название корневой родительской страницы релизной документации (переопределяет конфиг). "
         'Если содержит пробелы — заключите в кавычки: --release-root-page-name "Моя страница"'
     ),
 )
 @click.option(
-    "--release-doc-page-name", "release_doc_page_name", default=None,
+    "--release-doc-page-name",
+    "release_doc_page_name",
+    default=None,
     help=(
         "Заголовок страницы релизной документации "
         "(переопределяет release_docs_page_title из конфига)"
     ),
 )
 @click.option(
-    "--with-additional-page-profile", "with_additional_page_profile", is_flag=True,
+    "--with-additional-page-profile",
+    "with_additional_page_profile",
+    is_flag=True,
     help=(
         "Опубликовать дополнительную страницу в представлении от профилей сборки. "
         "Публикуется как дочерняя страница по отношению к странице релизной документации."
     ),
 )
 @click.option(
-    "--additional-page-profile-name", "additional_page_profile_name", default=None,
+    "--additional-page-profile-name",
+    "additional_page_profile_name",
+    default=None,
     help=(
         "Заголовок дополнительной страницы профилей. "
         "Требует флага --with-additional-page-profile. "
@@ -79,7 +94,8 @@ publish.add_command(publish_passports)
     ),
 )
 @click.option(
-    "--no-passport-links", is_flag=True,
+    "--no-passport-links",
+    is_flag=True,
     help="Не вставлять ссылки на паспорта в страницы документации",
 )
 @click.pass_context

@@ -53,9 +53,9 @@ class ConanTaskBuilder:
 
         for comp in components:
             for release in comp.releases:
-                input_options: list[ConanInputOptions] = (
-                    release.build_option_sets or [ConanInputOptions(id="1", options="")]
-                )
+                input_options: list[ConanInputOptions] = release.build_option_sets or [
+                    ConanInputOptions(id="1", options="")
+                ]
 
                 use_exact_range = comp.name in exact_range_set
                 reference = self._format_reference(
@@ -74,9 +74,7 @@ class ConanTaskBuilder:
                             if conan_input.options
                             else []
                         )
-                        cmd = self._build_cmd(
-                            reference, pb.profile_name, opt_list, extra_settings
-                        )
+                        cmd = self._build_cmd(reference, pb.profile_name, opt_list, extra_settings)
                         tasks.append(
                             ConanTask(
                                 cmd=cmd,
@@ -85,7 +83,9 @@ class ConanTaskBuilder:
                                 channel=release.channel,
                                 profile_name=pb.profile_name,
                                 option_id=conan_input.id,
-                                option_str=conan_input.options.strip() if conan_input.options else "",
+                                option_str=(
+                                    conan_input.options.strip() if conan_input.options else ""
+                                ),
                                 target_platform=target_platform,
                                 artifactory_base_url=artifactory_base_url,
                                 release=release,

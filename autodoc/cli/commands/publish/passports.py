@@ -1,4 +1,5 @@
 """Команда publish passports."""
+
 import click
 
 from autodoc.cli.constants import PASSPORT_TEMPLATE
@@ -19,11 +20,15 @@ _PASSPORTS_ROOT_ID_FLAG: str = "--passports-root-parent-id"
 
 @click.command("passports", cls=QuoteHintCommand)
 @click.option(
-    "--passports-root-parent-id", "passports_root_parent_id", default=None,
+    "--passports-root-parent-id",
+    "passports_root_parent_id",
+    default=None,
     help="ID корневой страницы иерархии паспортов (переопределяет конфиг)",
 )
 @click.option(
-    "--passports-root-parent-name", "passports_root_parent_name", default=None,
+    "--passports-root-parent-name",
+    "passports_root_parent_name",
+    default=None,
     help=(
         "Название корневой страницы иерархии паспортов (переопределяет конфиг). "
         'Если содержит пробелы — заключите в кавычки: --passports-root-parent-name "Моя страница"'

@@ -139,9 +139,7 @@ def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
     mock_parser.parse.assert_not_called()
     assert ("openssl", "3.0.0", "tech") not in result.release_data
 
-    warning_messages = [
-        r.message for r in caplog.records if r.levelno == logging.WARNING
-    ]
+    warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
     assert any(
         "None" in m or "crashed" in m or "cancelled" in m for m in warning_messages
     ), "A WARNING must be logged when a None raw result is encountered"

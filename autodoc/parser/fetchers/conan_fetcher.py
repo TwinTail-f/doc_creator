@@ -156,9 +156,7 @@ class ConanFetcher(BaseFetcher[ConanEnrichmentResult]):
             result = aggregator.aggregate(
                 tasks, raw_results, self._artifactory_base_url, self._platform_version
             )
-            result.execution_report = aggregator.build_execution_report(
-                tasks, raw_results
-            )
+            result.execution_report = aggregator.build_execution_report(tasks, raw_results)
 
         finally:
             env_manager.cleanup()

@@ -130,13 +130,6 @@ class ConanResultAggregator:
         Применяет каждый сырой результат к агрегатору соответствующего ProfileBuild
         и в том же проходе объединяет его зависимости/патчи/resolved-опции по ReleaseKey.
 
-        Объединение по ReleaseKey безопасно делать в этом же проходе, без
-        отдельного цикла после: ``release_deps``/``release_patches`` — множества,
-        а ``release_resolved_options`` заполняется по принципу "первый встретившийся
-        option_id выигрывает", поэтому повторный union/merge для одного и того же
-        release_key только дополняет уже накопленные данные и не зависит от порядка
-        обработки задач.
-
         Args:
             tasks: Список задач в том же порядке, что и ``raw_results``.
             raw_results: Сырые результаты параллельного выполнения.
@@ -358,9 +351,7 @@ class ConanResultAggregator:
 
         return list(comp_map.values())
 
-    def _extract_binary_status(
-        self, data: dict[str, Any] | None, comp_name: str
-    ) -> str:
+    def _extract_binary_status(self, data: dict[str, Any] | None, comp_name: str) -> str:
         """
         Извлекает поле ``binary`` целевого узла из JSON-ответа ``conan graph info``.
 

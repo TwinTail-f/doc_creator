@@ -77,9 +77,7 @@ def load_parsed_data(base_dir: Path) -> ParsedResult:
     """
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
-        raise DocGeneratorError(
-            'Файл parsed_data.json не найден. Сначала запустите "parse".'
-        )
+        raise DocGeneratorError('Файл parsed_data.json не найден. Сначала запустите "parse".')
     return ParsedResult.model_validate_json(data_file.read_text(encoding="utf-8"))
 
 

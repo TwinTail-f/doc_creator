@@ -336,9 +336,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
 
     result: ParsedResult = parser.parse()
 
-    nlohmann = next(
-        (c for c in result.components if "nlohmann" in c.name.lower()), None
-    )
+    nlohmann = next((c for c in result.components if "nlohmann" in c.name.lower()), None)
 
     assert nlohmann is not None, (
         "nlohmann_json must be present in the result when enriched with "
@@ -413,8 +411,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
             f"After ManifestStep pb.exists must be False; " f"got True for {comp_name}"
         )
         assert variant_count == 0, (
-            f"After ManifestStep pb.variants must be []; "
-            f"got {variant_count} for {comp_name}"
+            f"After ManifestStep pb.variants must be []; " f"got {variant_count} for {comp_name}"
         )
 
 
@@ -522,9 +519,7 @@ def test_pipeline_result_components_sorted_alphabetically(
     result: ParsedResult = parser.parse()
 
     names = [c.name for c in result.components]
-    assert (
-        len(names) >= 2
-    ), "Нужно по крайней мере 2 компонента для проверки алфавитной сортировки"
+    assert len(names) >= 2, "Нужно по крайней мере 2 компонента для проверки алфавитной сортировки"
     sorted_names = sorted(names, key=lambda n: n.lower())
     assert names == sorted_names, (
         f"Компоненты должны быть отсортированы в алфавитном порядке (без учёта регистра), "
