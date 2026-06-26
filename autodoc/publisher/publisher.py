@@ -89,7 +89,7 @@ class DocumentPublisher:
                     f"Страница '{name}' не найдена в пространстве '{self._config.space}'"
                     f" (параметр конфигурации: {field_label}_name)"
                 )
-            return str(page["id"])
+            return page.id
         if page_id:
             return page_id
         if required:
@@ -176,6 +176,9 @@ class DocumentPublisher:
         Returns:
             ID родительской страницы или ``None``, если ни одно из значений
             не настроено.
+
+        Raises:
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
         """
         return self.resolve_page_id(
             name or self._config.release_docs_root_parent_name,
@@ -204,6 +207,9 @@ class DocumentPublisher:
         Returns:
             ID родительской страницы или ``None``, если ни одно из значений
             не настроено.
+
+        Raises:
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
         """
         return self.resolve_page_id(
             name or self._config.profile_docs_root_parent_name,
@@ -231,6 +237,9 @@ class DocumentPublisher:
         Returns:
             ID родительской страницы или ``None``, если ни одно из значений
             не настроено.
+
+        Raises:
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
         """
         if strategy_type == "profile_centric":
             return self._resolve_profile_parent(name, page_id)

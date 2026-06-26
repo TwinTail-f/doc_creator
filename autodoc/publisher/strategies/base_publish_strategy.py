@@ -12,6 +12,7 @@ from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 
 from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.clients.models.page_result import PageResult
 from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
@@ -118,7 +119,7 @@ class BasePublishStrategy(ABC):
         template_name: str,
         view_model: dict[str, Any],
         parent_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> PageResult:
         """
         Рендерит шаблон и публикует страницу в Confluence.
 
@@ -129,7 +130,7 @@ class BasePublishStrategy(ABC):
             parent_id: Идентификатор родительской страницы или None.
 
         Returns:
-            Словарь с полями id, version, status от Confluence API.
+            Результат публикации в виде ``PageResult``.
 
         Raises:
             ConfluenceError: При сбое HTTP-запроса к Confluence.
@@ -188,13 +189,13 @@ class BasePublishStrategy(ABC):
             details.append(
                 {
                     "page_title": page_title,
-                    "page_id": result["id"],
-                    "version": result["version"],
-                    "status": result["status"],
+                    "page_id": result.id,
+                    "version": result.version,
+                    "status": result.status,
                     "template": template_name,
                 }
             )
-            logger.info(f"{page_title} {result['status']} (ID: {result['id']})")
+            logger.info(f"{page_title} {result.status} (ID: {result.id})")
             return PublishReport(success=True, pages_published=1, details=details)
 
         except (ConfluenceError, TemplateError, TemplateNotFound, ValueError, KeyError) as e:

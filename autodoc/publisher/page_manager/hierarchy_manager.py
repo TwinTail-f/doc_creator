@@ -38,6 +38,8 @@ class PageHierarchyManager:
 
     def __init__(self, confluence_client: ConfluenceClientProtocol) -> None:
         """
+        Создаёт менеджер иерархии с переданным клиентом Confluence.
+
         Args:
             confluence_client: Реализация ``ConfluenceClientProtocol``.
         """
@@ -68,23 +70,23 @@ class PageHierarchyManager:
             ID страницы версии — она становится родителем для страницы паспорта.
 
         Raises:
-            PublishError: Если создание промежуточных страниц не удалось.
+            ConfluenceError: Если создание промежуточных страниц не удалось.
         """
         logger.debug(f"Иерархия для {component_name}@{release_version}")
 
-        comp_page_id = self._client.publish_page(
+        comp_page_id = self._client.ensure_page(
             space=space,
             parent_id=root_parent_id,
             title=component_name,
             body_html=_COMPONENT_PAGE_BODY,
-        )["id"]
+        )
 
         version_title = f"{component_name} {release_version}"
-        version_page_id = self._client.publish_page(
+        version_page_id = self._client.ensure_page(
             space=space,
             parent_id=comp_page_id,
             title=version_title,
             body_html=_VERSION_PAGE_BODY,
-        )["id"]
+        )
 
         return version_page_id

@@ -230,7 +230,7 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
         )
 
         page_title = self._make_page_title(comp_name, release_version)
-        existing_html = self._fetch_existing_body(page_title)
+        existing_html = self._fetch_existing_body(page_title, parent_id=version_page_id)
 
         converter = self._converter_factory(comp_name, release_version)
         view_model = converter.transform(self._data)
@@ -256,20 +256,27 @@ class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
             view_model=view_model,
             parent_id=version_page_id,
         )
-        return result["id"], result["version"], result["status"]
+        return result.id, result.version, result.status
 
-    def _fetch_existing_body(self, page_title: str) -> str:
+    def _fetch_existing_body(self, page_title: str, parent_id: str) -> str:
         """
         Возвращает текущее тело страницы или пустую строку при любой ошибке.
 
+        Лукап безопасен относительно дерева (через ``parent_id``): страница
+        с тем же заголовком, но в другой части иерархии паспортов, не будет
+        случайно прочитана как "существующий" контент текущего паспорта.
+
         Args:
             page_title: Заголовок страницы в Confluence.
+            parent_id:  ID страницы версии — ожидаемый родитель страницы паспорта.
 
         Returns:
             HTML тело страницы или пустая строка.
         """
         try:
-            return self._client.get_page_body(space=self._space, title=page_title)
+            return self._client.get_page_body(
+                space=self._space, title=page_title, parent_id=parent_id
+            )
         # Ошибка получения тела страницы (сеть, API Confluence) некритична —
         # паспорт будет опубликован без сохранения legacy-контента, что допустимо.
         except ConfluenceError as e:
