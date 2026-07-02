@@ -1,11 +1,17 @@
 """Абстрактный базовый класс трансформеров данных."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, NamedTuple
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
 from autodoc.publisher.view_models.passports import ConanVariantView
+
+
+class _VariantOpts(NamedTuple):
+    """Опции сборки для одного варианта Conan в view-model."""
+
+    conan_options: dict[str, Any]
+    install_options_override: str | None = None
 
 
 class BaseDataConverter(ABC):
@@ -94,6 +100,22 @@ class BaseDataConverter(ABC):
             Словарь вида {profile_name: ProfileDefinition}.
         """
         return {pd.profile_name: pd for pd in data.profile_definitions}
+
+    @staticmethod
+    def _resolve_profile_meta(pd_map: dict[str, Any], profile_name: str) -> tuple[dict[str, Any], str]:
+        """
+        Резолвит настройки и docker-образ профиля по его имени.
+
+        Args:
+            pd_map: Словарь ``{profile_name: ProfileDefinition}``.
+            profile_name: Имя искомого профиля.
+
+        Returns:
+            Кортеж ``(conan_settings, docker_image)``. Если профиль не найден —
+            пустой словарь и пустая строка.
+        """
+        pd = pd_map.get(profile_name)
+        return (dict(pd.conan_settings) if pd else {}, pd.docker_image if pd else "")
 
     @staticmethod
     def _build_variant_view(

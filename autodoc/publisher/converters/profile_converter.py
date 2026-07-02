@@ -43,10 +43,10 @@ class ProfileCentricConverter(BaseReleaseConverter):
                     continue
                 for pb in rel.profile_builds:
                     if pb.profile_name not in profile_meta:
-                        pd = pd_map.get(pb.profile_name)
+                        settings, docker_url = self._resolve_profile_meta(pd_map, pb.profile_name)
                         profile_meta[pb.profile_name] = {
-                            "settings": dict(pd.conan_settings) if pd else {},
-                            "docker_url": pd.docker_image if pd else "",
+                            "settings": settings,
+                            "docker_url": docker_url,
                         }
         return profile_meta
 
@@ -87,7 +87,8 @@ class ProfileCentricConverter(BaseReleaseConverter):
                 has_profile_build = any(
                     pb.profile_name == profile_name for pb in rel.profile_builds
                 )
-                if not comp.is_header_only and not has_profile_build:
+                is_relevant_for_profile = comp.is_header_only or has_profile_build
+                if not is_relevant_for_profile:
                     continue
                 if rel.channel not in entry["channels"]:
                     entry["channels"][rel.channel] = []

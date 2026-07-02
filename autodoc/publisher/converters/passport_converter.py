@@ -3,8 +3,7 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.base_data_converter import BaseDataConverter
-from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.base_data_converter import BaseDataConverter, _VariantOpts
 
 _TFS_BRANCH_PREFIX: str = "GBrelease_"
 """Префикс ветки TFS для релизных бранчей по соглашению об именовании."""
@@ -17,8 +16,9 @@ class PassportConverter(BaseDataConverter):
     Если компонент или версия не найдены — бросает ``ValueError`` (не возвращает ``None``).
 
     Формат view-model совместим с ``component_passport.jinja2``:
-    - ``data.component.releases`` — список из одного релиза, чтобы шаблон мог
-      группировать по каналам через Jinja2 ``groupby``.
+    - Верхнеуровневые ключи — ``component`` (карточка компонента) и
+      ``releases`` (список каналов текущей версии, для группировки в
+      шаблоне через Jinja2 ``groupby``).
     - Все поля профилей используют новые имена: ``docker_image``, ``exists``.
     """
 
@@ -105,9 +105,7 @@ class PassportConverter(BaseDataConverter):
         """
         enriched_pbs = []
         for pb in sorted(target_rel.profile_builds, key=lambda p: p.profile_name):
-            pd = pd_map.get(pb.profile_name)
-            settings = dict(pd.conan_settings) if pd else {}
-            docker_image = pd.docker_image if pd else ""
+            settings, docker_image = self._resolve_profile_meta(pd_map, pb.profile_name)
             enriched_pbs.append(
                 {
                     "profile_name": pb.profile_name,

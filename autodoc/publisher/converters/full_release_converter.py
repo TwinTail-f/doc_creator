@@ -4,7 +4,7 @@ from typing import Any
 
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.base_data_converter import _VariantOpts
 from autodoc.publisher.converters.base_release_converter import BaseReleaseConverter
 
 
@@ -15,6 +15,40 @@ class FullReleaseConverter(BaseReleaseConverter):
     Включает все компоненты со всеми профилями, вариантами и зависимостями.
     Опционально добавляет ссылки на паспорта компонентов.
     """
+
+    def _build_profile_build_entry(
+        self,
+        pb: Any,
+        pd_map: dict[str, Any],
+        os_map: dict[str, dict],
+        comp_name: str,
+    ) -> dict[str, Any]:
+        """
+        Строит одну запись ``profile_builds`` для view-model релиза.
+
+        Args:
+            pb: Объект ``ProfileBuild``.
+            pd_map: Словарь ``{profile_name: ProfileDefinition}``.
+            os_map: Словарь ``{options_ref_id: options_dict}``.
+            comp_name: Имя компонента-владельца.
+
+        Returns:
+            Словарь с полями ``profile_name``, ``conan_settings``, ``docker_image``,
+            ``exists``, ``variants``.
+        """
+        conan_settings, docker_image = self._resolve_profile_meta(pd_map, pb.profile_name)
+        return {
+            "profile_name": pb.profile_name,
+            "conan_settings": conan_settings,
+            "docker_image": docker_image,
+            "exists": pb.exists,
+            "variants": [
+                self._build_variant_view(
+                    v, comp_name, _VariantOpts(conan_options=os_map.get(v.options_ref, {}))
+                )
+                for v in pb.variants
+            ],
+        }
 
     def _build_release_view(
         self,
@@ -40,26 +74,7 @@ class FullReleaseConverter(BaseReleaseConverter):
             []
             if comp_is_header_only
             else [
-                {
-                    "profile_name": pb.profile_name,
-                    "conan_settings": (
-                        dict(pd_map[pb.profile_name].conan_settings)
-                        if pb.profile_name in pd_map
-                        else {}
-                    ),
-                    "docker_image": (
-                        pd_map[pb.profile_name].docker_image if pb.profile_name in pd_map else ""
-                    ),
-                    "exists": pb.exists,
-                    "variants": [
-                        self._build_variant_view(
-                            v,
-                            comp_name,
-                            _VariantOpts(conan_options=os_map.get(v.options_ref, {})),
-                        )
-                        for v in pb.variants
-                    ],
-                }
+                self._build_profile_build_entry(pb, pd_map, os_map, comp_name)
                 for pb in rel.profile_builds
             ]
         )
@@ -70,7 +85,6 @@ class FullReleaseConverter(BaseReleaseConverter):
             "artifactory_url": rel.artifactory_url,
             "is_header_only": comp_is_header_only,
             "profile_builds": profile_builds,
-            "passport_link": None,
         }
 
     def transform(self, data: ParsedResult) -> dict[str, Any]:

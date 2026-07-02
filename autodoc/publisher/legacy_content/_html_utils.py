@@ -3,7 +3,7 @@
 
 Содержит скомпилированные regex-паттерны, depth-balanced экстрактор
 rich-text-body и общие алгоритмы извлечения секций, используемые
-legacy_extractor и legacy_merger.
+legacy_extractor.
 
 Публичное API модуля:
     extract_rich_text_body       — depth-balanced извлечение <ac:rich-text-body>

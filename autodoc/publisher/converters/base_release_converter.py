@@ -3,18 +3,16 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.passport_link_mixin import PassportLinkMixin
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 
 
-class BaseReleaseConverter(PassportLinkMixin, BaseDataConverter):
+class BaseReleaseConverter(BaseDataConverter):
     """
     Базовый класс трансформеров документации релиза.
 
-    Конкретные виды реализуют ``transform()``.
-    Ссылки на паспорта внедряются ``PassportPageRegistry`` после публикации —
-    не через ``_passport_link()``, а напрямую в view-model через
-    ``inject_links`` / ``inject_links_for_profiles``.
+    Конкретные виды реализуют ``transform()``. Ссылки на паспорта
+    компонентов конвертер не строит — они внедряются отдельно, уже после
+    публикации паспортов, через ``inject_links`` / ``inject_links_for_profiles``.
     """
 
     def __init__(

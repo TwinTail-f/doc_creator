@@ -92,7 +92,7 @@
                                                         <div style="display:flex;flex-wrap:wrap;gap:8px">
                                                             {%- for version, page_info in comp.passport_versions.items() -%}
                                                             {%- if version == release.version -%}
-                                                            <a href="/spaces/{{ data.space }}/pages/{{ page_info.page_id }}" class="autodoc-passport-btn-lg">
+                                                            <a href="{{ page_info.url }}" class="autodoc-passport-btn-lg">
                                                                 {{ comp.name }} v{{ version }}
                                                             </a>
                                                             {%- endif -%}
