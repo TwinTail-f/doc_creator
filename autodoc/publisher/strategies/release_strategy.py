@@ -8,7 +8,7 @@ from autodoc.publisher.page_manager.passport_link_injector import inject_links
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
-class ReleasePageStrategy(SinglePagePublishStrategy, strategy_type="release"):
+class ReleasePageStrategy(SinglePagePublishStrategy):
     """
     Публикует документацию релиза (вид от компонентов) на одной странице Confluence.
 

@@ -11,16 +11,9 @@ from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClien
 from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies import passports_strategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
-
-# Импорт модулей стратегий регистрирует их в BasePublishStrategy._registry
-# через __init_subclass__.
-from autodoc.publisher.strategies import (
-    passports_strategy,
-    profile_strategy,
-    release_strategy,
-)  # noqa: F401
+from autodoc.publisher.strategies.registry import create_strategy
 
 _RENDERING_DIR: Path = Path(__file__).resolve().parent / "rendering"
 """Путь к директории rendering/ внутри установленного пакета publisher."""
@@ -77,7 +70,7 @@ class DocumentPublisher:
             ``PublishReport`` с результатами публикации.
         """
         logger.info(f"Публикация стратегии {strategy_type}")
-        strategy = BasePublishStrategy.create(
+        strategy = create_strategy(
             strategy_type,
             confluence_client=self._client,
             document_builder=self._builder,

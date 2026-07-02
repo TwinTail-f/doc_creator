@@ -1,10 +1,9 @@
-"""Абстрактный базовый класс стратегий публикации с Registry-паттерном."""
+"""Абстрактный базовый класс стратегий публикации."""
 
-import inspect
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any, ClassVar
+from typing import Any
 
 from jinja2 import TemplateError, TemplateNotFound
 
@@ -23,13 +22,12 @@ _CDATA_PATTERN: re.Pattern[str] = re.compile(r"(<!\[CDATA\[.*?]]>)", re.DOTALL)
 
 class BasePublishStrategy(ABC):
     """
-    Абстрактная стратегия публикации с Registry-паттерном.
+    Абстрактная стратегия публикации документации в Confluence.
 
-    Подклассы регистрируются автоматически при объявлении ``strategy_type``;
-    фабричный метод ``create()`` создаёт нужный подкласс по строковому ключу.
+    Определяет общие зависимости и переиспользуемые шаги публикации
+    (рендеринг шаблона, минификация HTML, обработка ошибок). Конкретный
+    подкласс выбирается через ``autodoc.publisher.strategies.registry``.
     """
-
-    _registry: ClassVar[dict[str, type["BasePublishStrategy"]]] = {}
 
     def __init__(
         self,
@@ -56,62 +54,6 @@ class BasePublishStrategy(ABC):
         self._builder = document_builder
         self._data = parsed_data
         self._space = space
-
-    def __init_subclass__(
-        cls,
-        strategy_type: str = "",
-        **kwargs: Any,
-    ) -> None:
-        """
-        Регистрирует подкласс в реестре стратегий при объявлении класса.
-
-        Args:
-            strategy_type: Строковый ключ стратегии (например ``'release'``).
-                           Если не задан — класс в реестр не добавляется.
-            **kwargs: Передаётся в ``super().__init_subclass__``.
-        """
-        super().__init_subclass__(**kwargs)
-        if strategy_type:
-            BasePublishStrategy._registry[strategy_type] = cls
-            logger.debug(f"Зарегистрирована {strategy_type} → {cls.__name__}")
-
-    @classmethod
-    def create(cls, strategy_type: str, **kwargs: Any) -> "BasePublishStrategy":
-        """
-        Создаёт экземпляр стратегии по типу через Registry.
-
-        Args:
-            strategy_type: Ключ стратегии из реестра.
-            **kwargs: Аргументы конструктора стратегии.
-
-        Returns:
-            Готовый экземпляр стратегии.
-
-        Raises:
-            ValueError: Если ``strategy_type`` не зарегистрирован.
-        """
-        if strategy_type not in cls._registry:
-            raise ValueError(
-                f"Неизвестная стратегия {strategy_type}. Доступные: {sorted(cls._registry)}"
-            )
-
-        strategy_cls = cls._registry[strategy_type]
-
-        sig = inspect.signature(strategy_cls.__init__)
-        params = sig.parameters
-        if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
-            filtered_kwargs = kwargs
-        else:
-            accepted = {k for k in params if k != "self"}
-            filtered_kwargs = {k: v for k, v in kwargs.items() if k in accepted}
-
-        logger.debug(f"Создаём {strategy_cls.__name__} для типа {strategy_type}")
-        return strategy_cls(**filtered_kwargs)
-
-    @classmethod
-    def available_strategies(cls) -> list[str]:
-        """Возвращает отсортированный список зарегистрированных типов стратегий."""
-        return sorted(cls._registry)
 
     def _render_and_publish(
         self,

@@ -38,7 +38,7 @@ class _PagePublishResult:
         return self.detail is not None
 
 
-class PassportsStrategy(BasePublishStrategy, strategy_type="passports"):
+class PassportsStrategy(BasePublishStrategy):
     """
     Публикует паспорта компонентов как иерархию страниц Confluence.
 

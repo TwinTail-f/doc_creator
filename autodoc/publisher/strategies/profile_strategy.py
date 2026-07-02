@@ -8,7 +8,7 @@ from autodoc.publisher.page_manager.passport_link_injector import inject_links_f
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
-class ProfileCentricStrategy(SinglePagePublishStrategy, strategy_type="profile_centric"):
+class ProfileCentricStrategy(SinglePagePublishStrategy):
     """
     Публикует профиль-центричную документацию релиза на одной странице Confluence.
 
