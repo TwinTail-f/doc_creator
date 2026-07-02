@@ -3,12 +3,12 @@
 from pathlib import Path
 from typing import Any
 
-from autodoc.exceptions import ConfigError
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
@@ -30,8 +30,9 @@ class DocumentPublisher:
     """
     Оркестрирует публикацию документации компонентов в Confluence.
 
-    Принимает конфигурацию, выбирает стратегию по типу и делегирует
-    создание и обновление страниц выбранной стратегии.
+    Принимает конфигурацию, резолвит родительские страницы через
+    ``RootPageResolver`` и делегирует создание и обновление страниц
+    стратегии, выбранной по типу.
     """
 
     def __init__(
@@ -53,51 +54,9 @@ class DocumentPublisher:
         self._config: ConfluenceConfigSchema = confluence_config
         self._client: ConfluenceClientProtocol = ConfluenceClient(confluence_config)
         self._builder: DocumentBuilderProtocol = DocumentBuilder(rendering_dir)
+        self._page_resolver: RootPageResolver = RootPageResolver(self._client, confluence_config)
         self._data_dir: Path = data_dir or Path("data")
         logger.info("Инициализирован")
-
-    def resolve_page_id(
-        self,
-        name: str | None,
-        page_id: str | None,
-        field_label: str,
-        required: bool = True,
-    ) -> str | None:
-        """
-        Разрешает ссылку на страницу Confluence в её идентификатор.
-
-        Args:
-            name: Название страницы для поиска в настроенном Space.
-            page_id: Запасной ID страницы, если ``name`` не задан или пуст.
-            field_label: Имя поля конфигурации для сообщений об ошибках
-                         (например ``'release_docs_root_parent'``).
-            required: Если ``True`` и ни ``name``, ни ``page_id`` не заданы,
-                      генерирует ``ConfigError``. Если ``False`` — возвращает ``None``.
-
-        Returns:
-            Строка с ID страницы или ``None``, если ``required=False``
-            и ни имя, ни ID не настроены.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         или если ``required=True`` и оба параметра отсутствуют.
-        """
-        if name:
-            page = self._client.find_page(name, space=self._config.space)
-            if not page:
-                raise ConfigError(
-                    f"Страница '{name}' не найдена в пространстве '{self._config.space}'"
-                    f" (параметр конфигурации: {field_label}_name)"
-                )
-            return page.id
-        if page_id:
-            return page_id
-        if required:
-            raise ConfigError(
-                f"Необходимо указать '{field_label}_name' или '{field_label}'"
-                f" в конфигурации Confluence"
-            )
-        return None
 
     def publish(
         self,
@@ -129,157 +88,6 @@ class DocumentPublisher:
         )
         return strategy.execute()
 
-    def _resolve_passports_root(
-        self,
-        name: str | None,
-        page_id: str | None,
-    ) -> str | None:
-        """
-        Резолвит ID корневой страницы иерархии паспортов.
-
-        Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
-        Confluence как запасной вариант.
-
-        Args:
-            name: Название корневой страницы паспортов, введённое пользователем.
-            page_id: ID корневой страницы паспортов, введённый пользователем.
-
-        Returns:
-            ID корневой страницы паспортов.
-
-        Raises:
-            ConfigError: Если страница не найдена ни по имени, ни по ID,
-                         ни в конфигурации.
-        """
-        return self.resolve_page_id(
-            name or self._config.passports_root_parent_name,
-            page_id or self._config.passports_root_parent_id,
-            "passports_root_parent",
-        )
-
-    def _resolve_release_parent(
-        self,
-        name: str | None,
-        page_id: str | None,
-    ) -> str | None:
-        """
-        Резолвит ID родительской страницы для релизной документации.
-
-        Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
-        Confluence как запасной вариант. В отличие от паспортов, родитель
-        не обязателен — публикация допускается без родительской страницы.
-
-        Args:
-            name: Название родительской страницы, введённое пользователем.
-            page_id: ID родительской страницы, введённый пользователем.
-
-        Returns:
-            ID родительской страницы или ``None``, если ни одно из значений
-            не настроено.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
-        """
-        return self.resolve_page_id(
-            name or self._config.release_docs_root_parent_name,
-            page_id or self._config.release_docs_root_parent_id,
-            "release_docs_root_parent",
-            required=False,
-        )
-
-    def _resolve_profile_parent(
-        self,
-        name: str | None,
-        page_id: str | None,
-    ) -> str | None:
-        """
-        Резолвит ID родительской страницы для профиль-центричной документации.
-
-        Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
-        Confluence (``profile_docs_root_parent_name`` / ``profile_docs_root_parent_id``)
-        как запасной вариант. Родитель не обязателен — публикация допускается
-        без родительской страницы.
-
-        Args:
-            name: Название родительской страницы, введённое пользователем.
-            page_id: ID родительской страницы, введённый пользователем.
-
-        Returns:
-            ID родительской страницы или ``None``, если ни одно из значений
-            не настроено.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
-        """
-        return self.resolve_page_id(
-            name or self._config.profile_docs_root_parent_name,
-            page_id or self._config.profile_docs_root_parent_id,
-            "profile_docs_root_parent",
-            required=False,
-        )
-
-    def _resolve_single_page_parent(
-        self,
-        strategy_type: str,
-        name: str | None,
-        page_id: str | None,
-    ) -> str | None:
-        """
-        Резолвит родительскую страницу для публикации одной страницы.
-
-        Выбирает конфигурационный запасной вариант в зависимости от типа стратегии.
-
-        Args:
-            strategy_type: Тип стратегии (``'release'`` или ``'profile_centric'``).
-            name: Название родительской страницы, введённое пользователем.
-            page_id: ID родительской страницы, введённый пользователем.
-
-        Returns:
-            ID родительской страницы или ``None``, если ни одно из значений
-            не настроено.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
-        """
-        if strategy_type == "profile_centric":
-            return self._resolve_profile_parent(name, page_id)
-        return self._resolve_release_parent(name, page_id)
-
-    def _resolve_root_pages(
-        self,
-        passports_root_parent_name: str | None,
-        passports_root_parent_id: str | None,
-        release_root_page_name: str | None,
-        release_root_page_id: str | None,
-    ) -> tuple[str | None, str | None]:
-        """
-        Резолвит ID корневых страниц для паспортов и релизной документации.
-
-        Args:
-            passports_root_parent_name: Название корневой страницы паспортов
-                                        или ``None`` для поиска по конфигурации.
-            passports_root_parent_id: ID корневой страницы паспортов
-                                      или ``None`` для поиска по конфигурации.
-            release_root_page_name: Название родительской страницы релиза
-                                    или ``None`` для поиска по конфигурации.
-            release_root_page_id: ID родительской страницы релиза
-                                 или ``None`` для поиска по конфигурации.
-
-        Returns:
-            Кортеж ``(resolved_passports_root, resolved_release_parent)``.
-
-        Raises:
-            ConfigError: Если корневая страница паспортов не найдена
-                         и не задана в конфигурации.
-        """
-        resolved_root = self._resolve_passports_root(
-            passports_root_parent_name, passports_root_parent_id
-        )
-        resolved_release_parent = self._resolve_release_parent(
-            release_root_page_name, release_root_page_id
-        )
-        return resolved_root, resolved_release_parent
-
     def publish_passports(
         self,
         parsed_data: ParsedResult,
@@ -301,7 +109,7 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатами публикации паспортов.
         """
-        root_page_id = self._resolve_passports_root(
+        root_page_id = self._page_resolver.resolve_passports_root(
             passports_root_parent_name, passports_root_parent_id
         )
         return self.publish(
@@ -347,7 +155,9 @@ class DocumentPublisher:
             для ``'profile_centric'`` — ``profile_docs_root_parent_name``/
             ``profile_docs_root_parent_id``.
         """
-        parent_id = self._resolve_single_page_parent(strategy_type, root_page_name, root_page_id)
+        parent_id = self._page_resolver.resolve_single_page_parent(
+            strategy_type, root_page_name, root_page_id
+        )
         return self.publish(
             strategy_type=strategy_type,
             parsed_data=parsed_data,
@@ -441,7 +251,7 @@ class DocumentPublisher:
         """
         logger.info("Публикация паспортов + релиза")
 
-        resolved_root, resolved_release_parent = self._resolve_root_pages(
+        resolved_root, resolved_release_parent = self._page_resolver.resolve_root_pages(
             passports_root_parent_name,
             passports_root_parent_id,
             release_root_page_name,

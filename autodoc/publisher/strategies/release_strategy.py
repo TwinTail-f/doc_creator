@@ -4,7 +4,7 @@ from typing import Any
 
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
+from autodoc.publisher.page_manager.passport_link_injector import inject_links
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
@@ -33,7 +33,7 @@ class ReleasePageStrategy(SinglePagePublishStrategy, strategy_type="release"):
             **kwargs: Остальные параметры для ``SinglePagePublishStrategy``.
         """
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
-        kwargs.setdefault("link_injector", PassportPageRegistry.inject_links)
+        kwargs.setdefault("link_injector", inject_links)
         super().__init__(
             converter=converter
             or self._make_converter(

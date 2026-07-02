@@ -51,6 +51,7 @@ class QuoteHintCommand(click.Command):
                 raise click.UsageError(
                     f"{e}\n\n"
                     "💡 Если название страницы содержит пробелы, заключите его в кавычки:\n"
-                    f"{examples}"
+                    f"{examples}",
+                    ctx=e.ctx,
                 ) from e
             raise

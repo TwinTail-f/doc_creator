@@ -4,7 +4,7 @@ from typing import Any
 
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
-from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
+from autodoc.publisher.page_manager.passport_link_injector import inject_links_for_profiles
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
@@ -31,7 +31,7 @@ class ProfileCentricStrategy(SinglePagePublishStrategy, strategy_type="profile_c
             **kwargs: Остальные параметры для ``SinglePagePublishStrategy``.
         """
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
-        kwargs.setdefault("link_injector", PassportPageRegistry.inject_links_for_profiles)
+        kwargs.setdefault("link_injector", inject_links_for_profiles)
         super().__init__(
             converter=converter
             or self._make_converter(
