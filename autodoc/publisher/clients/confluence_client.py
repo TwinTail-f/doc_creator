@@ -3,14 +3,6 @@
 from typing import Any, Literal
 
 from autodoc.publisher.clients.confluence_transport import ConfluenceTransport
-from autodoc.publisher.clients.confluence_client_protocol import (
-    EXPAND_ANCESTORS,
-    EXPAND_BODY,
-    EXPAND_BODY_AND_ANCESTORS,
-    EXPAND_VERSION,
-    EXPAND_VERSION_AND_ANCESTORS,
-    EXPAND_VERSION_BODY_ANCESTORS,
-)
 from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
 
@@ -21,6 +13,14 @@ from autodoc.common.logger import logger
 _PAGE_TYPE: str = "page"
 _STORAGE_REPRESENTATION: str = "storage"
 _INITIAL_VERSION: int = 1
+
+# Значения параметра `expand` Confluence REST API v1.
+EXPAND_VERSION: str = "version"
+EXPAND_BODY: str = "body.storage"
+EXPAND_ANCESTORS: str = "ancestors"
+EXPAND_VERSION_AND_ANCESTORS: str = f"{EXPAND_VERSION},{EXPAND_ANCESTORS}"
+EXPAND_BODY_AND_ANCESTORS: str = f"{EXPAND_BODY},{EXPAND_ANCESTORS}"
+EXPAND_VERSION_BODY_ANCESTORS: str = f"{EXPAND_VERSION},{EXPAND_BODY},{EXPAND_ANCESTORS}"
 
 
 class ConfluenceClient:
@@ -124,50 +124,40 @@ class ConfluenceClient:
             page = self.find_page(title, space=space, expand=EXPAND_BODY)
         return page.body_html if page else ""
 
-    def ensure_page(
-        self,
-        space: str,
-        parent_id: str,
-        title: str,
-        body_html: str = "",
-    ) -> str:
+    def resolve_existing_page_id(self, space: str, parent_id: str, title: str) -> str | None:
         """
-        Гарантирует наличие страницы с заданным заголовком под указанным родителем.
+        Возвращает ID существующей страницы с заданным заголовком, если она есть.
 
-        Если страница уже существует на месте — не изменяется (ни тело, ни версия).
-        Если страница с тем же заголовком найдена под другим родителем — поведение
-        определяется ``title_conflict_policy`` конфигурации: при ``'error'`` операция
-        прерывается исключением, при ``'move'`` — страница переносится под ожидаемого
-        родителя с сохранением её текущего содержимого.
+        Если страница с этим заголовком найдена под другим родителем, конфликт
+        разрешается согласно ``title_conflict_policy`` конфигурации (перенос
+        или исключение) — см. ``_resolve_title_conflict``. Страница никогда не
+        создаётся этим методом.
 
         Args:
-            space:     Ключ Space.
-            parent_id: ID родительской страницы.
-            title:     Заголовок страницы.
-            body_html: Тело при создании новой страницы. Если пустое — вставляется
-                       заглушка. Не используется при переносе существующей страницы.
+            space: Ключ Space.
+            parent_id: Ожидаемый родитель страницы.
+            title: Заголовок страницы.
 
         Returns:
-            ID страницы — существующей (на месте или перенесённой) либо только что созданной.
+            ID страницы (на прежнем месте или перенесённой), либо ``None``,
+            если страницы с таким заголовком не существует ни в одном поддереве.
 
         Raises:
-            ConfluenceError: Если создание страницы не удалось, либо обнаружен
-                              конфликт заголовков при ``title_conflict_policy == "error"``.
+            ConfluenceError: Если запрос к API завершился ошибкой, либо
+                              обнаружен конфликт заголовков при
+                              ``title_conflict_policy == "error"``.
         """
         existing = self.find_page(title, space=space, expand=EXPAND_VERSION_AND_ANCESTORS)
-        if existing:
-            if not parent_id or existing.is_descendant_of(parent_id):
-                return existing.id
-            moved = self._resolve_title_conflict(existing, parent_id, title, body_html=None)
-            return moved.id
-
-        placeholder = body_html or f"<p>Автоматически созданная страница: {title}</p>"
+        if not existing:
+            return None
+        if not parent_id or existing.is_descendant_of(parent_id):
+            return existing.id
         try:
-            created = self._create_page(space, parent_id, title, placeholder)
+            moved = self._resolve_title_conflict(existing, parent_id, title, body_html=None)
         except ConfluenceError:
-            logger.error(f"Ошибка при создании страницы {title!r} (parent_id={parent_id})")
+            logger.error(f"Ошибка при переносе страницы {title!r} (parent_id={parent_id})")
             raise
-        return created.id
+        return moved.id
 
     def publish_page(
         self,
@@ -200,12 +190,12 @@ class ConfluenceClient:
         logger.info(f"Публикация страницы {title} (space={space})")
 
         existing = self.find_page(title, space=space, expand=EXPAND_VERSION_AND_ANCESTORS)
+        if not existing:
+            return self.create_page(space, parent_id, title, body_html)
         try:
-            if existing:
-                if not parent_id or existing.is_descendant_of(parent_id):
-                    return self._update_page(existing, parent_id, title, body_html)
-                return self._resolve_title_conflict(existing, parent_id, title, body_html)
-            return self._create_page(space, parent_id, title, body_html)
+            if not parent_id or existing.is_descendant_of(parent_id):
+                return self._update_page(existing, parent_id, title, body_html)
+            return self._resolve_title_conflict(existing, parent_id, title, body_html)
         except ConfluenceError:
             logger.error(f"Ошибка при публикации страницы {title!r} (space={space})")
             raise
@@ -293,7 +283,7 @@ class ConfluenceClient:
         )
         return self._update_page(existing_elsewhere, parent_id, title, body_html)
 
-    def _create_page(
+    def create_page(
         self,
         space: str,
         parent_id: str | None,
@@ -322,7 +312,11 @@ class ConfluenceClient:
             parent_id=parent_id,
             space=space,
         )
-        data = self._transport.create_content(payload, title)
+        try:
+            data = self._transport.create_content(payload, title)
+        except ConfluenceError:
+            logger.error(f"Ошибка при создании страницы {title!r} (parent_id={parent_id})")
+            raise
 
         page_id = str(data.get("id", ""))
         logger.info(f"Создана страница {title} (ID: {page_id})")

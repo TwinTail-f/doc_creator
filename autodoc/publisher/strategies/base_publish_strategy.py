@@ -10,9 +10,9 @@ from jinja2 import TemplateError, TemplateNotFound
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 
-from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.clients.models.page_result import PageResult
-from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
+from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
 from autodoc.common.logger import logger
@@ -31,8 +31,8 @@ class BasePublishStrategy(ABC):
 
     def __init__(
         self,
-        confluence_client: ConfluenceClientProtocol,
-        document_builder: DocumentBuilderProtocol,
+        confluence_client: ConfluenceClient,
+        document_builder: DocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
     ) -> None:
@@ -40,8 +40,8 @@ class BasePublishStrategy(ABC):
         Инициализирует общие зависимости всех стратегий.
 
         Args:
-            confluence_client: Реализация ``ConfluenceClientProtocol`` (обычно ``ConfluenceClient``).
-            document_builder: Реализация ``DocumentBuilderProtocol`` (обычно ``DocumentBuilder``).
+            confluence_client: Клиент Confluence, используемый для чтения и публикации страниц.
+            document_builder: Строитель документов, используемый для рендеринга Jinja2-шаблонов.
             parsed_data: Данные парсера (ParsedResult).
             space: Ключ Space в Confluence.
 
@@ -77,14 +77,19 @@ class BasePublishStrategy(ABC):
         Raises:
             ConfluenceError: При сбое HTTP-запроса к Confluence.
             TemplateError: При ошибке рендеринга шаблона.
+            TemplateNotFound: Если шаблон не найден.
         """
-        html_body = self._minify_html(self._builder.build(template_name, view_model))
-        return self._client.publish_page(
-            space=self._space,
-            parent_id=parent_id,
-            title=page_title,
-            body_html=html_body,
-        )
+        try:
+            html_body = self._minify_html(self._builder.build(template_name, view_model))
+            return self._client.publish_page(
+                space=self._space,
+                parent_id=parent_id,
+                title=page_title,
+                body_html=html_body,
+            )
+        except (ConfluenceError, TemplateError, TemplateNotFound) as e:
+            logger.error(f"Ошибка рендеринга/публикации страницы {page_title!r}: {e}")
+            raise
 
     def _publish_single_page(
         self,

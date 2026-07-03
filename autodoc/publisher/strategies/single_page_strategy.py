@@ -7,10 +7,10 @@ from typing import Any
 
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
+from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
@@ -27,8 +27,8 @@ class SinglePagePublishStrategy(BasePublishStrategy):
     def __init__(
         self,
         *,
-        confluence_client: ConfluenceClientProtocol,
-        document_builder: DocumentBuilderProtocol,
+        confluence_client: ConfluenceClient,
+        document_builder: DocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
         page_title: str,
@@ -43,8 +43,8 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         Инициализирует общие атрибуты стратегий публикации одной страницы.
 
         Args:
-            confluence_client: Реализация ``ConfluenceClientProtocol``.
-            document_builder: Реализация ``DocumentBuilderProtocol``.
+            confluence_client: Клиент Confluence, используемый для чтения и публикации страниц.
+            document_builder: Строитель документов, используемый для рендеринга Jinja2-шаблонов.
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
             page_title: Заголовок публикуемой страницы Confluence.

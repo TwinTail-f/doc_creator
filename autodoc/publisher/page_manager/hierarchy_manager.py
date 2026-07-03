@@ -1,7 +1,8 @@
 """Менеджер иерархии страниц Confluence."""
 
 from autodoc.common.logger import logger
-from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.exceptions import ConfluenceError
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
 _CHILDREN_MACRO_ID: str = "8cb4ae85-0212-4b3d-a15f-77899af1f1d7"
 
@@ -36,17 +37,19 @@ class PageHierarchyManager:
     Промежуточные страницы создаются автоматически при первом обращении.
     Если промежуточная страница уже существует, но под другим родителем,
     поведение определяется ``title_conflict_policy`` конфигурации Confluence
-    (см. ``ConfluenceClient.ensure_page``).
+    (см. ``ConfluenceClient.resolve_existing_page_id`` и
+    ``ConfluenceClient.create_page``).
     """
 
-    def __init__(self, confluence_client: ConfluenceClientProtocol) -> None:
+    def __init__(self, confluence_client: ConfluenceClient) -> None:
         """
         Создаёт менеджер иерархии с переданным клиентом Confluence.
 
         Args:
-            confluence_client: Реализация ``ConfluenceClientProtocol``.
+            confluence_client: Клиент Confluence, используемый для чтения
+                               и публикации страниц.
         """
-        self._client: ConfluenceClientProtocol = confluence_client
+        self._client: ConfluenceClient = confluence_client
         logger.debug("Инициализирован")
 
     def ensure_hierarchy_exists(
@@ -77,7 +80,7 @@ class PageHierarchyManager:
         """
         logger.debug(f"Иерархия для {component_name}@{release_version}")
 
-        comp_page_id = self._client.ensure_page(
+        comp_page_id = self._get_or_create_page_id(
             space=space,
             parent_id=root_parent_id,
             title=component_name,
@@ -85,7 +88,7 @@ class PageHierarchyManager:
         )
 
         version_title = f"{component_name} {release_version}"
-        version_page_id = self._client.ensure_page(
+        version_page_id = self._get_or_create_page_id(
             space=space,
             parent_id=comp_page_id,
             title=version_title,
@@ -93,3 +96,37 @@ class PageHierarchyManager:
         )
 
         return version_page_id
+
+    def _get_or_create_page_id(
+        self, space: str, parent_id: str, title: str, body_html: str
+    ) -> str:
+        """
+        Возвращает ID страницы с заданным заголовком, создавая её при отсутствии.
+
+        Args:
+            space: Ключ Space.
+            parent_id: Родитель, под которым должна находиться страница.
+            title: Заголовок страницы.
+            body_html: Тело страницы, используемое только при создании.
+
+        Returns:
+            ID существующей (на месте или перенесённой) либо только что
+            созданной страницы.
+
+        Raises:
+            ConfluenceError: Если поиск, перенос или создание страницы
+                              завершились ошибкой.
+        """
+        try:
+            page_id = self._client.resolve_existing_page_id(
+                space=space, parent_id=parent_id, title=title
+            )
+            if page_id is not None:
+                return page_id
+            result = self._client.create_page(
+                space=space, parent_id=parent_id, title=title, body_html=body_html
+            )
+            return result.id
+        except ConfluenceError:
+            logger.error(f"Не удалось обеспечить существование страницы {title!r} (parent_id={parent_id})")
+            raise

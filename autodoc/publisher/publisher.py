@@ -7,9 +7,7 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
-from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
 from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
-from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies import passports_strategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
@@ -45,8 +43,8 @@ class DocumentPublisher:
                       По умолчанию ``Path('data')``.
         """
         self._config: ConfluenceConfigSchema = confluence_config
-        self._client: ConfluenceClientProtocol = ConfluenceClient(confluence_config)
-        self._builder: DocumentBuilderProtocol = DocumentBuilder(rendering_dir)
+        self._client: ConfluenceClient = ConfluenceClient(confluence_config)
+        self._builder: DocumentBuilder = DocumentBuilder(rendering_dir)
         self._page_resolver: RootPageResolver = RootPageResolver(self._client, confluence_config)
         self._data_dir: Path = data_dir or Path("data")
         logger.info("Инициализирован")

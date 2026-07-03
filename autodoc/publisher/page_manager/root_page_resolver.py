@@ -2,7 +2,7 @@
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError
-from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
 
 class RootPageResolver:
@@ -16,16 +16,16 @@ class RootPageResolver:
 
     def __init__(
         self,
-        confluence_client: ConfluenceClientProtocol,
+        confluence_client: ConfluenceClient,
         confluence_config: ConfluenceConfigSchema,
     ) -> None:
         """
         Args:
-            confluence_client: Реализация ``ConfluenceClientProtocol`` для поиска страниц.
+            confluence_client: Клиент Confluence, используемый для поиска страниц.
             confluence_config: Валидированная конфигурация Confluence с запасными
                                значениями ``*_name``/``*_id``.
         """
-        self._client: ConfluenceClientProtocol = confluence_client
+        self._client: ConfluenceClient = confluence_client
         self._config: ConfluenceConfigSchema = confluence_config
 
     def resolve_page_id(

@@ -11,9 +11,9 @@ from autodoc.common.logger import logger
 from autodoc.common.parallel_executor import ParallelExecutor
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.clients.confluence_client_protocol import ConfluenceClientProtocol
+from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
-from autodoc.publisher.rendering.document_builder_protocol import DocumentBuilderProtocol
+from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.legacy_content.legacy_service import extract_for_platform
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
@@ -52,8 +52,8 @@ class PassportsStrategy(BasePublishStrategy):
 
     def __init__(
         self,
-        confluence_client: ConfluenceClientProtocol,
-        document_builder: DocumentBuilderProtocol,
+        confluence_client: ConfluenceClient,
+        document_builder: DocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
         root_page_id: str,
