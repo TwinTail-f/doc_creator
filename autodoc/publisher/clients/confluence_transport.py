@@ -131,9 +131,30 @@ class ConfluenceTransport:
             response.raise_for_status()
             return response
         except requests.exceptions.HTTPError as e:
-            raise ConfluenceError(f"HTTP-ошибка при {action}: {e}") from e
+            detail = self._extract_error_detail(e.response)
+            suffix = f" — {detail}" if detail else ""
+            raise ConfluenceError(f"HTTP-ошибка при {action}: {e}{suffix}") from e
         except requests.exceptions.RequestException as e:
             raise ConfluenceError(f"Сетевая ошибка при {action}: {e}") from e
+
+    @staticmethod
+    def _extract_error_detail(response: requests.Response | None) -> str:
+        """
+        Извлекает человекочитаемое сообщение об ошибке из тела ответа Confluence.
+
+        Args:
+            response: Ответ сервера, либо ``None``, если ответа не было.
+
+        Returns:
+            Текст сообщения из поля ``message`` JSON-ответа, либо пустая строка,
+            если тело отсутствует, не JSON, или поле ``message`` не найдено.
+        """
+        if response is None:
+            return ""
+        try:
+            return str(response.json().get("message", ""))
+        except (ValueError, AttributeError):
+            return ""
 
     @staticmethod
     def _create_session(config: ConfluenceConfigSchema) -> RetryableSession:

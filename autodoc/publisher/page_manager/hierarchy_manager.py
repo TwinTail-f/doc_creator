@@ -34,6 +34,9 @@ class PageHierarchyManager:
     Обеспечивает существование цепочки страниц:
     ``Корень → Компонент → Версия → Документация``.
     Промежуточные страницы создаются автоматически при первом обращении.
+    Если промежуточная страница уже существует, но под другим родителем,
+    поведение определяется ``title_conflict_policy`` конфигурации Confluence
+    (см. ``ConfluenceClient.ensure_page``).
     """
 
     def __init__(self, confluence_client: ConfluenceClientProtocol) -> None:

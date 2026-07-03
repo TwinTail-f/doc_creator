@@ -1,6 +1,6 @@
 """Клиент Confluence REST API v1."""
 
-from typing import Any
+from typing import Any, Literal
 
 from autodoc.publisher.clients.confluence_transport import ConfluenceTransport
 from autodoc.publisher.clients.confluence_client_protocol import (
@@ -9,6 +9,7 @@ from autodoc.publisher.clients.confluence_client_protocol import (
     EXPAND_BODY_AND_ANCESTORS,
     EXPAND_VERSION,
     EXPAND_VERSION_AND_ANCESTORS,
+    EXPAND_VERSION_BODY_ANCESTORS,
 )
 from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
@@ -33,8 +34,9 @@ class ConfluenceClient:
             config: Валидированная конфигурация с URL, токеном и параметрами SSL.
         """
         self._space: str = config.space
+        self._title_conflict_policy: Literal["error", "move"] = config.title_conflict_policy
         self._transport: ConfluenceTransport = ConfluenceTransport(config)
-        logger.debug(f"Инициализирован (space={self._space})")
+        logger.debug(f"Инициализирован (space={self._space}, title_conflict_policy={self._title_conflict_policy})")
 
     def find_page(
         self,
@@ -132,23 +134,32 @@ class ConfluenceClient:
         """
         Гарантирует наличие страницы с заданным заголовком под указанным родителем.
 
-        Не изменяет существующую страницу — ни тело, ни версию.
+        Если страница уже существует на месте — не изменяется (ни тело, ни версия).
+        Если страница с тем же заголовком найдена под другим родителем — поведение
+        определяется ``title_conflict_policy`` конфигурации: при ``'error'`` операция
+        прерывается исключением, при ``'move'`` — страница переносится под ожидаемого
+        родителя с сохранением её текущего содержимого.
 
         Args:
             space:     Ключ Space.
             parent_id: ID родительской страницы.
             title:     Заголовок страницы.
-            body_html: Тело при создании. Если пустое — вставляется заглушка.
+            body_html: Тело при создании новой страницы. Если пустое — вставляется
+                       заглушка. Не используется при переносе существующей страницы.
 
         Returns:
-            ID страницы — существующей или только что созданной.
+            ID страницы — существующей (на месте или перенесённой) либо только что созданной.
 
         Raises:
-            ConfluenceError: Если создание страницы не удалось.
+            ConfluenceError: Если создание страницы не удалось, либо обнаружен
+                              конфликт заголовков при ``title_conflict_policy == "error"``.
         """
-        existing = self._find_page_in_subtree(title, space, parent_id)
+        existing = self.find_page(title, space=space, expand=EXPAND_VERSION_AND_ANCESTORS)
         if existing:
-            return existing.id
+            if not parent_id or existing.is_descendant_of(parent_id):
+                return existing.id
+            moved = self._resolve_title_conflict(existing, parent_id, title, body_html=None)
+            return moved.id
 
         placeholder = body_html or f"<p>Автоматически созданная страница: {title}</p>"
         try:
@@ -168,6 +179,11 @@ class ConfluenceClient:
         """
         Публикует страницу: создаёт новую или обновляет существующую новой версией.
 
+        Если страница с тем же заголовком найдена под другим родителем — поведение
+        определяется ``title_conflict_policy`` конфигурации: при ``'error'`` операция
+        прерывается исключением, при ``'move'`` — страница переносится под ожидаемого
+        родителя и публикуется с переданным ``body_html``.
+
         Args:
             space:     Ключ Space.
             parent_id: ID родительской страницы или ``None`` для страницы без родителя.
@@ -178,16 +194,17 @@ class ConfluenceClient:
             Результат операции в виде ``PageResult``.
 
         Raises:
-            ConfluenceError: Если создание или обновление не удалось.
+            ConfluenceError: Если создание или обновление не удалось, либо обнаружен
+                              конфликт заголовков при ``title_conflict_policy == "error"``.
         """
         logger.info(f"Публикация страницы {title} (space={space})")
 
-        existing = self._find_page_in_subtree(
-            title, space, parent_id, expand=EXPAND_VERSION_AND_ANCESTORS
-        )
+        existing = self.find_page(title, space=space, expand=EXPAND_VERSION_AND_ANCESTORS)
         try:
             if existing:
-                return self._update_page(existing, parent_id, title, body_html)
+                if not parent_id or existing.is_descendant_of(parent_id):
+                    return self._update_page(existing, parent_id, title, body_html)
+                return self._resolve_title_conflict(existing, parent_id, title, body_html)
             return self._create_page(space, parent_id, title, body_html)
         except ConfluenceError:
             logger.error(f"Ошибка при публикации страницы {title!r} (space={space})")
@@ -204,6 +221,9 @@ class ConfluenceClient:
         Ищет страницу по заголовку и проверяет принадлежность дереву ``parent_id``.
 
         Если ``parent_id`` не задан — проверка принадлежности дереву пропускается.
+
+        Используется только для чтения тела страницы (``get_page_body``): не
+        создаёт и не изменяет страницы, при конфликте просто возвращает ``None``.
 
         Args:
             title: Заголовок страницы.
@@ -222,10 +242,56 @@ class ConfluenceClient:
         if existing and parent_id and not existing.is_descendant_of(parent_id):
             logger.warning(
                 f"Страница {title!r} найдена в другом дереве "
-                f"(ожидаемый parent_id={parent_id}), будет создана новая."
+                f"(ожидаемый parent_id={parent_id}), тело страницы не будет возвращено."
             )
             return None
         return existing
+
+    def _resolve_title_conflict(
+        self,
+        existing_elsewhere: ConfluencePage,
+        parent_id: str,
+        title: str,
+        body_html: str | None,
+    ) -> PageResult:
+        """
+        Разрешает конфликт заголовка согласно ``title_conflict_policy``.
+
+        Вызывается, когда страница с заданным заголовком найдена, но не под
+        ожидаемым родителем. Создание новой страницы с тем же заголовком
+        невозможно — Confluence требует уникальности заголовков в пределах Space.
+
+        Args:
+            existing_elsewhere: Найденная страница с совпадающим заголовком в другом поддереве.
+            parent_id: Ожидаемый родитель.
+            title: Заголовок страницы.
+            body_html: Новое тело для переноса, либо ``None`` — тогда сохраняется
+                       текущее тело найденной страницы.
+
+        Returns:
+            Результат переноса страницы под ожидаемого родителя.
+
+        Raises:
+            ConfluenceError: Если ``title_conflict_policy == "error"``, либо перенос не удался.
+        """
+        if self._title_conflict_policy == "error":
+            parent_hint = existing_elsewhere.ancestor_ids[-1] if existing_elsewhere.ancestor_ids else "?"
+            raise ConfluenceError(
+                f"Страница {title!r} уже существует в Space {self._space!r} "
+                f"(ID={existing_elsewhere.id}, текущий родитель={parent_hint}), "
+                f"но не под ожидаемым parent_id={parent_id!r}. Перенесите страницу "
+                "вручную либо включите title_conflict_policy='move' в конфигурации Confluence."
+            )
+
+        if body_html is None:
+            existing_elsewhere = self.get_page(existing_elsewhere.id, expand=EXPAND_VERSION_BODY_ANCESTORS)
+            body_html = existing_elsewhere.body_html
+
+        logger.warning(
+            f"Перенос страницы {title!r} (ID={existing_elsewhere.id}) под parent_id={parent_id!r} "
+            "(title_conflict_policy='move')"
+        )
+        return self._update_page(existing_elsewhere, parent_id, title, body_html)
 
     def _create_page(
         self,

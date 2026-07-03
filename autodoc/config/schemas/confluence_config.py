@@ -2,7 +2,7 @@
 Схема конфигурации Confluence.
 """
 
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -101,6 +101,15 @@ class ConfluenceConfigSchema(BaseModel):
         le=60.0,
         description=(
             "Задержка в секундах между пакетами при публикации паспортов. " "0 — без задержки."
+        ),
+    )
+    title_conflict_policy: Literal["error", "move"] = Field(
+        default="error",
+        description=(
+            "Поведение при обнаружении страницы с совпадающим заголовком под другим "
+            "родителем: 'error' — прервать операцию с исключением (по умолчанию); "
+            "'move' — перенести существующую страницу под ожидаемого родителя, "
+            "сохранив её текущее содержимое."
         ),
     )
     target_release_version: str = Field(

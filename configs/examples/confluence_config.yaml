@@ -32,4 +32,9 @@ confluence_request_timeout: 30
 publish_batch_size: 10
 publish_batch_delay_seconds: 0.5
 
+# Поведение при обнаружении страницы с совпадающим заголовком под другим родителем:
+# 'error' — прервать операцию с исключением (по умолчанию);
+# 'move' — перенести существующую страницу под ожидаемого родителя, сохранив содержимое.
+title_conflict_policy: "error"
+
 target_release_version: "Platform 2.2"

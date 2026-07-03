@@ -12,6 +12,7 @@ EXPAND_BODY: str = "body.storage"
 EXPAND_ANCESTORS: str = "ancestors"
 EXPAND_VERSION_AND_ANCESTORS: str = f"{EXPAND_VERSION},{EXPAND_ANCESTORS}"
 EXPAND_BODY_AND_ANCESTORS: str = f"{EXPAND_BODY},{EXPAND_ANCESTORS}"
+EXPAND_VERSION_BODY_ANCESTORS: str = f"{EXPAND_VERSION},{EXPAND_BODY},{EXPAND_ANCESTORS}"
 
 class ConfluenceClientProtocol(Protocol):
     """Интерфейс Confluence-клиента для стратегий паблишера."""
@@ -96,7 +97,8 @@ class ConfluenceClientProtocol(Protocol):
             ID страницы — существующей или только что созданной.
 
         Raises:
-            ConfluenceError: Если создание страницы не удалось.
+            ConfluenceError: Если создание страницы не удалось, либо обнаружен
+                              конфликт заголовков при ``title_conflict_policy == "error"``.
         """
 
     def publish_page(
@@ -120,5 +122,7 @@ class ConfluenceClientProtocol(Protocol):
             Результат операции в виде ``PageResult``.
 
         Raises:
-            ConfluenceError: Если создание или обновление не удалось.
+            ConfluenceError: Если создание или обновление не удалось, либо
+                              обнаружен конфликт заголовков при
+                              ``title_conflict_policy == "error"``.
         """
