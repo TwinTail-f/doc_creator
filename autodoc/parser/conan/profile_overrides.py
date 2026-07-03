@@ -148,7 +148,7 @@ class ProfileSettingsOverrides:
         # защищает от обоих случаев.
         if not isinstance(raw, dict):
             logger.warning(
-                f"profile_settings_overrides ({source}): ожидался объект, "
+                f"profile_settings_overrides ({source}): ожидался dict, "
                 f"получен {type(raw).__name__}. Переопределения не будут применены."
             )
             return cls()

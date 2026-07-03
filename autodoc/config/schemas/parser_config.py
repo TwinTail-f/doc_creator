@@ -156,17 +156,8 @@ class ParserConfigSchema(BaseModel):
             raise ValueError("tfs_token не может быть пустой строкой")
         return v
 
-    @field_validator("tfs_collection_url")
+    @field_validator("tfs_collection_url", "artifactory_components_conan2_url", "conan_config_url")
     @classmethod
-    def normalize_tfs_collection_url(cls, v: str) -> str:
+    def normalize_url(cls, v: str) -> str:
+        """Убирает пробелы по краям и завершающий слэш у базовых URL."""
         return v.strip().rstrip("/")
-
-    @field_validator("artifactory_components_conan2_url")
-    @classmethod
-    def normalize_artifactory_url(cls, v: str) -> str:
-        return v.rstrip("/")
-
-    @field_validator("conan_config_url")
-    @classmethod
-    def normalize_conan_config_url(cls, v: str) -> str:
-        return v.strip()

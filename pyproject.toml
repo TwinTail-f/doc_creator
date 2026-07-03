@@ -14,7 +14,11 @@ dependencies = [
     "rich>=13.0",
     "jinja2>=3.1",
     "PyYAML>=6.0",
-    "conan==2.29.1",
+    # Используем внутренние модули conan.api.model / conan.errors (не часть
+    # официального стабильного публичного API), поэтому фиксируем мажорную
+    # версию, чтобы не словить breaking changes при выходе Conan 3.x.
+    # Патч/минорные обновления в рамках 2.x допускаем.
+    "conan>=2.29.1,<3.0",
 ]
 
 [project.optional-dependencies]
