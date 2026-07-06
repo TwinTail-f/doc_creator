@@ -47,7 +47,12 @@ class DocumentPublisher:
         self._builder: DocumentBuilder = DocumentBuilder(rendering_dir)
         self._page_resolver: RootPageResolver = RootPageResolver(self._client, confluence_config)
         self._data_dir: Path = data_dir or Path("data")
-        logger.info("Инициализирован")
+        logger.info(
+            "DocumentPublisher инициализирован: space=%s, confluence_url=%s, data_dir=%s",
+            confluence_config.space,
+            confluence_config.url,
+            self._data_dir,
+        )
 
     def publish(
         self,
