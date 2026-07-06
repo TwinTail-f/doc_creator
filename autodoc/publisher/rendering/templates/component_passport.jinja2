@@ -196,8 +196,7 @@
                                                                     <span class="autodoc-var-title">Вариант {{ var.options_ref }}</span>
                                                                     {%- if var.conan_options -%}
                                                                         {%- for k, v in var.conan_options.items() -%}
-                                                                            {%- set vc = 'autodoc-badge-t' if (v==True or v=='True') else ('autodoc-badge-f' if (v==False or v=='False') else 'autodoc-badge-n') -%}
-                                                                            <span class="autodoc-badge"><span class="autodoc-badge-k">{{ k }}</span><span class="{{ vc }}">{{ v }}</span></span>
+                                                                            <span class="autodoc-badge"><span class="autodoc-badge-k">{{ k }}</span><span class="{{ var.option_badges.get(k, 'autodoc-badge-def') }}">{{ v }}</span></span>
                                                                         {%- endfor -%}
                                                                     {%- else -%}
                                                                         <span class="autodoc-badge"><span class="autodoc-badge-k">options</span><span class="autodoc-badge-def">default</span></span>

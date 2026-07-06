@@ -85,6 +85,7 @@ class PassportConverter(BaseDataConverter):
         pd_map: dict[str, Any],
         os_map: dict[str, dict],
         bos_map: dict[str, str],
+        defaults_map: dict[str, Any],
     ) -> list[dict[str, Any]]:
         """
         Строит список обогащённых записей profile_builds для view-model паспорта.
@@ -99,6 +100,8 @@ class PassportConverter(BaseDataConverter):
             pd_map: Словарь ``{profile_name: ProfileDefinition}``.
             os_map: Словарь ``{options_ref_id: options_dict}`` (resolved опции).
             bos_map: Словарь ``{options_ref_id: install_options_str}`` (из таблицы конфигураций).
+            defaults_map: Словарь ``{option_name: default_value}`` компонента,
+                          для подсветки в UI отличий от дефолта.
 
         Returns:
             Список dict-записей, совместимых с шаблоном ``component_passport.jinja2``.
@@ -119,6 +122,7 @@ class PassportConverter(BaseDataConverter):
                             _VariantOpts(
                                 conan_options=os_map.get(v.options_ref, {}),
                                 install_options_override=bos_map.get(v.options_ref, None),
+                                default_options=defaults_map,
                             ),
                         )
                         for v in (pb.variants or [])
@@ -165,8 +169,12 @@ class PassportConverter(BaseDataConverter):
                 bos.id: self._build_install_options_from_string(bos.options)
                 for bos in target_rel.build_option_sets
             }
+            # {имя_опции: дефолт} — источник истины для подсветки отличий в UI паспорта.
+            defaults_map: dict[str, Any] = {
+                o.name: o.default_value for o in target_rel.default_options
+            }
             enriched_pbs = self._build_enriched_profile_builds(
-                target_rel, target_comp.name, pd_map, os_map, bos_map
+                target_rel, target_comp.name, pd_map, os_map, bos_map, defaults_map
             )
             git_branch_version: str = f"{_TFS_BRANCH_PREFIX}{target_rel.version}"
 

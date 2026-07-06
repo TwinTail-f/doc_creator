@@ -22,6 +22,11 @@ class ConanVariantView:
     build_date: str
     options_ref: str = ""
     conan_options: dict[str, Any] = field(default_factory=dict)
+    # CSS-класс бейджа для каждой опции из conan_options, вычисленный по признаку
+    # отличия от дефолтного значения компонента (не по самому значению).
+    # 'autodoc-badge-def' — совпадает с дефолтом (или дефолт неизвестен),
+    # 'autodoc-badge-t'/-f/-n' — отличается и приводится к True/False/иному.
+    option_badges: dict[str, str] = field(default_factory=dict)
     # Предформатированная строка вида '-o pkg:opt=val -o dep:opt=val'
     # для подстановки напрямую в команду 'conan install'.
     install_options: str = ""
