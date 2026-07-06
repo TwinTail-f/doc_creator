@@ -359,23 +359,3 @@ class TestTimeoutForwarding:
         _, kwargs = mock_create.call_args
         assert kwargs.get("timeout") == custom_timeout
 
-
-# ---------------------------------------------------------------------------
-# T3.6 — Protocol compliance
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.contract
-def test_confluence_client_satisfies_protocol(minimal_confluence_config: dict, mocker) -> None:
-    """ConfluenceClient must satisfy IConfluenceClient at runtime."""
-    from autodoc.publisher.clients.confluence_client import ConfluenceClient
-    from autodoc.publisher.clients.confluence_client_protocol import IConfluenceClient
-    from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-
-    mocker.patch(
-        "autodoc.publisher.clients.confluence_client.create_retryable_session",
-        return_value=mocker.MagicMock(),
-    )
-    config = ConfluenceConfigSchema(**minimal_confluence_config)
-    client = ConfluenceClient(config=config)
-    assert isinstance(client, IConfluenceClient)

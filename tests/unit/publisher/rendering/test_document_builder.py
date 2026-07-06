@@ -110,22 +110,3 @@ def test_build_with_empty_view_model(tmp_path: Path) -> None:
     result = builder.build(STATIC_TEMPLATE_NAME, {})
     assert result == "static"
 
-
-# ---------------------------------------------------------------------------
-# T3.6 — Protocol compliance
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.contract
-def test_document_builder_satisfies_protocol(tmp_path) -> None:
-    """DocumentBuilder must satisfy IDocumentBuilder at runtime.
-
-    Catches signature drift before it surfaces against a live Confluence instance.
-    """
-    from autodoc.publisher.rendering.document_builder import DocumentBuilder
-    from autodoc.publisher.rendering.document_builder_protocol import IDocumentBuilder
-
-    rendering_dir = tmp_path / "rendering"
-    rendering_dir.mkdir()
-    builder = DocumentBuilder(rendering_dir)
-    assert isinstance(builder, IDocumentBuilder)

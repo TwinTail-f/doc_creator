@@ -1,7 +1,12 @@
 """
 Tests for:
-- autodoc.publisher.strategies.base.BasePublishStrategy (registry, _minify_html, _publish_single_page)
+- autodoc.publisher.strategies.base.BasePublishStrategy (_minify_html, _publish_single_page)
 - autodoc.publisher.strategies.base.PublishReport
+
+NOTE: registry-related tests (BasePublishStrategy.create(), .available_strategies(),
+and the self-registering `strategy_type=` __init_subclass__ kwarg) were removed —
+the codebase has since moved to an explicit dict-based registry
+(autodoc.publisher.strategies.registry.STRATEGIES / create_strategy()) instead.
 """
 
 from __future__ import annotations
@@ -17,96 +22,22 @@ from autodoc.publisher.strategies.models.publish_report import PublishReport
 # Constants
 # ---------------------------------------------------------------------------
 
-_STUB_TYPE: str = "__test_stub__"
 _PAGE_TITLE: str = "Test Page"
 _TEMPLATE_NAME: str = "test_template.jinja2"
 _PARENT_ID: str = "parent-001"
 _PAGE_ID: str = "page-001"
 
 # ---------------------------------------------------------------------------
-# Module-level stub strategy (must be at module level for registry population)
+# Module-level stub strategy
 # ---------------------------------------------------------------------------
 
 
-class _StubStrategy(BasePublishStrategy, strategy_type=_STUB_TYPE):
-    """Minimal concrete strategy used to test registry and _publish_single_page."""
+class _StubStrategy(BasePublishStrategy):
+    """Minimal concrete strategy used to test _publish_single_page."""
 
     def execute(self) -> PublishReport:
         """Executes a no-op strategy returning a success report."""
         return PublishReport(success=True, pages_published=1)
-
-
-# ---------------------------------------------------------------------------
-# Registry tests
-# ---------------------------------------------------------------------------
-
-
-class TestRegistry:
-    """Tests for BasePublishStrategy registry and factory."""
-
-    @pytest.mark.business_logic
-    def test_create_raises_on_unknown_strategy_type(self) -> None:
-        """create() with an unknown key raises ValueError."""
-        with pytest.raises(ValueError, match="__nonexistent__"):
-            BasePublishStrategy.create("__nonexistent__")
-
-    @pytest.mark.contract
-    def test_create_returns_instance_of_registered_class(
-        self,
-        publisher_confluence_client: Any,
-        publisher_document_builder: Any,
-        publisher_parsed_result: Any,
-    ) -> None:
-        """create() with a registered key returns the correct subclass instance."""
-        instance = BasePublishStrategy.create(
-            _STUB_TYPE,
-            confluence_client=publisher_confluence_client,
-            document_builder=publisher_document_builder,
-            parsed_data=publisher_parsed_result,
-            space="TEST",
-        )
-        assert isinstance(instance, _StubStrategy)
-
-    @pytest.mark.infrastructure
-    def test_available_strategies_returns_sorted_list(self) -> None:
-        """available_strategies() contains the stub key and is sorted."""
-        strategies = BasePublishStrategy.available_strategies()
-        assert _STUB_TYPE in strategies
-        assert strategies == sorted(strategies)
-
-    @pytest.mark.infrastructure
-    def test_create_calls_make_converter_if_defined(
-        self,
-        publisher_confluence_client: Any,
-        publisher_document_builder: Any,
-        publisher_parsed_result: Any,
-        mocker: Any,
-    ) -> None:
-        """If the strategy declares _make_converter, create() calls it."""
-        sentinel = object()
-
-        class _ConverterStrategy(BasePublishStrategy, strategy_type="__test_converter__"):
-            """Strategy with _make_converter for testing create() factory logic."""
-
-            def __init__(self, converter: Any = None, **kwargs: Any) -> None:
-                super().__init__(**kwargs)
-                self._converter = converter
-
-            @classmethod
-            def _make_converter(cls, kwargs: dict) -> Any:
-                return sentinel
-
-            def execute(self) -> PublishReport:
-                return PublishReport(success=True, pages_published=0)
-
-        instance = BasePublishStrategy.create(
-            "__test_converter__",
-            confluence_client=publisher_confluence_client,
-            document_builder=publisher_document_builder,
-            parsed_data=publisher_parsed_result,
-            space="TEST",
-        )
-        assert instance._converter is sentinel
 
 
 # ---------------------------------------------------------------------------
@@ -345,41 +276,3 @@ class TestPublishSinglePage:
         )
         assert report.success is False
 
-
-# ---------------------------------------------------------------------------
-# Part-3 BL additions: BL-BS-01
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_unknown_strategy_type_raises_descriptive_error() -> None:
-    """
-    BL-BS-01
-    Business Rule: BasePublishStrategy.create("nonexistent") raises an error
-    with an informative message, helping users quickly locate typos in the
-    strategy type argument.
-
-    Preconditions:
-        - Strategy type "nonexistent_strategy_type_bl_bs_01" is guaranteed to be absent
-          from the registry.
-
-    Steps:
-        1. Call BasePublishStrategy.create("nonexistent_strategy_type_bl_bs_01", ...).
-
-    Expected Result:
-        A ValueError or KeyError is raised.
-        The exception message is non-empty (contains diagnostic information).
-    """
-    with pytest.raises((ValueError, KeyError)) as exc_info:
-        BasePublishStrategy.create(
-            "nonexistent_strategy_type_bl_bs_01",
-            confluence_client=None,
-            document_builder=None,
-            parsed_data=None,
-            space="DEV",
-        )
-
-    error_message = str(exc_info.value)
-    assert (
-        len(error_message) > 0
-    ), "The error message must be non-empty — it should indicate the unknown strategy type"

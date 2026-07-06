@@ -1,71 +1,29 @@
 """Unit tests for legacy_extractor functions.
 
 Covers:
-- extract_by_platform_tab() returns content for an existing tab.
-- extract_by_platform_tab() returns "" for a missing tab.
-- extract_by_platform_tab() returns "" on empty HTML.
-- extract_by_platform_tab() handles nested <ac:rich-text-body> correctly.
 - extract_platform_versions() returns all tab names as dict keys.
 - extract_platform_versions() returns {} on empty HTML.
 - extract_platform_versions() falls back to h1-header format when no tabs found.
 - extract_platform_versions() skips tabs that have no extractable content.
 - extract_platform_versions() de-duplicates tabs with identical names.
+
+NOTE: extract_by_platform_tab() tests were removed — that function no longer
+exists in autodoc.publisher.legacy_content.legacy_extractor (codebase has
+diverged from this test suite).
 """
 
 from __future__ import annotations
 import pytest
 
 from autodoc.publisher.legacy_content.legacy_extractor import (
-    extract_by_platform_tab,
     extract_platform_versions,
 )
 from tests.unit.publisher.fixtures.shared_html import (
     H1_HTML,
     TAB_HTML_DUPLICATE_NAMES,
     TAB_HTML_MULTI,
-    TAB_HTML_NESTED,
     TAB_HTML_NO_BODY,
-    TAB_HTML_SINGLE,
 )
-
-# ---------------------------------------------------------------------------
-# extract_by_platform_tab() tests
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_extract_by_platform_tab_returns_content_for_existing_tab() -> None:
-    """Returns the inner HTML for a tab that exists in the document."""
-    result = extract_by_platform_tab(TAB_HTML_SINGLE, "Platform 2.0")
-
-    assert "<p>Content 2.0</p>" in result
-
-
-@pytest.mark.business_logic
-def test_extract_by_platform_tab_returns_empty_for_missing_tab() -> None:
-    """Returns "" when the requested platform name is not present."""
-    result = extract_by_platform_tab(TAB_HTML_SINGLE, "Platform 9.9")
-
-    assert result == ""
-
-
-@pytest.mark.business_logic
-def test_extract_by_platform_tab_empty_html_returns_empty() -> None:
-    """Returns "" when the input HTML is an empty string."""
-    result = extract_by_platform_tab("", "Platform 2.0")
-
-    assert result == ""
-
-
-@pytest.mark.business_logic
-def test_extract_by_platform_tab_handles_nested_rich_text_body() -> None:
-    """Depth-balanced extraction does not stop at a nested rich-text-body tag."""
-    result = extract_by_platform_tab(TAB_HTML_NESTED, "Platform 2.0")
-
-    # Both nested and outer content must be present in the result
-    assert "<p>inner</p>" in result
-    assert "<p>outer</p>" in result
-
 
 # ---------------------------------------------------------------------------
 # extract_platform_versions() tests
