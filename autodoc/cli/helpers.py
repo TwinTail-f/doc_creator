@@ -4,11 +4,12 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import click
+from pydantic import ValidationError as PydanticValidationError
 from rich.console import Console
 from rich.panel import Panel
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError
+from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError, ValidationError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
 from autodoc.publisher.strategies.models.publish_report import PublishReport
@@ -74,11 +75,27 @@ def load_parsed_data(base_dir: Path) -> ParsedResult:
 
     Raises:
         DocGeneratorError: Если файл ``parsed_data.json`` не найден.
+        ValidationError: Если файл пустой, содержит невалидный JSON или не
+            соответствует ожидаемой схеме ``ParsedResult``.
     """
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
         raise DocGeneratorError('Файл parsed_data.json не найден. Сначала запустите "parse".')
-    return ParsedResult.model_validate_json(data_file.read_text(encoding="utf-8"))
+
+    raw = data_file.read_text(encoding="utf-8")
+    if not raw.strip():
+        raise ValidationError(
+            f'Файл {data_file} пуст. Похоже, команда "parse" завершилась с ошибкой '
+            'или была прервана до сохранения результата. Запустите "parse" заново.'
+        )
+
+    try:
+        return ParsedResult.model_validate_json(raw)
+    except PydanticValidationError as e:
+        raise ValidationError(
+            f"Файл {data_file} повреждён или не соответствует ожидаемому формату "
+            f'(см. подробности ниже). Запустите "parse" заново.\n{e}'
+        ) from e
 
 
 def make_publisher(

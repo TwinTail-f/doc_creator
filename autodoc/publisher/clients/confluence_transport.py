@@ -3,7 +3,6 @@
 from typing import Any
 
 import requests
-import urllib3
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfluenceError
@@ -175,12 +174,10 @@ class ConfluenceTransport:
         )
         session.verify = config.verify_ssl
         if not config.verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             logger.warning(
                 "verify_ssl=False: проверка SSL-сертификата Confluence отключена. "
                 "Соединение уязвимо к MITM-атакам — используйте это только для "
-                "доверенной внутренней сети/тестового стенда. Предупреждения "
-                "urllib3.InsecureRequestWarning подавлены, чтобы не шуметь в логах "
+                "доверенной внутренней сети/тестового стенда. "
             )
         session.headers.update({"Content-Type": "application/json"})
         return session

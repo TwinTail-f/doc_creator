@@ -3,12 +3,17 @@ from pathlib import Path
 
 import click
 
+from autodoc.common.logger import LOGS_DIR_NAME, logger, start_session_file_log
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 from autodoc.cli.commands.parse import parse
 from autodoc.cli.commands.publish.all import publish
 from autodoc.cli.commands.config import config
 from autodoc.cli.commands.info import info
+from autodoc.cli.commands.logs import logs
+
+# Соответствие подкоманды верхнего уровня имени модуля для файла логов сессии.
+_MODULE_BY_SUBCOMMAND = {"parse": "parser", "publish": "publisher"}
 
 
 @click.group()
@@ -46,9 +51,15 @@ def cli(ctx: click.Context, base_dir: Path, configs_dir: Path | None, verbose: b
 
     ctx.obj = CliCtx(base, cfgs, verbose)
 
+    module_name = _MODULE_BY_SUBCOMMAND.get(ctx.invoked_subcommand)
+    if module_name is not None:
+        close_log = start_session_file_log(logger, module_name, base / LOGS_DIR_NAME)
+        ctx.call_on_close(close_log)
+
 
 # Регистрируем все команды и подгруппы
 cli.add_command(parse)
 cli.add_command(publish)
 cli.add_command(config)
 cli.add_command(info)
+cli.add_command(logs)
