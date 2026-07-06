@@ -100,7 +100,7 @@ class ConfigManager:
             Словарь, отображающий расширение формата (без ведущей точки) на
             отсортированный список имён файлов этого формата в ``configs_dir``.
         """
-        result: dict[str, list[str]] = {key: [] for key in set(self._EXT_TO_KEY.values())}
+        result: dict[str, list[str]] = {key: [] for key in self._EXT_TO_KEY.values()}
         if not self.configs_dir.is_dir():
             return result
         examples_path = self.configs_dir / self.EXAMPLES_SUBDIR
@@ -119,7 +119,7 @@ class ConfigManager:
             Словарь расширение → список имён файлов в ``configs_dir/examples/``.
             Если подпапка отсутствует — все списки пустые.
         """
-        result: dict[str, list[str]] = {key: [] for key in set(self._EXT_TO_KEY.values())}
+        result: dict[str, list[str]] = {key: [] for key in self._EXT_TO_KEY.values()}
         examples_dir = self.configs_dir / self.EXAMPLES_SUBDIR
         if not examples_dir.is_dir():
             return result
