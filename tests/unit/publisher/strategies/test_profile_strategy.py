@@ -14,10 +14,12 @@ from typing import Any
 
 import pytest
 
+from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
+from autodoc.publisher.strategies.registry import available_strategies
 from tests.unit.publisher.conftest import (
     FakeConfluenceClient,
     FakeDocumentBuilder,
@@ -162,13 +164,13 @@ class TestProfileCentricStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """If publish_page raises RuntimeError, report.success is False."""
+        """If publish_page raises ConfluenceError, report.success is False."""
         mocker.patch.object(PassportPageRegistry, "load", return_value={})
 
-        def raise_runtime(*args: Any, **kwargs: Any) -> None:
-            raise RuntimeError("timeout")
+        def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
+            raise ConfluenceError("timeout")
 
-        publisher_confluence_client.publish_page = raise_runtime
+        publisher_confluence_client.publish_page = raise_confluence_error
 
         strategy = make_profile_strategy(
             publisher_confluence_client,
@@ -191,7 +193,7 @@ class TestProfileCentricStrategyRegistry:
     @pytest.mark.business_logic
     def test_profile_centric_strategy_registered_as_profile_centric(self) -> None:
         """'profile_centric' is present in available_strategies()."""
-        assert "profile_centric" in BasePublishStrategy.available_strategies()
+        assert "profile_centric" in available_strategies()
 
 
 # ---------------------------------------------------------------------------
@@ -247,12 +249,12 @@ def test_registered_as_profile_centric_type() -> None:
         - BasePublishStrategy registry is populated at import time.
 
     Steps:
-        1. Call BasePublishStrategy.available_strategies().
+        1. Call available_strategies().
 
     Expected Result:
         'profile_centric' is present in the returned list of strategy types.
     """
-    available = BasePublishStrategy.available_strategies()
+    available = available_strategies()
     assert (
         "profile_centric" in available
     ), f"'profile_centric' must be in available_strategies, got: {available}"

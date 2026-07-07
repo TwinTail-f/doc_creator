@@ -236,7 +236,7 @@ class TestPassportsStrategyExecute:
         def transform_side_effect(*args: Any, **kwargs: Any) -> dict:
             call_count[0] += 1
             if call_count[0] == 1:
-                raise RuntimeError("simulated first failure")
+                raise ValueError("simulated first failure")
             return dict(_STUB_TRANSFORM_RESULT)
 
         mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
@@ -525,7 +525,7 @@ def test_failure_of_one_page_does_not_stop_others(
         - PassportConverter.transform raises on the first call and succeeds thereafter.
 
     Steps:
-        1. Make PassportConverter.transform raise RuntimeError on its first invocation.
+        1. Make PassportConverter.transform raise ValueError on its first invocation.
         2. Call execute().
 
     Expected Result:
@@ -543,7 +543,7 @@ def test_failure_of_one_page_does_not_stop_others(
     def transform_side_effect(*args: Any, **kwargs: Any) -> dict:
         call_count[0] += 1
         if call_count[0] == 1:
-            raise RuntimeError("Simulated failure on first passport page")
+            raise ValueError("Simulated failure on first passport page")
         return dict(_BL_PS_TRANSFORM_RESULT)
 
     mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
@@ -633,7 +633,7 @@ def test_report_pages_failed_count_equals_failed_pages(
 
     Preconditions:
         - PageHierarchyManager is stubbed.
-        - PassportConverter.transform always raises RuntimeError.
+        - PassportConverter.transform always raises ValueError.
 
     Steps:
         1. Call execute() with converter always failing.
@@ -650,7 +650,7 @@ def test_report_pages_failed_count_equals_failed_pages(
     mocker.patch.object(
         PassportConverter,
         "transform",
-        side_effect=RuntimeError("Always fails"),
+        side_effect=ValueError("Always fails"),
     )
 
     strategy = PassportsStrategy(

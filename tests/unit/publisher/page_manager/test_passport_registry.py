@@ -27,6 +27,10 @@ from typing import Any
 
 import pytest
 
+from autodoc.publisher.page_manager.passport_link_injector import (
+    inject_links,
+    inject_links_for_profiles,
+)
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 
 # ---------------------------------------------------------------------------
@@ -174,7 +178,7 @@ def test_inject_links_adds_passport_versions_to_component(tmp_path: Path) -> Non
     }
     passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
 
-    PassportPageRegistry.inject_links(view_model, passport_pages)
+    inject_links(view_model, passport_pages)
 
     assert view_model["components"][0]["passport_versions"]["1.0.0"]["page_id"] == PAGE_ID
 
@@ -192,7 +196,7 @@ def test_inject_links_skips_versions_not_in_releases(tmp_path: Path) -> None:
         }
     }
 
-    PassportPageRegistry.inject_links(view_model, passport_pages)
+    inject_links(view_model, passport_pages)
 
     passport_versions = view_model["components"][0]["passport_versions"]
     assert "1.0.0" in passport_versions
@@ -205,7 +209,7 @@ def test_inject_links_noop_if_no_components_key() -> None:
     view_model: dict[str, Any] = {"other_key": "value"}
     passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
 
-    PassportPageRegistry.inject_links(view_model, passport_pages)
+    inject_links(view_model, passport_pages)
 
     assert "components" not in view_model
 
@@ -217,7 +221,7 @@ def test_inject_links_noop_if_passport_pages_empty() -> None:
         "components": [{"name": "openssl", "releases": [{"version": "1.0.0"}]}]
     }
 
-    PassportPageRegistry.inject_links(view_model, {})
+    inject_links(view_model, {})
 
     assert "passport_versions" not in view_model["components"][0]
 
@@ -243,7 +247,7 @@ def test_inject_links_for_profiles_sets_passport_link() -> None:
     view_model = _make_profile_view_model("openssl", "1.0.0")
     passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
 
-    PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
+    inject_links_for_profiles(view_model, passport_pages)
 
     comp = view_model["profiles"][0]["channels"]["tech"][0]
     assert comp["passport_link"] == f"/spaces/{SPACE}/pages/{PAGE_ID}"
@@ -255,7 +259,7 @@ def test_inject_links_for_profiles_sets_none_if_comp_missing() -> None:
     view_model = _make_profile_view_model("unknown_lib", "1.0.0")
     passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
 
-    PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
+    inject_links_for_profiles(view_model, passport_pages)
 
     comp = view_model["profiles"][0]["channels"]["tech"][0]
     assert comp["passport_link"] is None
@@ -267,7 +271,7 @@ def test_inject_links_for_profiles_noop_if_no_profiles_key() -> None:
     view_model: dict[str, Any] = {"space": SPACE, "components": []}
     passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
 
-    PassportPageRegistry.inject_links_for_profiles(view_model, passport_pages)
+    inject_links_for_profiles(view_model, passport_pages)
 
     assert "profiles" not in view_model
 
@@ -278,7 +282,7 @@ def test_inject_links_for_profiles_noop_if_empty_passport_pages() -> None:
     view_model = _make_profile_view_model("openssl", "1.0.0")
     original_link = view_model["profiles"][0]["channels"]["tech"][0]["passport_link"]
 
-    PassportPageRegistry.inject_links_for_profiles(view_model, {})
+    inject_links_for_profiles(view_model, {})
 
     comp = view_model["profiles"][0]["channels"]["tech"][0]
     assert comp["passport_link"] == original_link

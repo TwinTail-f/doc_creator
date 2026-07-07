@@ -96,20 +96,20 @@ def test_passport_transform_returns_component_fields(
 def test_passport_transform_returns_release_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """result['release']['version'] matches the requested release version."""
+    """result['releases'][0]['version'] matches the requested release version."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
-    assert result["release"]["version"] == RELEASE_VERSION
+    assert result["releases"][0]["version"] == RELEASE_VERSION
 
 
 @pytest.mark.contract
 def test_passport_transform_returns_release_channel(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """result['release']['channel'] matches the release's channel."""
+    """result['releases'][0]['channel'] matches the release's channel."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
-    assert result["release"]["channel"] == CHANNEL_TECH
+    assert result["releases"][0]["channel"] == CHANNEL_TECH
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ def test_variant_options_linked_by_options_ref_id(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
 
-    profile_builds = view["release"]["profile_builds"]
+    profile_builds = view["releases"][0]["profile_builds"]
     assert len(profile_builds) == 1, "There should be one profile_build"
     variants = profile_builds[0]["variants"]
     assert len(variants) == 1, "There should be one variant"
@@ -195,7 +195,7 @@ def test_variant_with_unknown_options_ref_has_empty_options(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(patched_result)
 
-    variants = view["release"]["profile_builds"][0]["variants"]
+    variants = view["releases"][0]["profile_builds"][0]["variants"]
     assert len(variants) == 1
     assert (
         variants[0].conan_options == {}
@@ -225,7 +225,7 @@ def test_install_options_built_from_build_option_sets_not_total(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
 
-    variant_view = view["release"]["profile_builds"][0]["variants"][0]
+    variant_view = view["releases"][0]["profile_builds"][0]["variants"][0]
     install_opts = variant_view.install_options
 
     assert "-o" in install_opts, "install_options must contain the -o flag"
@@ -258,7 +258,7 @@ def test_variants_are_conan_variant_view_namedtuples(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
 
-    for pb in view["release"]["profile_builds"]:
+    for pb in view["releases"][0]["profile_builds"]:
         for variant in pb["variants"]:
             assert isinstance(
                 variant, ConanVariantView
@@ -298,7 +298,7 @@ def test_profile_build_enriched_with_conan_settings_from_profile_definition(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
 
-    pb_view = view["release"]["profile_builds"][0]
+    pb_view = view["releases"][0]["profile_builds"][0]
     assert pb_view["profile_name"] == "hw-linux-x86_64-gcc10"
     assert (
         pb_view["conan_settings"] == publisher_profile_definition.conan_settings
@@ -328,7 +328,7 @@ def test_profile_build_enriched_with_docker_image_from_profile_definition(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
 
-    pb_view = view["release"]["profile_builds"][0]
+    pb_view = view["releases"][0]["profile_builds"][0]
     assert (
         pb_view["docker_image"] == publisher_profile_definition.docker_image
     ), "docker_image must be taken from ProfileDefinition"
@@ -360,7 +360,7 @@ def test_missing_profile_definition_gives_empty_settings_not_error(
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(patched_result)
 
-    pb_view = view["release"]["profile_builds"][0]
+    pb_view = view["releases"][0]["profile_builds"][0]
     assert (
         pb_view["conan_settings"] == {}
     ), "Missing ProfileDefinition should result in conan_settings={}"
@@ -394,7 +394,7 @@ def test_profile_builds_ordered_by_profile_name(
     converter = PassportConverter(component_name="mylib", release_version="1.0.0")
     view = converter.transform(publisher_two_profile_parsed_result)
 
-    names = [pb["profile_name"] for pb in view["release"]["profile_builds"]]
+    names = [pb["profile_name"] for pb in view["releases"][0]["profile_builds"]]
     assert names == sorted(names), f"profile_builds must be sorted by name, got: {names}"
     assert (
         names[0] == "hw-linux-arm64-gcc10"
@@ -407,25 +407,28 @@ def test_legacy_contents_initially_empty_dict(
 ) -> None:
     """
     BL-PC-09
-    Business Rule: On first publication legacy_contents={}; no inherited content.
-    The converter returns legacy_contents={} — legacy data is injected OUTSIDE
-    by the strategy, not by the converter.
+    Business Rule: PassportConverter.transform() does not set legacy_contents itself;
+    legacy data is injected OUTSIDE, by PassportsStrategy (see
+    passports_strategy.py: view_model["legacy_contents"] = extract_for_platform(...)),
+    not by the converter.
 
     Preconditions:
         - Standard publisher_parsed_result (no prior legacy injection).
 
     Steps:
         1. Create PassportConverter and call transform()
-        2. Inspect view["legacy_contents"]
+        2. Inspect view for a "legacy_contents" key.
 
     Expected Result:
-        "legacy_contents" key present and value == {}.
+        "legacy_contents" key is absent from a bare transform() call.
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
 
-    assert "legacy_contents" in view, "legacy_contents field must be present"
-    assert view["legacy_contents"] == {}, "Without injection, legacy_contents must be an empty dict"
+    assert "legacy_contents" not in view, (
+        "legacy_contents must NOT be set by the converter; "
+        "it is injected later by PassportsStrategy"
+    )
 
 
 @pytest.mark.business_logic

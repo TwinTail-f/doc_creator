@@ -82,15 +82,15 @@ def _minimal_enrich_result(
 def test_apply_options_sets_build_option_sets(
     manifest_component: Component, manifest_release: Release
 ) -> None:
-    """apply_options() устанавливает _build_option_sets_internal и build_option_sets."""
+    """apply_options() устанавливает build_option_sets."""
     key = ("openssl", manifest_release.version, manifest_release.channel)
     options_map = {key: {"1": "shared=True"}}
 
     DataEnricher.apply_options([manifest_component], options_map)
 
-    assert manifest_release._build_option_sets_internal == {"1": "shared=True"}
     assert len(manifest_release.build_option_sets) == 1
     assert manifest_release.build_option_sets[0].id == "1"
+    assert manifest_release.build_option_sets[0].options == "shared=True"
 
 
 # ---------------------------------------------------------------------------

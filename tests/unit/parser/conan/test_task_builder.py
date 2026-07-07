@@ -9,6 +9,7 @@ import pytest
 
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.options import ConanInputOptions
 from autodoc.models.release import Release
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
@@ -32,7 +33,10 @@ def make_release(
         profile_builds=[ProfileBuild(profile_name=p) for p in profiles],
     )
     if opts:
-        r._build_option_sets_internal = opts
+        r.build_option_sets = [
+            ConanInputOptions(id=option_id, options=option_str)
+            for option_id, option_str in opts.items()
+        ]
     return r
 
 
@@ -70,7 +74,7 @@ def test_task_builder_produces_one_task_per_profile() -> None:
 def test_task_builder_uses_default_empty_option_set() -> None:
     """Релиз без настроенных опций → одна задача с option_id '1'."""
     release = make_release()
-    # _build_option_sets_internal пуст по умолчанию
+    # build_option_sets пуст по умолчанию
     comp = make_component(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
@@ -302,7 +306,7 @@ def test_no_option_sets_produces_one_default_task() -> None:
     """BL-TB-06: A release with no option sets still produces exactly one task.
 
     Business Rule:
-        When ``release._build_option_sets_internal`` is empty (or None), the
+        When ``release.build_option_sets`` is empty (or None), the
         builder must fall back to a single default option set ``{"1": ""}`` so
         that the Conan graph is queried at least once.  Zero tasks would mean
         the component is silently skipped.

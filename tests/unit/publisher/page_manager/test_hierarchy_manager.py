@@ -1,7 +1,7 @@
 """Unit tests for PageHierarchyManager.
 
 Covers:
-- ensure_hierarchy_exists makes exactly two publish_page calls.
+- ensure_hierarchy_exists makes exactly two create_page calls (when pages don't yet exist).
 - First call uses root_parent_id and component_name as the title.
 - Second call uses the ID returned by the first call as the parent.
 - Second call title is "<comp_name> <release_version>".
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import pytest
 
+from autodoc.publisher.clients.models.page_result import PageResult
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from tests.unit.publisher.conftest import FakeConfluenceClient
 
@@ -31,29 +32,24 @@ VERSION_PAGE_ID: str = "ver-page-001"
 # Helpers
 # ---------------------------------------------------------------------------
 
-_COMP_RESPONSE: dict = {
-    "id": COMP_PAGE_ID,
-    "version": 1,
-    "status": "created",
-    "title": COMP_NAME,
-}
-_VERSION_RESPONSE: dict = {
-    "id": VERSION_PAGE_ID,
-    "version": 1,
-    "status": "created",
-    "title": f"{COMP_NAME} {RELEASE_VERSION}",
-}
+_COMP_RESPONSE = PageResult(id=COMP_PAGE_ID, version=1, status="created", message="")
+_VERSION_RESPONSE = PageResult(id=VERSION_PAGE_ID, version=1, status="created", message="")
 
 
 def _make_manager(client: FakeConfluenceClient) -> PageHierarchyManager:
-    """Constructs a PageHierarchyManager with a pre-configured FakeConfluenceClient."""
-    client.publish_responses = [_COMP_RESPONSE, _VERSION_RESPONSE]
+    """Constructs a PageHierarchyManager with a pre-configured FakeConfluenceClient.
+
+    Neither page exists yet (resolve_existing_page_id returns None by default,
+    since no pages are pre-registered), so ensure_hierarchy_exists() must call
+    create_page() for both the component and the version page.
+    """
+    client.create_responses = [_COMP_RESPONSE, _VERSION_RESPONSE]
     return PageHierarchyManager(client)
 
 
-def _publish_calls(client: FakeConfluenceClient) -> list[dict]:
-    """Filters recorded client calls to only publish_page entries."""
-    return [c for c in client.calls if c["method"] == "publish_page"]
+def _create_calls(client: FakeConfluenceClient) -> list[dict]:
+    """Filters recorded client calls to only create_page entries."""
+    return [c for c in client.calls if c["method"] == "create_page"]
 
 
 # ---------------------------------------------------------------------------
@@ -65,24 +61,24 @@ def _publish_calls(client: FakeConfluenceClient) -> list[dict]:
 def test_ensure_hierarchy_calls_publish_page_twice(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """ensure_hierarchy_exists makes exactly two publish_page calls."""
+    """ensure_hierarchy_exists makes exactly two create_page calls when neither page exists yet."""
     manager = _make_manager(publisher_confluence_client)
 
     manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
-    assert len(_publish_calls(publisher_confluence_client)) == 2
+    assert len(_create_calls(publisher_confluence_client)) == 2
 
 
 @pytest.mark.business_logic
 def test_ensure_hierarchy_first_call_uses_root_as_parent(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """First publish_page call must use ROOT_PAGE_ID as parent and COMP_NAME as title."""
+    """First create_page call must use ROOT_PAGE_ID as parent and COMP_NAME as title."""
     manager = _make_manager(publisher_confluence_client)
 
     manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
-    first_call = _publish_calls(publisher_confluence_client)[0]
+    first_call = _create_calls(publisher_confluence_client)[0]
     assert first_call["parent_id"] == ROOT_PAGE_ID
     assert first_call["title"] == COMP_NAME
 
@@ -91,12 +87,12 @@ def test_ensure_hierarchy_first_call_uses_root_as_parent(
 def test_ensure_hierarchy_second_call_uses_comp_id_as_parent(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """Second publish_page call must use the ID returned by the first call as parent_id."""
+    """Second create_page call must use the ID returned by the first call as parent_id."""
     manager = _make_manager(publisher_confluence_client)
 
     manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
-    second_call = _publish_calls(publisher_confluence_client)[1]
+    second_call = _create_calls(publisher_confluence_client)[1]
     assert second_call["parent_id"] == COMP_PAGE_ID
 
 
@@ -104,12 +100,12 @@ def test_ensure_hierarchy_second_call_uses_comp_id_as_parent(
 def test_ensure_hierarchy_second_call_title_is_comp_version(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """Second publish_page call title must be '<comp_name> <release_version>'."""
+    """Second create_page call title must be '<comp_name> <release_version>'."""
     manager = _make_manager(publisher_confluence_client)
 
     manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
-    second_call = _publish_calls(publisher_confluence_client)[1]
+    second_call = _create_calls(publisher_confluence_client)[1]
     assert second_call["title"] == f"{COMP_NAME} {RELEASE_VERSION}"
 
 
@@ -117,7 +113,7 @@ def test_ensure_hierarchy_second_call_title_is_comp_version(
 def test_ensure_hierarchy_returns_version_page_id(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """Return value must be the ID from the second publish_page response."""
+    """Return value must be the ID from the second create_page response."""
     manager = _make_manager(publisher_confluence_client)
 
     result = manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
@@ -129,12 +125,12 @@ def test_ensure_hierarchy_returns_version_page_id(
 def test_ensure_hierarchy_passes_space_to_both_calls(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """Both publish_page calls must receive the same space key."""
+    """Both create_page calls must receive the same space key."""
     manager = _make_manager(publisher_confluence_client)
 
     manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
-    calls = _publish_calls(publisher_confluence_client)
+    calls = _create_calls(publisher_confluence_client)
     assert calls[0]["space"] == SPACE
     assert calls[1]["space"] == SPACE
 
@@ -165,20 +161,20 @@ def test_component_page_created_under_root_parent() -> None:
     class _Client:
         _counter = [1000]
 
-        def publish_page(self, space, parent_id, title, body_html):
+        def resolve_existing_page_id(self, space, parent_id, title):
+            return None
+
+        def create_page(self, space, parent_id, title, body_html):
             _id = str(self._counter[0])
             self._counter[0] += 1
             recorded.append({"space": space, "parent_id": parent_id, "title": title})
-            return {"id": _id, "version": 1, "status": "updated", "title": title}
-
-        def get_or_create_page(self, space, title, parent_id=None, body=" "):
-            return str(self._counter[0])
+            return PageResult(id=_id, version=1, status="created", message="")
 
         def find_page(self, title, space=None, expand=None):
             return None
 
         def get_page(self, page_id, expand=None):
-            return {}
+            return None
 
         def get_page_body(self, space, title):
             return " "
@@ -221,31 +217,21 @@ def test_version_page_created_under_component_page() -> None:
     call_seq = [0]
 
     class _Client:
-        def publish_page(self, space, parent_id, title, body_html):
+        def resolve_existing_page_id(self, space, parent_id, title):
+            return None
+
+        def create_page(self, space, parent_id, title, body_html):
             call_seq[0] += 1
             call_log.append({"title": title, "parent_id": parent_id})
             if call_seq[0] == 1:
-                return {
-                    "id": component_page_id,
-                    "version": 1,
-                    "status": "updated",
-                    "title": title,
-                }
-            return {
-                "id": "VERSION_PAGE_ID",
-                "version": 1,
-                "status": "updated",
-                "title": title,
-            }
-
-        def get_or_create_page(self, space, title, parent_id=None, body=" "):
-            return "page-id"
+                return PageResult(id=component_page_id, version=1, status="created", message="")
+            return PageResult(id="VERSION_PAGE_ID", version=1, status="created", message="")
 
         def find_page(self, title, space=None, expand=None):
             return None
 
         def get_page(self, page_id, expand=None):
-            return {}
+            return None
 
         def get_page_body(self, space, title):
             return " "
@@ -290,30 +276,20 @@ def test_returns_version_page_id_not_component_page_id() -> None:
     call_seq = [0]
 
     class _Client:
-        def publish_page(self, space, parent_id, title, body_html):
+        def resolve_existing_page_id(self, space, parent_id, title):
+            return None
+
+        def create_page(self, space, parent_id, title, body_html):
             call_seq[0] += 1
             if call_seq[0] == 1:
-                return {
-                    "id": component_page_id,
-                    "version": 1,
-                    "status": "updated",
-                    "title": title,
-                }
-            return {
-                "id": version_page_id,
-                "version": 1,
-                "status": "updated",
-                "title": title,
-            }
-
-        def get_or_create_page(self, space, title, parent_id=None, body=" "):
-            return "page-id"
+                return PageResult(id=component_page_id, version=1, status="created", message="")
+            return PageResult(id=version_page_id, version=1, status="created", message="")
 
         def find_page(self, title, space=None, expand=None):
             return None
 
         def get_page(self, page_id, expand=None):
-            return {}
+            return None
 
         def get_page_body(self, space, title):
             return " "
@@ -350,22 +326,17 @@ def test_hierarchy_calls_are_idempotent() -> None:
     fixed_version_page_id = "EXISTING_VERSION_PAGE"
 
     class _Client:
-        def publish_page(self, space, parent_id, title, body_html):
-            return {
-                "id": fixed_version_page_id,
-                "version": 2,
-                "status": "updated",
-                "title": title,
-            }
+        def resolve_existing_page_id(self, space, parent_id, title):
+            return None
 
-        def get_or_create_page(self, space, title, parent_id=None, body=" "):
-            return fixed_version_page_id
+        def create_page(self, space, parent_id, title, body_html):
+            return PageResult(id=fixed_version_page_id, version=2, status="created", message="")
 
         def find_page(self, title, space=None, expand=None):
             return None
 
         def get_page(self, page_id, expand=None):
-            return {}
+            return None
 
         def get_page_body(self, space, title):
             return " "
@@ -408,25 +379,19 @@ def test_version_page_title_format() -> None:
     seq = [0]
 
     class _Client:
-        def publish_page(self, space, parent_id, title, body_html):
+        def resolve_existing_page_id(self, space, parent_id, title):
+            return None
+
+        def create_page(self, space, parent_id, title, body_html):
             seq[0] += 1
             created_titles.append(title)
-            return {
-                "id": f"page-id-{seq[0]}",
-                "version": 1,
-                "status": "updated",
-                "title": title,
-            }
-
-        def get_or_create_page(self, space, title, parent_id=None, body=" "):
-            created_titles.append(title)
-            return f"page-id-{seq[0]}"
+            return PageResult(id=f"page-id-{seq[0]}", version=1, status="created", message="")
 
         def find_page(self, title, space=None, expand=None):
             return None
 
         def get_page(self, page_id, expand=None):
-            return {}
+            return None
 
         def get_page_body(self, space, title):
             return " "

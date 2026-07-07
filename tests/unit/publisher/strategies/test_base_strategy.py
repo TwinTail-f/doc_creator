@@ -15,6 +15,7 @@ from typing import Any
 
 import pytest
 
+from autodoc.exceptions import ConfluenceError
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
@@ -247,12 +248,12 @@ class TestPublishSinglePage:
         strategy_stub: _StubStrategy,
         publisher_confluence_client: Any,
     ) -> None:
-        """If publish_page raises RuntimeError, result is a failure report."""
+        """If publish_page raises ConfluenceError, result is a failure report."""
 
-        def raise_runtime(*args: Any, **kwargs: Any) -> None:
-            raise RuntimeError("network error")
+        def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
+            raise ConfluenceError("network error")
 
-        publisher_confluence_client.publish_page = raise_runtime
+        publisher_confluence_client.publish_page = raise_confluence_error
 
         report = strategy_stub._publish_single_page(
             page_title=_PAGE_TITLE,

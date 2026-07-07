@@ -74,7 +74,7 @@ def _patch_full_fetch_pipeline(
     mock_executor_cls: MagicMock = mocker.patch(f"{_MODULE}.ParallelExecutor")
     mock_executor_cls.return_value.execute.return_value = [mocker.MagicMock() for _ in tasks]
 
-    mocker.patch(f"{_MODULE}.ConanResultParser")
+    mocker.patch(f"{_MODULE}.Conan2ResultParser")
     mock_agg_cls: MagicMock = mocker.patch(f"{_MODULE}.ConanResultAggregator")
     mock_agg_cls.return_value.aggregate.return_value = ConanEnrichmentResult()
     mock_agg_cls.return_value.build_execution_report.return_value = []

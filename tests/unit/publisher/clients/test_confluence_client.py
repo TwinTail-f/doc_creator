@@ -2,21 +2,24 @@
 Tests for autodoc.publisher.clients.confluence_client.ConfluenceClient.
 
 Testing strategy:
-- The HTTP session is mocked via mocker.patch on create_retryable_session.
-- The mock_session object returned provides controllable get/post/put responses.
+- ConfluenceClient delegates all HTTP calls to a ConfluenceTransport instance
+  (self._transport). ConfluenceTransport itself is fully mocked via
+  mocker.patch on the ConfluenceTransport class import in confluence_client,
+  so no real HTTP session or network calls are involved.
+- The mock_transport object provides controllable search_content / get_content /
+  create_content / update_content responses (raw JSON dicts, matching the
+  ConfluenceTransport public contract).
 - minimal_confluence_config fixture comes from tests/conftest.py.
 """
 
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
-import requests
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.exceptions import PublishError
+from autodoc.exceptions import ConfluenceError, PublishError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
 # ---------------------------------------------------------------------------
@@ -29,8 +32,6 @@ PAGE_BODY: str = "<p>Content</p>"
 PAGE_ID: str = "123456"
 PARENT_ID: str = "root-001"
 
-_API_BASE: str = "https://confluence.example.com/rest/api"
-
 # ---------------------------------------------------------------------------
 # Fixture
 # ---------------------------------------------------------------------------
@@ -38,31 +39,16 @@ _API_BASE: str = "https://confluence.example.com/rest/api"
 
 @pytest.fixture
 def confluence_client(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
-    """ConfluenceClient with a fully mocked HTTP session."""
+    """ConfluenceClient with a fully mocked ConfluenceTransport."""
     config = ConfluenceConfigSchema(**minimal_confluence_config)
-    mock_session = mocker.MagicMock()
+    mock_transport = mocker.MagicMock()
     mocker.patch(
-        "autodoc.publisher.clients.confluence_client.create_retryable_session",
-        return_value=mock_session,
+        "autodoc.publisher.clients.confluence_client.ConfluenceTransport",
+        return_value=mock_transport,
     )
     client = ConfluenceClient(config)
-    client._mock_session = mock_session  # type: ignore[attr-defined]
+    client._mock_transport = mock_transport  # type: ignore[attr-defined]
     return client
-
-
-def _make_response(json_data: Any, status_code: int = 200) -> MagicMock:
-    """Build a mock response with controllable json() and raise_for_status()."""
-    resp = MagicMock()
-    resp.status_code = status_code
-    resp.json.return_value = json_data
-    if status_code >= 400:
-        resp.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            f"HTTP {status_code}",
-            response=resp,
-        )
-    else:
-        resp.raise_for_status.return_value = None
-    return resp
 
 
 # ---------------------------------------------------------------------------
@@ -77,8 +63,8 @@ class TestFindPage:
     def test_find_page_returns_none_when_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """find_page returns None when the API returns an empty results list."""
-        confluence_client._mock_session.get.return_value = _make_response({"results": []})
+        """find_page returns None when the transport returns an empty results list."""
+        confluence_client._mock_transport.search_content.return_value = []
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is None
 
@@ -86,13 +72,13 @@ class TestFindPage:
     def test_find_page_returns_page_dict_when_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """find_page returns the first element of results when the page exists."""
+        """find_page returns a ConfluencePage built from the first result when the page exists."""
         page_data = {"id": PAGE_ID, "title": PAGE_TITLE}
-        confluence_client._mock_session.get.return_value = _make_response({"results": [page_data]})
+        confluence_client._mock_transport.search_content.return_value = [page_data]
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is not None
-        assert result["id"] == PAGE_ID
-        assert result["title"] == PAGE_TITLE
+        assert result.id == PAGE_ID
+        assert result.title == PAGE_TITLE
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +94,7 @@ class TestGetPageBody:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """get_page_body returns '' when the page does not exist."""
-        confluence_client._mock_session.get.return_value = _make_response({"results": []})
+        confluence_client._mock_transport.search_content.return_value = []
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == ""
 
@@ -122,7 +108,7 @@ class TestGetPageBody:
             "title": PAGE_TITLE,
             "body": {"storage": {"value": "<p>html</p>"}},
         }
-        confluence_client._mock_session.get.return_value = _make_response({"results": [page_data]})
+        confluence_client._mock_transport.search_content.return_value = [page_data]
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == "<p>html</p>"
 
@@ -137,10 +123,8 @@ class TestPublishPage:
 
     def _setup_not_found_then_created(self, confluence_client: ConfluenceClient) -> None:
         """Configure the mock so find_page returns None and create_page succeeds."""
-        find_resp = _make_response({"results": []})
-        create_resp = _make_response({"id": PAGE_ID})
-        confluence_client._mock_session.get.return_value = find_resp
-        confluence_client._mock_session.post.return_value = create_resp
+        confluence_client._mock_transport.search_content.return_value = []
+        confluence_client._mock_transport.create_content.return_value = {"id": PAGE_ID}
 
     def _setup_existing_page(self, confluence_client: ConfluenceClient) -> None:
         """Configure the mock so find_page returns an existing page and update succeeds."""
@@ -150,53 +134,51 @@ class TestPublishPage:
             "version": {"number": 3},
             "ancestors": [{"id": PARENT_ID}],
         }
-        find_resp = _make_response({"results": [existing]})
-        update_resp = _make_response({"id": PAGE_ID})
-        confluence_client._mock_session.get.return_value = find_resp
-        confluence_client._mock_session.put.return_value = update_resp
+        confluence_client._mock_transport.search_content.return_value = [existing]
+        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
 
     @pytest.mark.infrastructure
     def test_publish_page_creates_new_page_when_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """When the page doesn't exist, a POST request is made."""
+        """When the page doesn't exist, create_content is called."""
         self._setup_not_found_then_created(confluence_client)
         confluence_client.publish_page(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
         )
-        confluence_client._mock_session.post.assert_called_once()
+        confluence_client._mock_transport.create_content.assert_called_once()
 
     @pytest.mark.infrastructure
     def test_publish_page_updates_existing_page_when_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """When the page exists, a PUT request is made."""
+        """When the page exists, update_content is called."""
         self._setup_existing_page(confluence_client)
         confluence_client.publish_page(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
         )
-        confluence_client._mock_session.put.assert_called_once()
+        confluence_client._mock_transport.update_content.assert_called_once()
 
     @pytest.mark.contract
     def test_publish_page_returns_dict_with_id_version_status(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """publish_page returns a dict containing id, version, and status keys."""
+        """publish_page returns a PageResult exposing id, version, and status."""
         self._setup_not_found_then_created(confluence_client)
         result = confluence_client.publish_page(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
         )
-        assert "id" in result
-        assert "version" in result
-        assert "status" in result
+        assert result.id == PAGE_ID
+        assert result.version == 1
+        assert result.status == "created"
 
     @pytest.mark.infrastructure
     def test_publish_page_raises_publish_error_on_http_error(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """publish_page raises PublishError when the HTTP request fails."""
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"error": "forbidden"}, status_code=403
+        """publish_page raises PublishError when the transport reports an HTTP error."""
+        confluence_client._mock_transport.search_content.side_effect = ConfluenceError(
+            "HTTP 403"
         )
         with pytest.raises(PublishError):
             confluence_client.publish_page(
@@ -208,7 +190,7 @@ class TestPublishPage:
         self,
         confluence_client: ConfluenceClient,
     ) -> None:
-        """publish_page issues PUT even when found page's ancestor differs from requested parent_id."""
+        """publish_page issues update_content even when found page's ancestor differs (title_conflict_policy='move')."""
         WRONG_PARENT = "wrong-parent-999"
 
         existing_page = {
@@ -217,10 +199,9 @@ class TestPublishPage:
             "version": {"number": 4},
             "ancestors": [{"id": WRONG_PARENT}],
         }
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": [existing_page]}
-        )
-        confluence_client._mock_session.put.return_value = _make_response({"id": PAGE_ID})
+        confluence_client._mock_transport.search_content.return_value = [existing_page]
+        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
+        confluence_client._title_conflict_policy = "move"
 
         confluence_client.publish_page(
             space=SPACE,
@@ -229,14 +210,14 @@ class TestPublishPage:
             body_html=PAGE_BODY,
         )
 
-        confluence_client._mock_session.put.assert_called_once()
+        confluence_client._mock_transport.update_content.assert_called_once()
 
     @pytest.mark.business_logic
     def test_publish_page_put_payload_contains_correct_parent_id(
         self,
         confluence_client: ConfluenceClient,
     ) -> None:
-        """PUT json payload ancestors[0].id equals the requested parent_id, not the old one."""
+        """update_content payload ancestors[0].id equals the requested parent_id, not the old one."""
         OLD_PARENT = "old-parent-111"
         NEW_PARENT = "new-parent-222"
 
@@ -246,10 +227,9 @@ class TestPublishPage:
             "version": {"number": 2},
             "ancestors": [{"id": OLD_PARENT}],
         }
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": [existing_page]}
-        )
-        confluence_client._mock_session.put.return_value = _make_response({"id": PAGE_ID})
+        confluence_client._mock_transport.search_content.return_value = [existing_page]
+        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
+        confluence_client._title_conflict_policy = "move"
 
         confluence_client.publish_page(
             space=SPACE,
@@ -258,9 +238,9 @@ class TestPublishPage:
             body_html=PAGE_BODY,
         )
 
-        put_call = confluence_client._mock_session.put.call_args
-        payload = put_call.kwargs.get("json") or put_call.args[1]
-        # _build_page_payload always sets: payload["ancestors"] = [{"id": parent_id}]
+        update_call = confluence_client._mock_transport.update_content.call_args
+        payload = update_call.args[1]
+        # _build_payload always sets: payload["ancestors"] = [{"id": parent_id}]
         ancestors = payload.get("ancestors", [])
         assert any(
             a["id"] == NEW_PARENT for a in ancestors
@@ -278,10 +258,9 @@ class TestPublishPage:
             "version": {"number": 7},
             "ancestors": [{"id": "some-other-parent"}],
         }
-        confluence_client._mock_session.get.return_value = _make_response(
-            {"results": [existing_page]}
-        )
-        confluence_client._mock_session.put.return_value = _make_response({"id": PAGE_ID})
+        confluence_client._mock_transport.search_content.return_value = [existing_page]
+        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
+        confluence_client._title_conflict_policy = "move"
 
         result = confluence_client.publish_page(
             space=SPACE,
@@ -290,47 +269,58 @@ class TestPublishPage:
             body_html=PAGE_BODY,
         )
 
-        assert result["version"] == 8  # 7 + 1
-        assert result["status"] == "updated"
+        assert result.version == 8  # 7 + 1
+        assert result.status == "updated"
 
 
 # ---------------------------------------------------------------------------
-# get_or_create_page tests
+# resolve_existing_page_id tests
+#
+# (Replaces the former ConfluenceClient.get_or_create_page(), which no longer
+# exists: "get or create" orchestration now lives in
+# HierarchyManager._get_or_create_page_id(), combining
+# ConfluenceClient.resolve_existing_page_id() with ConfluenceClient.create_page().)
 # ---------------------------------------------------------------------------
 
 
 class TestGetOrCreatePage:
-    """Tests for ConfluenceClient.get_or_create_page()."""
+    """Tests for ConfluenceClient.resolve_existing_page_id() and create_page()."""
 
     @pytest.mark.infrastructure
     def test_get_or_create_page_returns_id_if_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """Returns the existing page's ID without issuing a POST request."""
+        """resolve_existing_page_id returns the existing page's ID without creating anything."""
         existing = {
             "id": PAGE_ID,
             "title": PAGE_TITLE,
+            "version": {"number": 1},
             "ancestors": [{"id": PARENT_ID}],
         }
-        confluence_client._mock_session.get.return_value = _make_response({"results": [existing]})
-        result = confluence_client.get_or_create_page(
-            space=SPACE, title=PAGE_TITLE, parent_id=PARENT_ID
+        confluence_client._mock_transport.search_content.return_value = [existing]
+        result = confluence_client.resolve_existing_page_id(
+            space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE
         )
         assert result == PAGE_ID
-        confluence_client._mock_session.post.assert_not_called()
+        confluence_client._mock_transport.create_content.assert_not_called()
 
     @pytest.mark.infrastructure
     def test_get_or_create_page_creates_and_returns_id_if_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """Creates the page and returns the new ID when the page doesn't exist."""
-        confluence_client._mock_session.get.return_value = _make_response({"results": []})
-        confluence_client._mock_session.post.return_value = _make_response({"id": PAGE_ID})
-        result = confluence_client.get_or_create_page(
-            space=SPACE, title=PAGE_TITLE, parent_id=PARENT_ID
+        """When no page is found, resolve_existing_page_id returns None and create_page must be called explicitly."""
+        confluence_client._mock_transport.search_content.return_value = []
+        result = confluence_client.resolve_existing_page_id(
+            space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE
         )
-        assert result == PAGE_ID
-        confluence_client._mock_session.post.assert_called_once()
+        assert result is None
+
+        confluence_client._mock_transport.create_content.return_value = {"id": PAGE_ID}
+        created = confluence_client.create_page(
+            space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
+        )
+        assert created.id == PAGE_ID
+        confluence_client._mock_transport.create_content.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -339,23 +329,22 @@ class TestGetOrCreatePage:
 
 
 class TestTimeoutForwarding:
-    """Tests that confluence_request_timeout reaches the HTTP session."""
+    """Tests that confluence_request_timeout reaches the underlying HTTP session."""
 
     @pytest.mark.infrastructure
     def test_confluence_client_passes_timeout_to_session(
         self, minimal_confluence_config: dict, mocker: Any
     ) -> None:
-        """ConfluenceClient forwards confluence_request_timeout to create_retryable_session."""
+        """ConfluenceClient forwards confluence_request_timeout to create_bearer_session via ConfluenceTransport."""
         custom_timeout = 99
         cfg = dict(minimal_confluence_config)
         cfg["confluence_request_timeout"] = custom_timeout
         config = ConfluenceConfigSchema(**cfg)
 
         mock_create = mocker.patch(
-            "autodoc.publisher.clients.confluence_client.create_retryable_session",
+            "autodoc.publisher.clients.confluence_transport.create_bearer_session",
             return_value=mocker.MagicMock(),
         )
         ConfluenceClient(config)
         _, kwargs = mock_create.call_args
         assert kwargs.get("timeout") == custom_timeout
-

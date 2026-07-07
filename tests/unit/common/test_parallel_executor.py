@@ -88,13 +88,16 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
 @pytest.mark.timeout(_TIMEOUT_GUARD_SEC)
 @pytest.mark.business_logic
 def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
-    """execute() возвращается без взаимной блокировки, когда каждая задача вызывает RuntimeError.
+    """execute() возвращается без взаимной блокировки, когда каждая задача вызывает ValueError.
 
-    Все результаты None; исключение не распространяется на вызывающий код.
+    ValueError — один из ожидаемых операционных типов ошибок, которые
+    ParallelExecutor перехватывает для каждой задачи по отдельности (см.
+    docstring ``_execute_pool``); поэтому все результаты None, а исключение
+    не распространяется на вызывающий код.
     """
 
     def always_fail(_: Any) -> None:
-        raise RuntimeError("всегда падает")
+        raise ValueError("всегда падает")
 
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL)
     results: list[None] = executor.execute(always_fail, [0, 1, 2])

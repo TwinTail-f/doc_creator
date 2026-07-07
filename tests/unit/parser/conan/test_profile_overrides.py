@@ -153,8 +153,8 @@ def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -
 
 @pytest.mark.business_logic
 def test_profile_overrides_empty_instance_is_empty() -> None:
-    """ProfileSettingsOverrides.empty() создаёт экземпляр, для которого is_empty() возвращает True."""
-    assert ProfileSettingsOverrides.empty().is_empty() is True
+    """Экземпляр без переопределений (созданный без аргументов) имеет is_empty() == True."""
+    assert ProfileSettingsOverrides().is_empty() is True
 
 
 # ---------------------------------------------------------------------------

@@ -14,9 +14,12 @@ from typing import Any
 
 import pytest
 
+from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.publisher.clients.models.page_result import PageResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.registry import available_strategies, create_strategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from tests.unit.publisher.conftest import (
@@ -163,13 +166,13 @@ class TestReleaseStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """If publish_page raises RuntimeError, report.success is False."""
+        """If publish_page raises ConfluenceError, report.success is False."""
         mocker.patch.object(PassportPageRegistry, "load", return_value={})
 
-        def raise_runtime(*args: Any, **kwargs: Any) -> None:
-            raise RuntimeError("connection refused")
+        def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
+            raise ConfluenceError("connection refused")
 
-        publisher_confluence_client.publish_page = raise_runtime
+        publisher_confluence_client.publish_page = raise_confluence_error
 
         strategy = make_release_strategy(
             publisher_confluence_client,
@@ -197,8 +200,8 @@ class TestReleaseStrategyConverter:
         publisher_parsed_result: ParsedResult,
         tmp_path: Path,
     ) -> None:
-        """BasePublishStrategy.create('release', ...) wires a FullReleaseConverter."""
-        strategy = BasePublishStrategy.create(
+        """create_strategy('release', ...) wires a FullReleaseConverter."""
+        strategy = create_strategy(
             "release",
             confluence_client=publisher_confluence_client,
             document_builder=publisher_document_builder,
@@ -214,7 +217,7 @@ class TestReleaseStrategyConverter:
     @pytest.mark.business_logic
     def test_release_strategy_registered_as_release(self) -> None:
         """'release' is present in available_strategies()."""
-        assert "release" in BasePublishStrategy.available_strategies()
+        assert "release" in available_strategies()
 
 
 # ---------------------------------------------------------------------------
@@ -430,19 +433,22 @@ def test_client_error_returns_failure_report(
 
     class FailingClient:
         def publish_page(self, space, parent_id, title, body_html):
-            raise RuntimeError("Confluence unavailable")
+            raise ConfluenceError("Confluence unavailable")
 
         def find_page(self, title, space=None, expand=None):
             return None
 
         def get_page(self, page_id, expand=None):
-            return {}
+            return None
 
-        def get_page_body(self, space, title):
+        def get_page_body(self, space, title, parent_id=None):
             return " "
 
-        def get_or_create_page(self, space, title, parent_id=None, body=" "):
-            return "page-id"
+        def resolve_existing_page_id(self, space, parent_id, title):
+            return None
+
+        def create_page(self, space, parent_id, title, body_html):
+            return PageResult(id="page-id", version=1, status="created", message="")
 
     strategy = ReleasePageStrategy(
         confluence_client=FailingClient(),

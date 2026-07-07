@@ -12,6 +12,9 @@ from typing import Any
 
 import pytest
 
+from autodoc.publisher.clients.models.confluence_page import ConfluencePage
+from autodoc.publisher.clients.models.page_result import PageResult
+
 # ---------------------------------------------------------------------------
 # Fake classes (implement Protocol interfaces without inheritance)
 # ---------------------------------------------------------------------------
@@ -19,21 +22,43 @@ import pytest
 
 class FakeConfluenceClient:
     """
-    Test stub for IConfluenceClient with predictable behavior.
+    Test stub for ConfluenceClient with predictable behavior.
 
     All write methods record calls in self.calls for later verification.
-    Return values of publish_page are configurable via self.publish_responses.
+    Return values of publish_page/create_page are PageResult instances
+    (matching the real ConfluenceClient contract), configurable via
+    self.publish_responses / self.create_responses.
+    find_page/resolve_existing_page_id are backed by self._pages
+    (title -> ConfluencePage), pre-populated via register_page().
     By default returns page_id='page-001', version=1, status='updated'.
     """
 
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
-        self.publish_responses: list[dict[str, Any]] = []
+        self.publish_responses: list[PageResult] = []
+        self.create_responses: list[PageResult] = []
         self._page_bodies: dict[str, str] = {}
-        self._pages: dict[str, dict[str, Any]] = {}
+        self._pages: dict[str, ConfluencePage] = {}
 
-    def _default_publish_response(self, title: str) -> dict[str, Any]:
-        return {"id": "page-001", "version": 1, "status": "updated", "title": title}
+    def register_page(
+        self,
+        title: str,
+        page_id: str,
+        version: int = 1,
+        ancestor_ids: tuple[str, ...] = (),
+        body_html: str = "",
+    ) -> None:
+        """Registers a pre-existing page so find_page/resolve_existing_page_id can find it."""
+        self._pages[title] = ConfluencePage(
+            id=page_id,
+            title=title,
+            version=version,
+            ancestor_ids=ancestor_ids,
+            body_html=body_html,
+        )
+
+    def _default_publish_response(self, title: str, status: str = "updated") -> PageResult:
+        return PageResult(id="page-001", version=1, status=status, message="")
 
     def publish_page(
         self,
@@ -41,7 +66,7 @@ class FakeConfluenceClient:
         parent_id: str,
         title: str,
         body_html: str,
-    ) -> dict[str, Any]:
+    ) -> PageResult:
         """Records the call; returns the next response from publish_responses or the default."""
         self.calls.append(
             {
@@ -56,33 +81,63 @@ class FakeConfluenceClient:
             return self.publish_responses.pop(0)
         return self._default_publish_response(title)
 
-    def get_or_create_page(
+    def resolve_existing_page_id(
         self,
         space: str,
+        parent_id: str,
         title: str,
-        parent_id: str | None = None,
-        body: str = "",
-    ) -> str:
-        """Returns 'page-001' or the value from _pages[title]['id']."""
-        self.calls.append({"method": "get_or_create_page", "space": space, "title": title})
-        return self._pages.get(title, {}).get("id", "page-001")
+    ) -> str | None:
+        """Returns the ID of a pre-registered page (via register_page) or None."""
+        self.calls.append(
+            {
+                "method": "resolve_existing_page_id",
+                "space": space,
+                "parent_id": parent_id,
+                "title": title,
+            }
+        )
+        page = self._pages.get(title)
+        return page.id if page else None
+
+    def create_page(
+        self,
+        space: str,
+        parent_id: str | None,
+        title: str,
+        body_html: str,
+    ) -> PageResult:
+        """Records the call; returns the next response from create_responses or the default."""
+        self.calls.append(
+            {
+                "method": "create_page",
+                "space": space,
+                "parent_id": parent_id,
+                "title": title,
+                "body_html": body_html,
+            }
+        )
+        if self.create_responses:
+            return self.create_responses.pop(0)
+        return self._default_publish_response(title, status="created")
 
     def find_page(
         self,
         title: str,
         space: str | None = None,
         expand: str = "",
-    ) -> dict[str, Any] | None:
-        """Returns page from _pages or None."""
+    ) -> ConfluencePage | None:
+        """Returns the pre-registered ConfluencePage for this title or None."""
         return self._pages.get(title)
 
-    def get_page(self, page_id: str, expand: str = "") -> dict[str, Any]:
-        """Returns a stub page by ID."""
-        return {"id": page_id, "version": {"number": 1}, "title": "stub"}
+    def get_page(self, page_id: str, expand: str = "") -> ConfluencePage:
+        """Returns a stub ConfluencePage by ID."""
+        return ConfluencePage(id=page_id, title="stub", version=1)
 
-    def get_page_body(self, space: str, title: str) -> str:
+    def get_page_body(self, space: str, title: str, parent_id: str | None = None) -> str:
         """Returns page body from _page_bodies or empty string."""
-        self.calls.append({"method": "get_page_body", "space": space, "title": title})
+        self.calls.append(
+            {"method": "get_page_body", "space": space, "title": title, "parent_id": parent_id}
+        )
         return self._page_bodies.get(title, "")
 
 
@@ -420,11 +475,11 @@ def publisher_multi_channel_result(
 
 class RecordingConfluenceClient:
     """
-    Extended FakeConfluenceClient that records the order of publish_page calls.
+    Extended FakeConfluenceClient that records the order of publish_page/create_page calls.
 
     Used to verify page count and publishing order in Part-3 strategy tests.
-    Each publish_page call is appended to ``published_pages`` and receives a
-    monotonically-increasing integer ``page_id`` starting from 1000.
+    Each publish_page/create_page call is appended to ``published_pages`` and
+    receives a monotonically-increasing integer ``page_id`` starting from 1000.
     """
 
     def __init__(self, existing_bodies: dict[str, str] | None = None) -> None:
@@ -438,8 +493,8 @@ class RecordingConfluenceClient:
         parent_id: str,
         title: str,
         body_html: str,
-    ) -> dict:
-        """Records the call and returns a response with a unique incremental page_id."""
+    ) -> PageResult:
+        """Records the call and returns a PageResult with a unique incremental page_id."""
         page_id = str(self._page_counter)
         self._page_counter += 1
         self.published_pages.append(
@@ -450,34 +505,43 @@ class RecordingConfluenceClient:
                 "body_html": body_html,
             }
         )
-        return {"id": page_id, "version": 1, "status": "updated", "title": title}
+        return PageResult(id=page_id, version=1, status="updated", message="")
 
-    def get_or_create_page(
+    def resolve_existing_page_id(
         self,
         space: str,
+        parent_id: str,
         title: str,
-        parent_id: str | None = None,
-        body: str = " ",
-    ) -> str:
-        """Returns a unique incremental page_id (does NOT add to published_pages)."""
+    ) -> str | None:
+        """Always returns None (page not found), so callers proceed to create_page()."""
+        return None
+
+    def create_page(
+        self,
+        space: str,
+        parent_id: str | None,
+        title: str,
+        body_html: str,
+    ) -> PageResult:
+        """Records the call (does NOT add to published_pages) and returns a unique incremental page_id."""
         page_id = str(self._page_counter)
         self._page_counter += 1
-        return page_id
+        return PageResult(id=page_id, version=1, status="created", message="")
 
     def find_page(
         self,
         title: str,
         space: str | None = None,
         expand: str | None = None,
-    ) -> dict | None:
+    ) -> ConfluencePage | None:
         """Always returns None (page not found)."""
         return None
 
-    def get_page(self, page_id: str, expand: str | None = None) -> dict:
-        """Returns a minimal stub page dict."""
-        return {"id": page_id, "version": {"number": 1}, "title": "stub"}
+    def get_page(self, page_id: str, expand: str | None = None) -> ConfluencePage:
+        """Returns a minimal stub ConfluencePage."""
+        return ConfluencePage(id=page_id, title="stub", version=1)
 
-    def get_page_body(self, space: str, title: str) -> str:
+    def get_page_body(self, space: str, title: str, parent_id: str | None = None) -> str:
         """Returns a pre-configured body from ``existing_bodies`` or a blank string."""
         return self._existing_bodies.get(title, " ")
 

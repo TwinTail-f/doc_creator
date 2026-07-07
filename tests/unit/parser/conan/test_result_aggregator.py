@@ -141,7 +141,8 @@ def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
 
     warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
     assert any(
-        "None" in m or "crashed" in m or "cancelled" in m for m in warning_messages
+        "пуст" in m or "ошиб" in m or "отменен" in m or "отменён" in m
+        for m in warning_messages
     ), "A WARNING must be logged when a None raw result is encountered"
 
 

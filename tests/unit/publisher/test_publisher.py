@@ -4,7 +4,7 @@ Tests for autodoc.publisher.publisher.DocumentPublisher.
 Testing strategy:
 - ConfluenceClient and DocumentBuilder constructors are mocked so no real HTTP
   session or filesystem is needed.
-- BasePublishStrategy.create is mocked to isolate the publisher from strategies.
+- create_strategy is mocked to isolate the publisher from strategies.
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ class TestDocumentPublisherPublish:
         expected_report = PublishReport(success=True, pages_published=1)
         mock_strategy = _mock_strategy(expected_report, mocker)
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             return_value=mock_strategy,
         )
         publisher_document_publisher.publish("release", publisher_parsed_result)
@@ -93,9 +93,9 @@ class TestDocumentPublisherPublish:
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """publish() forwards space from config to BasePublishStrategy.create()."""
+        """publish() forwards space from config to create_strategy()."""
         mock_create = mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             return_value=_mock_strategy(PublishReport(success=True, pages_published=1), mocker),
         )
         publisher_document_publisher.publish("release", publisher_parsed_result)
@@ -110,9 +110,9 @@ class TestDocumentPublisherPublish:
         tmp_path: Path,
         mocker: MockerFixture,
     ) -> None:
-        """publish() forwards data_dir to BasePublishStrategy.create()."""
+        """publish() forwards data_dir to create_strategy()."""
         mock_create = mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             return_value=_mock_strategy(PublishReport(success=True, pages_published=1), mocker),
         )
         publisher_document_publisher.publish("release", publisher_parsed_result)
@@ -129,7 +129,7 @@ class TestDocumentPublisherPublish:
         """publish() returns exactly the PublishReport from strategy.execute()."""
         expected = PublishReport(success=True, pages_published=5)
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             return_value=_mock_strategy(expected, mocker),
         )
         result = publisher_document_publisher.publish("release", publisher_parsed_result)
@@ -150,7 +150,7 @@ class TestDocumentPublisherPublishAll:
         passports_report: PublishReport,
         release_report: PublishReport,
     ) -> None:
-        """Patch BasePublishStrategy.create to return two strategies in order."""
+        """Patch create_strategy to return two strategies in order."""
         call_order: list[str] = []
 
         passports_mock = mocker.MagicMock()
@@ -171,7 +171,7 @@ class TestDocumentPublisherPublishAll:
 
         strategies = iter([passports_mock, release_mock])
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
         # Expose call_order for order verification
@@ -199,13 +199,13 @@ class TestDocumentPublisherPublishAll:
 
         strategies = iter([passports_mock, release_mock])
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
 
         publisher_document_publisher.publish_all(
             parsed_data=publisher_parsed_result,
-            passports_root_page_id=_ROOT_PAGE_ID,
+            passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
         )
@@ -229,13 +229,13 @@ class TestDocumentPublisherPublishAll:
             ]
         )
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
 
         result = publisher_document_publisher.publish_all(
             parsed_data=publisher_parsed_result,
-            passports_root_page_id=_ROOT_PAGE_ID,
+            passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
         )
@@ -259,13 +259,13 @@ class TestDocumentPublisherPublishAll:
             ]
         )
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
 
         result = publisher_document_publisher.publish_all(
             parsed_data=publisher_parsed_result,
-            passports_root_page_id=_ROOT_PAGE_ID,
+            passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
         )
@@ -289,13 +289,13 @@ class TestDocumentPublisherPublishAll:
             ]
         )
         mocker.patch(
-            "autodoc.publisher.publisher.BasePublishStrategy.create",
+            "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
 
         result = publisher_document_publisher.publish_all(
             parsed_data=publisher_parsed_result,
-            passports_root_page_id=_ROOT_PAGE_ID,
+            passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
         )

@@ -357,43 +357,37 @@ def test_passport_link_formatted_per_component_version(
 ) -> None:
     """
     BL-PCC-06
-    Business Rule: With a pattern, each component in a channel receives a
-    passport_link containing its name and version so that
-    PassportPageRegistry.inject_links_for_profiles() can replace it.
+    Business Rule: When include_passport_links=True, every non-header-only
+    component entry in every channel gets a "passport_link" key, initialized
+    to None. The converter itself does not format any link string — the
+    real URL is filled in later by
+    PassportPageRegistry.inject_links_for_profiles() (see test_passport_registry.py),
+    based on actual published page IDs.
 
     Preconditions:
         - publisher_multi_channel_result with comp_alpha (non-header-only).
 
     Steps:
-        1. Create ProfileCentricConverter(include_passport_links=True,
-           passport_page_pattern="/p/{component_name}/{release_version}").
+        1. Create ProfileCentricConverter(include_passport_links=True).
         2. Call transform().
-        3. Check that each comp_entry["passport_link"] contains name and version.
+        3. Check that each comp_entry has a "passport_link" key initialized to None.
 
     Expected Result:
-        At least one passport_link is non-None; every non-None link contains
-        the entry's name and version.
+        Every component entry across every channel has "passport_link" is None.
     """
-    converter = ProfileCentricConverter(
-        include_passport_links=True,
-        passport_page_pattern="/p/{component_name}/{release_version}",
-    )
+    converter = ProfileCentricConverter(include_passport_links=True)
     view = converter.transform(publisher_multi_channel_result)
 
-    found_any_link = False
+    checked_any = False
     for profile in view["profiles"]:
         for channel_name, comp_entries in profile["channels"].items():
             for comp_entry in comp_entries:
                 assert (
                     "passport_link" in comp_entry
                 ), "When include_links=True, each component must have key passport_link"
-                link = comp_entry["passport_link"]
-                if link:
-                    assert (
-                        comp_entry["name"] in link
-                    ), f"passport_link must contain component name '{comp_entry['name']}'"
-                    assert (
-                        comp_entry["version"] in link
-                    ), f"passport_link must contain version '{comp_entry['version']}'"
-                    found_any_link = True
-    assert found_any_link, "At least one component should receive a non-empty passport_link"
+                assert comp_entry["passport_link"] is None, (
+                    "The converter must leave passport_link as None; "
+                    "real links are injected later by PassportPageRegistry"
+                )
+                checked_any = True
+    assert checked_any, "At least one component entry should have been checked"

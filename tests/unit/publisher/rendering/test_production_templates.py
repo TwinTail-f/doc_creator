@@ -108,7 +108,7 @@ def test_styles_passport_template_renders_without_error(
     view_model: dict[str, Any] = {
         "target_platform": "2.0",
         "component": component.model_dump(),
-        "release": release_dict,
+        "releases": [release_dict],
         "profile_definitions": [],
         "legacy_contents": {},
     }

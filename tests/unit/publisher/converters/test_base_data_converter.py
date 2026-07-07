@@ -5,8 +5,7 @@ from __future__ import annotations
 import pytest
 
 from autodoc.models.conan_variant import ConanVariant
-from autodoc.publisher.converters.base_data_converter import BaseDataConverter
-from autodoc.publisher.converters.passport_link_mixin import _VariantOpts
+from autodoc.publisher.converters.base_data_converter import BaseDataConverter, _VariantOpts
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
@@ -20,7 +19,12 @@ OPT_KEY_SHARED: str = "shared"
 OPT_KEY_FPIC: str = "fPIC"
 
 RELEASE_VERSION: str = "1.0.0"
-PASSPORT_PATTERN: str = "/pages/{component_name}/{release_version}"
+
+
+class _MinimalParsedResult:
+    """Minimal stand-in for ParsedResult exposing only what _base_view_model reads."""
+
+    platform_version: str = "2.0"
 
 VARIANT_PKG_ID: str = "abc"
 VARIANT_BUILD_URL: str = "https://ci/1"
@@ -200,56 +204,39 @@ class TestBuildVariantView:
         assert view.install_options == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
 
 
-# ── PassportLinkMixin ─────────────────────────────────────────────────────────
+# ── include_passport_links propagation ───────────────────────────────────────
+#
+# NOTE: PassportLinkMixin / FullReleaseConverter._passport_link() and the
+# passport_page_pattern constructor argument no longer exist. Per
+# BaseReleaseConverter's docstring, converters do not build passport link
+# strings themselves anymore — that responsibility moved to
+# autodoc.publisher.page_manager.passport_link_injector (inject_links /
+# inject_links_for_profiles), which is exercised in
+# tests/unit/publisher/page_manager/test_passport_registry.py.
+# BaseReleaseConverter's only remaining passport-related responsibility is
+# forwarding the include_passport_links flag into the view model, tested here.
 
 
-class TestPassportLinkMixin:
-    """Tests for PassportLinkMixin via FullReleaseConverter (concrete subclass)."""
-
-    @pytest.mark.business_logic
-    def test_passport_link_returns_none_if_include_links_false(self) -> None:
-        """_passport_link returns None when include_passport_links=False."""
-        converter = FullReleaseConverter(
-            include_passport_links=False,
-            passport_page_pattern=PASSPORT_PATTERN,
-        )
-
-        assert converter._passport_link(COMP_NAME, RELEASE_VERSION) is None
-
-    @pytest.mark.business_logic
-    def test_passport_link_returns_none_if_pattern_is_none(self) -> None:
-        """_passport_link returns None when passport_page_pattern is None."""
-        converter = FullReleaseConverter(
-            include_passport_links=True,
-            passport_page_pattern=None,
-        )
-
-        assert converter._passport_link(COMP_NAME, RELEASE_VERSION) is None
+class TestIncludePassportLinksPropagation:
+    """Tests for BaseReleaseConverter forwarding include_passport_links into the view model."""
 
     @pytest.mark.business_logic
-    def test_passport_link_formats_pattern_with_component_and_version(self) -> None:
-        """_passport_link substitutes component_name and release_version into the pattern."""
-        converter = FullReleaseConverter(
-            include_passport_links=True,
-            passport_page_pattern=PASSPORT_PATTERN,
-        )
+    def test_include_passport_links_false_is_forwarded(self) -> None:
+        """view['include_passport_links'] is False when constructed with False."""
+        converter = FullReleaseConverter(include_passport_links=False)
+        # _base_view_model requires ParsedResult only for platform_version; a
+        # minimal stand-in object is enough since only that attribute is read.
+        view = converter._base_view_model(_MinimalParsedResult())
 
-        assert (
-            converter._passport_link(COMP_NAME, RELEASE_VERSION)
-            == f"/pages/{COMP_NAME}/{RELEASE_VERSION}"
-        )
+        assert view["include_passport_links"] is False
 
     @pytest.mark.business_logic
-    def test_passport_link_replaces_spaces_with_plus(self) -> None:
-        """Spaces in component name and version are replaced with '+' in the link."""
-        converter = FullReleaseConverter(
-            include_passport_links=True,
-            passport_page_pattern=PASSPORT_PATTERN,
-        )
+    def test_include_passport_links_true_is_forwarded(self) -> None:
+        """view['include_passport_links'] is True when constructed with True (the default)."""
+        converter = FullReleaseConverter(include_passport_links=True)
+        view = converter._base_view_model(_MinimalParsedResult())
 
-        result = converter._passport_link("my lib", "1.0 beta")
-
-        assert result == "/pages/my+lib/1.0+beta"
+        assert view["include_passport_links"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -282,7 +269,7 @@ def test_conan_variant_view_defaults() -> None:
         build_url="https://ci.example.com/build/1",
         build_date="2024-03-10",
     )
-    assert view.option_ref == ""
+    assert view.options_ref == ""
     assert view.conan_options == {}
     assert view.install_options == ""
 
@@ -295,14 +282,14 @@ def test_conan_variant_view_custom_values() -> None:
         package_id="deadbeef",
         build_url="https://ci.example.com/build/99",
         build_date="2024-06-01",
-        option_ref="opt-set-7",
+        options_ref="opt-set-7",
         conan_options=opts,
         install_options="-o pkg/*:shared=True -o pkg/*:fPIC=False",
     )
     assert view.package_id == "deadbeef"
     assert view.build_url == "https://ci.example.com/build/99"
     assert view.build_date == "2024-06-01"
-    assert view.option_ref == "opt-set-7"
+    assert view.options_ref == "opt-set-7"
     assert view.conan_options == opts
     assert view.install_options == "-o pkg/*:shared=True -o pkg/*:fPIC=False"
 

@@ -46,7 +46,6 @@ def multi_result_with_unknown_profile(
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult as _ParsedResult
 
-_PASSPORT_PATTERN = "/pages/{component_name}/{release_version}"
 
 
 @pytest.mark.contract
@@ -292,13 +291,18 @@ def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, fl
 
 
 @pytest.mark.business_logic
-def test_passport_link_placeholder_present_when_include_links_true(
+def test_no_passport_link_field_added_by_converter_itself(
     publisher_parsed_result,
 ) -> None:
     """
     BL-FRC-05
-    Business Rule: When include_links=True each release has a passport_link
-    key (may be None if pattern is unset, but the key must exist).
+    Business Rule: FullReleaseConverter.transform() does not add any
+    passport_link / passport_versions field to release_view or comp_view
+    itself, regardless of include_passport_links. Per BaseReleaseConverter's
+    docstring, that responsibility belongs entirely to
+    autodoc.publisher.page_manager.passport_link_injector.inject_links(),
+    which is applied afterwards by the strategy layer and is exercised in
+    tests/unit/publisher/page_manager/test_passport_registry.py.
 
     Preconditions:
         - publisher_parsed_result with one component and one release.
@@ -306,10 +310,11 @@ def test_passport_link_placeholder_present_when_include_links_true(
     Steps:
         1. Create FullReleaseConverter(include_passport_links=True).
         2. Call transform().
-        3. Check that "passport_link" key is present in each release_view.
+        3. Check that neither "passport_link" nor "passport_versions" appear
+           in release_view or comp_view.
 
     Expected Result:
-        "passport_link" in release_view for every component/release.
+        Neither key is present anywhere in the raw transform() output.
     """
     from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 
@@ -317,17 +322,23 @@ def test_passport_link_placeholder_present_when_include_links_true(
     view = converter.transform(publisher_parsed_result)
 
     for comp_view in view["components"]:
+        assert "passport_versions" not in comp_view, (
+            "passport_versions must NOT be set by the converter; "
+            "it is injected later by inject_links()"
+        )
         for release_view in comp_view["releases"]:
-            assert (
-                "passport_link" in release_view
-            ), "When include_links=True, passport_link key must be present in release_view"
+            assert "passport_link" not in release_view, (
+                "passport_link must NOT be set by the converter; "
+                "it is injected later by inject_links()"
+            )
 
 
 @pytest.mark.business_logic
 def test_no_passport_link_when_include_links_false(publisher_parsed_result) -> None:
     """
     BL-FRC-06
-    Business Rule: When include_links=False the passport_link field is None.
+    Business Rule: When include_links=False, the converter still does not add
+    any passport_link field (same as include_links=True — see BL-FRC-05).
 
     Preconditions:
         - publisher_parsed_result available.
@@ -335,10 +346,10 @@ def test_no_passport_link_when_include_links_false(publisher_parsed_result) -> N
     Steps:
         1. Create FullReleaseConverter(include_passport_links=False).
         2. Call transform().
-        3. Check passport_link value in each release_view.
+        3. Check passport_link is absent from each release_view.
 
     Expected Result:
-        release_view["passport_link"] is None or "" for every release.
+        "passport_link" not in release_view for every release.
     """
     from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 
@@ -347,52 +358,6 @@ def test_no_passport_link_when_include_links_false(publisher_parsed_result) -> N
 
     for comp_view in view["components"]:
         for release_view in comp_view["releases"]:
-            passport_link = release_view.get("passport_link")
             assert (
-                passport_link is None or passport_link == ""
-            ), "When include_links=False, passport_link should be None or empty"
-
-
-@pytest.mark.business_logic
-def test_passport_link_formatted_with_component_name_and_version(
-    publisher_parsed_result,
-) -> None:
-    """
-    BL-FRC-07
-    Business Rule: When a passport_page_pattern is provided, the placeholder
-    link contains the component name and version so that
-    PassportPageRegistry.inject_links() can match and replace it.
-
-    Preconditions:
-        - publisher_parsed_result with openssl / 1.0.0.
-        - FullReleaseConverter configured with include_passport_links=True
-          and a known passport_page_pattern.
-
-    Steps:
-        1. Create FullReleaseConverter with include_passport_links=True and
-           passport_page_pattern="/pages/{component_name}/{release_version}".
-        2. Call transform().
-        3. Extract passport_link from openssl release_view.
-
-    Expected Result:
-        passport_link contains "openssl" and "1.0.0".
-    """
-    from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-
-    converter = FullReleaseConverter(
-        include_passport_links=True,
-        passport_page_pattern=_PASSPORT_PATTERN,
-    )
-    view = converter.transform(publisher_parsed_result)
-
-    comp = publisher_parsed_result.components[0]
-    comp_view = next(c for c in view["components"] if c["name"] == comp.name)
-    release_view = comp_view["releases"][0]
-
-    assert "passport_link" in release_view
-    link = release_view["passport_link"]
-    assert link is not None, "With a pattern and include_links=True, link must not be None"
-    assert comp.name in link, f"passport_link must contain component name '{comp.name}'"
-    assert (
-        comp.releases[0].version in link
-    ), f"passport_link must contain version '{comp.releases[0].version}'"
+                "passport_link" not in release_view
+            ), "passport_link must not be present regardless of include_passport_links"
