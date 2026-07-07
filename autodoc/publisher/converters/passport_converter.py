@@ -48,10 +48,12 @@ class PassportConverter(BaseDataConverter):
                          отсутствовать в ``default_options`` компонента).
 
         Returns:
-            ``autodoc-badge-n`` (жёлтый), если значение отличается от дефолта,
-            иначе ``autodoc-badge-def`` (нейтральный).
+            ``autodoc-badge-def`` (нейтральный), если значение совпадает с
+            известным дефолтом. В остальных случаях — ``autodoc-badge-n``
+            (жёлтый): значение отличается от дефолта, либо дефолт для этой
+            опции неизвестен.
         """
-        if not has_default or str(value) == str(default_value):
+        if has_default and str(value) == str(default_value):
             return "autodoc-badge-def"
         return "autodoc-badge-n"
 
