@@ -1,0 +1,273 @@
+"""Тесты для autodoc/cli/commands/publish/all.py.
+
+Команда `publish all` проверяется целиком через CliRunner. make_publisher
+и load_parsed_data подменяются на уровне команды, поэтому реальный клиент
+Confluence и файл parsed_data.json не требуются.
+"""
+
+from pathlib import Path
+
+import pytest
+from click.testing import CliRunner
+
+from autodoc.cli.app import cli
+from autodoc.cli.constants import (
+    DEFAULT_PROFILE_PAGE_TITLE,
+    DEFAULT_RELEASE_PAGE_TITLE,
+    PASSPORT_TEMPLATE,
+    PROFILE_TEMPLATE,
+    RELEASE_TEMPLATE,
+)
+from autodoc.exceptions import ConfigError
+from tests.unit.cli.conftest import (
+    make_confluence_config,
+    make_parsed_result,
+    make_publish_report,
+)
+
+_EXIT_SUCCESS: int = 0
+_EXIT_FAILURE: int = 1
+
+
+def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
+    """Вызывает `publish all` с переданными дополнительными аргументами командной строки.
+
+    Args:
+        tmp_path: Базовая директория проекта.
+        configs_dir: Директория конфигов.
+        *args: Дополнительные аргументы, передаваемые команде `publish all`.
+
+    Returns:
+        Результат выполнения команды (``click.testing.Result``).
+    """
+    return CliRunner().invoke(
+        cli,
+        [
+            "--base-dir", str(tmp_path),
+            "--configs-dir", str(configs_dir),
+            "publish", "all",
+            *args,
+        ],
+    )
+
+
+def _mock_collaborators(mocker, publish_report=None, conf_config=None):
+    """Подменяет make_publisher и load_parsed_data для `publish all` и возвращает поддельный publisher.
+
+    Args:
+        mocker: Фикстура pytest-mock для создания подмен.
+        publish_report: Отчёт о публикации, который вернёт publish_all
+            (по умолчанию — успешный отчёт).
+        conf_config: Конфиг Confluence, возвращаемый make_publisher
+            (по умолчанию — минимальный валидный конфиг).
+
+    Returns:
+        Поддельный объект publisher с настроенным publish_all.
+    """
+    mock_publisher = mocker.MagicMock()
+    mock_publisher.publish_all.return_value = publish_report or make_publish_report()
+    mocker.patch(
+        "autodoc.cli.commands.publish.all.make_publisher",
+        return_value=(mock_publisher, conf_config or make_confluence_config()),
+    )
+    mocker.patch(
+        "autodoc.cli.commands.publish.all.load_parsed_data",
+        return_value=make_parsed_result(),
+    )
+    return mock_publisher
+
+
+@pytest.mark.business_logic
+def test_publish_all_happy_path_minimal_flags(tmp_path: Path, configs_dir: Path, mocker) -> None:
+    """Без дополнительных флагов publish_all вызывается с документированными значениями по умолчанию."""
+    mock_publisher = _mock_collaborators(mocker)
+
+    result = _invoke(tmp_path, configs_dir)
+
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    mock_publisher.publish_all.assert_called_once()
+    kwargs = mock_publisher.publish_all.call_args.kwargs
+    assert kwargs["release_template_name"] == RELEASE_TEMPLATE
+    assert kwargs["passport_template_name"] == PASSPORT_TEMPLATE
+    assert kwargs["profile_title"] is None
+    assert kwargs["profile_template_name"] is None
+    assert kwargs["include_passport_links"] is True
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    ("cli_title", "config_title", "expected"),
+    [
+        pytest.param("CLI Title", "Config Title", "CLI Title", id="cli-flag-wins"),
+        pytest.param(None, "Config Title", "Config Title", id="config-field-wins"),
+        pytest.param(None, None, DEFAULT_RELEASE_PAGE_TITLE, id="default-wins"),
+    ],
+)
+def test_publish_all_release_page_title_precedence(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    cli_title: str | None,
+    config_title: str | None,
+    expected: str,
+) -> None:
+    """Приоритет источников заголовка релиза: флаг CLI > поле конфига > значение по умолчанию."""
+    conf_config = make_confluence_config(release_docs_page_title=config_title)
+    mock_publisher = _mock_collaborators(mocker, conf_config=conf_config)
+
+    args = ["--release-doc-page-name", cli_title] if cli_title else []
+    result = _invoke(tmp_path, configs_dir, *args)
+
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_all.call_args.kwargs
+    assert kwargs["release_page_title"] == expected
+
+
+@pytest.mark.business_logic
+def test_publish_all_with_additional_page_profile_default_name(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """--with-additional-page-profile без пользовательского имени использует заголовок/шаблон профиля по умолчанию."""
+    mock_publisher = _mock_collaborators(mocker)
+
+    result = _invoke(tmp_path, configs_dir, "--with-additional-page-profile")
+
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_all.call_args.kwargs
+    assert kwargs["profile_title"] == DEFAULT_PROFILE_PAGE_TITLE
+    assert kwargs["profile_template_name"] == PROFILE_TEMPLATE
+
+
+@pytest.mark.business_logic
+def test_publish_all_with_additional_page_profile_custom_name(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """--additional-page-profile-name переопределяет заголовок страницы профиля по умолчанию."""
+    mock_publisher = _mock_collaborators(mocker)
+
+    result = _invoke(
+        tmp_path,
+        configs_dir,
+        "--with-additional-page-profile",
+        "--additional-page-profile-name",
+        "X",
+    )
+
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_all.call_args.kwargs
+    assert kwargs["profile_title"] == "X"
+
+
+@pytest.mark.contract
+def test_publish_all_profile_name_without_flag_raises_usage_error(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """--additional-page-profile-name без --with-additional-page-profile приводит к UsageError."""
+    _mock_collaborators(mocker)
+
+    result = _invoke(tmp_path, configs_dir, "--additional-page-profile-name", "X")
+
+    assert result.exit_code != _EXIT_SUCCESS
+    assert "--with-additional-page-profile" in result.output
+
+
+@pytest.mark.contract
+def test_publish_all_passports_root_name_and_id_both_given_raises(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """Совместное указание --passports-root-parent-name и --passports-root-parent-id приводит к UsageError."""
+    _mock_collaborators(mocker)
+
+    result = _invoke(
+        tmp_path,
+        configs_dir,
+        "--passports-root-parent-name", "Foo",
+        "--passports-root-parent-id", "123",
+    )
+
+    assert result.exit_code != _EXIT_SUCCESS
+    assert "--passports-root-parent-name" in result.output
+    assert "--passports-root-parent-id" in result.output
+
+
+@pytest.mark.contract
+def test_publish_all_release_root_name_and_id_both_given_raises(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """Совместное указание --release-root-page-name и --release-root-page-id приводит к UsageError."""
+    _mock_collaborators(mocker)
+
+    result = _invoke(
+        tmp_path,
+        configs_dir,
+        "--release-root-page-name", "Foo",
+        "--release-root-page-id", "123",
+    )
+
+    assert result.exit_code != _EXIT_SUCCESS
+    assert "--release-root-page-name" in result.output
+    assert "--release-root-page-id" in result.output
+
+
+@pytest.mark.business_logic
+def test_publish_all_no_passport_links_disables_links(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """--no-passport-links устанавливает include_passport_links=False."""
+    mock_publisher = _mock_collaborators(mocker)
+
+    result = _invoke(tmp_path, configs_dir, "--no-passport-links")
+
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_all.call_args.kwargs
+    assert kwargs["include_passport_links"] is False
+
+
+@pytest.mark.business_logic
+def test_publish_all_domain_error_exits_nonzero_cleanly(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """ConfigError, возникающая в make_publisher, завершает команду с кодом 1 и понятным сообщением, без трейсбека."""
+    mocker.patch(
+        "autodoc.cli.commands.publish.all.make_publisher",
+        side_effect=ConfigError("Confluence config invalid"),
+    )
+    mocker.patch(
+        "autodoc.cli.commands.publish.all.load_parsed_data",
+        return_value=make_parsed_result(),
+    )
+
+    result = _invoke(tmp_path, configs_dir)
+
+    assert result.exit_code == _EXIT_FAILURE
+    assert "Traceback" not in result.output
+    assert "Confluence config invalid" in result.output
+
+
+@pytest.mark.business_logic
+def test_publish_all_partial_failure_exits_nonzero_with_error_text(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """Неуспешный PublishReport (success=False) завершает команду с кодом 1 и печатает каждое сообщение об ошибке."""
+    report = make_publish_report(
+        success=False, pages_published=0, errors=["some page failed"]
+    )
+    mock_publisher = _mock_collaborators(mocker, publish_report=report)
+
+    result = _invoke(tmp_path, configs_dir)
+
+    assert result.exit_code == _EXIT_FAILURE
+    assert "some page failed" in result.output
+
+
+@pytest.mark.business_logic
+def test_publish_all_zero_pages_published_exits_nonzero(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
+    """Успешный отчёт с pages_published=0 всё равно завершается кодом 1 (случай «публиковать нечего»)."""
+    report = make_publish_report(success=True, pages_published=0)
+    _mock_collaborators(mocker, publish_report=report)
+
+    result = _invoke(tmp_path, configs_dir)
+
+    assert result.exit_code == _EXIT_FAILURE
