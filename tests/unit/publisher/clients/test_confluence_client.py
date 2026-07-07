@@ -51,6 +51,27 @@ def confluence_client(minimal_confluence_config: dict, mocker: Any) -> Confluenc
     return client
 
 
+@pytest.fixture
+def confluence_client_move_policy(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
+    """ConfluenceClient configured with title_conflict_policy='move' via the public config.
+
+    Built the same way production code builds it (through ConfluenceConfigSchema),
+    rather than mutating the private _title_conflict_policy attribute directly,
+    so the test exercises the real config-driven code path.
+    """
+    cfg = dict(minimal_confluence_config)
+    cfg["title_conflict_policy"] = "move"
+    config = ConfluenceConfigSchema(**cfg)
+    mock_transport = mocker.MagicMock()
+    mocker.patch(
+        "autodoc.publisher.clients.confluence_client.ConfluenceTransport",
+        return_value=mock_transport,
+    )
+    client = ConfluenceClient(config)
+    client._mock_transport = mock_transport  # type: ignore[attr-defined]
+    return client
+
+
 # ---------------------------------------------------------------------------
 # find_page tests
 # ---------------------------------------------------------------------------
@@ -188,7 +209,7 @@ class TestPublishPage:
     @pytest.mark.business_logic
     def test_publish_page_calls_put_even_when_page_under_wrong_parent(
         self,
-        confluence_client: ConfluenceClient,
+        confluence_client_move_policy: ConfluenceClient,
     ) -> None:
         """publish_page issues update_content even when found page's ancestor differs (title_conflict_policy='move')."""
         WRONG_PARENT = "wrong-parent-999"
@@ -199,23 +220,22 @@ class TestPublishPage:
             "version": {"number": 4},
             "ancestors": [{"id": WRONG_PARENT}],
         }
-        confluence_client._mock_transport.search_content.return_value = [existing_page]
-        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
-        confluence_client._title_conflict_policy = "move"
+        confluence_client_move_policy._mock_transport.search_content.return_value = [existing_page]
+        confluence_client_move_policy._mock_transport.update_content.return_value = {"id": PAGE_ID}
 
-        confluence_client.publish_page(
+        confluence_client_move_policy.publish_page(
             space=SPACE,
             parent_id=PARENT_ID,  # different from WRONG_PARENT
             title=PAGE_TITLE,
             body_html=PAGE_BODY,
         )
 
-        confluence_client._mock_transport.update_content.assert_called_once()
+        confluence_client_move_policy._mock_transport.update_content.assert_called_once()
 
     @pytest.mark.business_logic
     def test_publish_page_put_payload_contains_correct_parent_id(
         self,
-        confluence_client: ConfluenceClient,
+        confluence_client_move_policy: ConfluenceClient,
     ) -> None:
         """update_content payload ancestors[0].id equals the requested parent_id, not the old one."""
         OLD_PARENT = "old-parent-111"
@@ -227,18 +247,17 @@ class TestPublishPage:
             "version": {"number": 2},
             "ancestors": [{"id": OLD_PARENT}],
         }
-        confluence_client._mock_transport.search_content.return_value = [existing_page]
-        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
-        confluence_client._title_conflict_policy = "move"
+        confluence_client_move_policy._mock_transport.search_content.return_value = [existing_page]
+        confluence_client_move_policy._mock_transport.update_content.return_value = {"id": PAGE_ID}
 
-        confluence_client.publish_page(
+        confluence_client_move_policy.publish_page(
             space=SPACE,
             parent_id=NEW_PARENT,
             title=PAGE_TITLE,
             body_html=PAGE_BODY,
         )
 
-        update_call = confluence_client._mock_transport.update_content.call_args
+        update_call = confluence_client_move_policy._mock_transport.update_content.call_args
         payload = update_call.args[1]
         # _build_payload always sets: payload["ancestors"] = [{"id": parent_id}]
         ancestors = payload.get("ancestors", [])
@@ -249,7 +268,7 @@ class TestPublishPage:
     @pytest.mark.business_logic
     def test_publish_page_version_incremented_on_reparent(
         self,
-        confluence_client: ConfluenceClient,
+        confluence_client_move_policy: ConfluenceClient,
     ) -> None:
         """Version number increments correctly (current+1) even when page is moved to new parent."""
         existing_page = {
@@ -258,11 +277,10 @@ class TestPublishPage:
             "version": {"number": 7},
             "ancestors": [{"id": "some-other-parent"}],
         }
-        confluence_client._mock_transport.search_content.return_value = [existing_page]
-        confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
-        confluence_client._title_conflict_policy = "move"
+        confluence_client_move_policy._mock_transport.search_content.return_value = [existing_page]
+        confluence_client_move_policy._mock_transport.update_content.return_value = {"id": PAGE_ID}
 
-        result = confluence_client.publish_page(
+        result = confluence_client_move_policy.publish_page(
             space=SPACE,
             parent_id=PARENT_ID,
             title=PAGE_TITLE,

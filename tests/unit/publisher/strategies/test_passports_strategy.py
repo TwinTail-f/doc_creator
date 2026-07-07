@@ -26,6 +26,7 @@ from autodoc.publisher.converters.passport_converter import PassportConverter
 from tests.unit.publisher.conftest import (
     FakeConfluenceClient,
     FakeDocumentBuilder,
+    RecordingConfluenceClient,
 )
 
 # ---------------------------------------------------------------------------
@@ -823,3 +824,105 @@ def test_hierarchy_created_for_each_component(
         f"ensure_hierarchy_exists must be called for all (comp, version) pairs.\n"
         f"Expected: {expected_pairs}\nGot:      {actual_pairs}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Real-scenario probe: multiple channels sharing the same version
+#
+# publisher_multi_channel_result models a real, valid data shape (see its own
+# docstring): a component can be released through several channels (e.g.
+# 'fast' and 'stable') while sharing the same version number. This test uses
+# RecordingConfluenceClient — a previously unused test double in this
+# project's conftest — to pin down what PassportsStrategy actually does with
+# that shape today, since nothing in the suite exercised it before.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_passport_page_republished_once_per_channel_sharing_same_version(
+    publisher_multi_channel_result: ParsedResult,
+    publisher_document_builder: FakeDocumentBuilder,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """
+    Business Rule (current behavior — documented so a future change is a
+    deliberate decision, not an accidental regression):
+
+    PassportsStrategy.execute() builds its work list purely from
+    (component_name, release.version) pairs, one per Release object (see
+    execute()'s work_items loop) — it does not deduplicate across channels.
+    A component published through several channels under the *same* version
+    (comp_alpha in publisher_multi_channel_result: 'fast' and 'stable', both
+    '2.0.0') is therefore queued twice for what PassportConverter renders as
+    the exact same page (PassportConverter._find_releases already groups every
+    channel sharing that version into one page — see its own docstring). The
+    second work item does not fail or get skipped: it re-resolves the
+    just-created page and republishes it, bumping its Confluence version with
+    identical content.
+
+    Preconditions:
+        - publisher_multi_channel_result: comp_alpha has two releases, both
+          version '2.0.0' (channels 'fast'/'stable'); comp_beta has one
+          release, version '1.0.0'.
+        - PageHierarchyManager.ensure_hierarchy_exists is stubbed (hierarchy
+          creation itself is covered separately in test_hierarchy_manager.py).
+
+    Steps:
+        1. Execute PassportsStrategy with a RecordingConfluenceClient.
+        2. Compare the number of recorded publish_page calls against the
+           number of *distinct* (component, version) pages.
+
+    Expected Result (current behavior):
+        report.pages_published == 3 (one per work item: alpha/fast,
+        alpha/stable, beta/fast) even though there are only 2 distinct pages.
+        Both of alpha's publish calls target the identical page title.
+    """
+    mocker.patch.object(
+        PageHierarchyManager,
+        "ensure_hierarchy_exists",
+        return_value="version-page-fixed-id",
+    )
+    client = RecordingConfluenceClient()
+
+    strategy = PassportsStrategy(
+        confluence_client=client,
+        document_builder=publisher_document_builder,
+        parsed_data=publisher_multi_channel_result,
+        space=_SPACE,
+        root_page_id=_ROOT_PAGE_ID,
+        data_dir=tmp_path,
+        batch_size=10,
+        batch_delay_seconds=0.0,
+    )
+    report = strategy.execute()
+
+    work_item_count = sum(
+        len(comp.releases) for comp in publisher_multi_channel_result.components
+    )
+    distinct_pages = {
+        (comp.name, rel.version)
+        for comp in publisher_multi_channel_result.components
+        for rel in comp.releases
+    }
+    assert work_item_count == 3, "Sanity check on the fixture: 2 alpha channels + 1 beta channel"
+    assert len(distinct_pages) == 2, "Sanity check: alpha's 2 channels collapse to 1 distinct version"
+
+    assert report.pages_published == work_item_count, (
+        "Current behavior republishes once per channel work item, not once per "
+        f"distinct page: expected {work_item_count} publish calls, "
+        f"report says {report.pages_published}"
+    )
+    assert len(client.published_pages) == work_item_count
+
+    alpha_title = PassportsStrategy._make_page_title("alpha", "2.0.0")
+    alpha_calls = [p for p in client.published_pages if p["title"] == alpha_title]
+    assert len(alpha_calls) == 2, (
+        "alpha's single distinct page must be published/updated twice "
+        "(once per channel work item) under the current (non-deduplicating) behavior"
+    )
+
+    # No two publish_page calls (even for the same page, republished) collide on page_id:
+    # RecordingConfluenceClient's counter must hand out unique IDs.
+    page_ids = [d["page_id"] for d in report.details if d and d.get("page_id")]
+    assert len(page_ids) == len(set(page_ids)), "Every publish must receive a unique page_id"

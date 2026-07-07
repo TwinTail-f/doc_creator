@@ -6,6 +6,7 @@ Do not touch for the Parser agent. Do not duplicate minimal_confluence_config fr
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -480,12 +481,27 @@ class RecordingConfluenceClient:
     Used to verify page count and publishing order in Part-3 strategy tests.
     Each publish_page/create_page call is appended to ``published_pages`` and
     receives a monotonically-increasing integer ``page_id`` starting from 1000.
+
+    The counter is guarded by a lock: PassportsStrategy publishes pages
+    concurrently via ParallelExecutor/ThreadPoolExecutor, so a naive
+    read-then-increment here would be a genuine race condition (two worker
+    threads could read the same counter value before either incremented it),
+    producing duplicate page IDs — exactly the kind of bug this double
+    should catch, not reproduce.
     """
 
     def __init__(self, existing_bodies: dict[str, str] | None = None) -> None:
         self.published_pages: list[dict] = []
         self._page_counter: int = 1000
+        self._counter_lock: threading.Lock = threading.Lock()
         self._existing_bodies: dict[str, str] = existing_bodies or {}
+
+    def _next_page_id(self) -> str:
+        """Atomically returns and increments the page ID counter."""
+        with self._counter_lock:
+            page_id = str(self._page_counter)
+            self._page_counter += 1
+        return page_id
 
     def publish_page(
         self,
@@ -495,8 +511,7 @@ class RecordingConfluenceClient:
         body_html: str,
     ) -> PageResult:
         """Records the call and returns a PageResult with a unique incremental page_id."""
-        page_id = str(self._page_counter)
-        self._page_counter += 1
+        page_id = self._next_page_id()
         self.published_pages.append(
             {
                 "space": space,
@@ -524,8 +539,7 @@ class RecordingConfluenceClient:
         body_html: str,
     ) -> PageResult:
         """Records the call (does NOT add to published_pages) and returns a unique incremental page_id."""
-        page_id = str(self._page_counter)
-        self._page_counter += 1
+        page_id = self._next_page_id()
         return PageResult(id=page_id, version=1, status="created", message="")
 
     def find_page(
