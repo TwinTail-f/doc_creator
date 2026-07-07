@@ -94,6 +94,89 @@ def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
     assert result.error  # non-empty error message
 
 
+@pytest.mark.infrastructure
+def test_conan2_runner_clean_cache_success(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
+    """clean_cache() не бросает исключений при успешном завершении и использует шаблонный CONAN_HOME напрямую."""
+    runner = _make_runner(tmp_path)
+    mock_run = mocker.patch("subprocess.run", return_value=MagicMock(returncode=0, stderr="", stdout=""))
+
+    runner.clean_cache()
+
+    mock_run.assert_called_once()
+    args, kwargs = mock_run.call_args
+    assert args[0] == Conan2Runner._CLEAN_CACHE_CMD
+    # clean_cache() uses the template directory itself, not a fresh temp copy
+    # (unlike run(), which always copies into an isolated tempdir).
+    assert kwargs["env"]["CONAN_HOME"] == str(tmp_path)
+
+
+@pytest.mark.infrastructure
+def test_conan2_runner_clean_cache_non_critical_failure(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
+    """clean_cache() не бросает исключений, если conan вернул ненулевой код (некритичная ошибка)."""
+    runner = _make_runner(tmp_path)
+    mocker.patch(
+        "subprocess.run",
+        return_value=MagicMock(returncode=1, stderr="cache empty", stdout=""),
+    )
+
+    # Must not raise any exception
+    runner.clean_cache()
+
+
+@pytest.mark.infrastructure
+def test_conan2_runner_clean_cache_timeout(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
+    """clean_cache() не бросает исключений при истечении времени ожидания subprocess."""
+    runner = _make_runner(tmp_path)
+    mocker.patch(
+        "subprocess.run",
+        side_effect=subprocess.TimeoutExpired(cmd="conan", timeout=Conan2Runner._CLEAN_CACHE_TIMEOUT),
+    )
+
+    # Must not raise any exception
+    runner.clean_cache()
+
+
+@pytest.mark.infrastructure
+def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
+    tmp_path: Path, mocker
+) -> None:  # type: ignore[no-untyped-def]
+    """run() при не-JSON stdout возвращает success=False с сообщением, включающим превью исходного stdout."""
+    runner = _make_runner(tmp_path)
+    fake_stdout = "<warning>not actually json this time</warning>"
+    mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mocker.patch(
+        "subprocess.run",
+        return_value=MagicMock(returncode=0, stdout=fake_stdout, stderr=""),
+    )
+
+    result: ConanRawResult = runner.run(_make_task())
+
+    assert result.success is False
+    assert result.data is None
+    assert "JSON" in result.error
+    assert fake_stdout in result.error
+
+
+@pytest.mark.infrastructure
+def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message(
+    tmp_path: Path, mocker
+) -> None:  # type: ignore[no-untyped-def]
+    """run() при ненулевом returncode передаёт stderr в _extract_error_message и возвращает его результат."""
+    runner = _make_runner(tmp_path)
+    stderr = "some INFO preamble\nERROR: something broke"
+    mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mocker.patch(
+        "subprocess.run",
+        return_value=MagicMock(returncode=1, stdout="", stderr=stderr),
+    )
+
+    result: ConanRawResult = runner.run(_make_task())
+
+    assert result.success is False
+    assert "ERROR: something broke" in result.error
+    assert "some INFO preamble" not in result.error
+
+
 # ---------------------------------------------------------------------------
 # ConanEnvironmentManager tests
 # ---------------------------------------------------------------------------

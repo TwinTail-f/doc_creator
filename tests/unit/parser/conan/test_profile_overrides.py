@@ -198,3 +198,232 @@ def test_profile_overrides_multiple_entries_merged(tmp_path: Path) -> None:
 
     assert result.get("os") == "Linux"
     assert result.get("compiler") == "gcc"
+
+
+# ---------------------------------------------------------------------------
+# Частичная порча списка overrides: один "битый" элемент не должен ломать
+# разбор остальных, валидных элементов того же списка.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_non_dict_entry_skipped_others_resolved(tmp_path: Path) -> None:
+    """Элемент overrides, не являющийся объектом (например строка), пропускается — остальные записи разрешаются."""
+    data = {
+        "overrides": [
+            "this-is-not-a-dict",
+            {
+                "profiles": ["good-profile.jinja"],
+                "settings": {"os": "Linux"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("good-profile.jinja") == {"os": "Linux"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_singular_profile_key_typo_skipped_others_resolved(tmp_path: Path) -> None:
+    """Запись с опечаткой 'profile' вместо 'profiles' пропускается — остальные записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profile": ["typo-profile.jinja"],
+                "settings": {"os": "Linux"},
+            },
+            {
+                "profiles": ["good-profile.jinja"],
+                "settings": {"compiler": "gcc"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("typo-profile.jinja") == {}
+    assert overrides.resolve("good-profile.jinja") == {"compiler": "gcc"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_profiles_non_list_skipped_others_resolved(tmp_path: Path) -> None:
+    """Запись, у которой 'profiles' — не список (а строка), пропускается — остальные записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profiles": "crypto_default.jinja",
+                "settings": {"os": "Linux"},
+            },
+            {
+                "profiles": ["good-profile.jinja"],
+                "settings": {"compiler": "gcc"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("crypto_default.jinja") == {}
+    assert overrides.resolve("good-profile.jinja") == {"compiler": "gcc"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_empty_profiles_list_skipped_others_resolved(tmp_path: Path) -> None:
+    """Запись с пустым списком 'profiles' пропускается — остальные записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profiles": [],
+                "settings": {"os": "Linux"},
+            },
+            {
+                "profiles": ["good-profile.jinja"],
+                "settings": {"compiler": "gcc"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("good-profile.jinja") == {"compiler": "gcc"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_missing_settings_skipped_others_resolved(tmp_path: Path) -> None:
+    """Запись без ключа 'settings' пропускается — остальные записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profiles": ["no-settings-profile.jinja"],
+            },
+            {
+                "profiles": ["good-profile.jinja"],
+                "settings": {"compiler": "gcc"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("no-settings-profile.jinja") == {}
+    assert overrides.resolve("good-profile.jinja") == {"compiler": "gcc"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_empty_settings_dict_skipped_others_resolved(tmp_path: Path) -> None:
+    """Запись с пустым словарём 'settings' пропускается (не только отсутствующим) — остальные записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profiles": ["empty-settings-profile.jinja"],
+                "settings": {},
+            },
+            {
+                "profiles": ["good-profile.jinja"],
+                "settings": {"compiler": "gcc"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("empty-settings-profile.jinja") == {}
+    assert overrides.resolve("good-profile.jinja") == {"compiler": "gcc"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_non_string_profile_name_skipped_siblings_resolved(tmp_path: Path) -> None:
+    """Не-строковое имя профиля внутри списка пропускается — соседние валидные имена той же записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profiles": [123, "good-profile.jinja", None],
+                "settings": {"os": "Linux"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("good-profile.jinja") == {"os": "Linux"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_blank_profile_name_skipped_siblings_resolved(tmp_path: Path) -> None:
+    """Пустое/состоящее из пробелов имя профиля пропускается — соседние валидные имена той же записи разрешаются."""
+    data = {
+        "overrides": [
+            {
+                "profiles": ["   ", "good-profile.jinja"],
+                "settings": {"os": "Linux"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("good-profile.jinja") == {"os": "Linux"}
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_partial_corruption_final_state_correct(tmp_path: Path) -> None:
+    """Список из трёх записей с одной битой: обе валидные записи разрешаются, is_empty() возвращает False."""
+    data = {
+        "overrides": [
+            {
+                "profile": ["broken-entry.jinja"],
+                "settings": {"os": "Linux"},
+            },
+            {
+                "profiles": ["profile-one.jinja"],
+                "settings": {"compiler": "gcc"},
+            },
+            {
+                "profiles": ["profile-two.jinja"],
+                "settings": {"compiler": "clang"},
+            },
+        ]
+    }
+    path = _write_json(tmp_path, data)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("profile-one.jinja") == {"compiler": "gcc"}
+    assert overrides.resolve("profile-two.jinja") == {"compiler": "clang"}
+    assert overrides.is_empty() is False
+
+
+# ---------------------------------------------------------------------------
+# Форма всего файла: валидный JSON, но не той формы, которую ожидает
+# _parse() (не dict, без секции "overrides", "overrides" не список).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_raw_not_a_dict_returns_empty(tmp_path: Path) -> None:
+    """Если содержимое файла — валидный JSON, но не объект (например список) — возвращается пустой экземпляр."""
+    path = _write_json(tmp_path, ["not", "a", "dict"])  # type: ignore[arg-type]
+
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.is_empty() is True
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_missing_overrides_key_returns_empty(tmp_path: Path) -> None:
+    """Если в валидном JSON-объекте отсутствует секция 'overrides' — возвращается пустой экземпляр."""
+    path = _write_json(tmp_path, {"something_else": True})
+
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.is_empty() is True
+
+
+@pytest.mark.business_logic
+def test_profile_overrides_overrides_key_not_a_list_returns_empty(tmp_path: Path) -> None:
+    """Если 'overrides' присутствует, но не является списком (например объектом) — возвращается пустой экземпляр."""
+    path = _write_json(tmp_path, {"overrides": {"not": "a list"}})
+
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.is_empty() is True
