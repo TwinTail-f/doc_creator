@@ -3,14 +3,13 @@
 import click
 
 from autodoc.cli.constants import DEFAULT_RELEASE_PAGE_TITLE, RELEASE_TEMPLATE
-from autodoc.cli.commands.publish.quote_hint import QuoteHintCommand
 from autodoc.cli.commands.publish.single_page import (
     single_page_options,
     run_single_page_command,
 )
 
 
-@click.command("release", cls=QuoteHintCommand)
+@click.command("release")
 @single_page_options
 @click.pass_context
 def publish_release(

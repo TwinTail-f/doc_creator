@@ -31,6 +31,30 @@ class PassportConverter(BaseDataConverter):
         self._component_name: str = component_name
         self._release_version: str = release_version
 
+    @classmethod
+    def _classify_option_badge(cls, value: Any, default_value: Any, has_default: bool) -> str:
+        """
+        Определяет CSS-класс бейджа опции по признаку отличия от дефолта.
+
+        Значения сравниваются через ``str()``, чтобы ``True`` и ``"True"``
+        (булево и строковое представление, оба встречаются в разборе Conan)
+        считались одним и тем же значением.
+
+        Args:
+            value: Текущее значение опции варианта сборки.
+            default_value: Дефолтное значение этой опции у компонента.
+            has_default: Найдено ли дефолтное значение для этой опции
+                         (опции зависимостей вроде ``icu:shared`` могут
+                         отсутствовать в ``default_options`` компонента).
+
+        Returns:
+            ``autodoc-badge-n`` (жёлтый), если значение отличается от дефолта,
+            иначе ``autodoc-badge-def`` (нейтральный).
+        """
+        if not has_default or str(value) == str(default_value):
+            return "autodoc-badge-def"
+        return "autodoc-badge-n"
+
     @staticmethod
     def _find_component(data: ParsedResult, component_name: str) -> Any:
         """

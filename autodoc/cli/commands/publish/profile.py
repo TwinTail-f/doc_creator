@@ -3,14 +3,13 @@
 import click
 
 from autodoc.cli.constants import DEFAULT_PROFILE_PAGE_TITLE, PROFILE_TEMPLATE
-from autodoc.cli.commands.publish.quote_hint import QuoteHintCommand
 from autodoc.cli.commands.publish.single_page import (
     single_page_options,
     run_single_page_command,
 )
 
 
-@click.command("profile", cls=QuoteHintCommand)
+@click.command("profile")
 @single_page_options
 @click.pass_context
 def publish_profile(

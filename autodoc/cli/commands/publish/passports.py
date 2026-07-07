@@ -12,13 +12,12 @@ from autodoc.cli.helpers import (
     print_publish_result,
     require_exclusive,
 )
-from autodoc.cli.commands.publish.quote_hint import QuoteHintCommand
 
 _PASSPORTS_ROOT_NAME_FLAG: str = "--passports-root-parent-name"
 _PASSPORTS_ROOT_ID_FLAG: str = "--passports-root-parent-id"
 
 
-@click.command("passports", cls=QuoteHintCommand)
+@click.command("passports")
 @click.option(
     "--passports-root-parent-id",
     "passports_root_parent_id",

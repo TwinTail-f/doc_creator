@@ -13,8 +13,8 @@ class _VariantOpts(NamedTuple):
     conan_options: dict[str, Any]
     install_options_override: str | None = None
     # {имя_опции: дефолтное_значение} компонента (DefaultOptionsSet), для подсветки
-    # в UI отличий от дефолта, а не самого булевого значения. Если опция здесь
-    # не найдена — дефолт считается неизвестным (бейдж остаётся нейтральным).
+    # в UI отличий от дефолта. Если опция здесь не найдена — дефолт считается
+    # неизвестным (бейдж остаётся нейтральным).
     default_options: dict[str, Any] = {}
 
 
@@ -121,42 +121,27 @@ class BaseDataConverter(ABC):
         pd = pd_map.get(profile_name)
         return (dict(pd.conan_settings) if pd else {}, pd.docker_image if pd else "")
 
-    @staticmethod
-    def _classify_option_badge(value: Any, default_value: Any, has_default: bool) -> str:
+    @classmethod
+    def _classify_option_badge(cls, value: Any, default_value: Any, has_default: bool) -> str:
         """
-        Определяет CSS-класс бейджа опции по признаку отличия от дефолта.
+        Определяет CSS-класс бейджа опции.
 
-        Подсвечивается не булево значение само по себе, а факт, что значение
-        варианта отличается от дефолтного значения этой опции у компонента:
-          - совпадает с дефолтом, либо дефолт неизвестен → нейтральный (серый)
-          - отличается и приводится к ``True``  → зелёный
-          - отличается и приводится к ``False`` → красный
-          - отличается, но не булево             → жёлтый
-
-        Значения сравниваются через ``str()``, чтобы ``True`` и ``"True"``
-        (булево и строковое представление, оба встречаются в разборе Conan)
-        считались одним и тем же значением.
+        Базовая реализация не подсвечивает отличия от дефолта — используется
+        только теми конвертерами, для которых это осмысленно (см. ``PassportConverter``).
 
         Args:
             value: Текущее значение опции варианта сборки.
             default_value: Дефолтное значение этой опции у компонента.
-            has_default: Найдено ли дефолтное значение для этой опции
-                         (опции зависимостей вроде ``icu:shared`` могут
-                         отсутствовать в ``default_options`` компонента).
+            has_default: Найдено ли дефолтное значение для этой опции.
 
         Returns:
-            Имя CSS-класса бейджа: ``autodoc-badge-def`` / ``-t`` / ``-f`` / ``-n``.
+            Имя CSS-класса бейджа (``autodoc-badge-def``).
         """
-        if not has_default or str(value) == str(default_value):
-            return "autodoc-badge-def"
-        if value is True or value == "True":
-            return "autodoc-badge-t"
-        if value is False or value == "False":
-            return "autodoc-badge-f"
-        return "autodoc-badge-n"
+        return "autodoc-badge-def"
 
-    @staticmethod
+    @classmethod
     def _build_variant_view(
+        cls,
         variant: Any,
         component_name: str,
         opts: "_VariantOpts | None" = None,
@@ -178,13 +163,13 @@ class BaseDataConverter(ABC):
         conan_options = resolved_opts.conan_options
         defaults = resolved_opts.default_options
         option_badges = {
-            name: BaseDataConverter._classify_option_badge(value, defaults.get(name), name in defaults)
+            name: cls._classify_option_badge(value, defaults.get(name), name in defaults)
             for name, value in conan_options.items()
         }
         if resolved_opts.install_options_override is not None:
             install_opts = resolved_opts.install_options_override
         else:
-            install_opts = BaseDataConverter._build_install_options(conan_options, component_name)
+            install_opts = cls._build_install_options(conan_options, component_name)
         return ConanVariantView(
             package_id=variant.package_id,
             build_url=variant.build_url,

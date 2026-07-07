@@ -106,7 +106,14 @@
                         </ac:structured-macro>
                     {%- endif -%}
 
-                    <h3 class="autodoc-h3">Собранные профили</h3>
+                    <h3 class="autodoc-h3">
+                        Собранные профили
+                        {%- if not release.is_header_only -%}
+                        <span title="Значения опций, отличающиеся от дефолтного значения компонента, подсвечены жёлтым." class="autodoc-help-icon">
+                            <ac:emoticon ac:name="information" />
+                        </span>
+                        {%- endif -%}
+                    </h3>
                     {%- if release.is_header_only -%}
                         <ac:structured-macro ac:name="info">
                             <ac:rich-text-body>

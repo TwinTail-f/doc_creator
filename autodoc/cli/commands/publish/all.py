@@ -18,7 +18,6 @@ from autodoc.cli.helpers import (
     require_exclusive,
     console,
 )
-from autodoc.cli.commands.publish.quote_hint import QuoteHintCommand
 from autodoc.cli.commands.publish.release import publish_release
 from autodoc.cli.commands.publish.profile import publish_profile
 from autodoc.cli.commands.publish.passports import publish_passports
@@ -34,7 +33,7 @@ publish.add_command(publish_profile)
 publish.add_command(publish_passports)
 
 
-@publish.command("all", cls=QuoteHintCommand)
+@publish.command("all")
 @click.option(
     "--passports-root-parent-id",
     "passports_root_parent_id",
