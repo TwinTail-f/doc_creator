@@ -6,10 +6,7 @@
 ``ctx.artifactory_client``.
 """
 
-import warnings
-
 import requests
-import urllib3
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.common.retryable_session import create_pat_session
@@ -23,11 +20,6 @@ class ArtifactoryClient:
     Создаётся через ``ArtifactoryClient(config)`` и внедряется в
     ``PipelineContext``. Не хранит глобального состояния — каждый
     экземпляр независим.
-
-    SSL-верификация отключена на уровне сессии (не только внутри ``head()``),
-    поскольку Artifactory в корпоративной сети использует самоподписанные
-    сертификаты. ``InsecureRequestWarning`` подавляется локально внутри
-    ``head()``, чтобы не засорять лог при массовых проверках.
 
     Attributes:
         session: HTTP-сессия с настроенной аутентификацией и retry-логикой.
@@ -45,7 +37,6 @@ class ArtifactoryClient:
             max_retries=config.max_retries,
             backoff_factor=config.retry_backoff_factor,
         )
-        self.session.verify = False
 
     def head(self, url: str) -> requests.Response:
         """
@@ -58,8 +49,4 @@ class ArtifactoryClient:
             HTTP-ответ сервера.
         """
         logger.debug(f"HEAD {url}")
-        with warnings.catch_warnings():
-            # InsecureRequestWarning подавляется локально, а не на уровне всего процесса,
-            # чтобы не засорять лог при массовых проверках.
-            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-            return self.session.head(url, allow_redirects=True)
+        return self.session.head(url, allow_redirects=True)

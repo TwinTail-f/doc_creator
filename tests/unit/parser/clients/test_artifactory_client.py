@@ -38,25 +38,6 @@ def test_artifactory_client_head_returns_response(mocker, parser_config) -> None
     assert response.status_code == 200
 
 
-# ---------------------------------------------------------------------------
-# head: проверка SSL отключена на уровне сессии
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.infrastructure
-def test_artifactory_client_head_disables_ssl_verification(
-    parser_config,
-) -> None:
-    """ArtifactoryClient устанавливает verify=False для сессии, отключая проверку SSL."""
-    client = _make_artifactory_client(parser_config)
-
-    assert client.session.verify is False
-
-
-# ---------------------------------------------------------------------------
-# Соответствие протоколу: ArtifactoryClient удовлетворяет IArtifactoryClient
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.contract
 def test_artifactory_client_satisfies_protocol(parser_config) -> None:
