@@ -1,4 +1,4 @@
-"""Группа publish и команда publish all."""
+"""Команда publish all."""
 
 import click
 
@@ -15,25 +15,11 @@ from autodoc.cli.helpers import (
     load_parsed_data,
     make_publisher,
     print_publish_result,
-    require_exclusive,
     console,
 )
-from autodoc.cli.commands.publish.release import publish_release
-from autodoc.cli.commands.publish.profile import publish_profile
-from autodoc.cli.commands.publish.passports import publish_passports
 
 
-@click.group()
-def publish() -> None:
-    """Публикация документации в Confluence."""
-
-
-publish.add_command(publish_release)
-publish.add_command(publish_profile)
-publish.add_command(publish_passports)
-
-
-@publish.command("all")
+@click.command("all")
 @click.option(
     "--passports-root-parent-id",
     "passports_root_parent_id",
@@ -110,18 +96,14 @@ def publish_all(
     no_passport_links: bool,
 ) -> None:
     """Публикация паспортов, релизной документации и опционально страницы профилей за один вызов."""
-    require_exclusive(
-        passports_root_parent_name,
-        passports_root_parent_id,
-        name_flag="--passports-root-parent-name",
-        id_flag="--passports-root-parent-id",
-    )
-    require_exclusive(
-        root_page_name,
-        root_page_id,
-        name_flag="--release-root-page-name",
-        id_flag="--release-root-page-id",
-    )
+    if passports_root_parent_name and passports_root_parent_id:
+        raise click.UsageError(
+            "Укажите только один флаг: --passports-root-parent-name или --passports-root-parent-id."
+        )
+    if root_page_name and root_page_id:
+        raise click.UsageError(
+            "Укажите только один флаг: --release-root-page-name или --release-root-page-id."
+        )
     if additional_page_profile_name and not with_additional_page_profile:
         raise click.UsageError(
             "Флаг --additional-page-profile-name требует указания флага --with-additional-page-profile."

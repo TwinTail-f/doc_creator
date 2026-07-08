@@ -1,6 +1,6 @@
 """Извлечение legacy-контента из Confluence Storage Format."""
 
-from autodoc.publisher.legacy_content._html_utils import parse_page_sections
+from autodoc.publisher.legacy_content.html_utils import parse_page_sections
 
 
 def extract_platform_versions(html: str) -> dict[str, str]:

@@ -10,11 +10,7 @@ from autodoc.cli.helpers import (
     load_parsed_data,
     make_publisher,
     print_publish_result,
-    require_exclusive,
 )
-
-_PASSPORTS_ROOT_NAME_FLAG: str = "--passports-root-parent-name"
-_PASSPORTS_ROOT_ID_FLAG: str = "--passports-root-parent-id"
 
 
 @click.command("passports")
@@ -40,17 +36,15 @@ def publish_passports(
     passports_root_parent_name: str | None,
 ) -> None:
     """Публикация паспортов компонентов в виде иерархии страниц."""
-    require_exclusive(
-        passports_root_parent_name,
-        passports_root_parent_id,
-        name_flag=_PASSPORTS_ROOT_NAME_FLAG,
-        id_flag=_PASSPORTS_ROOT_ID_FLAG,
-    )
+    if passports_root_parent_name and passports_root_parent_id:
+        raise click.UsageError(
+            "Укажите только один флаг: --passports-root-parent-name или --passports-root-parent-id."
+        )
 
     cli_ctx: CliCtx = ctx.obj
 
     with cli_error_boundary("🚀 Публикация паспортов компонентов"):
-        publisher, conf_config = make_publisher(cli_ctx)
+        publisher, _ = make_publisher(cli_ctx)
         parsed_data = load_parsed_data(cli_ctx.base_dir)
 
         console.print("🔄 Публикация паспортов… (может занять время)", style="cyan")

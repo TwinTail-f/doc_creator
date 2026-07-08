@@ -12,11 +12,7 @@ from autodoc.cli.helpers import (
     load_parsed_data,
     make_publisher,
     print_publish_result,
-    require_exclusive,
 )
-
-_ROOT_PAGE_NAME_FLAG: str = "--root-page-name"
-_ROOT_PAGE_ID_FLAG: str = "--root-page-id"
 
 
 def single_page_options(f: Callable) -> Callable:
@@ -88,12 +84,8 @@ def run_single_page_command(
         cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
         no_passport_links: Если ``True`` — отключает вставку ссылок на паспорта.
     """
-    require_exclusive(
-        cli_root_page_name,
-        cli_root_page_id,
-        name_flag=_ROOT_PAGE_NAME_FLAG,
-        id_flag=_ROOT_PAGE_ID_FLAG,
-    )
+    if cli_root_page_name and cli_root_page_id:
+        raise click.UsageError("Укажите только один флаг: --root-page-name или --root-page-id.")
 
     cli_ctx: CliCtx = ctx.obj
 

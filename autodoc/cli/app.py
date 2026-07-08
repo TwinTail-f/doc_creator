@@ -7,7 +7,7 @@ from autodoc.common.logger import LOGS_DIR_NAME, logger, start_session_file_log
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 from autodoc.cli.commands.parse import parse
-from autodoc.cli.commands.publish.all import publish
+from autodoc.cli.commands.publish import publish
 from autodoc.cli.commands.config import config
 from autodoc.cli.commands.info import info
 from autodoc.cli.commands.logs import logs

@@ -21,28 +21,6 @@ from autodoc.cli.context import CliCtx
 console = Console()
 
 
-def require_exclusive(
-    name: str | None,
-    page_id: str | None,
-    *,
-    name_flag: str,
-    id_flag: str,
-) -> None:
-    """Проверяет, что задан только один из двух взаимоисключающих флагов.
-
-    Args:
-        name: Значение флага имени страницы.
-        page_id: Значение флага идентификатора страницы.
-        name_flag: Имя CLI-флага для имени (используется в сообщении об ошибке).
-        id_flag: Имя CLI-флага для идентификатора (используется в сообщении об ошибке).
-
-    Raises:
-        click.UsageError: Если переданы оба флага одновременно.
-    """
-    if name and page_id:
-        raise click.UsageError(f"Укажите только один флаг: {name_flag} или {id_flag}.")
-
-
 @contextmanager
 def cli_error_boundary(panel_header: str) -> Generator[None, None, None]:
     """Контекстный менеджер для единообразной обработки ошибок CLI-команды.

@@ -50,7 +50,10 @@ class PageHierarchyManager:
                                и публикации страниц.
         """
         self._client: ConfluenceClient = confluence_client
-        logger.debug("Инициализирован")
+        logger.debug(
+            f"{self.__class__.__name__} инициализирован "
+            f"(client={confluence_client.__class__.__name__})"
+        )
 
     def ensure_hierarchy_exists(
         self,
@@ -117,16 +120,56 @@ class PageHierarchyManager:
             ConfluenceError: Если поиск, перенос или создание страницы
                               завершились ошибкой.
         """
+        page_id = self._resolve_existing_page_id(space=space, parent_id=parent_id, title=title)
+        if page_id is not None:
+            return page_id
+        return self._create_page(space=space, parent_id=parent_id, title=title, body_html=body_html)
+
+    def _resolve_existing_page_id(self, *, space: str, parent_id: str, title: str) -> str | None:
+        """
+        Ищет уже существующую страницу с заданным заголовком под указанным родителем.
+
+        Args:
+            space: Ключ Space.
+            parent_id: Родитель, под которым должна находиться страница.
+            title: Заголовок страницы.
+
+        Returns:
+            ID найденной страницы либо ``None``, если она ещё не существует.
+
+        Raises:
+            ConfluenceError: Если поиск или перенос существующей страницы
+                              под ожидаемого родителя завершились ошибкой.
+        """
         try:
-            page_id = self._client.resolve_existing_page_id(
+            return self._client.resolve_existing_page_id(
                 space=space, parent_id=parent_id, title=title
             )
-            if page_id is not None:
-                return page_id
+        except ConfluenceError:
+            logger.error(f"Не удалось найти существующую страницу {title!r} (parent_id={parent_id})")
+            raise
+
+    def _create_page(self, *, space: str, parent_id: str, title: str, body_html: str) -> str:
+        """
+        Создаёт страницу с заданным заголовком под указанным родителем.
+
+        Args:
+            space: Ключ Space.
+            parent_id: Родитель, под которым должна находиться страница.
+            title: Заголовок страницы.
+            body_html: Тело создаваемой страницы.
+
+        Returns:
+            ID только что созданной страницы.
+
+        Raises:
+            ConfluenceError: Если создание страницы завершилось ошибкой.
+        """
+        try:
             result = self._client.create_page(
                 space=space, parent_id=parent_id, title=title, body_html=body_html
             )
             return result.id
         except ConfluenceError:
-            logger.error(f"Не удалось обеспечить существование страницы {title!r} (parent_id={parent_id})")
+            logger.error(f"Не удалось создать страницу {title!r} (parent_id={parent_id})")
             raise
