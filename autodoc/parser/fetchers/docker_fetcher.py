@@ -70,24 +70,23 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
             query = parse_qs(parsed.query)
             yaml_path = query.get("path", [""])[0]
             branch_raw = query.get("version", [""])[0]
-            branch = (
-                branch_raw[len(_TFS_BRANCH_REF_PREFIX) :]
-                if branch_raw.startswith(_TFS_BRANCH_REF_PREFIX)
-                else (branch_raw or target_platform)
-            )
+            branch = branch_raw.removeprefix(_TFS_BRANCH_REF_PREFIX) if branch_raw else target_platform
 
             items_url = f"{base_api_url}/_apis/git/repositories/{repo}/items"
 
             try:
                 res = self._tfs.get_file_content(items_url, yaml_path, branch)
-                if res.status_code != requests.codes.ok:
-                    logger.warning(f"Файл недоступен (HTTP {res.status_code}) — {url}")
-                    continue
-                content = yaml.safe_load(res.text) or {}
-            except (requests.exceptions.RequestException, yaml.YAMLError) as e:
-                logger.warning(f"Ошибка получения/парсинга {url}: {e}")
+                res.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Ошибка получения файла {url}: {e}")
                 continue
 
-            DockerParser.extract_from_yaml(content, docker_links)
+            try:
+                content = yaml.safe_load(res.text) or {}
+            except yaml.YAMLError as e:
+                logger.warning(f"Ошибка парсинга YAML {url}: {e}")
+                continue
+
+            docker_links.update(DockerParser.extract_from_yaml(content))
 
         return FetchResult(value=docker_links)

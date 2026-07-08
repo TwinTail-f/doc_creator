@@ -14,15 +14,17 @@ class DockerParser:
     """Статические методы для разбора YAML-профилей и извлечения Docker-ссылок."""
 
     @classmethod
-    def extract_from_yaml(cls, content: dict[str, Any], docker_links: DockerLinksMap) -> None:
+    def extract_from_yaml(cls, content: dict[str, Any]) -> DockerLinksMap:
         """
-        Обходит раздел ``archs`` YAML-профиля и заполняет маппинг Docker-образов.
+        Обходит раздел ``archs`` YAML-профиля и строит маппинг Docker-образов.
 
         Args:
             content: Разобранное содержимое YAML-файла профиля.
-            docker_links: Изменяемый маппинг ``имя_профиля → docker_image_url``,
-                          заполняемый в процессе обхода.
+
+        Returns:
+            Маппинг ``имя_профиля → docker_image_url``, собранный в процессе обхода.
         """
+        docker_links: DockerLinksMap = {}
         archs = content.get("archs", {})
         for key, val in archs.items():
             if key == "common" or not isinstance(val, dict):
@@ -40,6 +42,8 @@ class DockerParser:
             elif isinstance(prof_host, list):
                 for ph in prof_host:
                     cls.add_aliases(ph, docker_img, docker_links)
+
+        return docker_links
 
     @classmethod
     def extract_docker_image(cls, arch_val: dict[str, Any]) -> str:
@@ -75,5 +79,5 @@ class DockerParser:
         docker_links[name] = docker_img
         docker_links[path_obj.name] = docker_img
         docker_links[path_obj.stem] = docker_img
-        if path_obj.parent != Path("."):
+        if len(path_obj.parts) > 1:
             docker_links[f"{path_obj.parent.as_posix()}/{path_obj.stem}"] = docker_img
