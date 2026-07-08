@@ -1,10 +1,10 @@
 """
-Tests for autodoc.publisher.strategies.profile_strategy.ProfileCentricStrategy.
+Тесты для autodoc.publisher.strategies.profile_strategy.ProfileCentricStrategy.
 
-Testing strategy:
-- ProfileCentricStrategy delegates to _publish_single_page (tested via outcome).
-- PassportPageRegistry.load() is mocked when include_passport_links=True.
-- FakeConfluenceClient / FakeDocumentBuilder provide deterministic I/O.
+Стратегия тестирования:
+- ProfileCentricStrategy делегирует работу _publish_single_page (проверяется по результату).
+- PassportPageRegistry.load() мокается, когда include_passport_links=True.
+- FakeConfluenceClient / FakeDocumentBuilder обеспечивают детерминированный ввод-вывод.
 """
 
 from __future__ import annotations
@@ -25,18 +25,10 @@ from tests.unit.publisher.conftest import (
     FakeDocumentBuilder,
 )
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 _SPACE: str = "TEST"
 _PAGE_TITLE: str = "Platform 2.0 Profile-Centric Docs"
 _TEMPLATE_NAME: str = "profile_centric.jinja2"
 _PARENT_ID: str = "parent-001"
-
-# ---------------------------------------------------------------------------
-# Helper factory
-# ---------------------------------------------------------------------------
 
 
 def make_profile_strategy(
@@ -46,7 +38,7 @@ def make_profile_strategy(
     tmp_path: Path,
     include_passport_links: bool = True,
 ) -> ProfileCentricStrategy:
-    """Create a ProfileCentricStrategy with sensible defaults for unit tests."""
+    """Создаёт ProfileCentricStrategy с разумными значениями по умолчанию для юнит-тестов."""
     return ProfileCentricStrategy(
         confluence_client=client,
         document_builder=builder,
@@ -60,13 +52,8 @@ def make_profile_strategy(
     )
 
 
-# ---------------------------------------------------------------------------
-# execute() tests
-# ---------------------------------------------------------------------------
-
-
 class TestProfileCentricStrategyExecute:
-    """Tests for ProfileCentricStrategy.execute() behaviour."""
+    """Тесты поведения ProfileCentricStrategy.execute()."""
 
     @pytest.mark.business_logic
     def test_profile_centric_strategy_execute_returns_success_report(
@@ -77,7 +64,7 @@ class TestProfileCentricStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """A successful execute() returns report.success=True and pages_published=1."""
+        """Успешный execute() возвращает report.success=True и pages_published=1."""
         mocker.patch.object(PassportPageRegistry, "load", return_value={})
         strategy = make_profile_strategy(
             publisher_confluence_client,
@@ -98,7 +85,7 @@ class TestProfileCentricStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """When include_passport_links=True, PassportPageRegistry.load() is called once."""
+        """Когда include_passport_links=True, PassportPageRegistry.load() вызывается один раз."""
         mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
         strategy = make_profile_strategy(
             publisher_confluence_client,
@@ -119,7 +106,7 @@ class TestProfileCentricStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """When include_passport_links=False, PassportPageRegistry.load() is never called."""
+        """Когда include_passport_links=False, PassportPageRegistry.load() никогда не вызывается."""
         mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
         strategy = make_profile_strategy(
             publisher_confluence_client,
@@ -140,7 +127,7 @@ class TestProfileCentricStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """execute() triggers exactly one publish_page call with the expected title."""
+        """execute() вызывает ровно один publish_page с ожидаемым заголовком."""
         mocker.patch.object(PassportPageRegistry, "load", return_value={})
         strategy = make_profile_strategy(
             publisher_confluence_client,
@@ -164,7 +151,7 @@ class TestProfileCentricStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """If publish_page raises ConfluenceError, report.success is False."""
+        """Если publish_page выбрасывает ConfluenceError, report.success равен False."""
         mocker.patch.object(PassportPageRegistry, "load", return_value={})
 
         def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
@@ -181,152 +168,70 @@ class TestProfileCentricStrategyExecute:
         report = strategy.execute()
         assert report.success is False
 
+    @pytest.mark.business_logic
+    def test_profile_links_injected_into_view_model_from_registry(
+        self,
+        publisher_parsed_result: ParsedResult,
+        tmp_path: Path,
+        mocker: Any,
+    ) -> None:
+        """
+        Правило: после загрузки реестра паспортов ссылки на паспорта внедряются в
+        view-model профиль-центричной документации через inject_links_for_profiles,
+        чтобы шаблон мог отрендерить кликабельную ссылку для каждого компонента.
+        """
+        pages_map = {
+            "openssl": {
+                "1.0.0": {
+                    "page_id": "123",
+                    "page_title": "Документация openssl 1.0.0",
+                    "version": 1,
+                }
+            }
+        }
+        mocker.patch.object(PassportPageRegistry, "load", return_value=pages_map)
 
-# ---------------------------------------------------------------------------
-# Registry test
-# ---------------------------------------------------------------------------
+        captured_view_models: list[dict] = []
+
+        class CapturingBuilder:
+            def build(self, template_name: str, view_model: dict) -> str:
+                captured_view_models.append(view_model)
+                return "<html>test</html>"
+
+        strategy = ProfileCentricStrategy(
+            confluence_client=FakeConfluenceClient(),
+            document_builder=CapturingBuilder(),
+            parsed_data=publisher_parsed_result,
+            space=_SPACE,
+            page_title=_PAGE_TITLE,
+            template_name=_TEMPLATE_NAME,
+            parent_id=_PARENT_ID,
+            include_passport_links=True,
+            data_dir=tmp_path,
+        )
+        strategy.execute()
+
+        assert len(captured_view_models) == 1, "builder.build() должен быть вызван ровно один раз"
+        view = captured_view_models[0]
+        profile = next(
+            (p for p in view.get("profiles", []) if p.get("profile_name") == "hw-linux-x86_64-gcc10"),
+            None,
+        )
+        assert profile is not None, "профиль hw-linux-x86_64-gcc10 должен присутствовать в view_model"
+        openssl_comp = next(
+            (c for c in profile.get("channels", {}).get("tech", []) if c.get("name") == "openssl"),
+            None,
+        )
+        assert openssl_comp is not None, "компонент openssl должен присутствовать в канале tech"
+        assert (
+            openssl_comp.get("passport_link") is not None
+        ), "passport_link должен быть внедрён из реестра, когда include_passport_links=True"
 
 
 class TestProfileCentricStrategyRegistry:
-    """Tests for ProfileCentricStrategy registration."""
+    """Тесты регистрации ProfileCentricStrategy."""
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_profile_centric_strategy_registered_as_profile_centric(self) -> None:
-        """'profile_centric' is present in available_strategies()."""
+        """'profile_centric' присутствует в available_strategies()."""
         assert "profile_centric" in available_strategies()
-
-
-# ---------------------------------------------------------------------------
-# Part-3 BL additions: BL-PCS-01…04
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_publishes_exactly_one_page(
-    publisher_confluence_client: FakeConfluenceClient,
-    publisher_document_builder: FakeDocumentBuilder,
-    publisher_parsed_result: ParsedResult,
-    tmp_path: Path,
-    mocker: Any,
-) -> None:
-    """
-    BL-PCS-01
-    Business Rule: ProfileCentricStrategy.execute() publishes exactly one Confluence page.
-
-    Preconditions:
-        - PassportPageRegistry.load is stubbed (no actual file I/O).
-
-    Steps:
-        1. Construct ProfileCentricStrategy with include_passport_links=False.
-        2. Call execute().
-
-    Expected Result:
-        report.pages_published == 1.
-    """
-    mocker.patch.object(PassportPageRegistry, "load", return_value={})
-    strategy = make_profile_strategy(
-        publisher_confluence_client,
-        publisher_document_builder,
-        publisher_parsed_result,
-        tmp_path,
-        include_passport_links=False,
-    )
-    report = strategy.execute()
-
-    assert (
-        report.pages_published == 1
-    ), f"ProfileCentricStrategy must publish 1 page, got: {report.pages_published}"
-
-
-@pytest.mark.business_logic
-def test_registered_as_profile_centric_type() -> None:
-    """
-    BL-PCS-02
-    Business Rule: ProfileCentricStrategy is registered under 'profile_centric'
-    in the BasePublishStrategy registry, enabling `publish profile` CLI command.
-
-    Preconditions:
-        - BasePublishStrategy registry is populated at import time.
-
-    Steps:
-        1. Call available_strategies().
-
-    Expected Result:
-        'profile_centric' is present in the returned list of strategy types.
-    """
-    available = available_strategies()
-    assert (
-        "profile_centric" in available
-    ), f"'profile_centric' must be in available_strategies, got: {available}"
-
-
-@pytest.mark.business_logic
-def test_registry_loaded_when_include_links_true(
-    publisher_confluence_client: FakeConfluenceClient,
-    publisher_document_builder: FakeDocumentBuilder,
-    publisher_parsed_result: ParsedResult,
-    tmp_path: Path,
-    mocker: Any,
-) -> None:
-    """
-    BL-PCS-03
-    Business Rule: when include_passport_links=True, ProfileCentricStrategy must
-    load the passport registry to inject links into the view-model.
-
-    Preconditions:
-        - PassportPageRegistry.load is patched to track invocations.
-
-    Steps:
-        1. Construct strategy with include_passport_links=True.
-        2. Call execute().
-
-    Expected Result:
-        PassportPageRegistry.load() is called at least once.
-    """
-    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
-    strategy = make_profile_strategy(
-        publisher_confluence_client,
-        publisher_document_builder,
-        publisher_parsed_result,
-        tmp_path,
-        include_passport_links=True,
-    )
-    strategy.execute()
-
-    mock_load.assert_called_once_with()
-
-
-@pytest.mark.business_logic
-def test_registry_skipped_when_include_links_false(
-    publisher_confluence_client: FakeConfluenceClient,
-    publisher_document_builder: FakeDocumentBuilder,
-    publisher_parsed_result: ParsedResult,
-    tmp_path: Path,
-    mocker: Any,
-) -> None:
-    """
-    BL-PCS-04
-    Business Rule: when include_passport_links=False, ProfileCentricStrategy must
-    NOT load the registry — unnecessary file reads are avoided.
-
-    Preconditions:
-        - PassportPageRegistry.load is patched to track invocations.
-
-    Steps:
-        1. Construct strategy with include_passport_links=False.
-        2. Call execute().
-
-    Expected Result:
-        PassportPageRegistry.load() is never called.
-    """
-    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
-    strategy = make_profile_strategy(
-        publisher_confluence_client,
-        publisher_document_builder,
-        publisher_parsed_result,
-        tmp_path,
-        include_passport_links=False,
-    )
-    strategy.execute()
-
-    mock_load.assert_not_called()

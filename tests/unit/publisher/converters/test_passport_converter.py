@@ -1,4 +1,4 @@
-"""Unit tests for PassportConverter."""
+"""Юнит-тесты для PassportConverter."""
 
 from __future__ import annotations
 
@@ -8,8 +8,6 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
-
-# ── Constants ─────────────────────────────────────────────────────────────────
 
 COMP_NAME: str = "openssl"
 RELEASE_VERSION: str = "1.0.0"
@@ -24,14 +22,11 @@ UNKNOWN_COMPONENT: str = "nonexistent"
 UNKNOWN_VERSION: str = "9.9.9"
 
 
-# ── Local fixtures ─────────────────────────────────────────────────────────────
-
-
 @pytest.fixture
 def converter_parsed_result_missing_profile(
     publisher_parsed_result: ParsedResult,
 ) -> ParsedResult:
-    """ParsedResult where one ProfileBuild references a profile_name absent from profile_definitions."""
+    """ParsedResult, где один ProfileBuild ссылается на profile_name, отсутствующий в profile_definitions."""
     unknown_pb = ProfileBuild(
         profile_name="unknown-profile",
         exists=True,
@@ -46,14 +41,11 @@ def converter_parsed_result_missing_profile(
     return publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
 
-# ── PassportConverter ───────────────────────────────────────────────────────
-
-
 @pytest.mark.business_logic
 def test_passport_transform_raises_on_unknown_component(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """transform() raises ValueError when the requested component does not exist."""
+    """transform() бросает ValueError, если запрошенный компонент не существует."""
     converter = PassportConverter(UNKNOWN_COMPONENT, RELEASE_VERSION)
 
     with pytest.raises(ValueError):
@@ -64,7 +56,7 @@ def test_passport_transform_raises_on_unknown_component(
 def test_passport_transform_raises_on_unknown_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """transform() raises ValueError when the release version is not found."""
+    """transform() бросает ValueError, если версия релиза не найдена."""
     converter = PassportConverter(COMP_NAME, UNKNOWN_VERSION)
 
     with pytest.raises(ValueError):
@@ -75,7 +67,7 @@ def test_passport_transform_raises_on_unknown_version(
 def test_passport_transform_returns_platform_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """result['platform_version'] matches the platform_version of the ParsedResult."""
+    """result['platform_version'] соответствует platform_version исходного ParsedResult."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["platform_version"] == PLATFORM_VERSION
@@ -85,7 +77,7 @@ def test_passport_transform_returns_platform_version(
 def test_passport_transform_returns_component_fields(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """result['component'] contains the component's name and description."""
+    """result['component'] содержит name и description компонента."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["component"]["name"] == COMP_NAME
@@ -96,7 +88,7 @@ def test_passport_transform_returns_component_fields(
 def test_passport_transform_returns_release_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """result['releases'][0]['version'] matches the requested release version."""
+    """result['releases'][0]['version'] соответствует запрошенной версии релиза."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["releases"][0]["version"] == RELEASE_VERSION
@@ -106,15 +98,11 @@ def test_passport_transform_returns_release_version(
 def test_passport_transform_returns_release_channel(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """result['releases'][0]['channel'] matches the release's channel."""
+    """result['releases'][0]['channel'] соответствует каналу релиза."""
     result = PassportConverter(COMP_NAME, RELEASE_VERSION).transform(publisher_parsed_result)
 
     assert result["releases"][0]["channel"] == CHANNEL_TECH
 
-
-# ---------------------------------------------------------------------------
-# BL-PC-01 … BL-PC-10  (Part 1 of the Publisher BL test plan)
-# ---------------------------------------------------------------------------
 
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.options import TotalOptionsSet
@@ -126,20 +114,20 @@ def test_variant_options_linked_by_options_ref_id(
 ) -> None:
     """
     BL-PC-01
-    Business Rule: ConanVariant.options_ref is used to find the matching
-    TotalOptionsSet by id.  If they match the variant in the view model
-    contains the correct conan_options.
+    Бизнес-правило: ConanVariant.options_ref используется для поиска
+    соответствующего TotalOptionsSet по id. При совпадении вариант
+    в view-model содержит корректный conan_options.
 
-    Preconditions:
-        - publisher_parsed_result has release with variant.options_ref == "opt-set-1"
+    Предусловия:
+        - publisher_parsed_result содержит релиз с variant.options_ref == "opt-set-1"
         - TotalOptionsSet(id="opt-set-1", options={"shared": "True", "fPIC": "True"})
 
-    Steps:
-        1. Create PassportConverter for openssl / 1.0.0
-        2. Call transform()
-        3. Inspect variants[0].conan_options
+    Шаги:
+        1. Создать PassportConverter для openssl / 1.0.0
+        2. Вызвать transform()
+        3. Проверить variants[0].conan_options
 
-    Expected Result:
+    Ожидаемый результат:
         variants[0].conan_options == {"shared": "True", "fPIC": "True"}
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
@@ -163,20 +151,20 @@ def test_variant_with_unknown_options_ref_has_empty_options(
 ) -> None:
     """
     BL-PC-02
-    Business Rule: If options_ref is not found in total_option_sets,
-    conan_options={}; no exception should be raised.
+    Бизнес-правило: если options_ref не найден в total_option_sets,
+    conan_options={}; исключение не должно бросаться.
 
-    Preconditions:
-        - publisher_parsed_result with one variant whose options_ref is replaced
-          with a string not present in any TotalOptionsSet.
+    Предусловия:
+        - publisher_parsed_result с одним вариантом, у которого options_ref
+          заменён на строку, отсутствующую в любом TotalOptionsSet.
 
-    Steps:
-        1. Build a patched ParsedResult where variant.options_ref == "NONEXISTENT_REF"
-        2. Create PassportConverter and call transform()
-        3. Inspect variants[0].conan_options
+    Шаги:
+        1. Построить патченный ParsedResult, где variant.options_ref == "NONEXISTENT_REF"
+        2. Создать PassportConverter и вызвать transform()
+        3. Проверить variants[0].conan_options
 
-    Expected Result:
-        variants[0].conan_options == {}  (no exception raised)
+    Ожидаемый результат:
+        variants[0].conan_options == {}  (исключение не бросается)
     """
     variant_unknown = ConanVariant(
         package_id="abc123",
@@ -208,19 +196,19 @@ def test_install_options_built_from_build_option_sets_not_total(
 ) -> None:
     """
     BL-PC-03
-    Business Rule: install_options string is built from build_option_sets
-    (what the user passes), not from total_option_sets.
+    Бизнес-правило: строка install_options строится из build_option_sets
+    (то, что передал пользователь), а не из total_option_sets.
 
-    Preconditions:
-        - publisher_parsed_result with build_option_sets[0].options ==
+    Предусловия:
+        - publisher_parsed_result с build_option_sets[0].options ==
           "openssl/*:shared=True, openssl/*:fPIC=True"
 
-    Steps:
-        1. Create PassportConverter and call transform()
-        2. Inspect variants[0].install_options
+    Шаги:
+        1. Создать PassportConverter и вызвать transform()
+        2. Проверить variants[0].install_options
 
-    Expected Result:
-        install_options contains "-o" and "shared" and "openssl"
+    Ожидаемый результат:
+        install_options содержит "-o", "shared" и "openssl"
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
@@ -236,24 +224,24 @@ def test_install_options_built_from_build_option_sets_not_total(
 
 
 @pytest.mark.contract
-def test_variants_are_conan_variant_view_namedtuples(
+def test_variants_are_conan_variant_view_dataclasses(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
     BL-PC-04
-    Business Rule: Each variant in the view model is a ConanVariantView
-    (dataclass), not the original ConanVariant.
+    Бизнес-правило: каждый вариант в view-model — это ConanVariantView
+    (dataclass), а не исходный ConanVariant.
 
-    Preconditions:
-        - publisher_parsed_result with one variant in the release.
+    Предусловия:
+        - publisher_parsed_result с одним вариантом в релизе.
 
-    Steps:
-        1. Create PassportConverter and call transform()
-        2. Check type of each variant in profile_builds
+    Шаги:
+        1. Создать PassportConverter и вызвать transform()
+        2. Проверить тип каждого варианта в profile_builds
 
-    Expected Result:
+    Ожидаемый результат:
         isinstance(variant, ConanVariantView) is True;
-        variant has fields: package_id, build_url, conan_options, install_options.
+        у варианта есть поля: package_id, build_url, conan_options, install_options.
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
@@ -276,18 +264,18 @@ def test_profile_build_enriched_with_conan_settings_from_profile_definition(
 ) -> None:
     """
     BL-PC-05
-    Business Rule: conan_settings is taken from ProfileDefinition (by matching
-    profile_name), not from the ProfileBuild itself.
+    Бизнес-правило: conan_settings берётся из ProfileDefinition (по
+    совпадению profile_name), а не из самого ProfileBuild.
 
-    Preconditions:
-        - publisher_parsed_result includes ProfileDefinition for
-          "hw-linux-x86_64-gcc10" with conan_settings.
+    Предусловия:
+        - publisher_parsed_result включает ProfileDefinition для
+          "hw-linux-x86_64-gcc10" с conan_settings.
 
-    Steps:
-        1. Create PassportConverter and call transform()
-        2. Check profile_builds[0]["conan_settings"]
+    Шаги:
+        1. Создать PassportConverter и вызвать transform()
+        2. Проверить profile_builds[0]["conan_settings"]
 
-    Expected Result:
+    Ожидаемый результат:
         profile_builds[0]["conan_settings"] == publisher_profile_definition.conan_settings
     """
     assert any(
@@ -312,18 +300,18 @@ def test_profile_build_enriched_with_docker_image_from_profile_definition(
 ) -> None:
     """
     BL-PC-06
-    Business Rule: docker_image is taken from ProfileDefinition.
+    Бизнес-правило: docker_image берётся из ProfileDefinition.
 
-    Preconditions:
-        - publisher_parsed_result includes ProfileDefinition with docker_image set.
+    Предусловия:
+        - publisher_parsed_result включает ProfileDefinition с заданным docker_image.
 
-    Steps:
-        1. Create PassportConverter and call transform()
-        2. Check profile_builds[0]["docker_image"]
+    Шаги:
+        1. Создать PassportConverter и вызвать transform()
+        2. Проверить profile_builds[0]["docker_image"]
 
-    Expected Result:
-        profile_builds[0]["docker_image"] == publisher_profile_definition.docker_image
-        and it is non-empty.
+    Ожидаемый результат:
+        profile_builds[0]["docker_image"] == publisher_profile_definition.docker_image,
+        и оно непустое.
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
@@ -341,19 +329,19 @@ def test_missing_profile_definition_gives_empty_settings_not_error(
 ) -> None:
     """
     BL-PC-07
-    Business Rule: If ProfileDefinition is missing for a profile,
-    conan_settings={} and docker_image=""; no exception is raised.
+    Бизнес-правило: если ProfileDefinition отсутствует для профиля,
+    conan_settings={} и docker_image=""; исключение не бросается.
 
-    Preconditions:
-        - ParsedResult with profile_definitions=[]
+    Предусловия:
+        - ParsedResult с profile_definitions=[]
 
-    Steps:
-        1. Patch ParsedResult removing all ProfileDefinitions
-        2. Create PassportConverter and call transform()
-        3. Inspect profile_builds[0]
+    Шаги:
+        1. Патчить ParsedResult, убрав все ProfileDefinition
+        2. Создать PassportConverter и вызвать transform()
+        3. Проверить profile_builds[0]
 
-    Expected Result:
-        conan_settings == {} and docker_image == "" without KeyError or AttributeError.
+    Ожидаемый результат:
+        conan_settings == {} и docker_image == "" без KeyError или AttributeError.
     """
     patched_result = publisher_parsed_result.model_copy(update={"profile_definitions": []})
 
@@ -375,21 +363,21 @@ def test_profile_builds_ordered_by_profile_name(
 ) -> None:
     """
     BL-PC-08
-    Business Rule: profile_builds in the view model are ordered alphabetically
-    by profile name, regardless of the order they appear in Release.
+    Бизнес-правило: profile_builds в view-model упорядочены по имени профиля
+    в алфавитном порядке, независимо от порядка их следования в Release.
 
-    Preconditions:
-        - publisher_two_profile_parsed_result has pb_x86 (hw-linux-x86_64-gcc10)
-          and pb_arm (hw-linux-arm64-gcc10) added in x86 / arm order.
+    Предусловия:
+        - publisher_two_profile_parsed_result содержит pb_x86 (hw-linux-x86_64-gcc10)
+          и pb_arm (hw-linux-arm64-gcc10), добавленные в порядке x86 / arm.
 
-    Steps:
-        1. Create PassportConverter(component_name="mylib", release_version="1.0.0")
-        2. Call transform()
-        3. Extract profile_name list from profile_builds
+    Шаги:
+        1. Создать PassportConverter(component_name="mylib", release_version="1.0.0")
+        2. Вызвать transform()
+        3. Извлечь список profile_name из profile_builds
 
-    Expected Result:
-        profile_names == sorted(profile_names) and profile_names[0] starts with
-        "hw-linux-arm64" (arm64 sorts before x86_64).
+    Ожидаемый результат:
+        profile_names == sorted(profile_names) и profile_names[0] начинается с
+        "hw-linux-arm64" (arm64 идёт раньше x86_64 по алфавиту).
     """
     converter = PassportConverter(component_name="mylib", release_version="1.0.0")
     view = converter.transform(publisher_two_profile_parsed_result)
@@ -401,26 +389,26 @@ def test_profile_builds_ordered_by_profile_name(
     ), "arm64 should be first (alphabetically before x86_64)"
 
 
-@pytest.mark.business_logic
-def test_legacy_contents_initially_empty_dict(
+@pytest.mark.contract
+def test_legacy_contents_key_absent_from_view(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
     BL-PC-09
-    Business Rule: PassportConverter.transform() does not set legacy_contents itself;
-    legacy data is injected OUTSIDE, by PassportsStrategy (see
-    passports_strategy.py: view_model["legacy_contents"] = extract_for_platform(...)),
-    not by the converter.
+    Бизнес-правило: PassportConverter.transform() сам не устанавливает
+    legacy_contents; данные legacy добавляются СНАРУЖИ, стратегией
+    PassportsStrategy (см. passports_strategy.py: view_model["legacy_contents"] =
+    extract_for_platform(...)), а не конвертером.
 
-    Preconditions:
-        - Standard publisher_parsed_result (no prior legacy injection).
+    Предусловия:
+        - Стандартный publisher_parsed_result (без предварительной инъекции legacy).
 
-    Steps:
-        1. Create PassportConverter and call transform()
-        2. Inspect view for a "legacy_contents" key.
+    Шаги:
+        1. Создать PassportConverter и вызвать transform()
+        2. Проверить view на наличие ключа "legacy_contents".
 
-    Expected Result:
-        "legacy_contents" key is absent from a bare transform() call.
+    Ожидаемый результат:
+        Ключ "legacy_contents" отсутствует при обычном вызове transform().
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.transform(publisher_parsed_result)
@@ -432,35 +420,33 @@ def test_legacy_contents_initially_empty_dict(
 
 
 @pytest.mark.business_logic
-def test_legacy_contents_key_is_platform_version_string(
+def test_passport_transform_returns_one_entry_per_channel_for_same_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
-    """
-    BL-PC-10
-    Business Rule: Keys in legacy_contents are platform version strings
-    (e.g. "2.1", "2.0").
+    """Несколько релизов одной версии в разных каналах дают отдельную запись releases на каждый канал."""
+    original_comp = publisher_parsed_result.components[0]
+    original_rel = original_comp.releases[0]
+    slow_rel = original_rel.model_copy(update={"channel": "slow"})
+    patched_comp = original_comp.model_copy(update={"releases": [original_rel, slow_rel]})
+    patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
-    Preconditions:
-        - converter.transform() ran successfully; view["legacy_contents"] == {}.
+    converter = PassportConverter(component_name=COMP_NAME, release_version=RELEASE_VERSION)
+    view = converter.transform(patched_result)
 
-    Steps:
-        1. Create PassportConverter and call transform()
-        2. Simulate strategy injection: set view["legacy_contents"] to a
-           dict with string keys like "2.1", "1.9"
-        3. Verify each key is a str containing a digit.
+    channels = {r["channel"] for r in view["releases"]}
+    assert len(view["releases"]) == 2
+    assert channels == {CHANNEL_TECH, "slow"}
 
-    Expected Result:
-        All keys are str and contain at least one digit character.
-    """
-    converter = PassportConverter(component_name="openssl", release_version="1.0.0")
-    view = converter.transform(publisher_parsed_result)
 
-    legacy = {
-        "2.1": "<p>Legacy content for platform 2.1</p>",
-        "1.9": "<p>Legacy content for platform 1.9</p>",
-    }
-    view["legacy_contents"] = legacy
+@pytest.mark.business_logic
+def test_git_repo_base_url_strips_query_string(publisher_parsed_result: ParsedResult) -> None:
+    """git_repo_base_url отбрасывает query-string, оставляя только базовый URL репозитория."""
+    original_comp = publisher_parsed_result.components[0]
+    base_url = original_comp.git_url
+    patched_comp = original_comp.model_copy(update={"git_url": f"{base_url}?version=GBmain"})
+    patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
-    for key in view["legacy_contents"]:
-        assert isinstance(key, str), f"Key of legacy_contents must be a string, got {type(key)}"
-        assert any(c.isdigit() for c in key), f"Key '{key}' must contain a platform version digit"
+    converter = PassportConverter(component_name=COMP_NAME, release_version=RELEASE_VERSION)
+    view = converter.transform(patched_result)
+
+    assert view["releases"][0]["git_repo_base_url"] == base_url

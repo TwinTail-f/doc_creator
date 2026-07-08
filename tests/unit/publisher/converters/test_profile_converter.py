@@ -1,4 +1,4 @@
-"""Unit tests for ProfileCentricConverter."""
+"""Юнит-тесты для ProfileCentricConverter."""
 
 from __future__ import annotations
 
@@ -8,8 +8,6 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-
 COMP_NAME: str = "openssl"
 RELEASE_VERSION: str = "1.0.0"
 CHANNEL_TECH: str = "tech"
@@ -17,16 +15,14 @@ PLATFORM_VERSION: str = "2.0"
 DOCKER_IMAGE: str = "registry.example.com/build/linux-gcc10:latest"
 OS_LINUX: str = "Linux"
 PASSPORT_PATTERN_SHORT: str = "/p/{component_name}/{release_version}"
-
-
-# ── Local fixtures ─────────────────────────────────────────────────────────────
+EXCLUSIVE_PROFILE_NAME: str = "header-only-exclusive-profile"
 
 
 @pytest.fixture
 def result_with_header_only_unique_profile(
     publisher_multi_component_result: ParsedResult,
 ) -> ParsedResult:
-    """ParsedResult where a header-only release references an otherwise-absent profile."""
+    """ParsedResult, где header-only релиз ссылается на профиль, больше нигде не встречающийся."""
     header_pb = ProfileBuild(
         profile_name="header-only-exclusive-profile",
         exists=False,
@@ -45,19 +41,11 @@ def result_with_header_only_unique_profile(
     return publisher_multi_component_result.model_copy(update={"components": components})
 
 
-# ── ProfileCentricConverter ─────────────────────────────────────────────────
-
-
-# ---------------------------------------------------------------------------
-# BL-PCC-01 … BL-PCC-06  (Part 1 of the Publisher BL test plan)
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.contract
 def test_profile_centric_transform_returns_profiles_list(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """result['profiles'] is a non-empty list."""
+    """result['profiles'] — непустой список."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
     assert len(result["profiles"]) > 0
@@ -67,7 +55,7 @@ def test_profile_centric_transform_returns_profiles_list(
 def test_profile_centric_transform_profile_has_required_fields(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """Each profile entry contains all mandatory keys."""
+    """Каждая запись профиля содержит все обязательные ключи."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
     profile = result["profiles"][0]
@@ -87,7 +75,7 @@ def test_profile_centric_transform_profile_has_required_fields(
 def test_profile_centric_transform_profile_os_from_conan_settings(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """profile['os'] is read from conan_settings['os'] of the matching ProfileDefinition."""
+    """profile['os'] читается из conan_settings['os'] соответствующего ProfileDefinition."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
     assert result["profiles"][0]["os"] == OS_LINUX
@@ -97,7 +85,7 @@ def test_profile_centric_transform_profile_os_from_conan_settings(
 def test_profile_centric_transform_profile_docker_url(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """profile['docker_url'] matches the docker_image of the matching ProfileDefinition."""
+    """profile['docker_url'] соответствует docker_image соответствующего ProfileDefinition."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
     assert result["profiles"][0]["docker_url"] == DOCKER_IMAGE
@@ -107,18 +95,18 @@ def test_profile_centric_transform_profile_docker_url(
 def test_profile_centric_transform_channels_grouped_by_channel(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """Both openssl and zlib appear under the 'tech' channel of the profile."""
+    """И openssl, и zlib присутствуют в канале 'tech' профиля."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
     channels = result["profiles"][0]["channels"]
     assert len(channels[CHANNEL_TECH]) == 2
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_profile_centric_transform_comp_entry_has_reference_and_url(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """Each component entry includes 'reference' and 'url' fields."""
+    """Каждая запись компонента включает поля 'reference' и 'url'."""
     result = ProfileCentricConverter().transform(publisher_multi_component_result)
 
     comp_entry = result["profiles"][0]["channels"][CHANNEL_TECH][0]
@@ -126,11 +114,11 @@ def test_profile_centric_transform_comp_entry_has_reference_and_url(
     assert "url" in comp_entry
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_profile_centric_transform_include_links_flag_in_result(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
-    """result['include_passport_links'] reflects the constructor parameter."""
+    """result['include_passport_links'] отражает параметр конструктора."""
     result = ProfileCentricConverter(include_passport_links=False).transform(
         publisher_multi_component_result
     )
@@ -140,16 +128,16 @@ def test_profile_centric_transform_include_links_flag_in_result(
 
 @pytest.mark.business_logic
 def test_profile_centric_converter_profile_with_no_components_does_not_raise() -> None:
-    """ProfileDefinition with no matching ProfileBuilds produces no crash."""
+    """ProfileDefinition без совпадающих ProfileBuild не приводит к падению."""
     from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
     from autodoc.models.component import Component
     from autodoc.models.release import Release
     from autodoc.models.conan_variant import ProfileBuild
 
-    # Profile in definitions but not referenced by any component's ProfileBuild
+    # Профиль присутствует в definitions, но не упомянут ни в одном ProfileBuild компонентов
     orphan_profile = ProfileDefinition(profile_name="hw-linux-riscv64-gcc12")
 
-    pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")  # different name
+    pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")  # другое имя
     release = Release(
         version="3.0.9",  # from openssl.properties
         platform="2.0",
@@ -166,11 +154,12 @@ def test_profile_centric_converter_profile_with_no_components_does_not_raise() -
     )
 
     converter = ProfileCentricConverter()
-    view_model = converter.transform(parsed)  # must not raise
+    view_model = converter.transform(parsed)  # не должно бросить исключение
 
     assert view_model is not None
-    # The orphan profile has no matching ProfileBuilds from non-header-only components,
-    # so it must be absent from the profiles list (not cause a crash or spurious entry)
+    # У осиротевшего профиля нет ProfileBuild от не-header-only компонентов,
+    # поэтому он должен отсутствовать в списке profiles (не вызывать падение
+    # и не создавать фиктивную запись)
     profile_names = {p["profile_name"] for p in view_model["profiles"]}
     assert "hw-linux-riscv64-gcc12" not in profile_names
 
@@ -181,20 +170,21 @@ def test_data_restructured_from_component_to_profile_axis(
 ) -> None:
     """
     BL-PCC-01
-    Business Rule: ProfileCentricConverter converts the input structure
-    Component→Release→Profile into Profile→channels dict→[components].
+    Бизнес-правило: ProfileCentricConverter преобразует входную структуру
+    Компонент→Релиз→Профиль в Профиль→словарь каналов→[компоненты].
 
-    Preconditions:
-        - publisher_multi_channel_result with comp_alpha and comp_beta.
+    Предусловия:
+        - publisher_multi_channel_result с comp_alpha и comp_beta.
 
-    Steps:
-        1. Create ProfileCentricConverter(include_passport_links=False).
-        2. Call transform().
-        3. Inspect view["profiles"] structure.
+    Шаги:
+        1. Создать ProfileCentricConverter(include_passport_links=False).
+        2. Вызвать transform().
+        3. Проверить структуру view["profiles"].
 
-    Expected Result:
-        view contains "profiles" list; each profile has "profile_name" and
-        "channels" (dict); each channel maps to a non-empty list of components.
+    Ожидаемый результат:
+        view содержит список "profiles"; у каждого профиля есть "profile_name"
+        и "channels" (словарь); каждый канал ссылается на непустой список
+        компонентов.
     """
     converter = ProfileCentricConverter(include_passport_links=False)
     view = converter.transform(publisher_multi_channel_result)
@@ -225,21 +215,22 @@ def test_header_only_components_excluded_from_profile_metadata(
 ) -> None:
     """
     BL-PCC-02
-    Business Rule: is_header_only on Component means these components are
-    NOT used to determine profile conan_settings / docker_url.
+    Бизнес-правило: is_header_only у компонента означает, что такие
+    компоненты НЕ используются для определения conan_settings / docker_url
+    профиля.
 
-    Preconditions:
+    Предусловия:
         - publisher_multi_channel_result: comp_alpha (is_header_only=False)
-          and comp_beta (is_header_only=True).
+          и comp_beta (is_header_only=True).
 
-    Steps:
-        1. Create ProfileCentricConverter and call transform().
-        2. Find profile "hw-linux-x86_64-gcc10" in view["profiles"].
-        3. Check conan_settings and docker_url.
+    Шаги:
+        1. Создать ProfileCentricConverter и вызвать transform().
+        2. Найти профиль "hw-linux-x86_64-gcc10" в view["profiles"].
+        3. Проверить conan_settings и docker_url.
 
-    Expected Result:
-        conan_settings matches publisher_profile_definition.conan_settings
-        (sourced from comp_alpha only); value is non-empty.
+    Ожидаемый результат:
+        conan_settings совпадает с publisher_profile_definition.conan_settings
+        (источник — только comp_alpha); значение непустое.
     """
     converter = ProfileCentricConverter(include_passport_links=False)
     view = converter.transform(publisher_multi_channel_result)
@@ -261,18 +252,18 @@ def test_channels_within_profile_sorted_consistently(
 ) -> None:
     """
     BL-PCC-03
-    Business Rule: Channels within a profile have a stable, alphabetical order
-    to ensure identical HTML output on re-publication.
+    Бизнес-правило: каналы внутри профиля имеют стабильный алфавитный
+    порядок, чтобы обеспечить идентичный HTML-вывод при повторной публикации.
 
-    Preconditions:
-        - publisher_multi_channel_result has channels "fast" and "stable"
-          for profile "hw-linux-x86_64-gcc10".
+    Предусловия:
+        - publisher_multi_channel_result имеет каналы "fast" и "stable"
+          для профиля "hw-linux-x86_64-gcc10".
 
-    Steps:
-        1. Create ProfileCentricConverter and call transform().
-        2. For each profile, extract the ordered channel names from the dict.
+    Шаги:
+        1. Создать ProfileCentricConverter и вызвать transform().
+        2. Для каждого профиля извлечь упорядоченные имена каналов из словаря.
 
-    Expected Result:
+    Ожидаемый результат:
         list(channels.keys()) == sorted(list(channels.keys()))
     """
     converter = ProfileCentricConverter(include_passport_links=False)
@@ -292,19 +283,19 @@ def test_components_within_channel_sorted_by_name(
 ) -> None:
     """
     BL-PCC-04
-    Business Rule: Components within a channel are sorted by name for
-    deterministic output in Confluence.
+    Бизнес-правило: компоненты внутри канала отсортированы по имени для
+    детерминированного вывода в Confluence.
 
-    Preconditions:
-        - publisher_multi_channel_result: channel "fast" has both alpha
-          and beta listed; alpha < beta alphabetically.
+    Предусловия:
+        - publisher_multi_channel_result: канал "fast" содержит и alpha,
+          и beta; alpha < beta по алфавиту.
 
-    Steps:
-        1. Create ProfileCentricConverter and call transform().
-        2. For each profile and channel, check component name order.
+    Шаги:
+        1. Создать ProfileCentricConverter и вызвать transform().
+        2. Для каждого профиля и канала проверить порядок имён компонентов.
 
-    Expected Result:
-        comp_names == sorted(comp_names) for every channel in every profile.
+    Ожидаемый результат:
+        comp_names == sorted(comp_names) для каждого канала в каждом профиле.
     """
     converter = ProfileCentricConverter(include_passport_links=False)
     view = converter.transform(publisher_multi_channel_result)
@@ -323,20 +314,19 @@ def test_components_within_channel_sorted_by_name(
 def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> None:
     """
     BL-PCC-05
-    Business Rule: Without a passport_page_pattern, passport_link is None
-    for each component in every channel.
+    Бизнес-правило: без include_passport_links=True passport_link равен
+    None или отсутствует для каждого компонента в каждом канале.
 
-    Preconditions:
-        - ProfileCentricConverter created with include_passport_links=False
-          (or True with no pattern).
+    Предусловия:
+        - ProfileCentricConverter создан с include_passport_links=False.
 
-    Steps:
-        1. Create ProfileCentricConverter(include_passport_links=False).
-        2. Call transform().
-        3. Check passport_link for all component entries.
+    Шаги:
+        1. Создать ProfileCentricConverter(include_passport_links=False).
+        2. Вызвать transform().
+        3. Проверить passport_link для всех записей компонентов.
 
-    Expected Result:
-        All passport_link values are None or "".
+    Ожидаемый результат:
+        Все значения passport_link — None или "".
     """
     converter = ProfileCentricConverter(include_passport_links=False)
     view = converter.transform(publisher_multi_channel_result)
@@ -352,28 +342,29 @@ def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> N
 
 
 @pytest.mark.business_logic
-def test_passport_link_formatted_per_component_version(
+def test_passport_link_key_present_and_none_when_include_links_true(
     publisher_multi_channel_result,
 ) -> None:
     """
     BL-PCC-06
-    Business Rule: When include_passport_links=True, every non-header-only
-    component entry in every channel gets a "passport_link" key, initialized
-    to None. The converter itself does not format any link string — the
-    real URL is filled in later by
-    PassportPageRegistry.inject_links_for_profiles() (see test_passport_registry.py),
-    based on actual published page IDs.
+    Бизнес-правило: при include_passport_links=True каждая не-header-only
+    запись компонента в каждом канале получает ключ "passport_link",
+    инициализированный значением None. Сам конвертер не форматирует
+    строку ссылки — реальный URL заполняется позже в
+    PassportPageRegistry.inject_links_for_profiles() (см. test_passport_registry.py)
+    на основе фактических id опубликованных страниц.
 
-    Preconditions:
-        - publisher_multi_channel_result with comp_alpha (non-header-only).
+    Предусловия:
+        - publisher_multi_channel_result с comp_alpha (не header-only).
 
-    Steps:
-        1. Create ProfileCentricConverter(include_passport_links=True).
-        2. Call transform().
-        3. Check that each comp_entry has a "passport_link" key initialized to None.
+    Шаги:
+        1. Создать ProfileCentricConverter(include_passport_links=True).
+        2. Вызвать transform().
+        3. Проверить, что у каждой записи компонента есть ключ "passport_link"
+           со значением None.
 
-    Expected Result:
-        Every component entry across every channel has "passport_link" is None.
+    Ожидаемый результат:
+        У каждой записи компонента в каждом канале "passport_link" is None.
     """
     converter = ProfileCentricConverter(include_passport_links=True)
     view = converter.transform(publisher_multi_channel_result)
@@ -391,3 +382,32 @@ def test_passport_link_formatted_per_component_version(
                 )
                 checked_any = True
     assert checked_any, "At least one component entry should have been checked"
+
+
+@pytest.mark.business_logic
+def test_header_only_component_with_exclusive_profile_is_dropped_from_view(
+    result_with_header_only_unique_profile: ParsedResult,
+) -> None:
+    """Header-only компонент, чей единственный профиль больше нигде не используется, полностью пропадает из результата."""
+    result = ProfileCentricConverter().transform(result_with_header_only_unique_profile)
+
+    profile_names = {p["profile_name"] for p in result["profiles"]}
+    assert EXCLUSIVE_PROFILE_NAME not in profile_names
+
+
+@pytest.mark.business_logic
+def test_profile_centric_transform_all_header_only_gives_empty_profiles(
+    publisher_multi_component_result: ParsedResult,
+) -> None:
+    """Если все компоненты header-only, метаданные профилей не собираются и profiles == []."""
+    header_only_components = [
+        comp.model_copy(update={"is_header_only": True})
+        for comp in publisher_multi_component_result.components
+    ]
+    patched_result = publisher_multi_component_result.model_copy(
+        update={"components": header_only_components}
+    )
+
+    result = ProfileCentricConverter().transform(patched_result)
+
+    assert result["profiles"] == []

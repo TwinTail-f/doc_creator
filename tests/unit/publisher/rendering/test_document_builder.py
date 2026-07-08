@@ -1,4 +1,4 @@
-"""Unit tests for autodoc.publisher.rendering.document_builder.DocumentBuilder."""
+"""Юнит-тесты для autodoc.publisher.rendering.document_builder.DocumentBuilder."""
 
 from __future__ import annotations
 
@@ -7,32 +7,35 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from jinja2 import TemplateNotFound
+from jinja2 import TemplateError, TemplateNotFound
 
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
 
 SIMPLE_TEMPLATE_NAME: str = "simple.jinja2"
 TITLE_TEMPLATE_NAME: str = "title.jinja2"
 KEY_TEMPLATE_NAME: str = "key.jinja2"
 STATIC_TEMPLATE_NAME: str = "static.jinja2"
 BAD_TEMPLATE_NAME: str = "nonexistent.jinja2"
+XMLATTR_TEMPLATE_NAME: str = "xmlattr.jinja2"
+SYNTAX_ERROR_TEMPLATE_NAME: str = "syntax_error.jinja2"
 
 TITLE_TEMPLATE_CONTENT: str = "{{ data.title }}"
 KEY_TEMPLATE_CONTENT: str = "{{ data.key }}"
 STATIC_TEMPLATE_CONTENT: str = "static"
-
-
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
+XMLATTR_TEMPLATE_CONTENT: str = '<a title="{{ data.value | xmlattr }}"></a>'
+SYNTAX_ERROR_TEMPLATE_CONTENT: str = "{% if data.flag %}unclosed"
 
 
 def make_rendering_dir(tmp_path: Path, templates: dict[str, str]) -> Path:
-    """Creates the rendering_dir/templates/ structure with the given templates."""
+    """Создаёт структуру rendering_dir/templates/ с заданными шаблонами.
+
+    Args:
+        tmp_path: Временная директория, используемая как rendering_dir.
+        templates: Отображение {имя_файла: содержимое} создаваемых шаблонов.
+
+    Returns:
+        Путь к rendering_dir (совпадает с tmp_path).
+    """
     templates_dir = tmp_path / "templates"
     templates_dir.mkdir(parents=True)
     for name, content in templates.items():
@@ -40,14 +43,9 @@ def make_rendering_dir(tmp_path: Path, templates: dict[str, str]) -> Path:
     return tmp_path
 
 
-# ---------------------------------------------------------------------------
-# DocumentBuilder — initialisation
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
-    """DocumentBuilder raises FileNotFoundError when rendering_dir does not exist."""
+    """DocumentBuilder бросает FileNotFoundError, если rendering_dir не существует."""
     missing = tmp_path / "does_not_exist"
     with pytest.raises(FileNotFoundError):
         DocumentBuilder(rendering_dir=missing)
@@ -55,20 +53,15 @@ def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_init_succeeds_with_valid_dir(tmp_path: Path) -> None:
-    """DocumentBuilder initialises without error when rendering_dir exists."""
+    """DocumentBuilder инициализируется без ошибок, если rendering_dir существует."""
     rendering_dir = make_rendering_dir(tmp_path, {})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     assert builder is not None
 
 
-# ---------------------------------------------------------------------------
-# DocumentBuilder — build
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_build_renders_template_with_data(tmp_path: Path) -> None:
-    """build() substitutes view_model fields into the template correctly."""
+    """build() подставляет поля view_model в шаблон корректно."""
     rendering_dir = make_rendering_dir(tmp_path, {TITLE_TEMPLATE_NAME: TITLE_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(TITLE_TEMPLATE_NAME, {"title": "Hello"})
@@ -77,7 +70,7 @@ def test_build_renders_template_with_data(tmp_path: Path) -> None:
 
 @pytest.mark.contract
 def test_build_returns_string(tmp_path: Path) -> None:
-    """build() always returns a str instance."""
+    """build() всегда возвращает экземпляр str."""
     rendering_dir = make_rendering_dir(tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(STATIC_TEMPLATE_NAME, {})
@@ -86,7 +79,7 @@ def test_build_returns_string(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_build_raises_template_not_found(tmp_path: Path) -> None:
-    """build() raises TemplateNotFound when the requested template does not exist."""
+    """build() бросает TemplateNotFound, если запрошенный шаблон не существует."""
     rendering_dir = make_rendering_dir(tmp_path, {})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     with pytest.raises(TemplateNotFound):
@@ -95,7 +88,7 @@ def test_build_raises_template_not_found(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_build_passes_view_model_as_data(tmp_path: Path) -> None:
-    """The template variable 'data' contains the view_model dict passed to build()."""
+    """Переменная шаблона 'data' содержит словарь view_model, переданный в build()."""
     rendering_dir = make_rendering_dir(tmp_path, {KEY_TEMPLATE_NAME: KEY_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(KEY_TEMPLATE_NAME, {"key": "expected_value"})
@@ -104,9 +97,33 @@ def test_build_passes_view_model_as_data(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_build_with_empty_view_model(tmp_path: Path) -> None:
-    """build() renders a static template correctly when view_model is empty."""
+    """build() корректно рендерит статический шаблон, когда view_model пуст."""
     rendering_dir = make_rendering_dir(tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(STATIC_TEMPLATE_NAME, {})
     assert result == "static"
 
+
+@pytest.mark.infrastructure
+def test_build_xmlattr_filter_escapes_special_chars(tmp_path: Path) -> None:
+    """Фильтр xmlattr экранирует '&' и '"', не удваивая экранирование."""
+    rendering_dir = make_rendering_dir(tmp_path, {XMLATTR_TEMPLATE_NAME: XMLATTR_TEMPLATE_CONTENT})
+    builder = DocumentBuilder(rendering_dir=rendering_dir)
+
+    result = builder.build(XMLATTR_TEMPLATE_NAME, {"value": 'Tom & Jerry "Show"'})
+
+    assert result == '<a title="Tom &amp; Jerry &quot;Show&quot;"></a>'
+    assert "&amp;amp;" not in result
+    assert "&quot;quot;" not in result
+
+
+@pytest.mark.infrastructure
+def test_build_raises_template_error_on_syntax_error(tmp_path: Path) -> None:
+    """build() бросает TemplateError при синтаксической ошибке Jinja2 в шаблоне."""
+    rendering_dir = make_rendering_dir(
+        tmp_path, {SYNTAX_ERROR_TEMPLATE_NAME: SYNTAX_ERROR_TEMPLATE_CONTENT}
+    )
+    builder = DocumentBuilder(rendering_dir=rendering_dir)
+
+    with pytest.raises(TemplateError):
+        builder.build(SYNTAX_ERROR_TEMPLATE_NAME, {"flag": True})

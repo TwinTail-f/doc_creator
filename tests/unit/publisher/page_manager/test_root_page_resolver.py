@@ -25,11 +25,6 @@ from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 SPACE: str = "TEST"
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
 def _make_mock_client(mocker: Any, known_pages: dict[str, str]) -> Any:
     """
     Создаёт мок ``ConfluenceClient`` с управляемым поведением ``find_page``.
@@ -78,11 +73,6 @@ def _make_resolver(
     mock_client = _make_mock_client(mocker, known_pages or {})
     resolver = RootPageResolver(mock_client, config)
     return resolver, mock_client
-
-
-# ---------------------------------------------------------------------------
-# resolve_page_id
-# ---------------------------------------------------------------------------
 
 
 class TestResolvePageId:
@@ -146,11 +136,6 @@ class TestResolvePageId:
         result = resolver.resolve_page_id(None, None, "release_docs_root_parent", required=False)
 
         assert result is None
-
-
-# ---------------------------------------------------------------------------
-# resolve_passports_root
-# ---------------------------------------------------------------------------
 
 
 class TestResolvePassportsRoot:
@@ -238,11 +223,6 @@ class TestResolvePassportsRoot:
 
         with pytest.raises(ConfigError):
             resolver.resolve_passports_root(None, None)
-
-
-# ---------------------------------------------------------------------------
-# resolve_release_parent / resolve_profile_parent
-# ---------------------------------------------------------------------------
 
 
 # Каждый набор описывает: имя метода резолвера, а также имена CLI-совместимых
@@ -403,11 +383,6 @@ def test_resolve_profile_parent_reads_its_own_config_fields(
     mock_client.find_page.assert_called_once_with("Profile Parent Page", space=SPACE)
 
 
-# ---------------------------------------------------------------------------
-# resolve_single_page_parent
-# ---------------------------------------------------------------------------
-
-
 class TestResolveSinglePageParent:
     """Диспетчеризация по strategy_type в resolve_single_page_parent."""
 
@@ -449,11 +424,6 @@ class TestResolveSinglePageParent:
 
         assert result == "release-id"
         mock_release.assert_called_once_with("Some Name", None)
-
-
-# ---------------------------------------------------------------------------
-# resolve_root_pages
-# ---------------------------------------------------------------------------
 
 
 class TestResolveRootPages:

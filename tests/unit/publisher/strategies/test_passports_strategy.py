@@ -1,11 +1,12 @@
 """
-Tests for autodoc.publisher.strategies.passports_strategy.PassportsStrategy.
+Тесты для autodoc.publisher.strategies.passports_strategy.PassportsStrategy.
 
-Testing strategy:
-- PageHierarchyManager.ensure_hierarchy_exists is mocked to return a stable page ID.
-- PassportConverter.transform is mocked to return a predictable view_model.
-- FakeConfluenceClient / FakeDocumentBuilder are used for I/O.
-- execute() is the only public entry point tested (no _try_publish_item/_publish_one).
+Стратегия тестирования:
+- PageHierarchyManager.ensure_hierarchy_exists мокается, возвращает стабильный ID страницы.
+- PassportConverter.transform мокается, возвращает предсказуемый view_model.
+- FakeConfluenceClient / FakeDocumentBuilder используются для ввода-вывода.
+- execute() — единственная публичная точка входа, покрываемая тестами
+  (без _try_publish_item/_publish_one напрямую).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 
 import pytest
 
+from autodoc.exceptions import ConfluenceError
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
@@ -29,10 +31,6 @@ from tests.unit.publisher.conftest import (
     RecordingConfluenceClient,
 )
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 _SPACE: str = "TEST"
 _ROOT_PAGE_ID: str = "root-001"
 _VERSION_PAGE_ID: str = "ver-page-001"
@@ -45,10 +43,6 @@ _STUB_TRANSFORM_RESULT: dict[str, Any] = {
     "legacy_contents": {},
 }
 
-# ---------------------------------------------------------------------------
-# Helper factory
-# ---------------------------------------------------------------------------
-
 
 def make_passports_strategy(
     client: FakeConfluenceClient,
@@ -56,7 +50,7 @@ def make_passports_strategy(
     data: ParsedResult,
     tmp_path: Path,
 ) -> PassportsStrategy:
-    """Create a PassportsStrategy instance with zero batch delay for fast tests."""
+    """Создаёт экземпляр PassportsStrategy с нулевой задержкой между пакетами для быстрых тестов."""
     return PassportsStrategy(
         confluence_client=client,
         document_builder=builder,
@@ -69,13 +63,8 @@ def make_passports_strategy(
     )
 
 
-# ---------------------------------------------------------------------------
-# Initialisation tests
-# ---------------------------------------------------------------------------
-
-
 class TestPassportsStrategyInit:
-    """Tests for PassportsStrategy.__init__ validation."""
+    """Тесты валидации PassportsStrategy.__init__."""
 
     @pytest.mark.business_logic
     def test_passports_strategy_init_raises_on_empty_space(
@@ -85,7 +74,7 @@ class TestPassportsStrategyInit:
         publisher_parsed_result: ParsedResult,
         tmp_path: Path,
     ) -> None:
-        """An empty space string raises ValueError."""
+        """Пустая строка space вызывает ValueError."""
         with pytest.raises(ValueError, match="space"):
             PassportsStrategy(
                 confluence_client=publisher_confluence_client,
@@ -104,7 +93,7 @@ class TestPassportsStrategyInit:
         publisher_parsed_result: ParsedResult,
         tmp_path: Path,
     ) -> None:
-        """An empty root_page_id string raises ValueError."""
+        """Пустая строка root_page_id вызывает ValueError."""
         with pytest.raises(ValueError, match="root_page_id"):
             PassportsStrategy(
                 confluence_client=publisher_confluence_client,
@@ -116,74 +105,8 @@ class TestPassportsStrategyInit:
             )
 
 
-# ---------------------------------------------------------------------------
-# execute() tests
-# ---------------------------------------------------------------------------
-
-
 class TestPassportsStrategyExecute:
-    """Tests for PassportsStrategy.execute() behaviour."""
-
-    @pytest.mark.business_logic
-    def test_passports_strategy_execute_publishes_one_page_per_component_release(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """At least one publish_page call is made for a single-component result."""
-        mocker.patch.object(
-            PageHierarchyManager,
-            "ensure_hierarchy_exists",
-            return_value=_VERSION_PAGE_ID,
-        )
-        mocker.patch.object(
-            PassportConverter,
-            "transform",
-            return_value=dict(_STUB_TRANSFORM_RESULT),
-        )
-        strategy = make_passports_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        strategy.execute()
-        publish_calls = [
-            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
-        ]
-        assert len(publish_calls) >= 1
-
-    @pytest.mark.business_logic
-    def test_passports_strategy_execute_report_success_when_no_errors(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """report.success is True when all pages are published without errors."""
-        mocker.patch.object(
-            PageHierarchyManager,
-            "ensure_hierarchy_exists",
-            return_value=_VERSION_PAGE_ID,
-        )
-        mocker.patch.object(
-            PassportConverter,
-            "transform",
-            return_value=dict(_STUB_TRANSFORM_RESULT),
-        )
-        strategy = make_passports_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        report = strategy.execute()
-        assert report.success is True
+    """Тесты поведения PassportsStrategy.execute()."""
 
     @pytest.mark.business_logic
     def test_passports_strategy_execute_records_failed_component_without_releases(
@@ -194,7 +117,7 @@ class TestPassportsStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """Components with no releases are recorded as errors in the report."""
+        """Компоненты без релизов фиксируются как ошибки в отчёте."""
         empty_component = Component(
             name="no-release-lib",
             description="Component without releases",
@@ -218,40 +141,6 @@ class TestPassportsStrategyExecute:
         assert any("no-release-lib" in err for err in report.errors)
 
     @pytest.mark.business_logic
-    def test_passports_strategy_execute_continues_after_single_failure(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_multi_component_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """A failure on one page does not prevent other pages from being published."""
-        mocker.patch.object(
-            PageHierarchyManager,
-            "ensure_hierarchy_exists",
-            return_value=_VERSION_PAGE_ID,
-        )
-        call_count: list[int] = [0]
-
-        def transform_side_effect(*args: Any, **kwargs: Any) -> dict:
-            call_count[0] += 1
-            if call_count[0] == 1:
-                raise ValueError("simulated first failure")
-            return dict(_STUB_TRANSFORM_RESULT)
-
-        mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
-        strategy = make_passports_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_multi_component_result,
-            tmp_path,
-        )
-        report = strategy.execute()
-        assert report.pages_failed >= 1
-        assert report.pages_published >= 1
-
-    @pytest.mark.business_logic
     def test_passports_strategy_execute_saves_registry_after_publish(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -260,7 +149,7 @@ class TestPassportsStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """After execute(), passport_pages.json exists in data_dir."""
+        """После execute() файл passport_pages.json существует в data_dir."""
         mocker.patch.object(
             PageHierarchyManager,
             "ensure_hierarchy_exists",
@@ -280,7 +169,7 @@ class TestPassportsStrategyExecute:
         strategy.execute()
         assert (tmp_path / _REGISTRY_FILENAME).exists()
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_passports_strategy_execute_report_contains_details(
         self,
         publisher_confluence_client: FakeConfluenceClient,
@@ -289,7 +178,7 @@ class TestPassportsStrategyExecute:
         tmp_path: Path,
         mocker: Any,
     ) -> None:
-        """A successful publish produces at least one detail entry with page_title and page_id."""
+        """Успешная публикация создаёт минимум одну запись details с page_title и page_id."""
         mocker.patch.object(
             PageHierarchyManager,
             "ensure_hierarchy_exists",
@@ -312,51 +201,83 @@ class TestPassportsStrategyExecute:
         assert "page_title" in detail
         assert "page_id" in detail
 
+    @pytest.mark.business_logic
+    def test_publish_one_continues_when_get_page_body_raises(
+        self,
+        publisher_document_builder: FakeDocumentBuilder,
+        publisher_parsed_result: ParsedResult,
+        tmp_path: Path,
+        mocker: Any,
+    ) -> None:
+        """Если получение тела существующей страницы падает с ConfluenceError,
+        публикация паспорта всё равно продолжается и завершается успешно
+        (устойчивость _fetch_existing_body: страница публикуется без legacy-контента)."""
+        mocker.patch.object(
+            PageHierarchyManager,
+            "ensure_hierarchy_exists",
+            return_value=_VERSION_PAGE_ID,
+        )
+        mocker.patch.object(
+            PassportConverter,
+            "transform",
+            return_value=dict(_STUB_TRANSFORM_RESULT),
+        )
 
-# ---------------------------------------------------------------------------
-# Static / utility method tests
-# ---------------------------------------------------------------------------
+        class FailingBodyClient(FakeConfluenceClient):
+            def get_page_body(self, space, title, parent_id=None):
+                raise ConfluenceError("не удалось получить тело страницы")
+
+        strategy = make_passports_strategy(
+            FailingBodyClient(),
+            publisher_document_builder,
+            publisher_parsed_result,
+            tmp_path,
+        )
+        report = strategy.execute()
+
+        assert report.pages_failed == 0, "сбой get_page_body не должен приводить к неудаче публикации"
+        assert report.pages_published >= 1
 
 
 class TestPassportsStrategyUtils:
-    """Tests for PassportsStrategy static helper methods."""
+    """Тесты статических вспомогательных методов PassportsStrategy."""
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_passports_strategy_page_title_format(self) -> None:
-        """_make_page_title returns the expected formatted string."""
+        """_make_page_title возвращает ожидаемую отформатированную строку."""
         title = PassportsStrategy._make_page_title("openssl", "1.0.0")
         assert "openssl" in title
         assert "1.0.0" in title
 
     @pytest.mark.business_logic
     def test_page_title_is_unique_for_different_component_release_pairs(self) -> None:
-        """Different (comp, version) pairs always produce distinct page titles."""
+        """Разные пары (компонент, версия) всегда дают различающиеся заголовки страниц."""
         pairs = [
-            ("openssl", "3.0.9"),  # from openssl.properties
-            ("patchelf", "0.16.1"),  # from patchelf.properties
-            ("patchelf", "0.18.0"),  # same component, different version
-            ("sqlite3", "3.51.2"),  # from sqlite3.properties
-            ("nlohmann_json", "3.9.1"),  # from nlohmann_json.properties
+            ("openssl", "3.0.9"),  # из openssl.properties
+            ("patchelf", "0.16.1"),  # из patchelf.properties
+            ("patchelf", "0.18.0"),  # тот же компонент, другая версия
+            ("sqlite3", "3.51.2"),  # из sqlite3.properties
+            ("nlohmann_json", "3.9.1"),  # из nlohmann_json.properties
         ]
         titles = [PassportsStrategy._make_page_title(comp, ver) for comp, ver in pairs]
         assert len(titles) == len(set(titles)), f"Duplicate titles detected: {titles}"
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_page_title_exact_format(self) -> None:
-        """_make_page_title returns 'Документация <name> <version>' — exact format."""
-        # sqlite3/3.51.2 comes from sqlite3.properties (versions: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
+        """_make_page_title возвращает 'Документация <name> <version>' — точный формат."""
+        # sqlite3/3.51.2 из sqlite3.properties (версии: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
         assert (
             PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
         )
-        # patchelf/0.18.0 comes from patchelf.properties
+        # patchelf/0.18.0 из patchelf.properties
         assert (
             PassportsStrategy._make_page_title("patchelf", "0.18.0")
             == "Документация patchelf 0.18.0"
         )
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_passports_strategy_build_pages_map_structure(self) -> None:
-        """_build_pages_map produces the nested {comp: {version: {...}}} structure."""
+        """_build_pages_map строит вложенную структуру {comp: {version: {...}}}."""
         details = [
             {
                 "component_name": "openssl",
@@ -376,11 +297,6 @@ class TestPassportsStrategyUtils:
         assert entry["version"] == 1
 
 
-# ---------------------------------------------------------------------------
-# Part-3 BL additions: BL-PS-01…07
-# ---------------------------------------------------------------------------
-
-# Constants reused across BL-PS tests
 _BL_PS_VERSION_PAGE_ID = "bl-ps-ver-page-001"
 _BL_PS_TRANSFORM_RESULT: dict = {
     "platform_version": "2.0",
@@ -399,20 +315,21 @@ def test_one_page_per_component_release_combination(
 ) -> None:
     """
     BL-PS-01
-    Business Rule: exactly 1 passport page is published for each (component × release) pair.
+    Бизнес-правило: ровно 1 страница паспорта публикуется для каждой пары
+    (компонент × релиз).
 
-    Preconditions:
-        - ParsedResult contains multiple components with multiple releases.
-        - PageHierarchyManager.ensure_hierarchy_exists is stubbed.
-        - PassportConverter.transform returns a valid stub view_model.
+    Предусловия:
+        - ParsedResult содержит несколько компонентов с несколькими релизами.
+        - PageHierarchyManager.ensure_hierarchy_exists застаблен.
+        - PassportConverter.transform возвращает корректный заглушечный view_model.
 
-    Steps:
-        1. Construct PassportsStrategy with the multi-component fixture.
-        2. Call execute().
+    Шаги:
+        1. Создать PassportsStrategy с фикстурой из нескольких компонентов.
+        2. Вызвать execute().
 
-    Expected Result:
-        report.pages_published == total number of (component, release) pairs.
-        No extra or missing passport pages are published.
+    Ожидаемый результат:
+        report.pages_published == общему числу пар (компонент, релиз).
+        Не публикуются лишние или пропущенные страницы паспортов.
     """
     mocker.patch.object(
         PageHierarchyManager,
@@ -453,20 +370,20 @@ def test_registry_saved_after_all_pages_published(
 ) -> None:
     """
     BL-PS-02
-    Business Rule: PassportPageRegistry.save() is called exactly ONCE, AFTER all
-    pages are published — not after each individual page.
+    Бизнес-правило: PassportPageRegistry.save() вызывается ровно ОДИН раз,
+    ПОСЛЕ публикации всех страниц — не после каждой отдельной страницы.
 
-    Preconditions:
-        - PageHierarchyManager and PassportConverter are stubbed.
-        - PassportPageRegistry.save() is intercepted to record the call.
+    Предусловия:
+        - PageHierarchyManager и PassportConverter застаблены.
+        - PassportPageRegistry.save() перехватывается для фиксации вызова.
 
-    Steps:
-        1. Patch PassportPageRegistry.save to record invocations.
-        2. Call execute().
+    Шаги:
+        1. Патчим PassportPageRegistry.save, чтобы фиксировать вызовы.
+        2. Вызвать execute().
 
-    Expected Result:
-        save() is called exactly 1 time, and by the time it is called at least
-        one publish_page call has already occurred (pages were published first).
+    Ожидаемый результат:
+        save() вызывается ровно 1 раз, и к моменту его вызова уже произошёл
+        как минимум один вызов publish_page (страницы были опубликованы раньше).
     """
     mocker.patch.object(
         PageHierarchyManager,
@@ -519,19 +436,22 @@ def test_failure_of_one_page_does_not_stop_others(
 ) -> None:
     """
     BL-PS-03
-    Business Rule: error publishing one passport page does not stop the remaining queue.
+    Бизнес-правило: ошибка публикации одной страницы паспорта не останавливает
+    оставшуюся очередь.
 
-    Preconditions:
-        - PageHierarchyManager is stubbed.
-        - PassportConverter.transform raises on the first call and succeeds thereafter.
+    Предусловия:
+        - PageHierarchyManager застаблен.
+        - PassportConverter.transform выбрасывает исключение при первом вызове
+          и завершается успешно в остальных.
 
-    Steps:
-        1. Make PassportConverter.transform raise ValueError on its first invocation.
-        2. Call execute().
+    Шаги:
+        1. Сделать так, чтобы PassportConverter.transform выбрасывал ValueError
+           при первом вызове.
+        2. Вызвать execute().
 
-    Expected Result:
-        report.pages_failed >= 1 (at least one failure recorded) AND
-        report.pages_published >= 1 (remaining pages still published successfully).
+    Ожидаемый результат:
+        report.pages_failed >= 1 (зафиксирована как минимум одна ошибка) И
+        report.pages_published >= 1 (остальные страницы всё же опубликованы успешно).
     """
     mocker.patch.object(
         PageHierarchyManager,
@@ -568,6 +488,58 @@ def test_failure_of_one_page_does_not_stop_others(
 
 
 @pytest.mark.business_logic
+def test_one_passport_publish_failure_isolated_from_others(
+    publisher_multi_component_result: ParsedResult,
+    publisher_document_builder: FakeDocumentBuilder,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """
+    Бизнес-правило: если ConfluenceError выбрасывается на этапе самой публикации
+    страницы (а не при трансформации конвертером), это не мешает опубликовать
+    остальные паспорта — _try_publish_item изолирует ошибку публикации так же,
+    как и ошибку конвертера.
+    """
+    mocker.patch.object(
+        PageHierarchyManager,
+        "ensure_hierarchy_exists",
+        return_value=_BL_PS_VERSION_PAGE_ID,
+    )
+    mocker.patch.object(
+        PassportConverter,
+        "transform",
+        return_value=dict(_BL_PS_TRANSFORM_RESULT),
+    )
+
+    call_count: list[int] = [0]
+    real_publish_page = FakeConfluenceClient.publish_page
+
+    class FlakyClient(FakeConfluenceClient):
+        def publish_page(self, space, parent_id, title, body_html):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ConfluenceError("сбой публикации первой страницы")
+            return real_publish_page(self, space, parent_id, title, body_html)
+
+    strategy = PassportsStrategy(
+        confluence_client=FlakyClient(),
+        document_builder=publisher_document_builder,
+        parsed_data=publisher_multi_component_result,
+        space=_SPACE,
+        root_page_id=_ROOT_PAGE_ID,
+        data_dir=tmp_path,
+        batch_size=10,
+        batch_delay_seconds=0.0,
+    )
+    report = strategy.execute()
+
+    assert report.pages_failed >= 1, "ошибка publish_page для одной страницы должна быть зафиксирована"
+    assert (
+        report.pages_published >= 1
+    ), "остальные паспорта должны быть опубликованы, несмотря на сбой одной страницы"
+
+
+@pytest.mark.business_logic
 def test_report_pages_published_count_equals_successful_pages(
     publisher_parsed_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -576,18 +548,18 @@ def test_report_pages_published_count_equals_successful_pages(
 ) -> None:
     """
     BL-PS-04
-    Business Rule: PublishReport.pages_published equals the exact number of
-    successfully published passport pages.
+    Бизнес-правило: PublishReport.pages_published равен точному числу успешно
+    опубликованных страниц паспортов.
 
-    Preconditions:
-        - Single-component ParsedResult with one release.
-        - No errors during publishing.
+    Предусловия:
+        - ParsedResult с одним компонентом и одним релизом.
+        - Ошибок при публикации нет.
 
-    Steps:
-        1. Call execute() with all dependencies stubbed successfully.
+    Шаги:
+        1. Вызвать execute() со всеми зависимостями, застабленными на успех.
 
-    Expected Result:
-        report.pages_published == number of releases in the component.
+    Ожидаемый результат:
+        report.pages_published == числу релизов компонента.
         report.pages_failed == 0.
     """
     mocker.patch.object(
@@ -629,17 +601,17 @@ def test_report_pages_failed_count_equals_failed_pages(
 ) -> None:
     """
     BL-PS-05
-    Business Rule: PublishReport.pages_failed equals len(report.failed_pages).
-    The counter and the list must be consistent.
+    Бизнес-правило: PublishReport.pages_failed равен len(report.failed_pages).
+    Счётчик и список должны быть согласованы.
 
-    Preconditions:
-        - PageHierarchyManager is stubbed.
-        - PassportConverter.transform always raises ValueError.
+    Предусловия:
+        - PageHierarchyManager застаблен.
+        - PassportConverter.transform всегда выбрасывает ValueError.
 
-    Steps:
-        1. Call execute() with converter always failing.
+    Шаги:
+        1. Вызвать execute() с всегда падающим конвертером.
 
-    Expected Result:
+    Ожидаемый результат:
         report.pages_failed == len(report.failed_pages) > 0.
         report.pages_published == 0.
     """
@@ -681,33 +653,36 @@ def test_legacy_content_extracted_before_overwrite(
 ) -> None:
     """
     BL-PS-06
-    Business Rule: before publishing a passport page, the strategy fetches the
-    existing page body, extracts legacy sections for other platforms, and injects
-    them into the view_model as 'legacy_contents' before calling builder.build().
+    Бизнес-правило: перед публикацией страницы паспорта стратегия получает тело
+    существующей страницы, извлекает legacy-секции для других платформ и
+    внедряет их в view_model как 'legacy_contents' перед вызовом builder.build().
 
-    Preconditions:
-        - PageHierarchyManager is stubbed.
-        - PassportConverter.transform returns a minimal valid view_model.
-        - A CapturingBuilder records every view_model passed to build().
-        - FakeConfluenceClient returns a non-empty body from get_page_body().
+    Предусловия:
+        - PageHierarchyManager застаблен.
+        - PassportConverter.transform возвращает минимальный корректный view_model.
+        - CapturingBuilder фиксирует каждый view_model, переданный в build().
+        - FakeConfluenceClient возвращает непустое тело из get_page_body().
 
-    Steps:
-        1. Stub PageHierarchyManager.ensure_hierarchy_exists.
-        2. Stub PassportConverter.transform to return a view_model with platform_version.
-        3. Intercept builder.build() to capture the final view_model.
-        4. Pre-configure client.get_page_body to return an existing legacy HTML body.
-        5. Call execute().
+    Шаги:
+        1. Застабить PageHierarchyManager.ensure_hierarchy_exists.
+        2. Застабить PassportConverter.transform, чтобы вернуть view_model
+           с platform_version.
+        3. Перехватить builder.build(), чтобы зафиксировать итоговый view_model.
+        4. Предварительно настроить client.get_page_body на возврат существующего
+           legacy HTML-тела.
+        5. Вызвать execute().
 
-    Expected Result:
-        At least one view_model passed to builder.build() contains a 'legacy_contents'
-        key with a dict value, confirming the legacy extraction + injection occurred.
+    Ожидаемый результат:
+        как минимум один view_model, переданный в builder.build(), содержит ключ
+        'legacy_contents' со значением-словарём, подтверждая, что извлечение
+        и внедрение legacy-контента произошло.
     """
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
         return_value=_BL_PS_VERSION_PAGE_ID,
     )
-    # PassportConverter.transform(self, data) — 'self' is the converter instance
+    # PassportConverter.transform(self, data) — 'self' здесь это экземпляр конвертера
     mocker.patch.object(
         PassportConverter,
         "transform",
@@ -722,7 +697,7 @@ def test_legacy_content_extracted_before_overwrite(
 
     class CapturingBuilder:
         def build(self, template_name: str, view_model: dict) -> str:
-            """Records the view_model passed to build() including injected keys."""
+            """Фиксирует view_model, переданный в build(), включая внедрённые ключи."""
             captured_view_models.append(dict(view_model))
             return "<html>test</html>"
 
@@ -770,20 +745,21 @@ def test_hierarchy_created_for_each_component(
 ) -> None:
     """
     BL-PS-07
-    Business Rule: ensure_hierarchy_exists() is called exactly once for each
-    (component, release) pair in ParsedResult.
+    Бизнес-правило: ensure_hierarchy_exists() вызывается ровно один раз для
+    каждой пары (компонент, релиз) в ParsedResult.
 
-    Preconditions:
-        - PageHierarchyManager.ensure_hierarchy_exists is intercepted.
-        - PassportConverter.transform is stubbed.
+    Предусловия:
+        - PageHierarchyManager.ensure_hierarchy_exists перехватывается.
+        - PassportConverter.transform застаблен.
 
-    Steps:
-        1. Patch ensure_hierarchy_exists to record (component_name, release_version) pairs.
-        2. Call execute().
+    Шаги:
+        1. Патчим ensure_hierarchy_exists, чтобы фиксировать пары
+           (имя_компонента, версия_релиза).
+        2. Вызвать execute().
 
-    Expected Result:
-        The set of recorded (comp, version) pairs equals the full set of pairs
-        derived from ParsedResult.components[*].releases.
+    Ожидаемый результат:
+        Набор зафиксированных пар (компонент, версия) равен полному набору пар,
+        полученных из ParsedResult.components[*].releases.
     """
     hierarchy_calls: list[dict] = []
 
@@ -826,18 +802,6 @@ def test_hierarchy_created_for_each_component(
     )
 
 
-# ---------------------------------------------------------------------------
-# Real-scenario probe: multiple channels sharing the same version
-#
-# publisher_multi_channel_result models a real, valid data shape (see its own
-# docstring): a component can be released through several channels (e.g.
-# 'fast' and 'stable') while sharing the same version number. This test uses
-# RecordingConfluenceClient — a previously unused test double in this
-# project's conftest — to pin down what PassportsStrategy actually does with
-# that shape today, since nothing in the suite exercised it before.
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_passport_page_republished_once_per_channel_sharing_same_version(
     publisher_multi_channel_result: ParsedResult,
@@ -846,37 +810,36 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
     mocker: Any,
 ) -> None:
     """
-    Business Rule (current behavior — documented so a future change is a
-    deliberate decision, not an accidental regression):
+    Бизнес-правило (текущее поведение — задокументировано, чтобы будущее изменение
+    было осознанным решением, а не случайной регрессией):
 
-    PassportsStrategy.execute() builds its work list purely from
-    (component_name, release.version) pairs, one per Release object (see
-    execute()'s work_items loop) — it does not deduplicate across channels.
-    A component published through several channels under the *same* version
-    (comp_alpha in publisher_multi_channel_result: 'fast' and 'stable', both
-    '2.0.0') is therefore queued twice for what PassportConverter renders as
-    the exact same page (PassportConverter._find_releases already groups every
-    channel sharing that version into one page — see its own docstring). The
-    second work item does not fail or get skipped: it re-resolves the
-    just-created page and republishes it, bumping its Confluence version with
-    identical content.
+    PassportsStrategy.execute() формирует список работы исключительно из пар
+    (имя_компонента, версия_релиза), по одной на каждый объект Release
+    (см. цикл work_items в execute()) — без дедупликации по каналам.
+    Компонент, опубликованный через несколько каналов под ОДНОЙ и той же версией
+    (comp_alpha в publisher_multi_channel_result: 'fast' и 'stable', обе '2.0.0'),
+    поэтому ставится в очередь дважды для того, что PassportConverter рендерит
+    как совершенно одинаковую страницу (PassportConverter._find_releases уже
+    группирует каждый канал с одинаковой версией в одну страницу — см. его
+    собственный docstring). Второй элемент работы не падает и не пропускается:
+    он повторно находит только что созданную страницу и republish'ит её,
+    увеличивая версию Confluence с идентичным содержимым.
 
-    Preconditions:
-        - publisher_multi_channel_result: comp_alpha has two releases, both
-          version '2.0.0' (channels 'fast'/'stable'); comp_beta has one
-          release, version '1.0.0'.
-        - PageHierarchyManager.ensure_hierarchy_exists is stubbed (hierarchy
-          creation itself is covered separately in test_hierarchy_manager.py).
+    Предусловия:
+        - publisher_multi_channel_result: comp_alpha имеет два релиза, оба версии
+          '2.0.0' (каналы 'fast'/'stable'); comp_beta имеет один релиз, версии '1.0.0'.
+        - PageHierarchyManager.ensure_hierarchy_exists застаблен (создание иерархии
+          само по себе покрывается отдельно в test_hierarchy_manager.py).
 
-    Steps:
-        1. Execute PassportsStrategy with a RecordingConfluenceClient.
-        2. Compare the number of recorded publish_page calls against the
-           number of *distinct* (component, version) pages.
+    Шаги:
+        1. Выполнить PassportsStrategy с RecordingConfluenceClient.
+        2. Сравнить число зафиксированных вызовов publish_page с числом
+           *различных* (компонент, версия) страниц.
 
-    Expected Result (current behavior):
-        report.pages_published == 3 (one per work item: alpha/fast,
-        alpha/stable, beta/fast) even though there are only 2 distinct pages.
-        Both of alpha's publish calls target the identical page title.
+    Ожидаемый результат (текущее поведение):
+        report.pages_published == 3 (по одному на элемент работы: alpha/fast,
+        alpha/stable, beta/fast), хотя различных страниц только 2.
+        Оба вызова публикации alpha нацелены на идентичный заголовок страницы.
     """
     mocker.patch.object(
         PageHierarchyManager,
@@ -922,7 +885,8 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
         "(once per channel work item) under the current (non-deduplicating) behavior"
     )
 
-    # No two publish_page calls (even for the same page, republished) collide on page_id:
-    # RecordingConfluenceClient's counter must hand out unique IDs.
+    # Ни один из вызовов publish_page (даже republish одной и той же страницы) не
+    # сталкивается по page_id: счётчик RecordingConfluenceClient должен выдавать
+    # уникальные ID.
     page_ids = [d["page_id"] for d in report.details if d and d.get("page_id")]
     assert len(page_ids) == len(set(page_ids)), "Every publish must receive a unique page_id"

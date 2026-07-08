@@ -1,10 +1,10 @@
 """
-Tests for autodoc.publisher.publisher.DocumentPublisher.
+Тесты для autodoc.publisher.publisher.DocumentPublisher.
 
-Testing strategy:
-- ConfluenceClient and DocumentBuilder constructors are mocked so no real HTTP
-  session or filesystem is needed.
-- create_strategy is mocked to isolate the publisher from strategies.
+Стратегия тестирования:
+- Конструкторы ConfluenceClient и DocumentBuilder мокаются, поэтому реальная
+  HTTP-сессия или файловая система не требуются.
+- create_strategy мокается, чтобы изолировать паблишер от стратегий.
 """
 
 from __future__ import annotations
@@ -21,18 +21,10 @@ from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 _SPACE: str = "TEST"
 _ROOT_PAGE_ID: str = "root-001"
 _RELEASE_PAGE_TITLE: str = "Platform 2.0 Release"
 _RELEASE_TEMPLATE: str = "release_doc.jinja2"
-
-# ---------------------------------------------------------------------------
-# Fixture
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -41,7 +33,7 @@ def publisher_document_publisher(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> DocumentPublisher:
-    """DocumentPublisher with mocked infrastructure dependencies."""
+    """DocumentPublisher с замоканными инфраструктурными зависимостями."""
     config = ConfluenceConfigSchema(**minimal_confluence_config)
     mocker.patch("autodoc.publisher.publisher.ConfluenceClient")
     mocker.patch("autodoc.publisher.publisher.DocumentBuilder")
@@ -55,28 +47,23 @@ def publisher_document_publisher(
 
 
 def _mock_strategy(report: PublishReport, mocker: MockerFixture) -> MagicMock:
-    """Create a mock strategy whose execute() returns the given report."""
+    """Создаёт мок стратегии, чей execute() возвращает заданный отчёт."""
     mock = mocker.MagicMock()
     mock.execute.return_value = report
     return mock
 
 
-# ---------------------------------------------------------------------------
-# publish() tests
-# ---------------------------------------------------------------------------
-
-
 class TestDocumentPublisherPublish:
-    """Tests for DocumentPublisher.publish()."""
+    """Тесты для DocumentPublisher.publish()."""
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_publisher_publish_delegates_to_strategy_execute(
         self,
         publisher_document_publisher: DocumentPublisher,
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """publish() calls strategy.execute() exactly once."""
+        """publish() вызывает strategy.execute() ровно один раз."""
         expected_report = PublishReport(success=True, pages_published=1)
         mock_strategy = _mock_strategy(expected_report, mocker)
         mocker.patch(
@@ -86,14 +73,14 @@ class TestDocumentPublisherPublish:
         publisher_document_publisher.publish("release", publisher_parsed_result)
         mock_strategy.execute.assert_called_once()
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_publisher_publish_passes_space_from_config(
         self,
         publisher_document_publisher: DocumentPublisher,
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """publish() forwards space from config to create_strategy()."""
+        """publish() передаёт space из конфигурации в create_strategy()."""
         mock_create = mocker.patch(
             "autodoc.publisher.publisher.create_strategy",
             return_value=_mock_strategy(PublishReport(success=True, pages_published=1), mocker),
@@ -110,7 +97,7 @@ class TestDocumentPublisherPublish:
         tmp_path: Path,
         mocker: MockerFixture,
     ) -> None:
-        """publish() forwards data_dir to create_strategy()."""
+        """publish() передаёт data_dir в create_strategy()."""
         mock_create = mocker.patch(
             "autodoc.publisher.publisher.create_strategy",
             return_value=_mock_strategy(PublishReport(success=True, pages_published=1), mocker),
@@ -119,14 +106,14 @@ class TestDocumentPublisherPublish:
         _, kwargs = mock_create.call_args
         assert kwargs["data_dir"] == tmp_path
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_publisher_publish_returns_strategy_report(
         self,
         publisher_document_publisher: DocumentPublisher,
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """publish() returns exactly the PublishReport from strategy.execute()."""
+        """publish() возвращает именно тот PublishReport, что вернул strategy.execute()."""
         expected = PublishReport(success=True, pages_published=5)
         mocker.patch(
             "autodoc.publisher.publisher.create_strategy",
@@ -136,21 +123,27 @@ class TestDocumentPublisherPublish:
         assert result is expected
 
 
-# ---------------------------------------------------------------------------
-# publish_all() tests
-# ---------------------------------------------------------------------------
-
-
 class TestDocumentPublisherPublishAll:
-    """Tests for DocumentPublisher.publish_all()."""
+    """Тесты для DocumentPublisher.publish_all()."""
 
     def _patch_create(
         self,
         mocker: MockerFixture,
         passports_report: PublishReport,
         release_report: PublishReport,
-    ) -> None:
-        """Patch create_strategy to return two strategies in order."""
+    ) -> list[str]:
+        """
+        Подменяет create_strategy, чтобы вернуть по порядку две стратегии.
+
+        Args:
+            mocker: Фикстура pytest-mock для патчинга.
+            passports_report: Отчёт, который вернёт мок стратегии паспортов.
+            release_report: Отчёт, который вернёт мок стратегии релиза.
+
+        Returns:
+            Список, в который будет записываться порядок вызова execute()
+            каждой из стратегий (``"passports"`` / ``"release"``).
+        """
         call_order: list[str] = []
 
         passports_mock = mocker.MagicMock()
@@ -174,8 +167,7 @@ class TestDocumentPublisherPublishAll:
             "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
-        # Expose call_order for order verification
-        mocker.call_order = call_order  # type: ignore[attr-defined]
+        return call_order
 
     @pytest.mark.business_logic
     def test_publisher_publish_all_runs_passports_then_release(
@@ -184,23 +176,11 @@ class TestDocumentPublisherPublishAll:
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """publish_all() executes passports strategy before release strategy."""
-        call_order: list[str] = []
-
-        passports_mock = mocker.MagicMock()
-        passports_mock.execute.side_effect = lambda: call_order.append(
-            "passports"
-        ) or PublishReport(success=True, pages_published=1)
-
-        release_mock = mocker.MagicMock()
-        release_mock.execute.side_effect = lambda: call_order.append("release") or PublishReport(
-            success=True, pages_published=1
-        )
-
-        strategies = iter([passports_mock, release_mock])
-        mocker.patch(
-            "autodoc.publisher.publisher.create_strategy",
-            side_effect=lambda *a, **kw: next(strategies),
+        """publish_all() выполняет стратегию паспортов раньше стратегии релиза."""
+        call_order = self._patch_create(
+            mocker,
+            PublishReport(success=True, pages_published=1),
+            PublishReport(success=True, pages_published=1),
         )
 
         publisher_document_publisher.publish_all(
@@ -218,19 +198,11 @@ class TestDocumentPublisherPublishAll:
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """Merged report sums pages_published from both strategies."""
-        passports_report = PublishReport(success=True, pages_published=3)
-        release_report = PublishReport(success=True, pages_published=1)
-
-        strategies = iter(
-            [
-                _mock_strategy(passports_report, mocker),
-                _mock_strategy(release_report, mocker),
-            ]
-        )
-        mocker.patch(
-            "autodoc.publisher.publisher.create_strategy",
-            side_effect=lambda *a, **kw: next(strategies),
+        """Итоговый отчёт суммирует pages_published обеих стратегий."""
+        self._patch_create(
+            mocker,
+            PublishReport(success=True, pages_published=3),
+            PublishReport(success=True, pages_published=1),
         )
 
         result = publisher_document_publisher.publish_all(
@@ -248,19 +220,11 @@ class TestDocumentPublisherPublishAll:
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """If either strategy report has success=False, the merged report is False."""
-        passports_report = PublishReport(success=False, pages_published=0, errors=["fail"])
-        release_report = PublishReport(success=True, pages_published=1)
-
-        strategies = iter(
-            [
-                _mock_strategy(passports_report, mocker),
-                _mock_strategy(release_report, mocker),
-            ]
-        )
-        mocker.patch(
-            "autodoc.publisher.publisher.create_strategy",
-            side_effect=lambda *a, **kw: next(strategies),
+        """Если отчёт хотя бы одной стратегии имеет success=False, итоговый отчёт тоже False."""
+        self._patch_create(
+            mocker,
+            PublishReport(success=False, pages_published=0, errors=["fail"]),
+            PublishReport(success=True, pages_published=1),
         )
 
         result = publisher_document_publisher.publish_all(
@@ -278,9 +242,43 @@ class TestDocumentPublisherPublishAll:
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
-        """Errors from both strategies are combined in the merged report."""
-        passports_report = PublishReport(success=False, pages_published=0, errors=["err1"])
-        release_report = PublishReport(success=False, pages_published=0, errors=["err2"])
+        """Ошибки обеих стратегий объединяются в итоговом отчёте."""
+        self._patch_create(
+            mocker,
+            PublishReport(success=False, pages_published=0, errors=["err1"]),
+            PublishReport(success=False, pages_published=0, errors=["err2"]),
+        )
+
+        result = publisher_document_publisher.publish_all(
+            parsed_data=publisher_parsed_result,
+            passports_root_parent_id=_ROOT_PAGE_ID,
+            release_page_title=_RELEASE_PAGE_TITLE,
+            release_template_name=_RELEASE_TEMPLATE,
+        )
+        assert "err1" in result.errors
+        assert "err2" in result.errors
+
+    @pytest.mark.business_logic
+    def test_publisher_publish_all_with_profile_merges_three_reports(
+        self,
+        publisher_document_publisher: DocumentPublisher,
+        publisher_parsed_result: ParsedResult,
+        mocker: MockerFixture,
+    ) -> None:
+        """
+        publish_all() с profile_title/profile_template_name публикует и объединяет три отчёта.
+
+        Также проверяет гарантию порядка: к моменту чтения publish_profile_page()
+        details[0] релизного отчёта всё ещё указывает на страницу релиза, а не
+        на смешанный/объединённый отчёт.
+        """
+        passports_report = PublishReport(success=True, pages_published=2)
+        release_report = PublishReport(
+            success=True,
+            pages_published=1,
+            details=[{"page_id": "release-page-1"}],
+        )
+        profile_report = PublishReport(success=True, pages_published=1)
 
         strategies = iter(
             [
@@ -292,12 +290,158 @@ class TestDocumentPublisherPublishAll:
             "autodoc.publisher.publisher.create_strategy",
             side_effect=lambda *a, **kw: next(strategies),
         )
+        mock_publish_profile_page = mocker.patch.object(
+            publisher_document_publisher,
+            "publish_profile_page",
+            return_value=profile_report,
+        )
 
         result = publisher_document_publisher.publish_all(
             parsed_data=publisher_parsed_result,
             passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
+            profile_title="Profile Page",
+            profile_template_name="profile_doc.jinja2",
         )
-        assert "err1" in result.errors
-        assert "err2" in result.errors
+
+        mock_publish_profile_page.assert_called_once()
+        _, call_kwargs = mock_publish_profile_page.call_args
+        assert call_kwargs["release_report"] is release_report
+        assert call_kwargs["release_report"].details[0]["page_id"] == "release-page-1"
+        assert result.pages_published == 4
+
+
+class TestDocumentPublisherPublishPassports:
+    """Тесты для DocumentPublisher.publish_passports()."""
+
+    @pytest.mark.contract
+    def test_publisher_publish_passports_resolves_root_and_delegates(
+        self,
+        publisher_document_publisher: DocumentPublisher,
+        publisher_parsed_result: ParsedResult,
+        mocker: MockerFixture,
+    ) -> None:
+        """publish_passports() резолвит корневую страницу и делегирует стратегии паспортов."""
+        mocker.patch.object(
+            publisher_document_publisher._page_resolver,
+            "resolve_passports_root",
+            return_value=_ROOT_PAGE_ID,
+        )
+        expected_report = PublishReport(success=True, pages_published=2)
+        mock_create = mocker.patch(
+            "autodoc.publisher.publisher.create_strategy",
+            return_value=_mock_strategy(expected_report, mocker),
+        )
+
+        result = publisher_document_publisher.publish_passports(
+            parsed_data=publisher_parsed_result,
+            template_name="component_passport.jinja2",
+            passports_root_parent_name="Passports Root",
+        )
+
+        args, kwargs = mock_create.call_args
+        assert args[0] == "passports"
+        assert kwargs["root_page_id"] == _ROOT_PAGE_ID
+        assert result is expected_report
+
+
+class TestDocumentPublisherPublishSinglePage:
+    """Тесты для DocumentPublisher.publish_single_page()."""
+
+    @pytest.mark.contract
+    def test_publisher_publish_single_page_resolves_parent_and_delegates(
+        self,
+        publisher_document_publisher: DocumentPublisher,
+        publisher_parsed_result: ParsedResult,
+        mocker: MockerFixture,
+    ) -> None:
+        """publish_single_page() резолвит родительскую страницу и делегирует выбранной стратегии."""
+        mocker.patch.object(
+            publisher_document_publisher._page_resolver,
+            "resolve_single_page_parent",
+            return_value=_ROOT_PAGE_ID,
+        )
+        expected_report = PublishReport(success=True, pages_published=1)
+        mock_create = mocker.patch(
+            "autodoc.publisher.publisher.create_strategy",
+            return_value=_mock_strategy(expected_report, mocker),
+        )
+
+        result = publisher_document_publisher.publish_single_page(
+            strategy_type="release",
+            parsed_data=publisher_parsed_result,
+            page_title=_RELEASE_PAGE_TITLE,
+            template_name=_RELEASE_TEMPLATE,
+        )
+
+        args, kwargs = mock_create.call_args
+        assert args[0] == "release"
+        assert kwargs["parent_id"] == _ROOT_PAGE_ID
+        assert result is expected_report
+
+
+class TestDocumentPublisherPublishProfilePage:
+    """Тесты для DocumentPublisher.publish_profile_page()."""
+
+    @pytest.mark.business_logic
+    def test_publisher_publish_profile_page_uses_release_page_id_as_parent(
+        self,
+        publisher_document_publisher: DocumentPublisher,
+        publisher_parsed_result: ParsedResult,
+        mocker: MockerFixture,
+    ) -> None:
+        """publish_profile_page() использует ID страницы релиза как parent_id."""
+        release_report = PublishReport(
+            success=True,
+            pages_published=1,
+            details=[{"page_id": "release-page-1"}],
+        )
+        expected_report = PublishReport(success=True, pages_published=1)
+        mock_create = mocker.patch(
+            "autodoc.publisher.publisher.create_strategy",
+            return_value=_mock_strategy(expected_report, mocker),
+        )
+
+        result = publisher_document_publisher.publish_profile_page(
+            parsed_data=publisher_parsed_result,
+            profile_title="Profile Page",
+            profile_template_name="profile_doc.jinja2",
+            release_report=release_report,
+        )
+
+        args, kwargs = mock_create.call_args
+        assert args[0] == "profile_centric"
+        assert kwargs["parent_id"] == "release-page-1"
+        assert result is expected_report
+
+    @pytest.mark.business_logic
+    def test_publisher_publish_profile_page_warns_and_publishes_without_parent_when_release_failed(
+        self,
+        publisher_document_publisher: DocumentPublisher,
+        publisher_parsed_result: ParsedResult,
+        mocker: MockerFixture,
+    ) -> None:
+        """
+        Если релизная страница не была опубликована, profile_parent_id становится None,
+        логируется предупреждение, и профильная страница всё равно публикуется без родителя.
+        """
+        release_report = PublishReport(success=False, pages_published=0, errors=["fail"])
+        expected_report = PublishReport(success=True, pages_published=1)
+        mock_create = mocker.patch(
+            "autodoc.publisher.publisher.create_strategy",
+            return_value=_mock_strategy(expected_report, mocker),
+        )
+        mock_logger_warning = mocker.patch("autodoc.publisher.publisher.logger.warning")
+
+        result = publisher_document_publisher.publish_profile_page(
+            parsed_data=publisher_parsed_result,
+            profile_title="Profile Page",
+            profile_template_name="profile_doc.jinja2",
+            release_report=release_report,
+        )
+
+        mock_logger_warning.assert_called_once()
+        _, kwargs = mock_create.call_args
+        assert kwargs["parent_id"] is None
+        assert result is expected_report

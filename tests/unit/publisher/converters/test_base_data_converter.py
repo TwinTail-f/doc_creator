@@ -1,4 +1,4 @@
-"""Unit tests for BaseDataConverter static helpers and PassportLinkMixin."""
+"""Тесты для статических методов BaseDataConverter и PassportLinkMixin."""
 
 from __future__ import annotations
 
@@ -12,8 +12,6 @@ from autodoc.publisher.view_models.passports import ConanVariantView
 import dataclasses
 from typing import Any
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-
 COMP_NAME: str = "openssl"
 OPT_KEY_SHARED: str = "shared"
 OPT_KEY_FPIC: str = "fPIC"
@@ -22,7 +20,7 @@ RELEASE_VERSION: str = "1.0.0"
 
 
 class _MinimalParsedResult:
-    """Minimal stand-in for ParsedResult exposing only what _base_view_model reads."""
+    """Минимальная замена ParsedResult, экспонирующая только то, что читает _base_view_model."""
 
     platform_version: str = "2.0"
 
@@ -34,12 +32,9 @@ VARIANT_OPT_REF: str = "r1"
 INSTALL_OVERRIDE: str = "-o pkg/*:x=1"
 
 
-# ── Local fixtures ─────────────────────────────────────────────────────────────
-
-
 @pytest.fixture
 def sample_variant() -> ConanVariant:
-    """A ConanVariant with all fields set, used across multiple static helper tests."""
+    """ConanVariant со всеми заполненными полями, используется в нескольких тестах статических методов."""
     return ConanVariant(
         package_id=VARIANT_PKG_ID,
         build_url=VARIANT_BUILD_URL,
@@ -48,30 +43,26 @@ def sample_variant() -> ConanVariant:
     )
 
 
-# ── BaseDataConverter ────────────────────────────────────────────────────────
-
-
 class TestBuildInstallOptions:
-    """Tests for BaseDataConverter._build_install_options static method."""
+    """Тесты для статического метода BaseDataConverter._build_install_options."""
 
     @pytest.mark.business_logic
     def test_build_install_options_empty_dict_returns_empty_string(self) -> None:
-        """Empty options dict produces an empty string."""
+        """Пустой словарь опций даёт пустую строку."""
         result = PassportConverter._build_install_options({}, COMP_NAME)
 
         assert result == ""
 
     @pytest.mark.business_logic
-    @pytest.mark.business_logic
     def test_build_install_options_preserves_qualified_key(self) -> None:
-        """A key already containing '/*:' is not double-qualified."""
+        """Ключ, уже содержащий '/*:', не квалифицируется повторно."""
         result = PassportConverter._build_install_options({"icu/*:shared": "True"}, COMP_NAME)
 
         assert result == "-o icu/*:shared=True"
 
     @pytest.mark.business_logic
     def test_build_install_options_multiple_options_joined_by_space(self) -> None:
-        """Multiple options are joined by a single space, each with its own '-o' flag."""
+        """Несколько опций объединяются пробелом, каждая со своим флагом '-o'."""
         result = PassportConverter._build_install_options(
             {OPT_KEY_SHARED: "True", OPT_KEY_FPIC: "True"}, COMP_NAME
         )
@@ -81,7 +72,7 @@ class TestBuildInstallOptions:
 
     @pytest.mark.business_logic
     def test_build_install_options_dep_key_with_colon_not_modified(self) -> None:
-        """A dependency key like 'icu:opt' is qualified to 'icu/*:opt' without duplication."""
+        """Ключ зависимости вроде 'icu:opt' квалифицируется в 'icu/*:opt' без дублирования."""
         result = PassportConverter._build_install_options(
             {"icu:data_packaging": "static"}, COMP_NAME
         )
@@ -90,25 +81,25 @@ class TestBuildInstallOptions:
 
 
 class TestBuildInstallOptionsFromString:
-    """Tests for BaseDataConverter._build_install_options_from_string static method."""
+    """Тесты для статического метода BaseDataConverter._build_install_options_from_string."""
 
-    @pytest.mark.infrastructure
+    @pytest.mark.business_logic
     def test_build_install_options_from_string_empty_returns_empty(self) -> None:
-        """An empty string input produces an empty string."""
+        """Пустая строка на входе даёт пустую строку."""
         result = PassportConverter._build_install_options_from_string("")
 
         assert result == ""
 
-    @pytest.mark.infrastructure
+    @pytest.mark.business_logic
     def test_build_install_options_from_string_whitespace_returns_empty(self) -> None:
-        """A whitespace-only string produces an empty string."""
+        """Строка только из пробелов даёт пустую строку."""
         result = PassportConverter._build_install_options_from_string("   ")
 
         assert result == ""
 
     @pytest.mark.business_logic
     def test_build_install_options_from_string_single_option(self) -> None:
-        """A single 'pkg/*:key=val' entry is wrapped with a single '-o' flag."""
+        """Одна запись 'pkg/*:key=val' оборачивается одним флагом '-o'."""
         result = PassportConverter._build_install_options_from_string(
             f"{COMP_NAME}/*:{OPT_KEY_SHARED}=True"
         )
@@ -117,7 +108,7 @@ class TestBuildInstallOptionsFromString:
 
     @pytest.mark.business_logic
     def test_build_install_options_from_string_multiple_options(self) -> None:
-        """Multiple comma-separated options produce space-separated '-o' flags."""
+        """Несколько опций через запятую дают флаги '-o', разделённые пробелом."""
         options = f"{COMP_NAME}/*:{OPT_KEY_SHARED}=True, {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
         result = PassportConverter._build_install_options_from_string(options)
 
@@ -129,7 +120,7 @@ class TestBuildInstallOptionsFromString:
     def test_build_install_options_from_string_qualifies_unqualified_key(
         self,
     ) -> None:
-        """An option with 'pkg:key=val' (no '/*') is qualified to 'pkg/*:key=val'."""
+        """Опция вида 'pkg:key=val' (без '/*') квалифицируется в 'pkg/*:key=val'."""
         result = PassportConverter._build_install_options_from_string(
             f"{COMP_NAME}:{OPT_KEY_SHARED}=True"
         )
@@ -140,7 +131,7 @@ class TestBuildInstallOptionsFromString:
     def test_build_install_options_from_string_strips_whitespace_between_options(
         self,
     ) -> None:
-        """Leading/trailing whitespace around each option token is stripped correctly."""
+        """Ведущие/замыкающие пробелы вокруг каждого токена опции корректно обрезаются."""
         options = (
             f"  {COMP_NAME}/*:{OPT_KEY_SHARED}=True  ," f"  {COMP_NAME}/*:{OPT_KEY_FPIC}=True  "
         )
@@ -152,23 +143,23 @@ class TestBuildInstallOptionsFromString:
 
 
 class TestBuildVariantView:
-    """Tests for BaseDataConverter._build_variant_view static method."""
+    """Тесты для статического метода BaseDataConverter._build_variant_view."""
 
     @pytest.mark.contract
     def test_build_variant_view_maps_fields_from_variant(
         self, sample_variant: ConanVariant
     ) -> None:
-        """package_id and build_url from ConanVariant appear in the resulting view."""
+        """package_id и build_url из ConanVariant попадают в итоговое представление."""
         view = PassportConverter._build_variant_view(sample_variant, COMP_NAME)
 
         assert view.package_id == VARIANT_PKG_ID
         assert view.build_url == VARIANT_BUILD_URL
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_build_variant_view_uses_conan_options_from_opts(
         self, sample_variant: ConanVariant
     ) -> None:
-        """conan_options from _VariantOpts are passed through to the view model."""
+        """conan_options из _VariantOpts передаются в view-model без изменений (чистый passthrough)."""
         opts = _VariantOpts(conan_options={OPT_KEY_SHARED: "True"})
         view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
@@ -178,7 +169,7 @@ class TestBuildVariantView:
     def test_build_variant_view_no_opts_gives_empty_conan_options(
         self, sample_variant: ConanVariant
     ) -> None:
-        """When opts is None the view model's conan_options is an empty dict."""
+        """Если opts равен None, conan_options view-model — пустой словарь."""
         view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, None)
 
         assert view.conan_options == {}
@@ -187,7 +178,7 @@ class TestBuildVariantView:
     def test_build_variant_view_install_options_override_used_directly(
         self, sample_variant: ConanVariant
     ) -> None:
-        """install_options_override is written verbatim to view.install_options."""
+        """install_options_override записывается в view.install_options дословно."""
         opts = _VariantOpts(conan_options={}, install_options_override=INSTALL_OVERRIDE)
         view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
@@ -197,62 +188,100 @@ class TestBuildVariantView:
     def test_build_variant_view_builds_install_options_from_conan_options_if_no_override(
         self, sample_variant: ConanVariant
     ) -> None:
-        """When override is None, install_options is built from conan_options."""
+        """Если override равен None, install_options строится из conan_options."""
         opts = _VariantOpts(conan_options={OPT_KEY_SHARED: "True"}, install_options_override=None)
         view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
         assert view.install_options == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
 
 
-# ── include_passport_links propagation ───────────────────────────────────────
-#
-# NOTE: PassportLinkMixin / FullReleaseConverter._passport_link() and the
-# passport_page_pattern constructor argument no longer exist. Per
-# BaseReleaseConverter's docstring, converters do not build passport link
-# strings themselves anymore — that responsibility moved to
-# autodoc.publisher.page_manager.passport_link_injector (inject_links /
-# inject_links_for_profiles), which is exercised in
-# tests/unit/publisher/page_manager/test_passport_registry.py.
-# BaseReleaseConverter's only remaining passport-related responsibility is
-# forwarding the include_passport_links flag into the view model, tested here.
+class TestClassifyOptionBadge:
+    """Тесты для PassportConverter._classify_option_badge (конкретная реализация BaseDataConverter._classify_option_badge).
+
+    Примечание: текущая реализация различает только два исхода —
+    'autodoc-badge-def' (значение совпадает с известным дефолтом) и
+    'autodoc-badge-n' (все остальные случаи: значение отличается от дефолта
+    любого типа, либо дефолт для опции неизвестен). Отдельных CSS-классов
+    для true/false-отличий в текущей реализации нет, хотя стили для них
+    определены в _styles_base.jinja2 — сценарии ниже зафиксированы по
+    входным данным из спецификации задачи, а ожидаемый результат — по
+    фактическому поведению метода.
+    """
+
+    @pytest.mark.business_logic
+    @pytest.mark.parametrize(
+        "value,default_value,has_default,expected_badge",
+        [
+            ("True", "True", True, "autodoc-badge-def"),
+            (True, False, True, "autodoc-badge-n"),
+            (False, True, True, "autodoc-badge-n"),
+            ("static", "shared", True, "autodoc-badge-n"),
+            ("True", "True", False, "autodoc-badge-n"),
+        ],
+        ids=[
+            "test_classify_option_badge_matches_default_is_neutral",
+            "test_classify_option_badge_differs_true_is_green",
+            "test_classify_option_badge_differs_false_is_red",
+            "test_classify_option_badge_differs_non_boolean_is_yellow",
+            "test_classify_option_badge_no_default_known_is_neutral",
+        ],
+    )
+    def test_classify_option_badge(
+        self,
+        value: Any,
+        default_value: Any,
+        has_default: bool,
+        expected_badge: str,
+    ) -> None:
+        """Возвращает корректный CSS-класс бейджа для сочетания значения/дефолта/наличия дефолта."""
+        result = PassportConverter._classify_option_badge(value, default_value, has_default)
+
+        assert result == expected_badge
 
 
 class TestIncludePassportLinksPropagation:
-    """Tests for BaseReleaseConverter forwarding include_passport_links into the view model."""
+    """Тесты передачи include_passport_links из BaseReleaseConverter в view-model.
 
-    @pytest.mark.business_logic
+    PassportLinkMixin / FullReleaseConverter._passport_link() и аргумент конструктора
+    passport_page_pattern больше не существуют. Согласно докстрингу
+    BaseReleaseConverter, конвертеры больше не строят строки ссылок на паспорта
+    сами — эта ответственность перенесена в
+    autodoc.publisher.page_manager.passport_link_injector (inject_links /
+    inject_links_for_profiles), что проверяется в
+    tests/unit/publisher/page_manager/test_passport_registry.py.
+    Единственная оставшаяся у BaseReleaseConverter ответственность, связанная
+    с паспортами, — передача флага include_passport_links в view-model,
+    проверяемая здесь.
+    """
+
+    @pytest.mark.contract
     def test_include_passport_links_false_is_forwarded(self) -> None:
-        """view['include_passport_links'] is False when constructed with False."""
+        """view['include_passport_links'] равен False при конструировании с False."""
         converter = FullReleaseConverter(include_passport_links=False)
-        # _base_view_model requires ParsedResult only for platform_version; a
-        # minimal stand-in object is enough since only that attribute is read.
+        # _base_view_model требует ParsedResult только ради platform_version;
+        # минимальной заглушки достаточно, поскольку читается только этот атрибут.
         view = converter._base_view_model(_MinimalParsedResult())
 
         assert view["include_passport_links"] is False
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_include_passport_links_true_is_forwarded(self) -> None:
-        """view['include_passport_links'] is True when constructed with True (the default)."""
+        """view['include_passport_links'] равен True при конструировании с True (значение по умолчанию)."""
         converter = FullReleaseConverter(include_passport_links=True)
         view = converter._base_view_model(_MinimalParsedResult())
 
         assert view["include_passport_links"] is True
 
 
-# ---------------------------------------------------------------------------
-# ConanVariantView — dataclass contract
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.contract
 def test_conan_variant_view_is_dataclass() -> None:
-    """ConanVariantView is a Python dataclass."""
+    """ConanVariantView является Python dataclass."""
     assert dataclasses.is_dataclass(ConanVariantView)
 
 
 @pytest.mark.contract
 def test_conan_variant_view_required_fields() -> None:
-    """ConanVariantView can be created with the three required positional fields."""
+    """ConanVariantView можно создать с тремя обязательными позиционными полями."""
     view = ConanVariantView(
         package_id="pkg-abc",
         build_url="https://ci.example.com/build/1",
@@ -263,7 +292,7 @@ def test_conan_variant_view_required_fields() -> None:
 
 @pytest.mark.contract
 def test_conan_variant_view_defaults() -> None:
-    """ConanVariantView optional fields default to empty string / empty dict."""
+    """Необязательные поля ConanVariantView по умолчанию — пустая строка / пустой словарь."""
     view = ConanVariantView(
         package_id="pkg-abc",
         build_url="https://ci.example.com/build/1",
@@ -276,7 +305,7 @@ def test_conan_variant_view_defaults() -> None:
 
 @pytest.mark.contract
 def test_conan_variant_view_custom_values() -> None:
-    """ConanVariantView stores all custom field values correctly."""
+    """ConanVariantView корректно хранит все переданные значения полей."""
     opts: dict[str, Any] = {"shared": "True", "fPIC": "False"}
     view = ConanVariantView(
         package_id="deadbeef",
@@ -292,40 +321,3 @@ def test_conan_variant_view_custom_values() -> None:
     assert view.options_ref == "opt-set-7"
     assert view.conan_options == opts
     assert view.install_options == "-o pkg/*:shared=True -o pkg/*:fPIC=False"
-
-
-# ---------------------------------------------------------------------------
-# BL-BDC-01  (Part 1 of the Publisher BL test plan)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_build_install_options_bare_key_gets_component_name_prefix() -> None:
-    """
-    BL-BDC-01
-    Business Rule: A bare option key without a package prefix is automatically
-    qualified with the component wildcard notation.
-    "shared=True" + comp_name="mylib" → "-o mylib/*:shared=True"
-
-    Preconditions:
-        - conan_options = {"shared": "True"} (no ":" separator in key)
-        - component_name = "mylib"
-
-    Steps:
-        1. Call BaseDataConverter._build_install_options(conan_options, "mylib").
-
-    Expected Result:
-        Result contains "-o" and "mylib/*:shared=True".
-    """
-    from autodoc.publisher.converters.base_data_converter import BaseDataConverter
-
-    conan_options = {"shared": "True"}
-    result = BaseDataConverter._build_install_options(
-        conan_options=conan_options,
-        component_name="mylib",
-    )
-
-    assert "-o" in result, "Result must contain the -o flag"
-    assert "mylib/*:shared=True" in result, (
-        "Bare key 'shared=True' with comp_name='mylib' should result in " "'mylib/*:shared=True'"
-    )

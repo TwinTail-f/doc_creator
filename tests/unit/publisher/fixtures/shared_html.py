@@ -1,7 +1,7 @@
 """
-Shared HTML fixtures for legacy_content unit tests.
+Общие HTML-фикстуры для юнит-тестов legacy_content.
 
-Import the constants you need directly:
+Импортируйте нужные константы напрямую:
 
     from tests.unit.publisher.fixtures.shared_html import (
         TAB_HTML_SINGLE,
@@ -10,11 +10,8 @@ Import the constants you need directly:
     )
 """
 
-# ---------------------------------------------------------------------------
-# Single-tab HTML
-# ---------------------------------------------------------------------------
 
-# Minimal HTML with a single "Platform 2.0" tab
+# Минимальный HTML с одной вкладкой "Platform 2.0"
 TAB_HTML_SINGLE: str = (
     '<ac:structured-macro ac:name="tab">'
     '<ac:parameter ac:name="name">Platform 2.0</ac:parameter>'
@@ -22,11 +19,8 @@ TAB_HTML_SINGLE: str = (
     "</ac:structured-macro>"
 )
 
-# ---------------------------------------------------------------------------
-# Multi-tab HTML
-# ---------------------------------------------------------------------------
 
-# HTML with two tabs: Platform 2.0 and Platform 2.1
+# HTML с двумя вкладками: Platform 2.0 и Platform 2.1
 TAB_HTML_MULTI: str = (
     '<ac:structured-macro ac:name="tab">'
     '<ac:parameter ac:name="name">Platform 2.0</ac:parameter>'
@@ -38,11 +32,8 @@ TAB_HTML_MULTI: str = (
     "</ac:structured-macro>"
 )
 
-# ---------------------------------------------------------------------------
-# Nested rich-text-body
-# ---------------------------------------------------------------------------
 
-# HTML with nested rich-text-body (table inside a tab)
+# HTML со вложенным rich-text-body (таблица внутри вкладки)
 TAB_HTML_NESTED: str = (
     '<ac:structured-macro ac:name="tab">'
     '<ac:parameter ac:name="name">Platform 2.0</ac:parameter>'
@@ -53,39 +44,30 @@ TAB_HTML_NESTED: str = (
     "</ac:structured-macro>"
 )
 
-# ---------------------------------------------------------------------------
-# Legacy h1-header format
-# ---------------------------------------------------------------------------
 
-# HTML with h1 headers in legacy format
+# HTML с заголовками h1 в устаревшем формате
 H1_HTML: str = (
     "<h1>Platform 2.0</h1><p>Legacy content 2.0</p>"
     "<h1>Platform 2.1</h1><p>Legacy content 2.1</p>"
 )
 
-# ---------------------------------------------------------------------------
-# Already-tabbed (tabs-group wrapper)
-# ---------------------------------------------------------------------------
 
-# HTML with tabs-group macro (template already manages tabs)
+# HTML с макросом tabs-group (шаблон уже управляет вкладками)
 TABS_GROUP_HTML: str = (
     '<ac:structured-macro ac:name="tabs-group"><ac:rich-text-body>'
     "some content"
     "</ac:rich-text-body></ac:structured-macro>"
 )
 
-# ---------------------------------------------------------------------------
-# Edge-case fixtures (extractor-specific)
-# ---------------------------------------------------------------------------
 
-# Tab with no body content (only a parameter, no rich-text-body)
+# Вкладка без содержимого тела (только параметр, без rich-text-body)
 TAB_HTML_NO_BODY: str = (
     '<ac:structured-macro ac:name="tab">'
     '<ac:parameter ac:name="name">Platform 9.9</ac:parameter>'
     "</ac:structured-macro>"
 )
 
-# HTML with two identical tab names
+# HTML с двумя одинаковыми именами вкладок
 TAB_HTML_DUPLICATE_NAMES: str = (
     '<ac:structured-macro ac:name="tab">'
     '<ac:parameter ac:name="name">Platform 2.0</ac:parameter>'
@@ -97,18 +79,12 @@ TAB_HTML_DUPLICATE_NAMES: str = (
     "</ac:structured-macro>"
 )
 
-# ---------------------------------------------------------------------------
-# Edge-case fixtures (merger-specific)
-# ---------------------------------------------------------------------------
 
-# HTML with h2 version header (vX.Y fallback)
+# HTML с заголовком версии h2 (запасной вариант vX.Y)
 H2_VERSION_HTML: str = "<h2>v1.2</h2>\n<p>content for v1.2</p>"
 
-# ---------------------------------------------------------------------------
-# Edge-case fixtures (service-specific)
-# ---------------------------------------------------------------------------
 
-# Three tabs: Platform 2.0, CustomOS 2.0 (also ends in "2.0"), Platform 2.1
+# Три вкладки: Platform 2.0, CustomOS 2.0 (тоже заканчивается на "2.0"), Platform 2.1
 TAB_HTML_CUSTOM_OS: str = (
     '<ac:structured-macro ac:name="tab">'
     '<ac:parameter ac:name="name">Platform 2.0</ac:parameter>'

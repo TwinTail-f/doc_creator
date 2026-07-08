@@ -1,6 +1,6 @@
 """
-Publisher-specific fixtures and stubs.
-Do not touch for the Parser agent. Do not duplicate minimal_confluence_config from tests/conftest.py.
+Специфичные для паблишера фикстуры и заглушки.
+Не трогать агенту Parser. Не дублировать minimal_confluence_config из tests/conftest.py.
 """
 
 from __future__ import annotations
@@ -16,22 +16,18 @@ import pytest
 from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
 
-# ---------------------------------------------------------------------------
-# Fake classes (implement Protocol interfaces without inheritance)
-# ---------------------------------------------------------------------------
-
 
 class FakeConfluenceClient:
     """
-    Test stub for ConfluenceClient with predictable behavior.
+    Тестовая заглушка ConfluenceClient с предсказуемым поведением.
 
-    All write methods record calls in self.calls for later verification.
-    Return values of publish_page/create_page are PageResult instances
-    (matching the real ConfluenceClient contract), configurable via
-    self.publish_responses / self.create_responses.
-    find_page/resolve_existing_page_id are backed by self._pages
-    (title -> ConfluencePage), pre-populated via register_page().
-    By default returns page_id='page-001', version=1, status='updated'.
+    Все методы записи фиксируют вызовы в self.calls для последующей проверки.
+    Возвращаемые значения publish_page/create_page — экземпляры PageResult
+    (соответствуют контракту настоящего ConfluenceClient), настраиваются
+    через self.publish_responses / self.create_responses.
+    find_page/resolve_existing_page_id работают через self._pages
+    (title -> ConfluencePage), заполняемый через register_page().
+    По умолчанию возвращает page_id='page-001', version=1, status='updated'.
     """
 
     def __init__(self) -> None:
@@ -49,7 +45,7 @@ class FakeConfluenceClient:
         ancestor_ids: tuple[str, ...] = (),
         body_html: str = "",
     ) -> None:
-        """Registers a pre-existing page so find_page/resolve_existing_page_id can find it."""
+        """Регистрирует заранее существующую страницу, чтобы её находили find_page/resolve_existing_page_id."""
         self._pages[title] = ConfluencePage(
             id=page_id,
             title=title,
@@ -68,7 +64,7 @@ class FakeConfluenceClient:
         title: str,
         body_html: str,
     ) -> PageResult:
-        """Records the call; returns the next response from publish_responses or the default."""
+        """Записывает вызов; возвращает следующий ответ из publish_responses или значение по умолчанию."""
         self.calls.append(
             {
                 "method": "publish_page",
@@ -88,7 +84,7 @@ class FakeConfluenceClient:
         parent_id: str,
         title: str,
     ) -> str | None:
-        """Returns the ID of a pre-registered page (via register_page) or None."""
+        """Возвращает ID заранее зарегистрированной (через register_page) страницы или None."""
         self.calls.append(
             {
                 "method": "resolve_existing_page_id",
@@ -107,7 +103,7 @@ class FakeConfluenceClient:
         title: str,
         body_html: str,
     ) -> PageResult:
-        """Records the call; returns the next response from create_responses or the default."""
+        """Записывает вызов; возвращает следующий ответ из create_responses или значение по умолчанию."""
         self.calls.append(
             {
                 "method": "create_page",
@@ -127,15 +123,15 @@ class FakeConfluenceClient:
         space: str | None = None,
         expand: str = "",
     ) -> ConfluencePage | None:
-        """Returns the pre-registered ConfluencePage for this title or None."""
+        """Возвращает заранее зарегистрированную ConfluencePage для этого заголовка или None."""
         return self._pages.get(title)
 
     def get_page(self, page_id: str, expand: str = "") -> ConfluencePage:
-        """Returns a stub ConfluencePage by ID."""
+        """Возвращает заглушку ConfluencePage по ID."""
         return ConfluencePage(id=page_id, title="stub", version=1)
 
     def get_page_body(self, space: str, title: str, parent_id: str | None = None) -> str:
-        """Returns page body from _page_bodies or empty string."""
+        """Возвращает тело страницы из _page_bodies или пустую строку."""
         self.calls.append(
             {"method": "get_page_body", "space": space, "title": title, "parent_id": parent_id}
         )
@@ -144,10 +140,10 @@ class FakeConfluenceClient:
 
 class FakeDocumentBuilder:
     """
-    Test stub for IDocumentBuilder.
+    Тестовая заглушка для IDocumentBuilder.
 
-    By default returns the string '<html>{template_name}</html>'.
-    The last build() call is stored in self.last_call for argument verification.
+    По умолчанию возвращает строку '<html>{template_name}</html>'.
+    Последний вызов build() сохраняется в self.last_call для проверки аргументов.
     """
 
     def __init__(self) -> None:
@@ -155,16 +151,12 @@ class FakeDocumentBuilder:
         self.build_responses: list[str] = []
 
     def build(self, template_name: str, view_model: dict[str, Any]) -> str:
-        """Returns the next build_responses entry or the default HTML."""
+        """Возвращает следующую запись из build_responses или HTML по умолчанию."""
         self.last_call = {"template_name": template_name, "view_model": view_model}
         if self.build_responses:
             return self.build_responses.pop(0)
         return f"<html>{template_name}</html>"
 
-
-# ---------------------------------------------------------------------------
-# Import domain models
-# ---------------------------------------------------------------------------
 
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
@@ -175,37 +167,27 @@ from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 PUBLISHER_RESOURCES_DIR: Path = Path(__file__).parent.parent.parent / "resources" / "parsed_data"
 
 
-# ---------------------------------------------------------------------------
-# Infrastructure fixtures
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def publisher_resources_dir() -> Path:
-    """Path to publisher resources (parsed_data/)."""
+    """Путь к ресурсам паблишера (parsed_data/)."""
     return PUBLISHER_RESOURCES_DIR
 
 
 @pytest.fixture
 def publisher_confluence_client() -> FakeConfluenceClient:
-    """Fresh FakeConfluenceClient for each test."""
+    """Свежий FakeConfluenceClient для каждого теста."""
     return FakeConfluenceClient()
 
 
 @pytest.fixture
 def publisher_document_builder() -> FakeDocumentBuilder:
-    """Fresh FakeDocumentBuilder for each test."""
+    """Свежий FakeDocumentBuilder для каждого теста."""
     return FakeDocumentBuilder()
-
-
-# ---------------------------------------------------------------------------
-# Domain model fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
 def publisher_conan_variant() -> ConanVariant:
-    """A single ConanVariant with populated fields."""
+    """Один ConanVariant с заполненными полями."""
     return ConanVariant(
         package_id="abc123",
         build_url="https://ci.example.com/build/42",
@@ -216,7 +198,7 @@ def publisher_conan_variant() -> ConanVariant:
 
 @pytest.fixture
 def publisher_profile_build(publisher_conan_variant: ConanVariant) -> ProfileBuild:
-    """ProfileBuild for profile 'hw-linux-x86_64-gcc10' with one variant."""
+    """ProfileBuild для профиля 'hw-linux-x86_64-gcc10' с одним вариантом."""
     return ProfileBuild(
         profile_name="hw-linux-x86_64-gcc10",
         exists=True,
@@ -226,7 +208,7 @@ def publisher_profile_build(publisher_conan_variant: ConanVariant) -> ProfileBui
 
 @pytest.fixture
 def publisher_release(publisher_profile_build: ProfileBuild) -> Release:
-    """Release '1.0.0' for platform 2.0 with one ProfileBuild."""
+    """Release '1.0.0' для платформы 2.0 с одним ProfileBuild."""
     total_opts = TotalOptionsSet(id="opt-set-1", options={"shared": "True", "fPIC": "True"})
     build_opts = ConanInputOptions(
         id="opt-set-1",
@@ -246,7 +228,7 @@ def publisher_release(publisher_profile_build: ProfileBuild) -> Release:
 
 @pytest.fixture
 def publisher_component(publisher_release: Release) -> Component:
-    """Component 'openssl' with one Release."""
+    """Component 'openssl' с одним Release."""
     return Component(
         name="openssl",
         description="OpenSSL TLS/SSL library",
@@ -260,7 +242,7 @@ def publisher_component(publisher_release: Release) -> Component:
 
 @pytest.fixture
 def publisher_profile_definition() -> ProfileDefinition:
-    """ProfileDefinition for profile 'hw-linux-x86_64-gcc10'."""
+    """ProfileDefinition для профиля 'hw-linux-x86_64-gcc10'."""
     return ProfileDefinition(
         profile_name="hw-linux-x86_64-gcc10",
         conan_settings={
@@ -278,7 +260,7 @@ def publisher_parsed_result(
     publisher_component: Component,
     publisher_profile_definition: ProfileDefinition,
 ) -> ParsedResult:
-    """Minimal ParsedResult with one component and one profile."""
+    """Минимальный ParsedResult с одним компонентом и одним профилем."""
     return ParsedResult(
         generated_at="2024-01-15T12:00:00",
         platform_version="2.0",
@@ -287,18 +269,13 @@ def publisher_parsed_result(
     )
 
 
-# ---------------------------------------------------------------------------
-# Part-1 BL fixtures
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def publisher_header_only_component(publisher_release: Release) -> Component:
     """
-    A Component where is_header_only=True (field is now on Component, not Release).
+    Component с is_header_only=True (поле теперь на Component, а не на Release).
 
-    profile_builds are retained on the embedded release to verify that the
-    FullReleaseConverter suppresses them in the view model.
+    profile_builds сохраняются на вложенном release, чтобы проверить, что
+    FullReleaseConverter скрывает их в view model.
     """
     return Component(
         name="eigen",
@@ -316,10 +293,11 @@ def publisher_two_profile_parsed_result(
     publisher_profile_definition: ProfileDefinition,
 ) -> ParsedResult:
     """
-    ParsedResult with one component ('mylib') and two profile builds:
-    hw-linux-x86_64-gcc10 and hw-linux-arm64-gcc10.
+    ParsedResult с одним компонентом ('mylib') и двумя сборками профилей:
+    hw-linux-x86_64-gcc10 и hw-linux-arm64-gcc10.
 
-    Used to verify that profile_builds are sorted alphabetically by profile_name.
+    Используется для проверки, что profile_builds сортируются по алфавиту
+    по profile_name.
     """
     pd_arm = ProfileDefinition(
         profile_name="hw-linux-arm64-gcc10",
@@ -385,10 +363,10 @@ def publisher_multi_channel_result(
     publisher_profile_definition: ProfileDefinition,
 ) -> ParsedResult:
     """
-    ParsedResult with two components and two channels for ProfileCentricConverter tests.
+    ParsedResult с двумя компонентами и двумя каналами для тестов ProfileCentricConverter.
 
-    - comp_alpha (is_header_only=False): releases in channels 'fast' and 'stable'
-    - comp_beta  (is_header_only=True):  one release in channel 'fast'
+    - comp_alpha (is_header_only=False): релизы в каналах 'fast' и 'stable'
+    - comp_beta  (is_header_only=True):  один релиз в канале 'fast'
     """
     total_opts = TotalOptionsSet(id="opt-1", options={"shared": "False"})
     variant = ConanVariant(
@@ -469,25 +447,22 @@ def publisher_multi_channel_result(
     )
 
 
-# ---------------------------------------------------------------------------
-# Part-3 BL fixtures: RecordingConfluenceClient and related helpers
-# ---------------------------------------------------------------------------
-
-
 class RecordingConfluenceClient:
     """
-    Extended FakeConfluenceClient that records the order of publish_page/create_page calls.
+    Расширенный FakeConfluenceClient, фиксирующий порядок вызовов publish_page/create_page.
 
-    Used to verify page count and publishing order in Part-3 strategy tests.
-    Each publish_page/create_page call is appended to ``published_pages`` and
-    receives a monotonically-increasing integer ``page_id`` starting from 1000.
+    Используется для проверки количества и порядка публикации страниц в тестах
+    стратегий Part-3. Каждый вызов publish_page/create_page добавляется в
+    ``published_pages`` и получает монотонно возрастающий целочисленный
+    ``page_id``, начиная с 1000.
 
-    The counter is guarded by a lock: PassportsStrategy publishes pages
-    concurrently via ParallelExecutor/ThreadPoolExecutor, so a naive
-    read-then-increment here would be a genuine race condition (two worker
-    threads could read the same counter value before either incremented it),
-    producing duplicate page IDs — exactly the kind of bug this double
-    should catch, not reproduce.
+    Счётчик защищён блокировкой: PassportsStrategy публикует страницы
+    параллельно через ParallelExecutor/ThreadPoolExecutor, поэтому наивное
+    чтение-затем-инкремент здесь было бы настоящим состоянием гонки (два
+    рабочих потока могли бы прочитать одно и то же значение счётчика до
+    того, как любой из них его увеличит), что привело бы к дублированию
+    page_id — именно такую ошибку и должен ловить этот дубль, а не
+    воспроизводить.
     """
 
     def __init__(self, existing_bodies: dict[str, str] | None = None) -> None:
@@ -497,7 +472,7 @@ class RecordingConfluenceClient:
         self._existing_bodies: dict[str, str] = existing_bodies or {}
 
     def _next_page_id(self) -> str:
-        """Atomically returns and increments the page ID counter."""
+        """Атомарно возвращает и увеличивает счётчик ID страниц."""
         with self._counter_lock:
             page_id = str(self._page_counter)
             self._page_counter += 1
@@ -510,7 +485,7 @@ class RecordingConfluenceClient:
         title: str,
         body_html: str,
     ) -> PageResult:
-        """Records the call and returns a PageResult with a unique incremental page_id."""
+        """Записывает вызов и возвращает PageResult с уникальным инкрементным page_id."""
         page_id = self._next_page_id()
         self.published_pages.append(
             {
@@ -528,7 +503,7 @@ class RecordingConfluenceClient:
         parent_id: str,
         title: str,
     ) -> str | None:
-        """Always returns None (page not found), so callers proceed to create_page()."""
+        """Всегда возвращает None (страница не найдена), чтобы вызывающий перешёл к create_page()."""
         return None
 
     def create_page(
@@ -538,7 +513,7 @@ class RecordingConfluenceClient:
         title: str,
         body_html: str,
     ) -> PageResult:
-        """Records the call (does NOT add to published_pages) and returns a unique incremental page_id."""
+        """Записывает вызов (НЕ добавляет в published_pages) и возвращает уникальный инкрементный page_id."""
         page_id = self._next_page_id()
         return PageResult(id=page_id, version=1, status="created", message="")
 
@@ -548,27 +523,27 @@ class RecordingConfluenceClient:
         space: str | None = None,
         expand: str | None = None,
     ) -> ConfluencePage | None:
-        """Always returns None (page not found)."""
+        """Всегда возвращает None (страница не найдена)."""
         return None
 
     def get_page(self, page_id: str, expand: str | None = None) -> ConfluencePage:
-        """Returns a minimal stub ConfluencePage."""
+        """Возвращает минимальную заглушку ConfluencePage."""
         return ConfluencePage(id=page_id, title="stub", version=1)
 
     def get_page_body(self, space: str, title: str, parent_id: str | None = None) -> str:
-        """Returns a pre-configured body from ``existing_bodies`` or a blank string."""
+        """Возвращает заранее заданное тело из ``existing_bodies`` или пустую строку."""
         return self._existing_bodies.get(title, " ")
 
 
 @pytest.fixture
 def recording_client() -> RecordingConfluenceClient:
-    """Fresh RecordingConfluenceClient for verifying publish_page count and order."""
+    """Свежий RecordingConfluenceClient для проверки количества и порядка publish_page."""
     return RecordingConfluenceClient()
 
 
 @pytest.fixture
 def recording_client_with_existing_body() -> RecordingConfluenceClient:
-    """RecordingConfluenceClient pre-loaded with a legacy Confluence page body."""
+    """RecordingConfluenceClient, заранее заполненный телом устаревшей страницы Confluence."""
     return RecordingConfluenceClient(
         existing_bodies={
             "Документация mylib 1.0": (
@@ -583,14 +558,14 @@ def recording_client_with_existing_body() -> RecordingConfluenceClient:
 
 @pytest.fixture
 def fake_builder_recording():
-    """FakeDocumentBuilder that records all build() calls with rendered HTML."""
+    """FakeDocumentBuilder, записывающий все вызовы build() с отрендеренным HTML."""
 
     class RecordingBuilder:
         def __init__(self) -> None:
             self.calls: list[dict] = []
 
         def build(self, template_name: str, view_model: dict) -> str:
-            """Records the call and returns a deterministic rendered HTML string."""
+            """Записывает вызов и возвращает детерминированную строку отрендеренного HTML."""
             self.calls.append({"template_name": template_name, "view_model": view_model})
             return f"<html>rendered {template_name}</html>"
 
@@ -599,7 +574,7 @@ def fake_builder_recording():
 
 @pytest.fixture
 def registry_pages_map() -> dict:
-    """A minimal pages_map dict for PassportPageRegistry.save() tests."""
+    """Минимальный словарь pages_map для тестов PassportPageRegistry.save()."""
     return {
         "openssl": {
             "1.0.0": {
@@ -615,7 +590,7 @@ def registry_pages_map() -> dict:
 def publisher_multi_component_result(
     publisher_profile_definition: ProfileDefinition,
 ) -> ParsedResult:
-    """ParsedResult with two components and multiple releases — for strategies."""
+    """ParsedResult с двумя компонентами и несколькими релизами — для стратегий."""
     total_opts = TotalOptionsSet(id="opt-1", options={"shared": "True"})
     rel1 = Release(
         version="1.0.0",

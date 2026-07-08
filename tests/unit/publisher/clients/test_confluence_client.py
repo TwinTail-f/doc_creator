@@ -1,15 +1,15 @@
 """
-Tests for autodoc.publisher.clients.confluence_client.ConfluenceClient.
+Тесты для autodoc.publisher.clients.confluence_client.ConfluenceClient.
 
-Testing strategy:
-- ConfluenceClient delegates all HTTP calls to a ConfluenceTransport instance
-  (self._transport). ConfluenceTransport itself is fully mocked via
-  mocker.patch on the ConfluenceTransport class import in confluence_client,
-  so no real HTTP session or network calls are involved.
-- The mock_transport object provides controllable search_content / get_content /
-  create_content / update_content responses (raw JSON dicts, matching the
-  ConfluenceTransport public contract).
-- minimal_confluence_config fixture comes from tests/conftest.py.
+Стратегия тестирования:
+- ConfluenceClient делегирует все HTTP-вызовы экземпляру ConfluenceTransport
+  (self._transport). Сам ConfluenceTransport полностью мокается через
+  mocker.patch на импорт класса ConfluenceTransport в confluence_client,
+  поэтому реальная HTTP-сессия и сетевые вызовы не используются.
+- Объект mock_transport предоставляет управляемые ответы search_content /
+  get_content / create_content / update_content (сырые JSON-словари,
+  соответствующие публичному контракту ConfluenceTransport).
+- Фикстура minimal_confluence_config приходит из tests/conftest.py.
 """
 
 from __future__ import annotations
@@ -22,24 +22,16 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfluenceError, PublishError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 SPACE: str = "TEST"
 PAGE_TITLE: str = "Test Page"
 PAGE_BODY: str = "<p>Content</p>"
 PAGE_ID: str = "123456"
 PARENT_ID: str = "root-001"
 
-# ---------------------------------------------------------------------------
-# Fixture
-# ---------------------------------------------------------------------------
-
 
 @pytest.fixture
 def confluence_client(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
-    """ConfluenceClient with a fully mocked ConfluenceTransport."""
+    """ConfluenceClient с полностью замоканным ConfluenceTransport."""
     config = ConfluenceConfigSchema(**minimal_confluence_config)
     mock_transport = mocker.MagicMock()
     mocker.patch(
@@ -53,11 +45,11 @@ def confluence_client(minimal_confluence_config: dict, mocker: Any) -> Confluenc
 
 @pytest.fixture
 def confluence_client_move_policy(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
-    """ConfluenceClient configured with title_conflict_policy='move' via the public config.
+    """ConfluenceClient, настроенный с title_conflict_policy='move' через публичный конфиг.
 
-    Built the same way production code builds it (through ConfluenceConfigSchema),
-    rather than mutating the private _title_conflict_policy attribute directly,
-    so the test exercises the real config-driven code path.
+    Собран так же, как продакшн-код собирает его (через ConfluenceConfigSchema),
+    а не прямой подменой приватного атрибута _title_conflict_policy,
+    чтобы тест проверял реальный путь, управляемый конфигурацией.
     """
     cfg = dict(minimal_confluence_config)
     cfg["title_conflict_policy"] = "move"
@@ -72,28 +64,23 @@ def confluence_client_move_policy(minimal_confluence_config: dict, mocker: Any) 
     return client
 
 
-# ---------------------------------------------------------------------------
-# find_page tests
-# ---------------------------------------------------------------------------
-
-
 class TestFindPage:
-    """Tests for ConfluenceClient.find_page()."""
+    """Тесты для ConfluenceClient.find_page()."""
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_find_page_returns_none_when_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """find_page returns None when the transport returns an empty results list."""
+        """find_page возвращает None, если транспорт вернул пустой список результатов."""
         confluence_client._mock_transport.search_content.return_value = []
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
         assert result is None
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_find_page_returns_page_dict_when_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """find_page returns a ConfluencePage built from the first result when the page exists."""
+        """find_page возвращает ConfluencePage, построенный из первого результата, если страница существует."""
         page_data = {"id": PAGE_ID, "title": PAGE_TITLE}
         confluence_client._mock_transport.search_content.return_value = [page_data]
         result = confluence_client.find_page(PAGE_TITLE, space=SPACE)
@@ -102,28 +89,39 @@ class TestFindPage:
         assert result.title == PAGE_TITLE
 
 
-# ---------------------------------------------------------------------------
-# get_page_body tests
-# ---------------------------------------------------------------------------
+class TestGetPage:
+    """Тесты для ConfluenceClient.get_page()."""
+
+    @pytest.mark.infrastructure
+    def test_get_page_returns_raw_page_dict(
+        self, confluence_client: ConfluenceClient
+    ) -> None:
+        """get_page возвращает ConfluencePage, построенный из ответа транспорта по ID страницы."""
+        page_data = {"id": PAGE_ID, "title": PAGE_TITLE, "version": {"number": 3}}
+        confluence_client._mock_transport.get_content.return_value = page_data
+        result = confluence_client.get_page(PAGE_ID)
+        assert result.id == PAGE_ID
+        assert result.title == PAGE_TITLE
+        assert result.version == 3
 
 
 class TestGetPageBody:
-    """Tests for ConfluenceClient.get_page_body()."""
+    """Тесты для ConfluenceClient.get_page_body()."""
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_get_page_body_returns_empty_string_when_page_not_found(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """get_page_body returns '' when the page does not exist."""
+        """get_page_body возвращает '', если страница не найдена."""
         confluence_client._mock_transport.search_content.return_value = []
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == ""
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_get_page_body_returns_body_when_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """get_page_body returns the storage value when the page exists."""
+        """get_page_body возвращает значение storage, если страница существует."""
         page_data = {
             "id": PAGE_ID,
             "title": PAGE_TITLE,
@@ -133,22 +131,35 @@ class TestGetPageBody:
         result = confluence_client.get_page_body(space=SPACE, title=PAGE_TITLE)
         assert result == "<p>html</p>"
 
-
-# ---------------------------------------------------------------------------
-# publish_page tests
-# ---------------------------------------------------------------------------
+    @pytest.mark.business_logic
+    def test_get_page_body_returns_empty_when_found_in_wrong_subtree(
+        self, confluence_client: ConfluenceClient
+    ) -> None:
+        """get_page_body возвращает '', если страница с таким заголовком найдена под другим предком."""
+        wrong_parent = "wrong-parent-777"
+        page_data = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "body": {"storage": {"value": "<p>html</p>"}},
+            "ancestors": [{"id": wrong_parent}],
+        }
+        confluence_client._mock_transport.search_content.return_value = [page_data]
+        result = confluence_client.get_page_body(
+            space=SPACE, title=PAGE_TITLE, parent_id=PARENT_ID
+        )
+        assert result == ""
 
 
 class TestPublishPage:
-    """Tests for ConfluenceClient.publish_page()."""
+    """Тесты для ConfluenceClient.publish_page()."""
 
     def _setup_not_found_then_created(self, confluence_client: ConfluenceClient) -> None:
-        """Configure the mock so find_page returns None and create_page succeeds."""
+        """Настраивает мок так, что find_page возвращает None, а create_page — успешно."""
         confluence_client._mock_transport.search_content.return_value = []
         confluence_client._mock_transport.create_content.return_value = {"id": PAGE_ID}
 
     def _setup_existing_page(self, confluence_client: ConfluenceClient) -> None:
-        """Configure the mock so find_page returns an existing page and update succeeds."""
+        """Настраивает мок так, что find_page возвращает существующую страницу, а update — успешно."""
         existing = {
             "id": PAGE_ID,
             "title": PAGE_TITLE,
@@ -158,22 +169,22 @@ class TestPublishPage:
         confluence_client._mock_transport.search_content.return_value = [existing]
         confluence_client._mock_transport.update_content.return_value = {"id": PAGE_ID}
 
-    @pytest.mark.infrastructure
+    @pytest.mark.business_logic
     def test_publish_page_creates_new_page_when_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """When the page doesn't exist, create_content is called."""
+        """Если страница не существует, вызывается create_content."""
         self._setup_not_found_then_created(confluence_client)
         confluence_client.publish_page(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
         )
         confluence_client._mock_transport.create_content.assert_called_once()
 
-    @pytest.mark.infrastructure
+    @pytest.mark.business_logic
     def test_publish_page_updates_existing_page_when_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """When the page exists, update_content is called."""
+        """Если страница существует, вызывается update_content."""
         self._setup_existing_page(confluence_client)
         confluence_client.publish_page(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
@@ -184,7 +195,7 @@ class TestPublishPage:
     def test_publish_page_returns_dict_with_id_version_status(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """publish_page returns a PageResult exposing id, version, and status."""
+        """publish_page возвращает PageResult с полями id, version и status."""
         self._setup_not_found_then_created(confluence_client)
         result = confluence_client.publish_page(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
@@ -197,7 +208,7 @@ class TestPublishPage:
     def test_publish_page_raises_publish_error_on_http_error(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """publish_page raises PublishError when the transport reports an HTTP error."""
+        """publish_page поднимает PublishError, если транспорт сообщил об HTTP-ошибке."""
         confluence_client._mock_transport.search_content.side_effect = ConfluenceError(
             "HTTP 403"
         )
@@ -211,7 +222,7 @@ class TestPublishPage:
         self,
         confluence_client_move_policy: ConfluenceClient,
     ) -> None:
-        """publish_page issues update_content even when found page's ancestor differs (title_conflict_policy='move')."""
+        """publish_page вызывает update_content, даже если предок найденной страницы отличается (title_conflict_policy='move')."""
         WRONG_PARENT = "wrong-parent-999"
 
         existing_page = {
@@ -225,7 +236,7 @@ class TestPublishPage:
 
         confluence_client_move_policy.publish_page(
             space=SPACE,
-            parent_id=PARENT_ID,  # different from WRONG_PARENT
+            parent_id=PARENT_ID,  # отличается от WRONG_PARENT
             title=PAGE_TITLE,
             body_html=PAGE_BODY,
         )
@@ -233,11 +244,35 @@ class TestPublishPage:
         confluence_client_move_policy._mock_transport.update_content.assert_called_once()
 
     @pytest.mark.business_logic
+    def test_publish_page_raises_on_title_conflict_when_policy_is_error(
+        self, confluence_client: ConfluenceClient
+    ) -> None:
+        """publish_page поднимает ConfluenceError при конфликте заголовка, если title_conflict_policy='error' (значение по умолчанию)."""
+        WRONG_PARENT = "wrong-parent-555"
+
+        existing_page = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "version": {"number": 2},
+            "ancestors": [{"id": WRONG_PARENT}],
+        }
+        confluence_client._mock_transport.search_content.return_value = [existing_page]
+
+        with pytest.raises(ConfluenceError):
+            confluence_client.publish_page(
+                space=SPACE,
+                parent_id=PARENT_ID,  # отличается от WRONG_PARENT
+                title=PAGE_TITLE,
+                body_html=PAGE_BODY,
+            )
+        confluence_client._mock_transport.update_content.assert_not_called()
+
+    @pytest.mark.business_logic
     def test_publish_page_put_payload_contains_correct_parent_id(
         self,
         confluence_client_move_policy: ConfluenceClient,
     ) -> None:
-        """update_content payload ancestors[0].id equals the requested parent_id, not the old one."""
+        """Payload update_content содержит ancestors[0].id, равный запрошенному parent_id, а не старому."""
         OLD_PARENT = "old-parent-111"
         NEW_PARENT = "new-parent-222"
 
@@ -259,18 +294,18 @@ class TestPublishPage:
 
         update_call = confluence_client_move_policy._mock_transport.update_content.call_args
         payload = update_call.args[1]
-        # _build_payload always sets: payload["ancestors"] = [{"id": parent_id}]
+        # _build_payload всегда устанавливает: payload["ancestors"] = [{"id": parent_id}]
         ancestors = payload.get("ancestors", [])
         assert any(
             a["id"] == NEW_PARENT for a in ancestors
-        ), f"Expected parent_id={NEW_PARENT!r} in ancestors, got: {ancestors}"
+        ), f"Ожидался parent_id={NEW_PARENT!r} в ancestors, получено: {ancestors}"
 
     @pytest.mark.business_logic
     def test_publish_page_version_incremented_on_reparent(
         self,
         confluence_client_move_policy: ConfluenceClient,
     ) -> None:
-        """Version number increments correctly (current+1) even when page is moved to new parent."""
+        """Номер версии корректно увеличивается (текущий+1), даже когда страница переносится под нового родителя."""
         existing_page = {
             "id": PAGE_ID,
             "title": PAGE_TITLE,
@@ -291,24 +326,14 @@ class TestPublishPage:
         assert result.status == "updated"
 
 
-# ---------------------------------------------------------------------------
-# resolve_existing_page_id tests
-#
-# (Replaces the former ConfluenceClient.get_or_create_page(), which no longer
-# exists: "get or create" orchestration now lives in
-# HierarchyManager._get_or_create_page_id(), combining
-# ConfluenceClient.resolve_existing_page_id() with ConfluenceClient.create_page().)
-# ---------------------------------------------------------------------------
-
-
 class TestGetOrCreatePage:
-    """Tests for ConfluenceClient.resolve_existing_page_id() and create_page()."""
+    """Тесты для ConfluenceClient.resolve_existing_page_id() и create_page()."""
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_get_or_create_page_returns_id_if_page_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """resolve_existing_page_id returns the existing page's ID without creating anything."""
+        """resolve_existing_page_id возвращает ID существующей страницы, ничего не создавая."""
         existing = {
             "id": PAGE_ID,
             "title": PAGE_TITLE,
@@ -322,11 +347,11 @@ class TestGetOrCreatePage:
         assert result == PAGE_ID
         confluence_client._mock_transport.create_content.assert_not_called()
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_get_or_create_page_creates_and_returns_id_if_not_exists(
         self, confluence_client: ConfluenceClient
     ) -> None:
-        """When no page is found, resolve_existing_page_id returns None and create_page must be called explicitly."""
+        """Если страница не найдена, resolve_existing_page_id возвращает None, а create_page нужно вызывать отдельно."""
         confluence_client._mock_transport.search_content.return_value = []
         result = confluence_client.resolve_existing_page_id(
             space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE
@@ -340,20 +365,49 @@ class TestGetOrCreatePage:
         assert created.id == PAGE_ID
         confluence_client._mock_transport.create_content.assert_called_once()
 
+    @pytest.mark.business_logic
+    def test_resolve_existing_page_id_moves_page_and_preserves_body_when_conflict(
+        self, confluence_client_move_policy: ConfluenceClient
+    ) -> None:
+        """resolve_existing_page_id переносит страницу под ожидаемого родителя и сохраняет её текущее тело (перезапросив его через get_page)."""
+        WRONG_PARENT = "wrong-parent-321"
+        PRESERVED_BODY = "<p>Существующее содержимое</p>"
 
-# ---------------------------------------------------------------------------
-# Phase 5 — timeout forwarding test
-# ---------------------------------------------------------------------------
+        existing_page = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "version": {"number": 5},
+            "ancestors": [{"id": WRONG_PARENT}],
+        }
+        confluence_client_move_policy._mock_transport.search_content.return_value = [existing_page]
+        confluence_client_move_policy._mock_transport.get_content.return_value = {
+            "id": PAGE_ID,
+            "title": PAGE_TITLE,
+            "version": {"number": 5},
+            "ancestors": [{"id": WRONG_PARENT}],
+            "body": {"storage": {"value": PRESERVED_BODY}},
+        }
+        confluence_client_move_policy._mock_transport.update_content.return_value = {"id": PAGE_ID}
+
+        result = confluence_client_move_policy.resolve_existing_page_id(
+            space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE
+        )
+
+        assert result == PAGE_ID
+        confluence_client_move_policy._mock_transport.get_content.assert_called_once()
+        update_call = confluence_client_move_policy._mock_transport.update_content.call_args
+        payload = update_call.args[1]
+        assert payload["body"]["storage"]["value"] == PRESERVED_BODY
 
 
 class TestTimeoutForwarding:
-    """Tests that confluence_request_timeout reaches the underlying HTTP session."""
+    """Тесты того, что confluence_request_timeout доходит до нижележащей HTTP-сессии."""
 
     @pytest.mark.infrastructure
     def test_confluence_client_passes_timeout_to_session(
         self, minimal_confluence_config: dict, mocker: Any
     ) -> None:
-        """ConfluenceClient forwards confluence_request_timeout to create_bearer_session via ConfluenceTransport."""
+        """ConfluenceClient передаёт confluence_request_timeout в create_bearer_session через ConfluenceTransport."""
         custom_timeout = 99
         cfg = dict(minimal_confluence_config)
         cfg["confluence_request_timeout"] = custom_timeout

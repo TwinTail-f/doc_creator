@@ -1,12 +1,12 @@
 """
-Tests for:
+Тесты для:
 - autodoc.publisher.strategies.base.BasePublishStrategy (_minify_html, _publish_single_page)
 - autodoc.publisher.strategies.base.PublishReport
 
-NOTE: registry-related tests (BasePublishStrategy.create(), .available_strategies(),
-and the self-registering `strategy_type=` __init_subclass__ kwarg) were removed —
-the codebase has since moved to an explicit dict-based registry
-(autodoc.publisher.strategies.registry.STRATEGIES / create_strategy()) instead.
+ПРИМЕЧАНИЕ: тесты, связанные с реестром (BasePublishStrategy.create(), .available_strategies(),
+и самрегистрирующийся kwarg __init_subclass__ `strategy_type=`), были удалены —
+кодовая база с тех пор перешла на явный реестр на основе словаря
+(autodoc.publisher.strategies.registry.STRATEGIES / create_strategy()).
 """
 
 from __future__ import annotations
@@ -19,101 +19,97 @@ from autodoc.exceptions import ConfluenceError
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 _PAGE_TITLE: str = "Test Page"
 _TEMPLATE_NAME: str = "test_template.jinja2"
 _PARENT_ID: str = "parent-001"
 _PAGE_ID: str = "page-001"
 
-# ---------------------------------------------------------------------------
-# Module-level stub strategy
-# ---------------------------------------------------------------------------
-
 
 class _StubStrategy(BasePublishStrategy):
-    """Minimal concrete strategy used to test _publish_single_page."""
+    """Минимальная конкретная стратегия для тестирования _publish_single_page."""
 
     def execute(self) -> PublishReport:
-        """Executes a no-op strategy returning a success report."""
+        """Выполняет фиктивную стратегию, возвращающую успешный отчёт."""
         return PublishReport(success=True, pages_published=1)
 
 
-# ---------------------------------------------------------------------------
-# _minify_html tests
-# ---------------------------------------------------------------------------
-
-
 class TestMinifyHtml:
-    """Tests for BasePublishStrategy._minify_html static method."""
+    """Тесты для статического метода BasePublishStrategy._minify_html."""
 
     @pytest.mark.infrastructure
     def test_minify_html_removes_html_comments(self) -> None:
-        """HTML comments are stripped from the output."""
+        """HTML-комментарии удаляются из результата."""
         result = BasePublishStrategy._minify_html("<!-- comment --><p>text</p>")
         assert result == "<p>text</p>"
 
     @pytest.mark.infrastructure
     def test_minify_html_collapses_whitespace_between_tags(self) -> None:
-        """Whitespace between tags is collapsed to nothing."""
+        """Пробелы между тегами схлопываются полностью."""
         result = BasePublishStrategy._minify_html("><    <")
         assert "  " not in result
         assert ">  <" not in result
 
     @pytest.mark.infrastructure
     def test_minify_html_collapses_multiple_spaces(self) -> None:
-        """Multiple consecutive spaces in text content are reduced to one."""
+        """Несколько подряд идущих пробелов в тексте сжимаются до одного."""
         result = BasePublishStrategy._minify_html("two  spaces")
         assert result == "two spaces"
 
     @pytest.mark.infrastructure
     def test_minify_html_strips_result(self) -> None:
-        """Leading and trailing whitespace is removed from the result."""
+        """Начальные и конечные пробелы удаляются из результата."""
         result = BasePublishStrategy._minify_html("  <p>text</p>  ")
         assert result == "<p>text</p>"
 
     @pytest.mark.infrastructure
     def test_minify_html_empty_string_returns_empty(self) -> None:
-        """An empty string input produces an empty string output."""
+        """Пустая строка на входе даёт пустую строку на выходе."""
         result = BasePublishStrategy._minify_html("")
         assert result == ""
 
-
-# ---------------------------------------------------------------------------
-# PublishReport tests
-# ---------------------------------------------------------------------------
+    @pytest.mark.infrastructure
+    def test_minify_html_preserves_cdata_content_untouched(self) -> None:
+        """Содержимое блоков CDATA (например, тела макросов Confluence) не изменяется минификацией."""
+        html = '<ac:parameter><![CDATA[  raw   <b>markup</b>  <!-- not a comment -->  ]]></ac:parameter>'
+        result = BasePublishStrategy._minify_html(html)
+        assert "<![CDATA[  raw   <b>markup</b>  <!-- not a comment -->  ]]>" in result
 
 
 class TestPublishReport:
-    """Tests for PublishReport dataclass behaviour."""
-
-    @pytest.mark.business_logic
-    def test_publish_report_success_true_if_no_errors(self) -> None:
-        """A report constructed with success=True has success == True."""
-        report = PublishReport(success=True, pages_published=1)
-        assert report.success is True
-
-    @pytest.mark.business_logic
-    def test_publish_report_success_false_if_errors_present(self) -> None:
-        """A report constructed with success=False has success == False."""
-        report = PublishReport(success=False, pages_published=0)
-        assert report.success is False
+    """Тесты поведения датакласса PublishReport."""
 
     @pytest.mark.contract
     def test_publish_report_defaults(self) -> None:
-        """Optional fields have correct defaults when not supplied."""
+        """Опциональные поля имеют корректные значения по умолчанию, если не заданы."""
         report = PublishReport(success=True, pages_published=0)
         assert report.pages_failed == 0
         assert report.errors == []
         assert report.failed_pages == []
         assert report.details == []
 
+    @pytest.mark.business_logic
+    def test_publish_report_merge_concatenates_failed_pages_and_details(self) -> None:
+        """merge() объединяет списки failed_pages и details нескольких отчётов, как это используется в publisher.py."""
+        report_a = PublishReport(
+            success=False,
+            pages_published=1,
+            pages_failed=1,
+            details=[{"page_title": "A", "page_id": "1"}],
+            failed_pages=[{"page_title": "B", "reason": "boom"}],
+        )
+        report_b = PublishReport(
+            success=True,
+            pages_published=1,
+            details=[{"page_title": "C", "page_id": "2"}],
+        )
 
-# ---------------------------------------------------------------------------
-# _publish_single_page tests (exercised via _StubStrategy instance)
-# ---------------------------------------------------------------------------
+        merged = PublishReport.merge(report_a, report_b)
+
+        assert merged.failed_pages == [{"page_title": "B", "reason": "boom"}]
+        assert merged.details == [
+            {"page_title": "A", "page_id": "1"},
+            {"page_title": "C", "page_id": "2"},
+        ]
 
 
 @pytest.fixture
@@ -122,7 +118,7 @@ def strategy_stub(
     publisher_document_builder: Any,
     publisher_parsed_result: Any,
 ) -> _StubStrategy:
-    """A concrete _StubStrategy wired with fake dependencies."""
+    """Конкретный _StubStrategy, оснащённый фиктивными зависимостями."""
     return _StubStrategy(
         confluence_client=publisher_confluence_client,
         document_builder=publisher_document_builder,
@@ -132,7 +128,7 @@ def strategy_stub(
 
 
 class TestPublishSinglePage:
-    """Tests for BasePublishStrategy._publish_single_page via _StubStrategy."""
+    """Тесты для BasePublishStrategy._publish_single_page через _StubStrategy."""
 
     @pytest.mark.business_logic
     def test_publish_single_page_returns_success_report(
@@ -141,7 +137,7 @@ class TestPublishSinglePage:
         publisher_confluence_client: Any,
         publisher_document_builder: Any,
     ) -> None:
-        """A successful flow returns PublishReport(success=True, pages_published=1)."""
+        """Успешный сценарий возвращает PublishReport(success=True, pages_published=1)."""
         report = strategy_stub._publish_single_page(
             page_title=_PAGE_TITLE,
             template_name=_TEMPLATE_NAME,
@@ -151,13 +147,13 @@ class TestPublishSinglePage:
         assert report.success is True
         assert report.pages_published == 1
 
-    @pytest.mark.business_logic
+    @pytest.mark.contract
     def test_publish_single_page_adds_space_to_view_model(
         self,
         strategy_stub: _StubStrategy,
         publisher_document_builder: Any,
     ) -> None:
-        """The strategy injects its _space key into the view_model before building."""
+        """Стратегия добавляет ключ _space в view_model перед построением документа."""
         strategy_stub._publish_single_page(
             page_title=_PAGE_TITLE,
             template_name=_TEMPLATE_NAME,
@@ -167,12 +163,12 @@ class TestPublishSinglePage:
         assert publisher_document_builder.last_call is not None
         assert publisher_document_builder.last_call["view_model"]["space"] == "TEST"
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_publish_single_page_calls_inject_links_if_provided(
         self,
         strategy_stub: _StubStrategy,
     ) -> None:
-        """inject_links callable is called exactly once with the view_model."""
+        """Callable inject_links вызывается ровно один раз с view_model."""
         calls: list[dict] = []
 
         def inject_links(vm: dict) -> None:
@@ -194,7 +190,7 @@ class TestPublishSinglePage:
         strategy_stub: _StubStrategy,
         publisher_document_builder: Any,
     ) -> None:
-        """DocumentBuilder.build is called with the correct template_name."""
+        """DocumentBuilder.build вызывается с корректным template_name."""
         strategy_stub._publish_single_page(
             page_title=_PAGE_TITLE,
             template_name=_TEMPLATE_NAME,
@@ -210,7 +206,7 @@ class TestPublishSinglePage:
         strategy_stub: _StubStrategy,
         publisher_confluence_client: Any,
     ) -> None:
-        """ConfluenceClient.publish_page is called with the correct title."""
+        """ConfluenceClient.publish_page вызывается с корректным заголовком."""
         strategy_stub._publish_single_page(
             page_title=_PAGE_TITLE,
             template_name=_TEMPLATE_NAME,
@@ -228,7 +224,7 @@ class TestPublishSinglePage:
         self,
         strategy_stub: _StubStrategy,
     ) -> None:
-        """If transform_fn raises, the result is a failure report."""
+        """Если transform_fn выбрасывает исключение, результатом является отчёт о неудаче."""
 
         def bad_transform() -> dict:
             raise ValueError("transform failed")
@@ -248,7 +244,7 @@ class TestPublishSinglePage:
         strategy_stub: _StubStrategy,
         publisher_confluence_client: Any,
     ) -> None:
-        """If publish_page raises ConfluenceError, result is a failure report."""
+        """Если publish_page выбрасывает ConfluenceError, результатом является отчёт о неудаче."""
 
         def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
             raise ConfluenceError("network error")
@@ -268,7 +264,7 @@ class TestPublishSinglePage:
         self,
         strategy_stub: _StubStrategy,
     ) -> None:
-        """If transform_fn returns an empty dict, result is a failure report."""
+        """Если transform_fn возвращает пустой словарь, результатом является отчёт о неудаче."""
         report = strategy_stub._publish_single_page(
             page_title=_PAGE_TITLE,
             template_name=_TEMPLATE_NAME,
@@ -276,4 +272,3 @@ class TestPublishSinglePage:
             parent_id=_PARENT_ID,
         )
         assert report.success is False
-

@@ -1,6 +1,6 @@
-"""Direct unit tests for _html_utils.py.
+"""Прямые unit-тесты для _html_utils.py.
 
-Covers extract_rich_text_body, find_h1_sections, and extract_tab_sections.
+Покрывает extract_rich_text_body, find_h1_sections и extract_tab_sections.
 """
 
 from __future__ import annotations
@@ -13,28 +13,20 @@ from autodoc.publisher.legacy_content._html_utils import (
     extract_tab_sections,
     find_h1_sections,
 )
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+from tests.unit.publisher.fixtures.shared_html import TABS_GROUP_HTML
 
 _OPEN = _RICH_TEXT_BODY_OPEN
 _CLOSE = _RICH_TEXT_BODY_CLOSE
 
 
 def _wrap(content: str) -> str:
-    """Wrap content in a single <ac:rich-text-body> pair."""
+    """Оборачивает содержимое в единственную пару <ac:rich-text-body>."""
     return f"{_OPEN}{content}{_CLOSE}"
-
-
-# ---------------------------------------------------------------------------
-# extract_rich_text_body tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.infrastructure
 def test_extract_rich_text_body_single_non_nested_returns_content() -> None:
-    """Returns correct content for a single non-nested tag."""
+    """Возвращает корректное содержимое для одного невложенного тега."""
     html = _wrap("<p>hello</p>")
     content, _ = extract_rich_text_body(html, 0)
     assert content == "<p>hello</p>"
@@ -42,7 +34,7 @@ def test_extract_rich_text_body_single_non_nested_returns_content() -> None:
 
 @pytest.mark.infrastructure
 def test_extract_rich_text_body_depth_2_nesting() -> None:
-    """Correctly handles one level of nesting (depth 2)."""
+    """Корректно обрабатывает один уровень вложенности (глубина 2)."""
     inner = _wrap("<p>inner</p>")
     html = f"{_OPEN}{inner}<p>outer</p>{_CLOSE}"
     content, _ = extract_rich_text_body(html, 0)
@@ -52,7 +44,7 @@ def test_extract_rich_text_body_depth_2_nesting() -> None:
 
 @pytest.mark.infrastructure
 def test_extract_rich_text_body_missing_close_returns_empty() -> None:
-    """Returns ('', ...) when there is no closing tag."""
+    """Возвращает ('', ...) при отсутствии закрывающего тега."""
     html = f"{_OPEN}<p>no close"
     content, _ = extract_rich_text_body(html, 0)
     assert content == ""
@@ -60,28 +52,23 @@ def test_extract_rich_text_body_missing_close_returns_empty() -> None:
 
 @pytest.mark.infrastructure
 def test_extract_rich_text_body_end_idx_is_after_close_tag() -> None:
-    """end_idx points to the position immediately after the closing tag."""
+    """end_idx указывает на позицию сразу после закрывающего тега."""
     suffix = "AFTER"
     html = _wrap("<p>x</p>") + suffix
     _, end_idx = extract_rich_text_body(html, 0)
     assert html[end_idx : end_idx + len(suffix)] == suffix
 
 
-# ---------------------------------------------------------------------------
-# find_h1_sections tests
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_find_h1_sections_empty_when_no_h1() -> None:
-    """Returns an empty list when there are no <h1> tags."""
+    """Возвращает пустой список при отсутствии тегов <h1>."""
     result = find_h1_sections("<p>no headings here</p>")
     assert result == []
 
 
 @pytest.mark.infrastructure
 def test_find_h1_sections_returns_tag_start_tag_end_and_text() -> None:
-    """Returns correct tag_start, tag_end, and text for each heading."""
+    """Возвращает корректные tag_start, tag_end и text для каждого заголовка."""
     html = "<h1>Platform 2.0</h1><p>body</p><h1>Platform 2.1</h1>"
     sections = find_h1_sections(html)
 
@@ -97,7 +84,7 @@ def test_find_h1_sections_returns_tag_start_tag_end_and_text() -> None:
 
 @pytest.mark.infrastructure
 def test_find_h1_sections_strips_inner_html_tags() -> None:
-    """text field has inner HTML tags removed."""
+    """Поле text не содержит вложенных HTML-тегов."""
     html = "<h1><strong>Bold Title</strong></h1>"
     sections = find_h1_sections(html)
     assert len(sections) == 1
@@ -106,26 +93,21 @@ def test_find_h1_sections_strips_inner_html_tags() -> None:
 
 @pytest.mark.infrastructure
 def test_find_h1_sections_skips_h1_with_no_closing_tag() -> None:
-    """A <h1> with no matching </h1> is not included in results."""
+    """<h1> без соответствующего </h1> не включается в результат."""
     html = "<h1>Unclosed heading"
     result = find_h1_sections(html)
     assert result == []
 
 
-# ---------------------------------------------------------------------------
-# extract_tab_sections tests
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_extract_tab_sections_empty_string_returns_empty_dict() -> None:
-    """Returns {} on empty string input."""
+    """Возвращает {} на пустой строке."""
     assert extract_tab_sections("") == {}
 
 
 @pytest.mark.business_logic
 def test_extract_tab_sections_deduplicates_identical_names_first_wins() -> None:
-    """First occurrence wins when two tabs share the same name."""
+    """При совпадении имён двух вкладок побеждает первая по порядку."""
     _TAB = '<ac:structured-macro ac:name="tab">'
     html = (
         _TAB
@@ -140,13 +122,13 @@ def test_extract_tab_sections_deduplicates_identical_names_first_wins() -> None:
     assert "First" in result["Alpha"]
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_extract_tab_sections_ignores_title_attribute() -> None:
-    """ac:name="title" is not recognised as a tab name — only ac:name="name" is supported.
+    """ac:name="title" не распознаётся как имя вкладки — поддерживается только ac:name="name".
 
-    The title= attribute belongs to expand macros, not tabs. Treating it as a
-    tab name caused false positives during fallback section parsing, so it is
-    intentionally excluded from _TAB_NAME_RE.
+    Атрибут title= принадлежит expand-макросам, а не вкладкам. Его ошибочное
+    распознавание как имени вкладки приводило к ложным срабатываниям при
+    fallback-разборе секций, поэтому он намеренно исключён из _TAB_NAME_RE.
     """
     html = (
         '<ac:structured-macro ac:name="tab">'
@@ -159,7 +141,18 @@ def test_extract_tab_sections_ignores_title_attribute() -> None:
 
 @pytest.mark.business_logic
 def test_extract_tab_sections_skips_tab_with_no_rich_text_body() -> None:
-    """A tab whose <ac:rich-text-body> is missing is not included."""
-    html = '<ac:parameter ac:name="name">Ghost</ac:parameter>'
+    """Вкладка без <ac:rich-text-body> не включается в результат."""
+    html = (
+        '<ac:structured-macro ac:name="tab">'
+        '<ac:parameter ac:name="name">Ghost</ac:parameter>'
+        "</ac:structured-macro>"
+    )
     result = extract_tab_sections(html)
     assert "Ghost" not in result
+
+
+@pytest.mark.business_logic
+def test_extract_tab_sections_does_not_treat_tabs_group_as_tab() -> None:
+    """Макрос "tabs-group" не должен ошибочно распознаваться как макрос "tab"."""
+    result = extract_tab_sections(TABS_GROUP_HTML)
+    assert result == {}

@@ -1,8 +1,8 @@
-"""Smoke tests for production Jinja2 templates in autodoc/publisher/rendering/.
+"""Дымовые тесты для production Jinja2-шаблонов в autodoc/publisher/rendering/.
 
-Each test renders one template with a minimal valid context and asserts
-the output is non-empty and raises no exception.
-No live Confluence connection is made.
+Каждый тест рендерит один шаблон с минимально валидным контекстом и проверяет,
+что вывод непуст и рендеринг не бросает исключение.
+Реальное подключение к Confluence не выполняется.
 """
 
 from pathlib import Path
@@ -11,19 +11,29 @@ from typing import Any
 import pytest
 
 from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 
-# Root of the rendering directory (templates/, styles/, macros/).
+# Корень директории рендеринга (templates/, styles/, macros/).
 _RENDERING_DIR: Path = Path(__file__).parents[4] / "autodoc" / "publisher" / "rendering"
 
-# Stable string markers to assert inside rendered outputs.
-_STYLES_BASE_MARKER: str = "autodoc-badge"  # present in _styles_base.jinja2
-_STYLES_PP_MARKER: str = "autodoc-page-header"  # present in _styles_passport.jinja2
+# Устойчивые строковые маркеры для проверки в отрендеренном выводе.
+_STYLES_BASE_MARKER: str = "autodoc-badge"  # присутствует в _styles_base.jinja2
+_STYLES_PP_MARKER: str = "autodoc-page-header"  # присутствует в _styles_passport.jinja2
 
 
 def _make_parsed_result(component_name: str = "testlib") -> ParsedResult:
-    """Build a minimal ParsedResult with one named component for template rendering."""
+    """Строит минимальный ParsedResult с одним именованным компонентом для рендеринга шаблонов.
+
+    Args:
+        component_name: Имя единственного компонента результата.
+
+    Returns:
+        ParsedResult с одним компонентом без релизов.
+    """
     component = Component(name=component_name, releases=[])
     return ParsedResult(
         generated_at="2024-01-15T12:00:00",
@@ -35,38 +45,46 @@ def _make_parsed_result(component_name: str = "testlib") -> ParsedResult:
 
 @pytest.fixture()
 def builder() -> DocumentBuilder:
-    """A DocumentBuilder pointed at the real rendering directory."""
+    """DocumentBuilder, указывающий на реальную директорию рендеринга."""
     return DocumentBuilder(_RENDERING_DIR)
 
 
 @pytest.fixture()
 def minimal_view_model() -> dict[str, Any]:
-    """Minimal view model accepted by all main templates."""
+    """Минимальная view-model, принимаемая всеми основными шаблонами."""
     parsed = _make_parsed_result()
     return parsed.model_dump()
 
 
 @pytest.mark.infrastructure
-def test_macros_template_renders_without_error(builder: DocumentBuilder) -> None:
-    """Rendering _macros.jinja2 via the main release template produces non-empty output.
+def test_macros_template_renders_without_error(
+    builder: DocumentBuilder, publisher_parsed_result: ParsedResult
+) -> None:
+    """release_doc.jinja2 рендерится без ошибок и действительно вызывает макросы os_style/docker_note на непустом релизе."""
+    ghost_pb = ProfileBuild(profile_name="ghost-profile", exists=True, variants=[])
+    original_comp = publisher_parsed_result.components[0]
+    original_rel = original_comp.releases[0]
+    patched_rel = original_rel.model_copy(
+        update={"profile_builds": original_rel.profile_builds + [ghost_pb]}
+    )
+    patched_comp = original_comp.model_copy(update={"releases": [patched_rel]})
+    patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
-    Macros are included by every main template; any syntax error in the macros file
-    would surface here before deployment to a live Confluence instance.
-    """
-    view_model: dict[str, Any] = _make_parsed_result().model_dump()
+    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).transform(
+        patched_result
+    )
     output: str = builder.build("release_doc.jinja2", view_model)
+
     assert output.strip(), "Rendered output from release_doc.jinja2 is empty"
+    assert "autodoc-os-badge" in output, "os_style() macro output not found in rendered output"
+    assert "autodoc-italic-note" in output, "docker_note() macro output not found in rendered output"
 
 
 @pytest.mark.infrastructure
 def test_styles_base_template_renders_without_error(
     builder: DocumentBuilder,
 ) -> None:
-    """_styles_base.jinja2 is included by release_doc.jinja2 and must render cleanly.
-
-    The rendered output must contain the stable CSS class marker 'autodoc-badge',
-    confirming that the stylesheet was actually included and not silently skipped.
-    """
+    """_styles_base.jinja2 подключается через release_doc.jinja2 и должен рендериться без ошибок."""
     view_model: dict[str, Any] = _make_parsed_result().model_dump()
     output: str = builder.build("release_doc.jinja2", view_model)
     assert output.strip(), "Rendered output is empty"
@@ -79,11 +97,7 @@ def test_styles_base_template_renders_without_error(
 def test_styles_passport_template_renders_without_error(
     builder: DocumentBuilder,
 ) -> None:
-    """_styles_passport.jinja2 is included by component_passport.jinja2; must render.
-
-    Verifies that the passport stylesheet is syntactically valid and that the
-    'autodoc-page-header' marker from _styles_passport.jinja2 appears in the output.
-    """
+    """_styles_passport.jinja2 подключается через component_passport.jinja2 и должен рендериться без ошибок."""
     from autodoc.models.release import Release
 
     GIT_URL = "https://tfs.example.com/_git/testlib"
@@ -119,18 +133,47 @@ def test_styles_passport_template_renders_without_error(
     ), f"Expected '{_STYLES_PP_MARKER}' in rendered output (from _styles_passport.jinja2)"
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_main_component_template_contains_component_name(
     builder: DocumentBuilder,
 ) -> None:
-    """The release_doc template must include the component name in its rendered output.
-
-    Ensures that data flows from the view model into the template correctly:
-    a component name present in the model must appear in the HTML output.
-    """
+    """release_doc.jinja2 должен содержать имя компонента в отрендеренном выводе."""
     _COMPONENT_NAME: str = "my_sentinel_component"
     view_model: dict[str, Any] = _make_parsed_result(_COMPONENT_NAME).model_dump()
     output: str = builder.build("release_doc.jinja2", view_model)
     assert (
         _COMPONENT_NAME in output
     ), f"Component name '{_COMPONENT_NAME}' not found in rendered release_doc output"
+
+
+@pytest.mark.integration
+def test_release_doc_template_renders_full_release_converter_output_with_real_release(
+    builder: DocumentBuilder, publisher_parsed_result: ParsedResult
+) -> None:
+    """release_doc.jinja2 рендерит реальный вывод FullReleaseConverter.transform() над непустым релизом с профилями и вариантами."""
+    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).transform(
+        publisher_parsed_result
+    )
+
+    output: str = builder.build("release_doc.jinja2", view_model)
+
+    comp = publisher_parsed_result.components[0]
+    release = comp.releases[0]
+    assert output.strip(), "Rendered output from release_doc.jinja2 is empty"
+    assert comp.name in output, "Component name from real release data not found in output"
+    assert release.conan_reference in output, "Conan reference from real release data not found in output"
+    assert "autodoc-os-badge" in output, "Per-profile rendering path (os_style) was not exercised"
+
+
+@pytest.mark.infrastructure
+def test_profile_centric_template_renders_without_error(
+    builder: DocumentBuilder, publisher_multi_channel_result: ParsedResult
+) -> None:
+    """profile_centric.jinja2 рендерится без ошибок на реальном профиль-центричном виде."""
+    view_model: dict[str, Any] = ProfileCentricConverter(include_passport_links=False).transform(
+        publisher_multi_channel_result
+    )
+
+    output: str = builder.build("profile_centric.jinja2", view_model)
+
+    assert output.strip(), "Rendered output from profile_centric.jinja2 is empty"

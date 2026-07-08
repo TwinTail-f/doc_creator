@@ -1,13 +1,13 @@
 """
-Tests for autodoc.publisher.clients.confluence_transport.ConfluenceTransport.
+Тесты для autodoc.publisher.clients.confluence_transport.ConfluenceTransport.
 
-Testing strategy:
-- ConfluenceClient's own test file mocks ConfluenceTransport away entirely,
-  so the real HTTP/network-failure handling in _request, _extract_error_detail
-  and _create_session is never exercised there. This file mocks one level
-  down instead — at the underlying session's ``request`` method — so that
-  ConfluenceTransport's own logic runs for real and is what's under test.
-- minimal_confluence_config fixture comes from tests/conftest.py.
+Стратегия тестирования:
+- Собственный файл тестов ConfluenceClient полностью мокает ConfluenceTransport,
+  поэтому реальная обработка HTTP/сетевых сбоев в _request, _extract_error_detail
+  и _create_session там никогда не выполняется. Этот файл мокает на уровень
+  ниже — метод ``request`` нижележащей сессии, — чтобы собственная логика
+  ConfluenceTransport выполнялась по-настоящему и была объектом тестирования.
+- Фикстура minimal_confluence_config приходит из tests/conftest.py.
 """
 
 from __future__ import annotations
@@ -22,16 +22,7 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfluenceError
 from autodoc.publisher.clients.confluence_transport import ConfluenceTransport
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 PAGE_ID: str = "123456"
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _make_response(status_code: int, body: Any = None, raw_content: bytes | None = None) -> requests.Response:
@@ -78,11 +69,6 @@ def _make_transport(mocker: Any, minimal_confluence_config: dict, **overrides: A
     config_dict = {**minimal_confluence_config, **overrides}
     config = ConfluenceConfigSchema(**config_dict)
     return ConfluenceTransport(config)
-
-
-# ---------------------------------------------------------------------------
-# Happy path
-# ---------------------------------------------------------------------------
 
 
 class TestHappyPath:
@@ -158,11 +144,6 @@ class TestHappyPath:
         )
 
 
-# ---------------------------------------------------------------------------
-# HTTP errors
-# ---------------------------------------------------------------------------
-
-
 class TestHttpErrors:
     """Поведение при HTTP-ошибках со стороны Confluence."""
 
@@ -220,11 +201,6 @@ class TestHttpErrors:
         assert exc_info.value.__cause__ is original_error
 
 
-# ---------------------------------------------------------------------------
-# Session creation
-# ---------------------------------------------------------------------------
-
-
 class TestCreateSession:
     """Настройка HTTP-сессии в _create_session: аутентификация, SSL, ретраи."""
 
@@ -250,7 +226,7 @@ class TestCreateSession:
         assert transport._session.verify is True
         assert transport._session._timeout == 45
 
-    @pytest.mark.business_logic
+    @pytest.mark.infrastructure
     def test_create_session_logs_warning_when_verify_ssl_false(
         self, mocker: Any, minimal_confluence_config: dict
     ) -> None:

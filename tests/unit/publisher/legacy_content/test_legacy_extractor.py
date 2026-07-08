@@ -1,15 +1,15 @@
-"""Unit tests for legacy_extractor functions.
+"""Unit-тесты для функций legacy_extractor.
 
-Covers:
-- extract_platform_versions() returns all tab names as dict keys.
-- extract_platform_versions() returns {} on empty HTML.
-- extract_platform_versions() falls back to h1-header format when no tabs found.
-- extract_platform_versions() skips tabs that have no extractable content.
-- extract_platform_versions() de-duplicates tabs with identical names.
+Покрывает:
+- extract_platform_versions() возвращает все имена вкладок в качестве ключей словаря.
+- extract_platform_versions() возвращает {} на пустом HTML.
+- extract_platform_versions() переключается на формат заголовков h1, если вкладки не найдены.
+- extract_platform_versions() пропускает вкладки без извлекаемого содержимого.
+- extract_platform_versions() убирает дубликаты вкладок с одинаковыми именами.
 
-NOTE: extract_by_platform_tab() tests were removed — that function no longer
-exists in autodoc.publisher.legacy_content.legacy_extractor (codebase has
-diverged from this test suite).
+NOTE: тесты extract_by_platform_tab() были удалены — эта функция больше не
+существует в autodoc.publisher.legacy_content.legacy_extractor (кодовая база
+разошлась с этим набором тестов).
 """
 
 from __future__ import annotations
@@ -25,22 +25,18 @@ from tests.unit.publisher.fixtures.shared_html import (
     TAB_HTML_NO_BODY,
 )
 
-# ---------------------------------------------------------------------------
-# extract_platform_versions() tests
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.business_logic
 def test_extract_platform_versions_returns_all_tabs() -> None:
-    """Returns a dict with one key per distinct tab name found in the HTML."""
+    """Возвращает словарь с одним ключом на каждое отдельное имя вкладки в HTML."""
     result = extract_platform_versions(TAB_HTML_MULTI)
 
     assert set(result.keys()) == {"Platform 2.0", "Platform 2.1"}
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_extract_platform_versions_empty_html_returns_empty_dict() -> None:
-    """Returns {} on empty HTML input."""
+    """Возвращает {} на пустом HTML — отсутствие контента означает отсутствие платформ."""
     result = extract_platform_versions("")
 
     assert result == {}
@@ -48,7 +44,7 @@ def test_extract_platform_versions_empty_html_returns_empty_dict() -> None:
 
 @pytest.mark.business_logic
 def test_extract_platform_versions_fallback_to_h1_when_no_tabs() -> None:
-    """Falls back to h1-header parsing when no tab markers are present."""
+    """Переключается на разбор заголовков h1, если маркеры вкладок отсутствуют."""
     result = extract_platform_versions(H1_HTML)
 
     assert "Platform 2.0" in result
@@ -57,7 +53,7 @@ def test_extract_platform_versions_fallback_to_h1_when_no_tabs() -> None:
 
 @pytest.mark.business_logic
 def test_extract_platform_versions_skips_tabs_with_no_content() -> None:
-    """Tabs that have no extractable body content are excluded from the result."""
+    """Вкладки без извлекаемого содержимого тела исключаются из результата."""
     result = extract_platform_versions(TAB_HTML_NO_BODY)
 
     assert "Platform 9.9" not in result
@@ -65,9 +61,9 @@ def test_extract_platform_versions_skips_tabs_with_no_content() -> None:
 
 @pytest.mark.business_logic
 def test_extract_platform_versions_no_duplicate_names() -> None:
-    """HTML with two identically-named tabs produces only one entry in the result."""
+    """HTML с двумя одноимёнными вкладками даёт только одну запись в результате."""
     result = extract_platform_versions(TAB_HTML_DUPLICATE_NAMES)
 
-    # The key appears exactly once regardless of how many duplicate tabs exist
+    # Ключ встречается ровно один раз независимо от числа дублирующих вкладок
     keys = list(result.keys())
     assert keys.count("Platform 2.0") == 1
