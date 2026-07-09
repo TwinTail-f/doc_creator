@@ -55,7 +55,7 @@ class BaseDataConverter(ABC):
         Returns:
             Строка флагов ``-o``, разделённых пробелами, или ``""`` если опций нет.
         """
-        if not options_str or not options_str.strip():
+        if not options_str.strip():
             return ""
         parts = [p.strip() for p in options_str.split(",") if p.strip()]
 
@@ -144,7 +144,7 @@ class BaseDataConverter(ABC):
         cls,
         variant: Any,
         component_name: str,
-        opts: "_VariantOpts | None" = None,
+        opts: _VariantOpts | None = None,
     ) -> ConanVariantView:
         """
         Преобразует доменный ``ConanVariant`` в ``ConanVariantView`` паблишера.
