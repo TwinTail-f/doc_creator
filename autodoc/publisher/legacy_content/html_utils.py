@@ -5,6 +5,16 @@
 rich-text-body и общие алгоритмы извлечения секций, используемые
 legacy_extractor.
 
+Границы секций ищутся по байтовым смещениям в исходной строке (не через
+DOM), т.к. извлечённый контент передаётся дальше без изменений — для
+повторной публикации в Confluence storage format. Проверено эмпирически:
+парсинг+сериализация через BeautifulSoup меняет форму самозакрывающихся
+тегов (``<ri:attachment .../>`` → ``<ri:attachment ...></ri:attachment>``),
+а строгий XML-парсер (lxml-xml) вообще теряет часть документа из-за
+необъявленных namespace-префиксов ``ac:``/``ri:``. Поэтому DOM-парсер
+(BeautifulSoup) используется только там, где не нужен байт-в-байт исходник —
+например, для очистки текста заголовка от вложенных тегов/сущностей.
+
 Публичное API модуля:
     extract_rich_text_body       — depth-balanced извлечение <ac:rich-text-body>
     extract_tab_sections         — парсинг вкладок Confluence в {name: content}
@@ -16,10 +26,11 @@ legacy_extractor.
 import re
 from typing import NamedTuple
 
+from bs4 import BeautifulSoup
+
 from autodoc.common.logger import logger
 
 H1_OPEN_RE: re.Pattern[str] = re.compile(r"<h1\b[^>]*>")
-INNER_TAG_RE: re.Pattern[str] = re.compile(r"<[^>]+>")
 
 # Используется только внутри модуля для фильтрации Platform-заголовков.
 _PLATFORM_VERSION_RE: re.Pattern[str] = re.compile(r"Platform\s+[\d.]+")
@@ -50,17 +61,16 @@ def find_h1_sections(html: str) -> list[_H1Section]:
     """
     Сканирует *html* и возвращает метаданные каждого найденного элемента ``<h1>``.
 
-    Реализовано через regex и байтовые смещения в исходной строке, а не через
-    HTML/XML-парсер (например, BeautifulSoup), намеренно: вызывающий код
-    (``extract_platform_h1_sections``) вырезает по этим смещениям сырой кусок
-    исходного HTML между заголовками и передаёт его дальше без изменений —
-    для повторной публикации в Confluence storage format. Storage format
-    содержит XML-неймспейсы (``ac:``, ``ri:``) и самозакрывающиеся теги,
-    которые типовые HTML-парсеры (html.parser/lxml) либо не понимают, либо
-    при сериализации обратно в строку (``str(tag)``) незаметно меняют
-    (пробелы, порядок атрибутов, форма тегов) — а точность побайтового
-    воспроизведения тут критична. Поэтому вместо DOM-дерева используются
-    смещения в исходной строке.
+    Границы (``tag_start``/``tag_end``) ищутся по байтовым смещениям в исходной
+    строке, а не через DOM: вызывающий код (``extract_platform_h1_sections``)
+    вырезает по ним сырой кусок исходного HTML между заголовками и передаёт
+    его дальше без изменений — для повторной публикации в Confluence storage
+    format, где важна побайтовая точность (см. докстринг модуля).
+
+    Текст самого заголовка (``text``), в отличие от границ, парсится через
+    BeautifulSoup — здесь сериализация обратно не нужна, только чтение, поэтому
+    DOM-парсер безопасен и корректно снимает вложенные теги и HTML-сущности
+    (``&nbsp;`` и т.п.), в отличие от прежнего regex-варианта.
 
     Args:
         html: Полный HTML-документ в Confluence Storage Format.
@@ -75,7 +85,7 @@ def find_h1_sections(html: str) -> list[_H1Section]:
         if close_pos == -1:
             continue
         inner = html[m.end() : close_pos]
-        text = INNER_TAG_RE.sub("", inner).strip()
+        text = BeautifulSoup(inner, "html.parser").get_text().strip()
         sections.append(_H1Section(m.start(), close_pos + len("</h1>"), text))
     return sections
 
