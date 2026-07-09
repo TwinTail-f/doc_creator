@@ -137,7 +137,7 @@ def test_publish_passports_missing_parsed_data_exits_nonzero_cleanly(
 ) -> None:
     """Отсутствующий parsed_data.json завершает команду с кодом 1 и понятным сообщением."""
     _mock_collaborators(mocker, parsed_ok=False)
-    # data/parsed_data.json intentionally never written.
+    # data/parsed_data.json намеренно не записывается.
 
     result = _invoke(tmp_path, configs_dir)
 

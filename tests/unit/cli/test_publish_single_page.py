@@ -162,8 +162,8 @@ def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
 ) -> None:
     """Отсутствующий parsed_data.json (DocGeneratorError из load_parsed_data) завершает команду с кодом 1 без ошибок вывода."""
     _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, parsed_ok=False)
-    # data/parsed_data.json is intentionally never written to tmp_path, so
-    # the real load_parsed_data() raises DocGeneratorError.
+    # data/parsed_data.json намеренно не записывается в tmp_path, поэтому
+    # реальный load_parsed_data() вызывает DocGeneratorError.
 
     result = _invoke(tmp_path, configs_dir, "release")
 

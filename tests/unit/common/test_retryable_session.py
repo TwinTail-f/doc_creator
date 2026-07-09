@@ -37,11 +37,7 @@ def _get_retry(session: RetryableSession) -> Retry:
     return session.get_adapter(_HTTPS_PREFIX).max_retries
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.6 — адаптер настроен для повторных попыток на 429
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_retryable_session_retries_on_429() -> None:
     """Адаптер повторных попыток сеанса включает 429 в его status_forcelist.
@@ -57,11 +53,7 @@ def test_retryable_session_retries_on_429() -> None:
     assert retry.total == _MAX_RETRIES
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.7 — адаптер настроен для повторных попыток на 503
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_retryable_session_retries_on_503() -> None:
     """Адаптер повторных попыток сеанса включает 503 в его status_forcelist.
@@ -75,11 +67,7 @@ def test_retryable_session_retries_on_503() -> None:
     assert _HTTP_UNAVAILABLE in retry.status_forcelist
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.8 — лимит повторных попыток соблюдается (адаптер настроен правильно)
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_retryable_session_raises_after_exhausting_retries() -> None:
     """Общее количество адаптера повторных попыток соответствует аргументу конструктора max_retries.
@@ -95,11 +83,7 @@ def test_retryable_session_raises_after_exhausting_retries() -> None:
     assert retry.total == max_retries
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.9 — фактор экспоненциальной задержки хранится в адаптере повторных попыток
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_retryable_session_uses_exponential_backoff() -> None:
     """Настроенный backoff_factor подключён к объекту urllib3 Retry.
@@ -120,11 +104,7 @@ def test_retryable_session_uses_exponential_backoff() -> None:
     assert second_delay > first_delay
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.10 — переопределение request() пересылает timeout родительской реализации
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_retryable_session_timeout_forwarded_to_request(
     mocker: MockerFixture,

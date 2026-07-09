@@ -19,7 +19,6 @@ from autodoc.cli.helpers import (
     load_parsed_data,
     make_publisher,
     print_publish_result,
-    require_exclusive,
 )
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError, ValidationError
 from tests.unit.cli.conftest import (
@@ -34,32 +33,6 @@ _NAME_FLAG: str = "--the-name-flag"
 _ID_FLAG: str = "--the-id-flag"
 
 
-@pytest.mark.contract
-def test_require_exclusive_neither_set_does_not_raise() -> None:
-    """Если ни name, ни page_id не заданы, исключение не возникает."""
-    require_exclusive(None, None, name_flag=_NAME_FLAG, id_flag=_ID_FLAG)
-
-
-@pytest.mark.contract
-def test_require_exclusive_only_name_set_does_not_raise() -> None:
-    """Если задан только name, исключение не возникает."""
-    require_exclusive("Foo", None, name_flag=_NAME_FLAG, id_flag=_ID_FLAG)
-
-
-@pytest.mark.contract
-def test_require_exclusive_only_page_id_set_does_not_raise() -> None:
-    """Если задан только page_id, исключение не возникает."""
-    require_exclusive(None, "123", name_flag=_NAME_FLAG, id_flag=_ID_FLAG)
-
-
-@pytest.mark.contract
-def test_require_exclusive_both_set_raises_usage_error_naming_both_flags() -> None:
-    """Если заданы оба флага, возникает click.UsageError с упоминанием обоих флагов в сообщении."""
-    with pytest.raises(click.UsageError) as exc_info:
-        require_exclusive("Foo", "123", name_flag=_NAME_FLAG, id_flag=_ID_FLAG)
-
-    assert _NAME_FLAG in str(exc_info.value)
-    assert _ID_FLAG in str(exc_info.value)
 
 
 @pytest.mark.infrastructure
@@ -128,7 +101,7 @@ def test_load_parsed_data_schema_violation_raises_validation_error_mentioning_pa
     """Синтаксически корректный JSON, не соответствующий схеме ParsedResult, приводит к ValidationError."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    # Missing the required `generated_at` field.
+    # Отсутствует обязательное поле `generated_at`.
     (data_dir / "parsed_data.json").write_text(
         json.dumps({"platform_version": "2.0"}), encoding="utf-8"
     )

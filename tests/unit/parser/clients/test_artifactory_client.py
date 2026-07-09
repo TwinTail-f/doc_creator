@@ -16,13 +16,16 @@ _EXAMPLE_URL: str = "https://art.example.com/artifactory/conan2/openssl"
 
 
 def _make_artifactory_client(parser_config) -> ArtifactoryClient:
-    """Создаёт ArtifactoryClient из минимальной корректной конфигурации парсера."""
+    """
+    Создаёт ArtifactoryClient из минимальной корректной конфигурации парсера.
+
+    Args:
+        parser_config: Валидированная конфигурация парсера (фикстура).
+
+    Returns:
+        Готовый к использованию экземпляр ArtifactoryClient.
+    """
     return ArtifactoryClient(parser_config)
-
-
-# ---------------------------------------------------------------------------
-# head: возвращает ответ при успехе
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.infrastructure
@@ -36,7 +39,6 @@ def test_artifactory_client_head_returns_response(mocker, parser_config) -> None
     response = client.head(_EXAMPLE_URL)
 
     assert response.status_code == 200
-
 
 
 @pytest.mark.contract

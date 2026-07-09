@@ -1,5 +1,5 @@
 """
-Юнит-тесты для autodoc/parser/conan/task_builder.py.
+Юнит-тесты для autodoc/parser/conan/conan_task_builder.py.
 
 Охватывает ConanTaskBuilder.build() — перебор задач, заполнение полей
 и нормализацию строк опций. Без ввода/вывода и вызовов subprocess.
@@ -13,10 +13,7 @@ from autodoc.models.options import ConanInputOptions
 from autodoc.models.release import Release
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
-
-# ---------------------------------------------------------------------------
-# Локальные вспомогательные функции / фикстуры
-# ---------------------------------------------------------------------------
+from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
 
 def make_release(
@@ -49,11 +46,6 @@ ART_URL: str = "https://art.example.com"
 PLATFORM: str = "2.0"
 
 
-# ---------------------------------------------------------------------------
-# Один компонент × один релиз × два профиля → две задачи
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_task_builder_produces_one_task_per_profile() -> None:
     """Один компонент × один релиз × два профиля → две задачи."""
@@ -63,29 +55,6 @@ def test_task_builder_produces_one_task_per_profile() -> None:
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
     assert len(tasks) == 2
-
-
-# ---------------------------------------------------------------------------
-# Релиз без настроенных опций → одна задача с option_id '1'
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_task_builder_uses_default_empty_option_set() -> None:
-    """Релиз без настроенных опций → одна задача с option_id '1'."""
-    release = make_release()
-    # build_option_sets пуст по умолчанию
-    comp = make_component(releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
-
-    assert len(tasks) == 1
-    assert tasks[0].option_id == "1"
-
-
-# ---------------------------------------------------------------------------
-# Один профиль × два набора опций → две задачи
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -100,11 +69,6 @@ def test_task_builder_multiplies_tasks_by_option_sets() -> None:
     assert len(tasks) == 2
 
 
-# ---------------------------------------------------------------------------
-# Первый элемент --requires= в cmd содержит имя компонента
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_task_builder_cmd_contains_requires_flag() -> None:
     """Первый элемент --requires= в cmd должен содержать имя компонента."""
@@ -116,11 +80,6 @@ def test_task_builder_cmd_contains_requires_flag() -> None:
     requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
     assert requires_flags, "Expected at least one --requires= flag in cmd"
     assert "mylib" in requires_flags[0]
-
-
-# ---------------------------------------------------------------------------
-# Голое 'shared=True' дополняется префиксом '*:'
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -138,58 +97,12 @@ def test_task_builder_normalizes_bare_option() -> None:
     assert cmd[o_index + 1] == "*:shared=True"
 
 
-# ---------------------------------------------------------------------------
-# 'mylib:shared=True' расширяется до 'mylib/*:shared=True'
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_task_builder_normalizes_package_qualified_option() -> None:
-    """'mylib:shared=True' должно быть расширено до 'mylib/*:shared=True'."""
-    release = make_release(opts={"1": "mylib:shared=True"})
-    comp = make_component(releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
-
-    cmd = tasks[0].cmd
-    assert "mylib/*:shared=True" in cmd
-
-
-# ---------------------------------------------------------------------------
-# 'mylib/*:shared=True' не должно быть дважды заменено символом подстановки
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.business_logic
-def test_task_builder_already_wildcarded_option_unchanged() -> None:
-    """'mylib/*:shared=True' не должно быть дважды заменено символом подстановки."""
-    release = make_release(opts={"1": "mylib/*:shared=True"})
-    comp = make_component(releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
-
-    cmd = tasks[0].cmd
-    assert "mylib/*:shared=True" in cmd
-    # Убеждаемся, что дважды замаскированный вариант отсутствует
-    assert "mylib/*/*:shared=True" not in cmd
-
-
-# ---------------------------------------------------------------------------
-# Пустой список компонентов → пустой список задач
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_task_builder_empty_components_returns_empty() -> None:
     """Пустой список компонентов должен возвращать пустой список задач."""
     tasks = ConanTaskBuilder().build([], PLATFORM, ART_URL)
 
     assert tasks == []
-
-
-# ---------------------------------------------------------------------------
-# Все скалярные поля ConanTask совпадают со значениями исходной модели
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -210,33 +123,9 @@ def test_task_builder_task_fields_populated() -> None:
     assert task.target_platform == PLATFORM
 
 
-# ---------------------------------------------------------------------------
-# BL-TB-04 — package key without wildcard is normalized to pkg/*:opt
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_option_normalization_package_key_gets_wildcard() -> None:
-    """BL-TB-04: Option with bare package name is normalized to wildcard form.
-
-    Business Rule:
-        An option like ``"mylib:shared=True"`` (without wildcard) must be
-        normalized to ``"mylib/*:shared=True"`` because Conan 2 requires the
-        ``pkg/*:key=val`` notation when targeting all variants of a package.
-
-    Preconditions:
-        - One component ``mylib`` with one release.
-        - Option set: ``{"1": "mylib:shared=True"}`` (no wildcard).
-
-    Steps:
-        1. Build tasks with ``ConanTaskBuilder().build([comp], ...)``
-        2. Inspect the ``cmd`` of the single resulting task.
-
-    Expected Result:
-        - ``cmd`` contains the flag ``"-o"`` followed by ``"mylib/*:shared=True"``.
-        - The bare form ``"mylib:shared=True"`` does NOT appear as a separate
-          argument.
-    """
+    """Опция с именем пакета без подстановочного знака ('mylib:shared=True') нормализуется в 'mylib/*:shared=True'."""
     release = make_release(opts={"1": "mylib:shared=True"})
     comp = make_component(name="mylib", releases=[release])
 
@@ -245,41 +134,19 @@ def test_option_normalization_package_key_gets_wildcard() -> None:
     assert len(tasks) == 1
     cmd = tasks[0].cmd
 
-    # Normalized wildcard form must be present
+    # Нормализованная форма с подстановочным знаком должна присутствовать
     assert any(
         "mylib/*:shared=True" in arg for arg in cmd
     ), f"Expected 'mylib/*:shared=True' in command, got: {cmd}"
-    # Bare non-wildcard form must NOT appear as a standalone argument
+    # Голая форма без подстановочного знака не должна встречаться как отдельный аргумент
     assert not any(
         arg == "mylib:shared=True" for arg in cmd
     ), f"Unexpected bare 'mylib:shared=True' found in command: {cmd}"
 
 
-# ---------------------------------------------------------------------------
-# BL-TB-05 — already-wildcarded option is not double-wildcarded
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_option_normalization_already_wildcarded_is_idempotent() -> None:
-    """BL-TB-05: An already-wildcarded option is not modified a second time.
-
-    Business Rule:
-        An option that already contains ``/*:`` (e.g. ``"mylib/*:shared=True"``)
-        must pass through the normalizer unchanged.  The normalizer must NOT
-        produce a double-wildcard form such as ``"mylib/*/*:shared=True"``.
-
-    Preconditions:
-        - Option set: ``{"1": "mylib/*:shared=True"}`` (wildcard already present).
-
-    Steps:
-        1. Build tasks with ``ConanTaskBuilder().build([comp], ...)``
-        2. Inspect the ``cmd`` of the single resulting task.
-
-    Expected Result:
-        - ``cmd`` contains ``"mylib/*:shared=True"`` exactly once.
-        - ``cmd`` does NOT contain any string with ``"mylib/*/*"``.
-    """
+    """Уже подставленная опция ('mylib/*:shared=True') не изменяется повторно (без двойной подстановки)."""
     release = make_release(opts={"1": "mylib/*:shared=True"})
     comp = make_component(name="mylib", releases=[release])
 
@@ -288,46 +155,20 @@ def test_option_normalization_already_wildcarded_is_idempotent() -> None:
     assert len(tasks) == 1
     cmd = tasks[0].cmd
 
-    # Double-wildcard must not appear
+    # Двойной подстановочный знак не должен встречаться
     assert not any("mylib/*/*" in arg for arg in cmd), f"Double wildcard detected in command: {cmd}"
-    # Correct single-wildcard form must be present
+    # Корректная форма с одним подстановочным знаком должна присутствовать
     assert any(
         "mylib/*:shared=True" in arg for arg in cmd
     ), f"Expected 'mylib/*:shared=True' in command, got: {cmd}"
 
 
-# ---------------------------------------------------------------------------
-# BL-TB-06 — release with no option sets produces exactly one default task
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_no_option_sets_produces_one_default_task() -> None:
-    """BL-TB-06: A release with no option sets still produces exactly one task.
-
-    Business Rule:
-        When ``release.build_option_sets`` is empty (or None), the
-        builder must fall back to a single default option set ``{"1": ""}`` so
-        that the Conan graph is queried at least once.  Zero tasks would mean
-        the component is silently skipped.
-
-    Preconditions:
-        - One component with one release.
-        - One profile: ``"hw-linux-x86_64"``.
-        - No option sets (``opts=None``).
-
-    Steps:
-        1. Build tasks with ``ConanTaskBuilder().build([comp], ...)``
-        2. Inspect the resulting task list.
-
-    Expected Result:
-        - Exactly one ``ConanTask`` is returned.
-        - ``task.option_id == "1"`` (default identifier).
-        - ``task.option_str == ""`` (empty option string; no ``-o`` flags).
-    """
+    """Релиз без наборов опций всё равно даёт ровно одну задачу с дефолтным option_id '1' и пустым option_str."""
     release = make_release(
         profiles=("hw-linux-x86_64",),
-        opts=None,  # No option sets configured
+        opts=None,  # наборы опций не заданы
     )
     comp = make_component(releases=[release])
 
@@ -340,3 +181,56 @@ def test_no_option_sets_produces_one_default_task() -> None:
     assert (
         tasks[0].option_str == ""
     ), f"Default option_str should be empty, got '{tasks[0].option_str}'"
+
+
+@pytest.mark.business_logic
+def test_task_builder_lettered_version_uses_exact_range() -> None:
+    """Версии с буквенным суффиксом (например '8.4p1') используют точный диапазон [>=X <X+1], а не '~'."""
+    release = make_release(version="8.4p1")
+    comp = make_component(name="openssh", releases=[release])
+
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
+
+    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
+    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
+    assert "[>=8.4 <8.5]" in requires_flags[0]
+    assert "~" not in requires_flags[0]
+
+
+@pytest.mark.business_logic
+def test_task_builder_exact_range_components_forces_exact_range_for_numeric_version() -> None:
+    """exact_range_components заставляет использовать точный диапазон даже для чисто числовой версии."""
+    release = make_release(version="3.34.1")
+    comp = make_component(name="mylib", releases=[release])
+
+    tasks = ConanTaskBuilder().build(
+        [comp], PLATFORM, ART_URL, exact_range_components=["mylib"]
+    )
+
+    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
+    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
+    assert "[>=3.34.1 <3.34.2]" in requires_flags[0]
+    assert "~" not in requires_flags[0]
+
+
+@pytest.mark.business_logic
+def test_task_builder_calc_upper_bound_multi_segment() -> None:
+    """_calc_upper_bound увеличивает только последний числовой сегмент многосегментной версии."""
+    assert ConanTaskBuilder._calc_upper_bound("20.11.10") == "20.11.11"
+
+
+@pytest.mark.business_logic
+def test_task_builder_applies_profile_overrides_as_settings_flags() -> None:
+    """Непустые ProfileSettingsOverrides.resolve() добавляют в cmd соответствующие флаги -s."""
+    overrides = ProfileSettingsOverrides(
+        mapping={"kos_profile.jinja": {"compiler.toolchain_config_id": "kos-kisg-3.1.0.130"}}
+    )
+    release = make_release(profiles=("kos_profile.jinja",))
+    comp = make_component(releases=[release])
+
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL, profile_overrides=overrides)
+
+    cmd = tasks[0].cmd
+    assert "-s" in cmd
+    s_index = cmd.index("-s")
+    assert cmd[s_index + 1] == "compiler.toolchain_config_id=kos-kisg-3.1.0.130"

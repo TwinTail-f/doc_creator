@@ -1,9 +1,9 @@
 """
 Юнит-тесты для autodoc/parser/fetchers/options_fetcher.py.
 
-Стратегия: subclass FakeTFSClient with per-scenario fakes driven by real
-options JSON file content from resources/options/.
-No real network calls are made.
+Стратегия: наследники FakeTFSClient для каждого сценария, управляемые
+реальным содержимым options JSON из resources/options/.
+Реальные сетевые вызовы не выполняются.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from pathlib import Path
 import requests
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
+from autodoc.exceptions import NetworkError
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
@@ -21,52 +22,43 @@ from autodoc.parser.fetchers.options_fetcher import OptionsFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 from tests.unit.parser.conftest import FakeTFSClient
 
-# ---------------------------------------------------------------------------
-# Local helpers
-# ---------------------------------------------------------------------------
-
 
 def _load_options_bytes(resources_dir: Path, filename: str) -> bytes:
-    """Load a real options JSON file from resources/options/ as bytes."""
+    """Загружает реальный файл options JSON из resources/options/ как байты."""
     return (resources_dir / "options" / filename).read_bytes()
 
 
 def _make_items_response(paths: list[str]) -> list[dict]:
-    """Build a list of TFS item dicts (non-folder) from a list of paths."""
+    """Строит список item-словарей TFS (не-папок) из списка путей."""
     return [{"path": p, "isFolder": False} for p in paths]
 
 
 class _OptionsFileFakeTFSClient(FakeTFSClient):
-    """Serves fixed options.json bytes for every get_file_content call."""
+    """Отдаёт фиксированные байты options.json на каждый вызов get_file_content."""
 
     def __init__(self, items: list[dict], content_bytes: bytes) -> None:
         """
         Args:
-            items: List of item dicts returned by get_items.
-            content_bytes: Raw bytes returned as the response body.
+            items: Список item-словарей, возвращаемых get_items.
+            content_bytes: Сырые байты, возвращаемые как тело ответа.
         """
         self._items = items
         self._bytes = content_bytes
 
     def get_items(self, items_url, branch, recursion=None, version_type=None):
-        """Return the pre-configured list of items."""
+        """Возвращает предварительно настроенный список items."""
         return self._items
 
     def get_file_content(self, items_url, path, branch, version_type=None):
-        """Return a 200 response with the pre-configured bytes content."""
+        """Возвращает ответ 200 с предварительно настроенными байтами содержимого."""
         resp = requests.Response()
         resp.status_code = 200
         resp._content = self._bytes
         return resp
 
 
-# ---------------------------------------------------------------------------
-# Component / context builders
-# ---------------------------------------------------------------------------
-
-
 def _make_component(name, repo, version, channel, project="DEP_Components"):
-    """Построить минимальный Component with one Release for fetcher tests."""
+    """Строит минимальный Component с одним Release для тестов фетчера."""
     release = Release(
         version=version,
         platform="2.0",
@@ -83,17 +75,12 @@ def _make_component(name, repo, version, channel, project="DEP_Components"):
 
 
 def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path):
-    """Построить минимальный PipelineContext with the given fake TFS client."""
+    """Строит минимальный PipelineContext с заданным фейковым TFS-клиентом."""
     return PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",
         tfs_client=tfs_client,
     )
-
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.integration
@@ -102,9 +89,9 @@ def test_options_fetcher_apr_single_option(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """OptionsFetcher maps (apr,1.7.6,fast) to an options entry from real apr_options.json.
+    """OptionsFetcher сопоставляет (apr,1.7.6,fast) с записью опций из реального apr_options.json.
 
-    Specific option values are covered by test_options_parser.py.
+    Конкретные значения опций покрыты test_options_parser.py.
     """
     apr_bytes = _load_options_bytes(resources_dir, "apr_options.json")
     path = "/conan/ci-1.6/options.json"
@@ -118,7 +105,6 @@ def test_options_fetcher_apr_single_option(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: key present in result, no exception.
     assert ("apr", "1.7.6", "fast") in result.value
 
 
@@ -128,9 +114,9 @@ def test_options_fetcher_sqlite3_fast_five_options(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """OptionsFetcher maps sqlite3 fast release to an options entry from real sqlite3_fast_options.json.
+    """OptionsFetcher сопоставляет релиз sqlite3 fast с записью из реального sqlite3_fast_options.json.
 
-    Specific option counts and values are covered by test_options_parser.py.
+    Конкретные количества и значения опций покрыты test_options_parser.py.
     """
     sqlite_bytes = _load_options_bytes(resources_dir, "sqlite3_fast_options.json")
     path = "/conan/ci-2.0/fast/options.json"
@@ -144,7 +130,6 @@ def test_options_fetcher_sqlite3_fast_five_options(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: key present in result, no exception.
     assert ("sqlite3", "3.51.2", "fast") in result.value
 
 
@@ -154,9 +139,9 @@ def test_options_fetcher_nlohmann_single_empty(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """OptionsFetcher maps nlohmann_json slow release to an options entry from real options file.
+    """OptionsFetcher сопоставляет релиз nlohmann_json slow с записью из реального файла опций.
 
-    Specific option values are covered by test_options_parser.py.
+    Конкретные значения опций покрыты test_options_parser.py.
     """
     nlohmann_bytes = _load_options_bytes(resources_dir, "nlohmann_json_options.json")
     path = "/conan/ci-2.0/options.json"
@@ -170,7 +155,6 @@ def test_options_fetcher_nlohmann_single_empty(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: key present in result, no exception.
     assert ("nlohmann_json", "3.9.1", "slow") in result.value
 
 
@@ -180,9 +164,9 @@ def test_options_fetcher_patchelf_two_versions_share_options(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """Both patchelf versions in the same repo get options; fetcher de-duplicates the download.
+    """Обе версии patchelf в одном репозитории получают опции; фетчер дедуплицирует скачивание.
 
-    Specific option values are covered by test_options_parser.py.
+    Конкретные значения опций покрыты test_options_parser.py.
     """
     patchelf_bytes = _load_options_bytes(resources_dir, "patchelf_options.json")
     path = "/conan/ci-2.0/options.json"
@@ -214,7 +198,6 @@ def test_options_fetcher_patchelf_two_versions_share_options(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: both release keys present in result, no exception.
     assert ("patchelf", "0.16.1", "tech") in result.value
     assert ("patchelf", "0.18.0", "tech") in result.value
 
@@ -225,9 +208,9 @@ def test_options_fetcher_icu_fast_two_options(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """OptionsFetcher maps icu 78.2/fast to an options entry from real icu_fast_options.json.
+    """OptionsFetcher сопоставляет icu 78.2/fast с записью из реального icu_fast_options.json.
 
-    Specific option counts and values are covered by test_options_parser.py.
+    Конкретные количества и значения опций покрыты test_options_parser.py.
     """
     icu_bytes = _load_options_bytes(resources_dir, "icu_fast_options.json")
     path = "/conan/ci-1.6/fast/options.json"
@@ -241,50 +224,7 @@ def test_options_fetcher_icu_fast_two_options(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: key present in result, no exception.
     assert ("icu", "78.2", "fast") in result.value
-
-
-@pytest.mark.integration
-def test_options_fetcher_no_options_file_returns_default(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """When get_items returns no items, the key exists in the map with fallback {'1': ''}."""
-    client = _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}")
-    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert ("somelib", "1.0.0", "fast") in result.value
-
-
-@pytest.mark.integration
-def test_options_fetcher_invalid_json_does_not_raise(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """OptionsFetcher does not raise when get_file_content returns invalid JSON bytes."""
-    path = "/conan/ci-2.0/tech/options.json"
-    client = _OptionsFileFakeTFSClient(
-        items=_make_items_response([path]),
-        content_bytes=b"GARBAGE",
-    )
-    comp = _make_component("somelib", "contrib_somelib", "2.0.0", "tech")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    # No exception; the release key must be present with a fallback value.
-    assert ("somelib", "2.0.0", "tech") in result.value
-
-
-# ---------------------------------------------------------------------------
-# Kept tests (renamed/kept for regression)
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.integration
@@ -292,7 +232,7 @@ def test_options_fetcher_empty_items_returns_empty_map(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """When get_items returns no items, OptionsFetcher adds a default options entry."""
+    """Когда get_items не возвращает элементов, OptionsFetcher добавляет запись опций-плейсхолдер."""
     client = _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}")
     release = Release(
         version="3.0.0",
@@ -319,7 +259,7 @@ def test_options_fetcher_invalid_json_does_not_raise_openssl_alias(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """OptionsFetcher does not raise when file content is not valid JSON; key is present."""
+    """OptionsFetcher не выбрасывает исключение при некорректном JSON; ключ релиза присутствует."""
     path = "/conan/ci-2.0/tech/options.json"
     client = _OptionsFileFakeTFSClient(
         items=_make_items_response([path]),
@@ -345,43 +285,33 @@ def test_options_fetcher_invalid_json_does_not_raise_openssl_alias(
     assert ("openssl", "3.0.0", "tech") in result.value
 
 
-# ---------------------------------------------------------------------------
-# Multi-path fake client — needed for components with multiple options files
-# ---------------------------------------------------------------------------
-
-
 class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
-    """Serves different path→content mappings depending on the requested branch.
+    """Отдаёт разные соответствия путь→содержимое в зависимости от запрошенной ветки.
 
-    In production, each release branch of the same repo has its own set of
-    options files (e.g. fast branch has ci-2.0/fast/options.json; slow branch
-    has ci-1.6/slow/options.json). This fake mirrors that per-branch isolation.
+    В продакшене каждая ветка релиза одного репозитория имеет свой набор файлов
+    опций (например, ветка fast — ci-2.0/fast/options.json; ветка slow —
+    ci-1.6/slow/options.json). Этот фейк отражает такую изоляцию по веткам.
     """
 
     def __init__(self, branch_to_paths: dict[str, dict[str, str]]) -> None:
         """
         Args:
-            branch_to_paths: Mapping {branch_name: {tfs_path: json_content}}.
+            branch_to_paths: Соответствие {имя_ветки: {tfs_путь: json_содержимое}}.
         """
         self._map = branch_to_paths
 
     def get_items(self, items_url, branch, recursion=None, version_type=None):
-        """Return item entries only for paths registered under this branch."""
+        """Возвращает элементы только для путей, зарегистрированных под этой веткой."""
         paths = self._map.get(branch, {})
         return [{"path": p, "isFolder": False} for p in paths]
 
     def get_file_content(self, items_url, path, branch, version_type=None):
-        """Return a 200 response with the content registered for this branch+path."""
+        """Возвращает ответ 200 с содержимым, зарегистрированным для этой ветки и пути."""
         content = self._map.get(branch, {}).get(path, "{}")
         resp = requests.Response()
         resp.status_code = 200
         resp._content = content.encode("utf-8")
         return resp
-
-
-# ---------------------------------------------------------------------------
-# UC-O-1: ci-1.6 fallback — icu slow, global options (3 entries)
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.integration
@@ -390,9 +320,9 @@ def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """Fetcher uses ci-1.6 fallback for icu when no ci-2.0 path exists in TFS.
+    """Фетчер использует фоллбек ci-1.6 для icu, когда путь ci-2.0 в TFS отсутствует.
 
-    Specific option counts are covered by test_options_parser.py.
+    Конкретные количества опций покрыты test_options_parser.py.
     """
     icu_bytes = _load_options_bytes(resources_dir, "icu_slow_options.json")
     path = "/conan/ci-1.6/options.json"
@@ -406,13 +336,7 @@ def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: key present in result, no exception.
     assert ("icu", "67.1", "slow") in result.value
-
-
-# ---------------------------------------------------------------------------
-# UC-O-2: sqlite3 — dual channel, different options files per channel
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.integration
@@ -421,11 +345,12 @@ def test_options_fetcher_sqlite3_fast_channel_specific_options(
     tmp_path: Path,
     resources_dir: Path,
 ) -> None:
-    """Fetcher resolves sqlite3 options from channel subdirectories (ci-2.0/fast and ci-1.6/slow).
+    """Фетчер разрешает опции sqlite3 из поддиректорий канала (ci-2.0/fast и ci-1.6/slow).
 
-    sqlite3 has two releases on separate branches, each with its own channel-specific
-    options.json. After fetching, both release keys must be present in the result.
-    Specific entry counts are covered by test_options_parser.py.
+    У sqlite3 два релиза на разных ветках, каждая со своим options.json,
+    специфичным для канала. После скачивания оба ключа релиза должны
+    присутствовать в результате. Конкретные количества записей покрыты
+    test_options_parser.py.
     """
     fast_text = _load_options_bytes(resources_dir, "sqlite3_fast_options.json").decode()
     slow_text = _load_options_bytes(resources_dir, "sqlite3_slow_options.json").decode()
@@ -458,6 +383,140 @@ def test_options_fetcher_sqlite3_fast_channel_specific_options(
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    # Only assert flow-through: both release keys present in result, no exception.
     assert ("sqlite3", "3.51.2", "fast") in result.value
     assert ("sqlite3", "3.34.1", "slow") in result.value
+
+
+class _RaisingOnGetItemsFakeTFSClient(FakeTFSClient):
+    """FakeTFSClient, чей get_items выбрасывает NetworkError."""
+
+    def get_items(self, items_url, branch, recursion=None, version_type=None):
+        """Имитирует сетевой сбой при получении списка элементов репозитория."""
+        raise NetworkError("simulated network failure on get_items")
+
+
+class _RaisingOnGetFileContentFakeTFSClient(FakeTFSClient):
+    """FakeTFSClient, чей get_items отдаёт один путь, а get_file_content выбрасывает NetworkError."""
+
+    def __init__(self, path: str) -> None:
+        """
+        Args:
+            path: Путь к options.json, возвращаемый из get_items.
+        """
+        self._path = path
+
+    def get_items(self, items_url, branch, recursion=None, version_type=None):
+        """Возвращает единственный элемент options.json."""
+        return [{"path": self._path, "isFolder": False}]
+
+    def get_file_content(self, items_url, path, branch, version_type=None):
+        """Имитирует сетевой сбой при скачивании содержимого файла."""
+        raise NetworkError("simulated network failure on get_file_content")
+
+
+@pytest.mark.business_logic
+def test_options_fetcher_network_error_on_get_items_returns_default(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """NetworkError из get_items перехватывается; релиз получает опции-плейсхолдер по умолчанию."""
+    client = _RaisingOnGetItemsFakeTFSClient()
+    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert result.value[("somelib", "1.0.0", "fast")] == {"1": ""}
+
+
+@pytest.mark.business_logic
+def test_options_fetcher_network_error_on_get_file_content_returns_default(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """NetworkError из get_file_content перехватывается; релиз получает опции-плейсхолдер."""
+    client = _RaisingOnGetFileContentFakeTFSClient(path="/conan/ci-2.0/options.json")
+    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert result.value[("somelib", "1.0.0", "fast")] == {"1": ""}
+
+
+@pytest.mark.business_logic
+def test_options_fetcher_non_200_get_file_content_returns_default(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """Не-200 ответ от get_file_content приводит к пропуску файла и опциям-плейсхолдеру."""
+    path = "/conan/ci-2.0/options.json"
+
+    class _NotFoundFakeTFSClient(FakeTFSClient):
+        def get_items(self, items_url, branch, recursion=None, version_type=None):
+            return [{"path": path, "isFolder": False}]
+
+        def get_file_content(self, items_url, path, branch, version_type=None):
+            resp = requests.Response()
+            resp.status_code = 404
+            resp._content = b"{}"
+            return resp
+
+    client = _NotFoundFakeTFSClient()
+    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert result.value[("somelib", "1.0.0", "fast")] == {"1": ""}
+
+
+@pytest.mark.business_logic
+def test_options_fetcher_component_without_git_repo_emits_warning(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """Компонент с пустым git_repo пропускается фетчером, а причина попадает в warnings."""
+    client = FakeTFSClient()
+    comp = Component(
+        name="no_repo_lib",
+        git_project="DEP_Components",
+        git_repo="",
+        releases=[
+            Release(
+                version="1.0.0",
+                platform="2.0",
+                channel="fast",
+                profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
+            )
+        ],
+    )
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert ("no_repo_lib", "1.0.0", "fast") not in result.value
+    assert any("no_repo_lib" in w for w in result.warnings)
+
+
+@pytest.mark.business_logic
+def test_options_fetcher_uses_branch_override_template(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """Компонент из component_branch_overrides использует шаблон ветки вместо release_{version}."""
+    parser_config.component_branch_overrides = {"openssl": "custom_{version}_branch"}
+    client = _BranchAwareOptionsFakeTFSClient(
+        {"custom_1.2.3_branch": {"/conan/ci-2.0/options.json": "{}"}}
+    )
+    comp = _make_component("openssl", "contrib_openssl", "1.2.3", "tech")
+    ctx = _make_context(parser_config, client, tmp_path)
+    fetcher = OptionsFetcher()
+    fetcher.configure(ctx)
+    result = fetcher.fetch([comp])
+
+    assert ("openssl", "1.2.3", "tech") in result.value

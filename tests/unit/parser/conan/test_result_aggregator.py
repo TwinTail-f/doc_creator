@@ -19,10 +19,6 @@ from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
 
-# ---------------------------------------------------------------------------
-# Вспомогательные функции
-# ---------------------------------------------------------------------------
-
 
 def _make_task(
     comp_name: str = "openssl",
@@ -70,11 +66,6 @@ def _make_enrich(
     )
 
 
-# ---------------------------------------------------------------------------
-# Успешный сырой результат → release_data заполнен
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_aggregator_populates_release_data_on_success() -> None:
     """Успешный сырой результат создаёт запись в ConanEnrichmentResult.release_data."""
@@ -94,11 +85,6 @@ def test_aggregator_populates_release_data_on_success() -> None:
     assert result.release_data[key].base_ref == "openssl/3.0.0@platform-2.0/tech"
 
 
-# ---------------------------------------------------------------------------
-# Неуспешный сырой результат пропускает вызов парсера
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_aggregator_skips_parser_on_failed_raw_result() -> None:
     """Parser.parse() никогда не вызывается для сырых результатов с success=False."""
@@ -114,18 +100,9 @@ def test_aggregator_skips_parser_on_failed_raw_result() -> None:
     mock_parser.parse.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
-# None в сыром результате пропускается корректно
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
-    """Агрегатор пропускает None-результаты и записывает WARNING в лог.
-
-    None-результат означает упавшую или отменённую параллельную задачу.
-    Молчаливый пропуск без предупреждения скрывал бы сбои потоков.
-    """
+    """Агрегатор пропускает None-результаты параллельных задач и пишет WARNING в лог."""
     import logging
 
     task = _make_task()
@@ -146,11 +123,6 @@ def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
     ), "A WARNING must be logged when a None raw result is encountered"
 
 
-# ---------------------------------------------------------------------------
-# Парсер вернул None (Binary: Missing) → profile_data с exists=False
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_aggregator_handles_parser_returning_none() -> None:
     """Когда парсер возвращает None (Binary: Missing), profile_data.exists == False."""
@@ -167,11 +139,6 @@ def test_aggregator_handles_parser_returning_none() -> None:
     pb_data = result.profile_data.get(id(task.pb))
     assert pb_data is not None
     assert pb_data.exists is False
-
-
-# ---------------------------------------------------------------------------
-# Счётчики задач и сырых результатов отслеживаются
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -196,12 +163,7 @@ def test_aggregator_counts_totals_correctly() -> None:
 
 @pytest.mark.business_logic
 def test_aggregator_dependencies_flow_through_to_release_data() -> None:
-    """Зависимости, возвращённые парсером, сохраняются в release_data под правильным ключом.
-
-    Использует заранее подготовленные mock-данные — реальный JSON фикстуры не парсится.
-    Проверяет собственную ответственность агрегатора — маршрутизацию распарсенных
-    зависимостей в release_data.
-    """
+    """Зависимости, возвращённые парсером, сохраняются в release_data под правильным ключом."""
     task = _make_task(comp_name="mylib", version="2.0.0", channel="fast")
     enrich = ConanEnrichData(
         base_ref="mylib/2.0.0@platform-2.0/fast",
@@ -230,11 +192,7 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
     assert result.release_data[key].dependencies == ["depA", "depB"]
 
 
-# ---------------------------------------------------------------------------
-# Real-data tests: patchelf, nlohmann_json, sqlite3, two-profile
-# ---------------------------------------------------------------------------
-
-# NULL_PACKAGE_ID — SHA1 пустой строки (header-only компоненты)
+# SHA1 пустой строки — используется для header-only компонентов
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
@@ -292,29 +250,81 @@ def test_aggregator_two_profiles_same_release() -> None:
         target_platform="2.0",
     )
 
-    # Exactly one entry in release_data for this release
+    # Ровно одна запись release_data для этого релиза
     key = ("patchelf", "0.18.0", "tech")
     assert key in result.release_data
     assert len([k for k in result.release_data if k[0] == "patchelf"]) == 1
 
-    # Two separate profile_data entries
+    # Две отдельные записи profile_data — по одной на профиль
     assert id(pb1) in result.profile_data
     assert id(pb2) in result.profile_data
 
 
-# ---------------------------------------------------------------------------
-# UC-G-7 — Version-range error message is preserved in aggregation result
-# ---------------------------------------------------------------------------
+@pytest.mark.business_logic
+def test_aggregator_merges_dependencies_across_profiles_of_same_release() -> None:
+    """Зависимости с разных профилей одного релиза объединяются в одну запись release_data."""
+    pb1 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
+    pb2 = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2")
+    release = Release(
+        version="0.18.0",
+        platform="2.0",
+        channel="tech",
+        profile_builds=[pb1, pb2],
+    )
+
+    def _task(pb: ProfileBuild, profile_name: str) -> ConanTask:
+        return ConanTask(
+            cmd=[],
+            comp_name="patchelf",
+            version="0.18.0",
+            channel="tech",
+            profile_name=profile_name,
+            option_id="1",
+            option_str="",
+            target_platform="2.0",
+            artifactory_base_url="https://art.example.com",
+            release=release,
+            pb=pb,
+        )
+
+    task1 = _task(pb1, "crypto_alpine_gcc_x86_64.jinja")
+    task2 = _task(pb2, "hw-linux-armv7-gcc10_2")
+
+    def _enrich(deps: list[str]) -> ConanEnrichData:
+        return ConanEnrichData(
+            base_ref="patchelf/0.18.0.39@platform-2.0/tech",
+            rrev="c6c4fa5a8d6efc0263361c1979cfad8b",
+            full_version="0.18.0.39",
+            default_options=[],
+            patches=[],
+            dependencies=deps,
+            conan_settings={"os": "Linux", "arch": "x86_64"},
+            package_id="461534fe50686ce31d073dc24f005bd12e08c9fd",
+            build_url="",
+            build_date="",
+            conan_options={},
+            option_id="1",
+        )
+
+    mock_parser = MagicMock(spec=Conan2ResultParser)
+    mock_parser.parse.side_effect = [_enrich(["depA"]), _enrich(["depB"])]
+    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
+
+    result = ConanResultAggregator(result_parser=mock_parser).aggregate(
+        [task1, task2],
+        [raw, raw],
+        art_base="https://art.example.com",
+        target_platform="2.0",
+    )
+
+    key = ("patchelf", "0.18.0", "tech")
+    assert key in result.release_data
+    assert result.release_data[key].dependencies == ["depA", "depB"]
 
 
 @pytest.mark.business_logic
 def test_aggregator_records_version_range_error_message() -> None:
-    """Агрегатор сохраняет полный текст ошибки version-range-not-resolved из неуспешного ConanRawResult.
-
-    Имитирует ситуацию, когда runner возвращает success=False для version range stunnel,
-    который не удалось разрешить. Текст ошибки должен сохраниться после агрегации
-    и появиться в result.errors по ожидаемому вложенному пути ключей.
-    """
+    """Агрегатор сохраняет полный текст ошибки неразрешённого version range в result.errors."""
     error_msg = (
         "ERROR: Package 'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' not resolved: "
         "Version range '~5.77,include_prerelease' from requirement "

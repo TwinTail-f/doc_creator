@@ -9,12 +9,10 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
-# ---------------------------------------------------------------------------
-# Вспомогательные функции
-# ---------------------------------------------------------------------------
 
 _SINGLE_OVERRIDE: dict = {
     "overrides": [
@@ -27,15 +25,35 @@ _SINGLE_OVERRIDE: dict = {
 
 
 def _write_json(tmp_path: Path, content: dict) -> Path:
-    """Записывает словарь как JSON во временный файл и возвращает путь."""
+    """
+    Записывает словарь как JSON во временный файл и возвращает путь.
+
+    Args:
+        tmp_path: Временная директория для размещения файла.
+        content: Содержимое, которое будет сериализовано в JSON.
+
+    Returns:
+        Путь к созданному файлу overrides.json.
+    """
     p = tmp_path / "overrides.json"
     p.write_text(json.dumps(content), encoding="utf-8")
     return p
 
 
-# ---------------------------------------------------------------------------
-# from_file с корректным JSON
-# ---------------------------------------------------------------------------
+def _write_yaml(tmp_path: Path, content: dict) -> Path:
+    """
+    Записывает словарь как YAML во временный файл и возвращает путь.
+
+    Args:
+        tmp_path: Временная директория для размещения файла.
+        content: Содержимое, которое будет сериализовано в YAML.
+
+    Returns:
+        Путь к созданному файлу overrides.yaml.
+    """
+    p = tmp_path / "overrides.yaml"
+    p.write_text(yaml.safe_dump(content), encoding="utf-8")
+    return p
 
 
 @pytest.mark.business_logic
@@ -47,9 +65,18 @@ def test_profile_overrides_from_file_loads_correctly(tmp_path: Path) -> None:
     assert overrides.resolve("crypto_default.jinja") == {"os": "Linux"}
 
 
-# ---------------------------------------------------------------------------
-# from_file с несуществующим путём
-# ---------------------------------------------------------------------------
+@pytest.mark.business_logic
+def test_profile_overrides_from_file_loads_yaml(tmp_path: Path) -> None:
+    """from_file() с файлом .yaml правильно разрешает точное имя профиля.
+
+    YAML — основной документированный формат конфига переопределений, но
+    все остальные тесты в этом файле проверяют только .json; этот тест
+    закрывает реальный пробел в покрытии.
+    """
+    path = _write_yaml(tmp_path, _SINGLE_OVERRIDE)
+    overrides = ProfileSettingsOverrides.from_file(path)
+
+    assert overrides.resolve("crypto_default.jinja") == {"os": "Linux"}
 
 
 @pytest.mark.business_logic
@@ -58,11 +85,6 @@ def test_profile_overrides_from_file_missing_file_returns_empty() -> None:
     overrides = ProfileSettingsOverrides.from_file(Path("/nonexistent/path.json"))
 
     assert overrides.is_empty() is True
-
-
-# ---------------------------------------------------------------------------
-# from_file с некорректным JSON
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -74,11 +96,6 @@ def test_profile_overrides_from_file_invalid_json_returns_empty(tmp_path: Path) 
     overrides = ProfileSettingsOverrides.from_file(bad_file)
 
     assert overrides.is_empty() is True
-
-
-# ---------------------------------------------------------------------------
-# resolve: точное совпадение имени
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -98,11 +115,6 @@ def test_profile_overrides_resolve_exact_match(tmp_path: Path) -> None:
     result = overrides.resolve("hw-linux-x86_64.jinja")
 
     assert result == {"compiler": "gcc"}
-
-
-# ---------------------------------------------------------------------------
-# resolve: сопоставление по basename при полном пути
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -130,11 +142,6 @@ def test_profile_overrides_resolve_basename_fallback(tmp_path: Path) -> None:
     assert result == {"compiler": "gcc"}
 
 
-# ---------------------------------------------------------------------------
-# resolve: неизвестное имя профиля
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -> None:
     """resolve() с неизвестным именем профиля возвращает пустой словарь."""
@@ -146,20 +153,10 @@ def test_profile_overrides_resolve_no_match_returns_empty_dict(tmp_path: Path) -
     assert result == {}
 
 
-# ---------------------------------------------------------------------------
-# empty(): экземпляр с is_empty() == True
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_profile_overrides_empty_instance_is_empty() -> None:
     """Экземпляр без переопределений (созданный без аргументов) имеет is_empty() == True."""
     assert ProfileSettingsOverrides().is_empty() is True
-
-
-# ---------------------------------------------------------------------------
-# is_empty() при загруженных переопределениях
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -169,11 +166,6 @@ def test_profile_overrides_non_empty_is_not_empty(tmp_path: Path) -> None:
     overrides = ProfileSettingsOverrides.from_file(path)
 
     assert overrides.is_empty() is False
-
-
-# ---------------------------------------------------------------------------
-# Слияние нескольких записей для одного профиля
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -198,12 +190,6 @@ def test_profile_overrides_multiple_entries_merged(tmp_path: Path) -> None:
 
     assert result.get("os") == "Linux"
     assert result.get("compiler") == "gcc"
-
-
-# ---------------------------------------------------------------------------
-# Частичная порча списка overrides: один "битый" элемент не должен ломать
-# разбор остальных, валидных элементов того же списка.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -391,12 +377,6 @@ def test_profile_overrides_partial_corruption_final_state_correct(tmp_path: Path
     assert overrides.resolve("profile-one.jinja") == {"compiler": "gcc"}
     assert overrides.resolve("profile-two.jinja") == {"compiler": "clang"}
     assert overrides.is_empty() is False
-
-
-# ---------------------------------------------------------------------------
-# Форма всего файла: валидный JSON, но не той формы, которую ожидает
-# _parse() (не dict, без секции "overrides", "overrides" не список).
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic

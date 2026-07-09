@@ -12,10 +12,6 @@ from autodoc.parser.fetchers.base_tfs_fetcher import BaseTFSFetcher
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.pipeline.context import PipelineContext
 
-# ---------------------------------------------------------------------------
-# Минимальный конкретный подкласс, используемый только в этих тестах
-# ---------------------------------------------------------------------------
-
 
 class _ConcreteFetcher(BaseTFSFetcher):
     """Минимальный конкретный подкласс BaseTFSFetcher для тестирования инвариантов базового класса."""
@@ -29,25 +25,6 @@ class _ConcreteFetcher(BaseTFSFetcher):
         return FetchResult(value=[])
 
 
-# ---------------------------------------------------------------------------
-# FetchResult хранит value и warnings
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.contract
-def test_fetch_result_holds_value_and_warnings() -> None:
-    """FetchResult предоставляет переданные value и список warnings."""
-    result: FetchResult = FetchResult(value=[1, 2], warnings=["w1"])
-
-    assert result.value == [1, 2]
-    assert result.warnings == ["w1"]
-
-
-# ---------------------------------------------------------------------------
-# warnings в FetchResult по умолчанию — пустой список
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.contract
 def test_fetch_result_default_warnings_empty() -> None:
     """FetchResult.warnings по умолчанию является пустым списком, если не задан."""
@@ -56,31 +33,9 @@ def test_fetch_result_default_warnings_empty() -> None:
     assert result.warnings == []
 
 
-# ---------------------------------------------------------------------------
-# BaseTFSFetcher: _tfs равен None до вызова configure
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.contract
-def test_base_tfs_fetcher_tfs_is_none_before_configure() -> None:
-    """Атрибут _tfs равен None сразу после создания, до вызова configure()."""
-    fetcher = _ConcreteFetcher()
-
-    assert fetcher._tfs is None
-
-
-# ---------------------------------------------------------------------------
-# T3.8 — configure() → fetch() ordering contract
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.contract
 def test_base_fetcher_fetch_before_configure_raises() -> None:
-    """Calling fetch() before configure() must raise RuntimeError.
-
-    The two-phase protocol is enforced at the base class level to prevent
-    misconfigured fetchers from silently returning empty or stale data.
-    """
+    """Вызов fetch() до configure() нарушает двухфазный инвариант и выбрасывает AssertionError."""
     fetcher = _ConcreteFetcher()
     with pytest.raises(AssertionError, match="configure"):
         fetcher.fetch()

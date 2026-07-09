@@ -61,19 +61,6 @@ def _make_parser_with_real_steps(
     результата без операций, чтобы подпроцесс не был запущен.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
-    from autodoc.parser.clients.artifactory_client_protocol import (
-        ArtifactoryClientProtocol,
-    )
-    import requests
-
-    class _AlwaysOkArtifactoryClient:
-        """Заглушка: каждый запрос HEAD возвращает HTTP 200 OK."""
-
-        def head(self, url: str) -> requests.Response:
-            """Возвращает ответ 200 без выполнения реального сетевого запроса."""
-            resp = requests.Response()
-            resp.status_code = _HTTP_OK
-            return resp
 
     tfs_client = CopyingAllFakeTFSClient(resources_dir)
     artifactory_client = _AlwaysOkArtifactoryClient()
@@ -573,3 +560,160 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
                     f"После FinalizeStep не должно быть ProfileBuilds с exists=False. "
                     f"Найден для {comp.name}/{release.version}/{pb.profile_name}"
                 )
+
+
+# ---------------------------------------------------------------------------
+# Реальный сбой критичного шага сквозь весь пайплайн
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+def test_full_pipeline_raises_parsing_error_when_no_manifests_found(
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+) -> None:
+    """Реальный ManifestFetcher без .properties-файлов останавливает пайплайн с ParsingError.
+
+    Заменяет прежние синтетические тесты сбоя (фейковые шаги, лишь названные
+    в честь реальных), которые не добавляли покрытия сверх модульных тестов
+    ComponentParser. Здесь используется настоящая production-цепочка шагов:
+    TFS-клиент по умолчанию (``FakeTFSClient``) не копирует ни одного файла,
+    поэтому ``ManifestFetcher`` реально бросает ``ParsingError`` при
+    отсутствии манифестов, и это исключение должно дойти до вызывающей стороны
+    непосредственно через ``ManifestStep`` → ``ComponentParser.parse()``.
+    """
+    from tests.unit.parser.conftest import FakeTFSClient
+    from autodoc.exceptions import ParsingError
+
+    parser = ComponentParser(
+        config=parser_config,
+        data_dir=tmp_path,
+        tfs_client=FakeTFSClient(),
+        artifactory_client=_AlwaysOkArtifactoryClient(),
+    )
+
+    with pytest.raises(ParsingError):
+        parser.parse()
+
+
+# ---------------------------------------------------------------------------
+# save_intermediate=True сквозь реальный пайплайн
+# ---------------------------------------------------------------------------
+
+
+@patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
+def test_full_pipeline_save_intermediate_writes_real_files(
+    mock_conan_fetch,
+    resources_dir: Path,
+    tmp_path: Path,
+    parser_config: ParserConfigSchema,
+) -> None:
+    """save_intermediate=True записывает JSON-снимок для каждого шага реального пайплайна.
+
+    До этого теста ``save_intermediate`` проверялся только с фейковыми
+    шагами (``test_component_parser_save_intermediate_writes_files`` в
+    ``test_parser.py``). Здесь снимки должны появляться и когда пайплайн
+    состоит из настоящих production-шагов.
+    """
+    mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
+    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+
+    parser.parse(save_intermediate=True)
+
+    intermediate_dir = tmp_path / "intermediate"
+    json_files = list(intermediate_dir.glob("*.json"))
+    assert len(json_files) == 6, (
+        f"Ожидалось 6 файлов снимков (по одному на шаг реального пайплайна), "
+        f"получено {len(json_files)}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# HTTP 404 от Artifactory сквозь реальный пайплайн
+# ---------------------------------------------------------------------------
+
+
+@patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
+@pytest.mark.integration
+def test_full_pipeline_removes_dead_variant_on_404(
+    mock_conan_fetch,
+    resources_dir: Path,
+    tmp_path: Path,
+    parser_config: ParserConfigSchema,
+) -> None:
+    """Вариант, для которого Artifactory возвращает HTTP 404, удаляется реальной валидацией.
+
+    Заглушка Artifactory в этом файле всегда возвращает 200, поэтому ветка
+    удаления мёртвых вариантов в ``ArtifactoryValidationStep`` не покрывалась
+    сквозным тестом. Здесь Conan обогащает один профиль patchelf вариантом
+    с ``build_url``, а Artifactory-клиент отвечает 404 именно на этот URL —
+    после ``ArtifactoryValidationStep`` вариант должен исчезнуть из
+    ``pb.variants``, хотя сам ``ProfileBuild`` остаётся (``exists=True``).
+    """
+    from autodoc.parser.conan.models.conan_enrichment_result import (
+        ConanEnrichmentResult as _EnrichResult,
+        ProfileConanData as _ProfileConanData,
+    )
+    from autodoc.models.conan_variant import ConanVariant as _ConanVariant
+
+    _DEAD_URL: str = "https://art.example.com/ui/repos/tree/General/patchelf/dead"
+
+    def _build_patchelf_enrich(components):
+        """Дать одному профилю patchelf вариант с build_url, ведущим к 404."""
+        result = _EnrichResult()
+        for comp in components:
+            if comp.name != "patchelf":
+                continue
+            for release in comp.releases:
+                for pb in release.profile_builds:
+                    result.profile_data[id(pb)] = _ProfileConanData(
+                        conan_settings={},
+                        exists=True,
+                        variants=[
+                            _ConanVariant(
+                                package_id="abc123",
+                                build_url=_DEAD_URL,
+                                build_date="2024-01-01",
+                                options_ref="1",
+                            )
+                        ],
+                    )
+        return FetchResult(value=result, warnings=[])
+
+    class _NotFoundForDeadUrlArtifactoryClient:
+        """Заглушка: HTTP 404 для _DEAD_URL (после преобразования в API-путь), иначе 200."""
+
+        def head(self, url: str):
+            import requests as _req
+
+            resp = _req.Response()
+            resp.status_code = 404 if "patchelf/dead" in url else 200
+            return resp
+
+    from tests.unit.parser.conftest import CopyingAllFakeTFSClient
+
+    mock_conan_fetch.side_effect = _build_patchelf_enrich
+
+    parser = ComponentParser(
+        config=parser_config,
+        data_dir=tmp_path,
+        tfs_client=CopyingAllFakeTFSClient(resources_dir),
+        artifactory_client=_NotFoundForDeadUrlArtifactoryClient(),
+    )
+
+    result: ParsedResult = parser.parse()
+
+    patchelf = next((c for c in result.components if c.name == "patchelf"), None)
+    assert patchelf is not None, "patchelf должен пережить финализацию"
+
+    all_variants = [
+        v
+        for release in patchelf.releases
+        for pb in release.profile_builds
+        for v in pb.variants
+    ]
+    assert all(v.build_url != _DEAD_URL for v in all_variants), (
+        "Вариант с build_url, вернувшим HTTP 404, должен быть удалён "
+        "ArtifactoryValidationStep"
+    )

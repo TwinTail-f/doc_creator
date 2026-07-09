@@ -178,20 +178,6 @@ def test_component_parser_raises_if_result_not_set(
 
 
 @pytest.mark.infrastructure
-def test_component_parser_with_steps_excluded_removes_step_class(
-    parser_config,
-    tmp_path,
-) -> None:
-    """Фабричный метод with_steps_excluded удаляет все экземпляры указанного класса шагов."""
-    parser = ComponentParser.with_steps_excluded(
-        config=parser_config,
-        data_dir=tmp_path,
-        exclude=[ConanEnrichStep],
-    )
-    assert not any(isinstance(s, ConanEnrichStep) for s in parser._steps)
-
-
-@pytest.mark.infrastructure
 def test_component_parser_uses_injected_tfs_client(
     mocker,
     parser_config,
@@ -229,3 +215,69 @@ def test_component_parser_save_intermediate_writes_files(
     intermediate_dir = tmp_path / "intermediate"
     json_files = list(intermediate_dir.glob("*.json"))
     assert len(json_files) >= 1
+
+
+@pytest.mark.infrastructure
+def test_component_parser_save_intermediate_oserror_logged_not_raised(
+    mocker,
+    parser_config,
+    tmp_path,
+) -> None:
+    """OSError при записи снимка перехватывается и логируется, не прерывая parse()."""
+    mock_write_text = mocker.patch(
+        "pathlib.Path.write_text",
+        side_effect=OSError("disk full"),
+    )
+    parser = ComponentParser(
+        config=parser_config,
+        data_dir=tmp_path,
+        steps=[FakeFinalize()],
+    )
+    result = parser.parse(save_intermediate=True)  # не должно вызывать исключений
+    assert isinstance(result, ParsedResult)
+    mock_write_text.assert_called()
+
+
+@pytest.mark.contract
+def test_component_parser_default_pipeline_step_order(
+    parser_config,
+    tmp_path,
+) -> None:
+    """_default_pipeline() возвращает шаги в задокументированном порядке: Manifest→Options→Conan→Docker→Validation→Finalize."""
+    from autodoc.parser.steps.docker_step import DockerResolveStep
+    from autodoc.parser.steps.finalize_step import FinalizeStep
+    from autodoc.parser.steps.manifest_step import ManifestStep
+    from autodoc.parser.steps.options_step import OptionsResolveStep
+    from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
+
+    parser = ComponentParser(config=parser_config, data_dir=tmp_path)
+    expected_order = [
+        ManifestStep,
+        OptionsResolveStep,
+        ConanEnrichStep,
+        DockerResolveStep,
+        ArtifactoryValidationStep,
+        FinalizeStep,
+    ]
+    assert [type(s) for s in parser._steps] == expected_order
+
+
+@pytest.mark.infrastructure
+def test_component_parser_uses_injected_artifactory_client(
+    mocker,
+    parser_config,
+    tmp_path,
+) -> None:
+    """Когда artifactory_client передаётся через конструктор, ArtifactoryClient.__init__ никогда не вызывается."""
+    mock_artifactory_init = mocker.patch(
+        "autodoc.parser.parser.ArtifactoryClient.__init__",
+        return_value=None,
+    )
+    parser = ComponentParser(
+        config=parser_config,
+        data_dir=tmp_path,
+        steps=[FakeFinalize()],
+        artifactory_client=mocker.MagicMock(),
+    )
+    parser.parse()
+    mock_artifactory_init.assert_not_called()

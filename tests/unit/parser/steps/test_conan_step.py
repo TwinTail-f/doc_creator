@@ -6,21 +6,12 @@ from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentR
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
-# ---------------------------------------------------------------------------
-# Сигнальный пустой результат, используемый в тестах
-# ---------------------------------------------------------------------------
-
 EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
     release_data={}, profile_data={}, errors={}
 )
 
 
-# ---------------------------------------------------------------------------
-# Тесты
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.infrastructure
+@pytest.mark.contract
 def test_conan_step_stores_conan_report_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -32,13 +23,13 @@ def test_conan_step_stores_conan_report_in_intermediate(
     assert "conan_report" in parser_pipeline_context.intermediate
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan_step_is_not_critical() -> None:
     """ConanEnrichStep является некритичным шагом пайплайна."""
     assert ConanEnrichStep.is_critical is False
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan_step_warnings_do_not_raise(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -48,10 +39,6 @@ def test_conan_step_warnings_do_not_raise(
     step = ConanEnrichStep(fetcher=fake)
     step.execute(parser_pipeline_context)  # не должно вызывать исключений
 
-
-# ---------------------------------------------------------------------------
-# Helper builders
-# ---------------------------------------------------------------------------
 
 # NULL_PACKAGE_ID — SHA1 пустой строки (header-only компоненты)
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
@@ -68,7 +55,18 @@ from autodoc.models.options import TotalOptionsSet
 
 
 def _make_release_with_pb(name: str, version: str, channel: str, profile_name: str):
-    """Build a (Component, Release, ProfileBuild) triple for use in tests."""
+    """
+    Строит тройку (Component, Release, ProfileBuild) для использования в тестах.
+
+    Args:
+        name: Имя компонента.
+        version: Версия релиза.
+        channel: Канал релиза.
+        profile_name: Имя единственного профиля релиза.
+
+    Returns:
+        Кортеж ``(comp, rel, pb)`` — созданные Component, Release и ProfileBuild.
+    """
     pb = ProfileBuild(profile_name=profile_name)
     rel = Release(
         version=version,
@@ -88,7 +86,20 @@ def _make_conan_result(
     package_id: str,
     deps: list[str] | None = None,
 ) -> ConanEnrichmentResult:
-    """Build a ConanEnrichmentResult with one release and one profile entry."""
+    """
+    Строит ConanEnrichmentResult с одной записью релиза и одной записью профиля.
+
+    Args:
+        comp_name: Имя компонента.
+        version: Версия релиза.
+        channel: Канал релиза.
+        pb: ProfileBuild, для которого создаются данные профиля Conan.
+        package_id: Package ID варианта Conan.
+        deps: Список зависимостей релиза (по умолчанию — пустой).
+
+    Returns:
+        Заполненный ``ConanEnrichmentResult``.
+    """
     result = ConanEnrichmentResult(release_data={}, profile_data={}, errors={})
     result.release_data[(comp_name, version, channel)] = ReleaseConanData(
         base_ref=f"{comp_name}/{version}@platform-2.0/{channel}",
@@ -115,19 +126,14 @@ def _make_conan_result(
     return result
 
 
-# ---------------------------------------------------------------------------
-# New real-data tests
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_conan_step_applies_conan_results_to_components(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """After execute, the target release has conan_reference set (context was mutated).
+    """После execute у целевого релиза установлен conan_reference (контекст изменён).
 
-    Specific field values from enrichment are covered by test_data_enricher.py.
+    Конкретные значения полей обогащения проверяются в test_data_enricher.py.
     """
     comp, rel, pb = _make_release_with_pb(
         "patchelf", "0.18.0", "tech", "crypto_alpine_gcc_x86_64.jinja"
@@ -143,7 +149,7 @@ def test_conan_step_applies_conan_results_to_components(
     fake = make_fake_fetcher(value=conan_result)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
-    # Only assert flow-through: context was mutated, no exception.
+    # Проверяется только сквозной проход: контекст изменён, исключений нет.
     assert rel.conan_reference is not None
     assert rel.conan_reference != ""
 
@@ -153,9 +159,9 @@ def test_conan_step_header_only_component_variants_stored(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """FakeFetcher returns NULL_PACKAGE_ID variant — variants are stored on the ProfileBuild.
+    """FakeFetcher возвращает вариант с NULL_PACKAGE_ID — variants сохраняются в ProfileBuild.
 
-    Specific package_id field values are covered by test_data_enricher.py.
+    Конкретные значения поля package_id проверяются в test_data_enricher.py.
     """
     comp, rel, pb = _make_release_with_pb(
         "nlohmann_json", "3.9.1", "slow", "hw-linux-x86_64-gcc10_2"
@@ -171,7 +177,7 @@ def test_conan_step_header_only_component_variants_stored(
     fake = make_fake_fetcher(value=conan_result)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
-    # Only assert flow-through: variants were populated on the ProfileBuild.
+    # Проверяется только сквозной проход: variants заполнены в ProfileBuild.
     assert len(pb.variants) == 1
 
 
@@ -180,9 +186,9 @@ def test_conan_step_component_with_dependencies(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """FakeFetcher returns deps list — release.dependencies is populated after execute.
+    """FakeFetcher возвращает список deps — release.dependencies заполняется после execute.
 
-    Specific dependency values are covered by test_data_enricher.py.
+    Конкретные значения зависимостей проверяются в test_data_enricher.py.
     """
     comp, rel, pb = _make_release_with_pb(
         "libnetfilter_queue", "1.0.5", "slow", "hw-linux-armv7-gcc10_2"
@@ -199,7 +205,7 @@ def test_conan_step_component_with_dependencies(
     fake = make_fake_fetcher(value=conan_result)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
-    # Only assert flow-through: context was mutated with non-empty dependencies.
+    # Проверяется только сквозной проход: контекст изменён, dependencies не пуст.
     assert rel.dependencies is not None
     assert len(rel.dependencies) > 0
 
@@ -209,16 +215,11 @@ def test_conan_step_configure_called_before_fetch(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """fetcher.configure() is called before fetcher.fetch() during execute."""
+    """fetcher.configure() вызывается перед fetcher.fetch() во время execute."""
     fake = make_fake_fetcher(value=EMPTY_CONAN_RESULT)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
     assert fake.configure_called is True
-
-
-# ---------------------------------------------------------------------------
-# UC-G-4 — apr/fast channel, no dependencies
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic
@@ -226,11 +227,12 @@ def test_conan_step_apr_fast_channel_no_dependencies(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """ConanStep correctly enriches apr/fast release with empty dependencies list.
+    """ConanEnrichStep корректно обогащает релиз apr/fast с пустым списком зависимостей.
 
-    Uses a FakeFetcher that returns a ConanEnrichmentResult pre-populated
-    with apr data. After ConanEnrichStep.execute, the apr release's dependencies
-    list must be empty (apr has no runtime deps in production).
+    Использует FakeFetcher, возвращающий ConanEnrichmentResult, заранее
+    заполненный данными apr. После ConanEnrichStep.execute список
+    dependencies релиза apr должен быть пустым (у apr нет runtime-зависимостей
+    в продакшене).
     """
     comp, rel, pb = _make_release_with_pb("apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2")
     parser_pipeline_context.components = [comp]
@@ -250,22 +252,17 @@ def test_conan_step_apr_fast_channel_no_dependencies(
     ), f"Expected empty dependencies for apr, got: {rel.dependencies}"
 
 
-# ---------------------------------------------------------------------------
-# UC-G-7 — Error result does not raise and is stored in ctx.intermediate
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_conan_step_error_does_not_raise_and_stores_in_report(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """ConanStep does not raise when the aggregator reports a version-range resolution error.
+    """ConanEnrichStep не падает, если агрегатор сообщает об ошибке разрешения диапазона версий.
 
-    A FakeFetcher returns a ConanEnrichmentResult whose errors dict contains
-    an entry for 'stunnel' (mimicking UC-G-7: version range could not be resolved).
-    ConanEnrichStep.execute must complete without raising and must store the error
-    information in ctx.intermediate['conan_report'].
+    FakeFetcher возвращает ConanEnrichmentResult, чей словарь errors содержит
+    запись для 'stunnel' (диапазон версий не удалось разрешить).
+    ConanEnrichStep.execute должен завершиться без исключений и сохранить
+    информацию об ошибке в ctx.intermediate['conan_report'].
     """
     error_entry = {
         "5.77": {"fast": {"crypto_default_gcc_x86_64.jinja": ["Version range not resolved"]}}
@@ -278,7 +275,7 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
     fake = make_fake_fetcher(value=fake_result)
     parser_pipeline_context.components = []
 
-    # Must not raise
+    # Не должно вызывать исключений
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
     conan_report = parser_pipeline_context.intermediate.get("conan_report")
@@ -286,3 +283,12 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
     assert "stunnel" in str(
         conan_report
     ), f"Expected 'stunnel' error to appear in conan report, got: {conan_report}"
+
+
+@pytest.mark.contract
+def test_conan_step_default_fetcher_is_conan_fetcher() -> None:
+    """ConanEnrichStep() без аргумента fetcher создаёт по умолчанию реальный ConanFetcher."""
+    from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
+
+    step = ConanEnrichStep()
+    assert isinstance(step._fetcher, ConanFetcher)

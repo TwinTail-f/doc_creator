@@ -57,8 +57,8 @@ def test_parse_config_load_failure_exits_nonzero_with_clean_message(
     tmp_path: Path, configs_dir: Path
 ) -> None:
     """Отсутствующий или некорректный конфиг парсера завершает команду с кодом 1 и понятным сообщением, без трейсбека."""
-    # configs_dir stays empty — no parser_config.* file is present, so
-    # ConfigManager.load_parser_config returns None.
+    # configs_dir остаётся пустым — файл parser_config.* отсутствует, поэтому
+    # ConfigManager.load_parser_config возвращает None.
     result = CliRunner().invoke(
         cli,
         ["--base-dir", str(tmp_path), "--configs-dir", str(configs_dir), "parse"],

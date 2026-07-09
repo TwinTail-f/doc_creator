@@ -19,11 +19,7 @@ _MAX_WORKERS_PARALLEL: int = 8
 _TIMEOUT_GUARD_SEC: int = 5
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.1 — результаты возвращаются в порядке отправки, несмотря на неравномерное завершение
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_parallel_executor_results_in_submission_order() -> None:
     """Результаты возвращаются в порядке отправки, а не в порядке завершения.
@@ -53,11 +49,7 @@ def test_parallel_executor_results_in_submission_order() -> None:
     assert results == expected_values
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.2 — один неудачный задание не отменяет остальные
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> None:
     """Исключения в отдельных задачах изолированы; другие задачи всё ещё выдают результаты.
@@ -80,11 +72,7 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
     assert results[2] == 2, "задача 2 должна выдать свой результат"
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.3 — все задачи вызывающие ошибки не вешаются
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.timeout(_TIMEOUT_GUARD_SEC)
 @pytest.mark.business_logic
 def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
@@ -105,11 +93,7 @@ def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
     assert results == [None, None, None]
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.4 — max_workers=1 выполняет задачи последовательно
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_parallel_executor_max_workers_one_is_sequential() -> None:
     """С max_workers=1 задачи выполняются последовательно в порядке отправки.
@@ -132,11 +116,7 @@ def test_parallel_executor_max_workers_one_is_sequential() -> None:
     assert execution_order == items
 
 
-# ---------------------------------------------------------------------------
 # T4A.2.5 — пустой ввод возвращает пустой вывод
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_parallel_executor_empty_task_list_returns_empty() -> None:
     """execute([]) возвращает [] немедленно, не вызывая ошибку или запуская потоки.
