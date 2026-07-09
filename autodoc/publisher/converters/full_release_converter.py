@@ -10,7 +10,7 @@ from autodoc.publisher.converters.base_release_converter import BaseReleaseConve
 
 class FullReleaseConverter(BaseReleaseConverter):
     """
-    Трансформер для полного вида документации релиза.
+    Конвертер для полного вида документации релиза.
 
     Включает все компоненты со всеми профилями, вариантами и зависимостями.
     Опционально добавляет ссылки на паспорта компонентов.

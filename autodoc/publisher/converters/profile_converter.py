@@ -9,7 +9,7 @@ from autodoc.publisher.converters.base_release_converter import BaseReleaseConve
 
 class ProfileCentricConverter(BaseReleaseConverter):
     """
-    Трансформер для профиль-центричного вида.
+    Конвертер для профиль-центричного вида.
 
     Перестраивает иерархию ``Компонент → Релиз → Профиль``
     в ``Профиль → Канал → Компонент`` для удобного анализа по профилям.

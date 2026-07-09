@@ -8,7 +8,7 @@ from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 
 class BaseReleaseConverter(BaseDataConverter):
     """
-    Базовый класс трансформеров документации релиза.
+    Базовый класс конвертеров документации релиза.
 
     Конкретные виды реализуют ``transform()``. Ссылки на паспорта
     компонентов конвертер не строит — они внедряются отдельно, уже после
