@@ -19,8 +19,8 @@ from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.clients.artifactory_client_protocol import ArtifactoryClientProtocol
-from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
+from autodoc.parser.clients.artifactory_client import ArtifactoryClient
+from autodoc.parser.clients.tfs_client import TFSClient
 
 
 @dataclass
@@ -39,8 +39,8 @@ class PipelineContext:
     Attributes:
         config: Валидированная конфигурация парсера.
         tmp_dir: Временная директория для промежуточных файлов.
-        tfs_client: Реализация ``TFSClientProtocol``, внедряется ``ComponentParser`` перед запуском пайплайна.
-        artifactory_client: Реализация ``ArtifactoryClientProtocol``, внедряется ``ComponentParser``.
+        tfs_client: Экземпляр ``TFSClient``, внедряется ``ComponentParser`` перед запуском пайплайна.
+        artifactory_client: Экземпляр ``ArtifactoryClient``, внедряется ``ComponentParser``.
         components: Список компонентов, накапливаемый шагами пайплайна.
         result: Финальный результат, заполняется ``FinalizeStep``.
         intermediate: Произвольные данные для диагностики и передачи между шагами.
@@ -48,8 +48,8 @@ class PipelineContext:
 
     config: ParserConfigSchema
     tmp_dir: Path
-    tfs_client: TFSClientProtocol | None = None
-    artifactory_client: ArtifactoryClientProtocol | None = None
+    tfs_client: TFSClient | None = None
+    artifactory_client: ArtifactoryClient | None = None
     components: list[Component] = field(default_factory=list)
     result: ParsedResult | None = None
     intermediate: dict[str, Any] = field(default_factory=dict)

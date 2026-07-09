@@ -9,7 +9,7 @@
 from typing import Protocol, runtime_checkable
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
-from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
+from autodoc.parser.clients.tfs_client import TFSClient
 
 
 @runtime_checkable
@@ -25,4 +25,4 @@ class PipelineContextProtocol(Protocol):
     """
 
     config: ParserConfigSchema
-    tfs_client: TFSClientProtocol | None
+    tfs_client: TFSClient | None

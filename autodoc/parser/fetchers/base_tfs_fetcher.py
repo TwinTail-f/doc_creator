@@ -1,8 +1,8 @@
 """
-Базовый фетчер для фетчеров, работающих с TFS через TFSClientProtocol.
+Базовый фетчер для фетчеров, работающих с TFS через TFSClient.
 """
 
-from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
+from autodoc.parser.clients.tfs_client import TFSClient
 from autodoc.parser.fetchers.base_fetcher import BaseFetcher
 
 
@@ -10,7 +10,7 @@ class BaseTFSFetcher[T](BaseFetcher[T]):
     """
     Базовый класс для фетчеров, обращающихся к TFS.
 
-    Хранит ссылку на ``TFSClientProtocol``; конкретное значение
+    Хранит ссылку на ``TFSClient``; конкретное значение
     устанавливается в ``configure(ctx)`` подклассом.
     Контракт ``configure()`` / ``fetch()`` унаследован от ``BaseFetcher[T]``.
     """
@@ -18,4 +18,4 @@ class BaseTFSFetcher[T](BaseFetcher[T]):
     def __init__(self) -> None:
         """Инициализирует фетчер; ``_tfs`` заполняется в методе ``configure()``."""
         super().__init__()
-        self._tfs: TFSClientProtocol | None = None
+        self._tfs: TFSClient | None = None
