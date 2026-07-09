@@ -129,7 +129,6 @@ def print_publish_result(result: PublishReport) -> None:
         for err in result.errors:
             console.print(f"  • {err}", style="yellow")
 
-    if not result.success:
-        sys.exit(1)
-    if result.pages_published == 0:
+    publish_failed = not result.success or result.pages_published == 0
+    if publish_failed:
         sys.exit(1)
