@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
+from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from tests.unit.parser.fetchers.conftest import _make_mock_ctx, _patch_full_fetch_pipeline

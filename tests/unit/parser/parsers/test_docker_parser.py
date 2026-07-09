@@ -27,8 +27,7 @@ def test_extract_from_yaml_plain_string_docker() -> None:
             }
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert links[PROFILE_LINUX] == DOCKER_IMAGE
 
 
@@ -43,8 +42,7 @@ def test_extract_from_yaml_docker_dict_image_key() -> None:
             }
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert links[PROFILE_LINUX] == DOCKER_IMAGE_DICT
 
 
@@ -56,8 +54,7 @@ def test_extract_from_yaml_skips_common_key() -> None:
             "common": {"docker": DOCKER_IMAGE},
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert links == {}
 
 
@@ -69,8 +66,7 @@ def test_extract_from_yaml_skips_entry_without_docker() -> None:
             PROFILE_LINUX: {"profile_host": PROFILE_LINUX},
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert links == {}
 
 
@@ -83,16 +79,14 @@ def test_extract_from_yaml_non_dict_arch_entry_is_skipped() -> None:
             "also-bad": ["still", "not", "a", "dict"],
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert links == {}
 
 
 @pytest.mark.business_logic
 def test_extract_from_yaml_missing_archs_key() -> None:
     """extract_from_yaml не падает и ничего не добавляет, если в content отсутствует ключ 'archs'."""
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml({}, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml({})
     assert links == {}
 
 
@@ -104,8 +98,7 @@ def test_extract_from_yaml_missing_profile_host_only_adds_key_alias() -> None:
             PROFILE_LINUX: {"docker": DOCKER_IMAGE},
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert links[PROFILE_LINUX] == DOCKER_IMAGE
     assert len(links) == 1
 
@@ -121,8 +114,7 @@ def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
             }
         }
     }
-    links: DockerLinksMap = {}
-    DockerParser.extract_from_yaml(content, links)
+    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
     assert "prof-a" in links
     assert "prof-b" in links
 
