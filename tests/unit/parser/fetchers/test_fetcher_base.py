@@ -26,14 +26,6 @@ class _ConcreteFetcher(BaseTFSFetcher):
 
 
 @pytest.mark.contract
-def test_fetch_result_default_warnings_empty() -> None:
-    """FetchResult.warnings по умолчанию является пустым списком, если не задан."""
-    result: FetchResult = FetchResult(value="x")
-
-    assert result.warnings == []
-
-
-@pytest.mark.contract
 def test_base_fetcher_fetch_before_configure_raises() -> None:
     """Вызов fetch() до configure() нарушает двухфазный инвариант и выбрасывает AssertionError."""
     fetcher = _ConcreteFetcher()

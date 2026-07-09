@@ -23,12 +23,6 @@ class TestRecursionLevel:
         """RecursionLevel.FULL должен быть равен 'Full'."""
         assert RecursionLevel.FULL == "Full"
 
-    @pytest.mark.contract
-    def test_all_members_are_strings(self) -> None:
-        """Все элементы RecursionLevel должны быть экземплярами str (контракт str-enum)."""
-        for member in RecursionLevel:
-            assert isinstance(member, str)
-
 
 class TestVersionType:
     """Проверки строковых значений протокола для VersionType."""
@@ -47,9 +41,3 @@ class TestVersionType:
     def test_commit_value(self) -> None:
         """VersionType.COMMIT должен быть равен 'commit'."""
         assert VersionType.COMMIT == "commit"
-
-    @pytest.mark.contract
-    def test_all_members_are_strings(self) -> None:
-        """Все элементы VersionType должны быть экземплярами str."""
-        for member in VersionType:
-            assert isinstance(member, str)

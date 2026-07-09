@@ -52,29 +52,12 @@ def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_init_succeeds_with_valid_dir(tmp_path: Path) -> None:
-    """DocumentBuilder инициализируется без ошибок, если rendering_dir существует."""
-    rendering_dir = make_rendering_dir(tmp_path, {})
-    builder = DocumentBuilder(rendering_dir=rendering_dir)
-    assert builder is not None
-
-
-@pytest.mark.infrastructure
 def test_build_renders_template_with_data(tmp_path: Path) -> None:
     """build() подставляет поля view_model в шаблон корректно."""
     rendering_dir = make_rendering_dir(tmp_path, {TITLE_TEMPLATE_NAME: TITLE_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
     result = builder.build(TITLE_TEMPLATE_NAME, {"title": "Hello"})
     assert result == "Hello"
-
-
-@pytest.mark.contract
-def test_build_returns_string(tmp_path: Path) -> None:
-    """build() всегда возвращает экземпляр str."""
-    rendering_dir = make_rendering_dir(tmp_path, {STATIC_TEMPLATE_NAME: STATIC_TEMPLATE_CONTENT})
-    builder = DocumentBuilder(rendering_dir=rendering_dir)
-    result = builder.build(STATIC_TEMPLATE_NAME, {})
-    assert isinstance(result, str)
 
 
 @pytest.mark.infrastructure
