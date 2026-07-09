@@ -84,7 +84,7 @@ def inject_links(
     если ключ ``'components'`` отсутствует или реестр пуст.
 
     Args:
-        view_model: Словарь, созданный трансформером. Изменяется на месте.
+        view_model: Словарь, созданный конвертером. Изменяется на месте.
         passport_pages: Карта, загруженная через ``PassportPageRegistry.load()``.
     """
     if not passport_pages or "components" not in view_model:

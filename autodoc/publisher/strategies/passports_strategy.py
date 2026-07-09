@@ -233,7 +233,7 @@ class PassportsStrategy(BasePublishStrategy):
         existing_html = self._fetch_existing_body(page_title, parent_id=version_page_id)
 
         converter = self._converter_factory(comp_name, release_version)
-        view_model = converter.transform(self._data)
+        view_model = converter.convert(self._data)
         platform_version = view_model.get("platform_version", "")
 
         # Извлекаем legacy-секции других платформ, чтобы не потерять их
@@ -246,7 +246,7 @@ class PassportsStrategy(BasePublishStrategy):
         )
         view_model["target_platform"] = target_platform
         # legacy_contents намеренно внедряется здесь, на уровне стратегии,
-        # а не в PassportConverter.transform() — секции других платформ
+        # а не в PassportConverter.convert() — секции других платформ
         # извлекаются из существующей страницы Confluence и недоступны конвертеру.
         view_model["legacy_contents"] = legacy_contents
 

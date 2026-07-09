@@ -1,10 +1,24 @@
-"""Абстрактный базовый класс трансформеров данных."""
+"""Абстрактный базовый класс конвертеров данных."""
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any, NamedTuple
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.view_models.passports import ConanVariantView
+
+
+class BadgeClass(str, Enum):
+    """CSS-классы бейджей опций, используемые конвертерами и шаблонами.
+
+    Значения совпадают с классами, определёнными в ``_styles_base.jinja2``.
+    """
+
+    DEFAULT = "autodoc-badge-def"
+    """Серый — значение совпадает с известным дефолтом, либо дефолт неизвестен."""
+
+    NEUTRAL = "autodoc-badge-n"
+    """Жёлтый — значение отличается от дефолта (нейтральное/числовое)."""
 
 
 class _VariantOpts(NamedTuple):
@@ -122,22 +136,20 @@ class BaseDataConverter(ABC):
         return (dict(pd.conan_settings) if pd else {}, pd.docker_image if pd else "")
 
     @classmethod
-    def _classify_option_badge(cls, value: Any, default_value: Any, has_default: bool) -> str:
+    def _classify_option_badge(cls, *args: Any, **kwargs: Any) -> str:
         """
         Определяет CSS-класс бейджа опции.
 
         Базовая реализация не подсвечивает отличия от дефолта — используется
         только теми конвертерами, для которых это осмысленно (см. ``PassportConverter``).
-
-        Args:
-            value: Текущее значение опции варианта сборки.
-            default_value: Дефолтное значение этой опции у компонента.
-            has_default: Найдено ли дефолтное значение для этой опции.
+        Сигнатура намеренно ``(*args, **kwargs)``: базовая реализация игнорирует
+        входные данные и всегда возвращает константу, а переопределяющие её
+        конвертеры (см. ``PassportConverter``) сами определяют нужные параметры.
 
         Returns:
-            Имя CSS-класса бейджа (``autodoc-badge-def``).
+            Имя CSS-класса бейджа (``BadgeClass.DEFAULT``).
         """
-        return "autodoc-badge-def"
+        return BadgeClass.DEFAULT.value
 
     @classmethod
     def _build_variant_view(
@@ -181,7 +193,7 @@ class BaseDataConverter(ABC):
         )
 
     @abstractmethod
-    def transform(self, data: ParsedResult) -> dict[str, Any]:
+    def convert(self, data: ParsedResult) -> dict[str, Any]:
         """
         Преобразует данные в view-model для шаблона.
 

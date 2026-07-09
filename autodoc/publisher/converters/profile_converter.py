@@ -107,7 +107,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
 
         return entry
 
-    def transform(self, data: ParsedResult) -> dict[str, Any]:
+    def convert(self, data: ParsedResult) -> dict[str, Any]:
         """
         Возвращает профиль-центричный вид данных.
 

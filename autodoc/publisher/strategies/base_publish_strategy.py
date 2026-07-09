@@ -119,7 +119,7 @@ class BasePublishStrategy(ABC):
         try:
             view_model = transform_fn()
             if not view_model:
-                raise ValueError("трансформер вернул пустой результат")
+                raise ValueError("конвертер вернул пустой результат")
 
             view_model["space"] = self._space
 

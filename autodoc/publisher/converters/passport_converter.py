@@ -3,7 +3,7 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.base_data_converter import BaseDataConverter, _VariantOpts
+from autodoc.publisher.converters.base_data_converter import BadgeClass, BaseDataConverter, _VariantOpts
 
 _TFS_BRANCH_PREFIX: str = "GBrelease_"
 """Префикс ветки TFS для релизных бранчей по соглашению об именовании."""
@@ -48,14 +48,14 @@ class PassportConverter(BaseDataConverter):
                          отсутствовать в ``default_options`` компонента).
 
         Returns:
-            ``autodoc-badge-def`` (нейтральный), если значение совпадает с
-            известным дефолтом. В остальных случаях — ``autodoc-badge-n``
+            ``BadgeClass.DEFAULT`` (нейтральный), если значение совпадает с
+            известным дефолтом. В остальных случаях — ``BadgeClass.NEUTRAL``
             (жёлтый): значение отличается от дефолта, либо дефолт для этой
             опции неизвестен.
         """
         if has_default and str(value) == str(default_value):
-            return "autodoc-badge-def"
-        return "autodoc-badge-n"
+            return BadgeClass.DEFAULT.value
+        return BadgeClass.NEUTRAL.value
 
     @staticmethod
     def _find_component(data: ParsedResult, component_name: str) -> Any:
@@ -157,7 +157,7 @@ class PassportConverter(BaseDataConverter):
             )
         return enriched_pbs
 
-    def transform(self, data: ParsedResult) -> dict[str, Any]:
+    def convert(self, data: ParsedResult) -> dict[str, Any]:
         """
         Формирует паспорт для конкретного компонента и версии.
 

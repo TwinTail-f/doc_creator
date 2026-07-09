@@ -87,7 +87,7 @@ class FullReleaseConverter(BaseReleaseConverter):
             "profile_builds": profile_builds,
         }
 
-    def transform(self, data: ParsedResult) -> dict[str, Any]:
+    def convert(self, data: ParsedResult) -> dict[str, Any]:
         """
         Возвращает полный вид с вариантами и всеми деталями.
 

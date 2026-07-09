@@ -89,7 +89,7 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         Returns:
             Словарь view-model, готовый для рендеринга шаблона.
         """
-        return self._converter.transform(self._data)
+        return self._converter.convert(self._data)
 
     def _inject_passport_links(
         self, view_model: dict[str, Any], passport_pages: dict[str, Any]
