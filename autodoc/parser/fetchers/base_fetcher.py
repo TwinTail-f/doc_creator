@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
-from autodoc.parser.pipeline.context_protocol import PipelineContextProtocol
+from autodoc.parser.pipeline.context import PipelineContext
 
 _NOT_CONFIGURED_MSG: str = "fetch() вызван до configure(). Сначала вызовите configure(ctx)."
 
@@ -30,7 +30,7 @@ class BaseFetcher[T](ABC):
         self._configured: bool = False
 
     @abstractmethod
-    def _configure(self, ctx: PipelineContextProtocol) -> None:
+    def _configure(self, ctx: PipelineContext) -> None:
         """
         Реализует инициализацию фетчера из контекста пайплайна.
 
@@ -55,7 +55,7 @@ class BaseFetcher[T](ABC):
             ``FetchResult`` с загруженными данными и предупреждениями.
         """
 
-    def configure(self, ctx: PipelineContextProtocol) -> None:
+    def configure(self, ctx: PipelineContext) -> None:
         """
         Делегирует инициализацию ``_configure()``, затем выставляет ``_configured = True``.
 
