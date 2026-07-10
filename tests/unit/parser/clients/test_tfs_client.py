@@ -12,7 +12,6 @@ import requests
 
 from autodoc.exceptions import NetworkError
 from autodoc.parser.clients.tfs_client import TFSClient
-from autodoc.parser.clients.tfs_client_protocol import TFSClientProtocol
 
 TFS_URL: str = "https://tfs.example.com"
 BRANCH: str = "develop"
@@ -221,10 +220,3 @@ def test_tfs_client_download_properties_skips_folders(mocker, parser_config, tmp
     assert (tmp_path / "real.properties").read_text(encoding="utf-8") == "name=real"
     mock_get_file_content.assert_called_once()
 
-
-@pytest.mark.contract
-def test_tfs_client_satisfies_protocol(parser_config) -> None:
-    """TFSClient структурно удовлетворяет протоколу TFSClientProtocol."""
-    client = TFSClient.__new__(TFSClient)
-
-    assert isinstance(client, TFSClientProtocol)

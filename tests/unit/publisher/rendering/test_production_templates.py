@@ -70,7 +70,7 @@ def test_macros_template_renders_without_error(
     patched_comp = original_comp.model_copy(update={"releases": [patched_rel]})
     patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
-    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).transform(
+    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).convert(
         patched_result
     )
     output: str = builder.build("release_doc.jinja2", view_model)
@@ -150,8 +150,8 @@ def test_main_component_template_contains_component_name(
 def test_release_doc_template_renders_full_release_converter_output_with_real_release(
     builder: DocumentBuilder, publisher_parsed_result: ParsedResult
 ) -> None:
-    """release_doc.jinja2 рендерит реальный вывод FullReleaseConverter.transform() над непустым релизом с профилями и вариантами."""
-    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).transform(
+    """release_doc.jinja2 рендерит реальный вывод FullReleaseConverter.convert() над непустым релизом с профилями и вариантами."""
+    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).convert(
         publisher_parsed_result
     )
 
@@ -170,7 +170,7 @@ def test_profile_centric_template_renders_without_error(
     builder: DocumentBuilder, publisher_multi_channel_result: ParsedResult
 ) -> None:
     """profile_centric.jinja2 рендерится без ошибок на реальном профиль-центричном виде."""
-    view_model: dict[str, Any] = ProfileCentricConverter(include_passport_links=False).transform(
+    view_model: dict[str, Any] = ProfileCentricConverter(include_passport_links=False).convert(
         publisher_multi_channel_result
     )
 

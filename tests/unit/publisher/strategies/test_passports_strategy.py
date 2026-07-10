@@ -3,7 +3,7 @@
 
 Стратегия тестирования:
 - PageHierarchyManager.ensure_hierarchy_exists мокается, возвращает стабильный ID страницы.
-- PassportConverter.transform мокается, возвращает предсказуемый view_model.
+- PassportConverter.convert мокается, возвращает предсказуемый view_model.
 - FakeConfluenceClient / FakeDocumentBuilder используются для ввода-вывода.
 - execute() — единственная публичная точка входа, покрываемая тестами
   (без _try_publish_item/_publish_one напрямую).
@@ -157,7 +157,7 @@ class TestPassportsStrategyExecute:
         )
         mocker.patch.object(
             PassportConverter,
-            "transform",
+            "convert",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )
         strategy = make_passports_strategy(
@@ -186,7 +186,7 @@ class TestPassportsStrategyExecute:
         )
         mocker.patch.object(
             PassportConverter,
-            "transform",
+            "convert",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )
         strategy = make_passports_strategy(
@@ -219,7 +219,7 @@ class TestPassportsStrategyExecute:
         )
         mocker.patch.object(
             PassportConverter,
-            "transform",
+            "convert",
             return_value=dict(_STUB_TRANSFORM_RESULT),
         )
 
@@ -321,7 +321,7 @@ def test_one_page_per_component_release_combination(
     Предусловия:
         - ParsedResult содержит несколько компонентов с несколькими релизами.
         - PageHierarchyManager.ensure_hierarchy_exists застаблен.
-        - PassportConverter.transform возвращает корректный заглушечный view_model.
+        - PassportConverter.convert возвращает корректный заглушечный view_model.
 
     Шаги:
         1. Создать PassportsStrategy с фикстурой из нескольких компонентов.
@@ -338,7 +338,7 @@ def test_one_page_per_component_release_combination(
     )
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         return_value=dict(_BL_PS_TRANSFORM_RESULT),
     )
 
@@ -392,7 +392,7 @@ def test_registry_saved_after_all_pages_published(
     )
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         return_value=dict(_BL_PS_TRANSFORM_RESULT),
     )
 
@@ -441,11 +441,11 @@ def test_failure_of_one_page_does_not_stop_others(
 
     Предусловия:
         - PageHierarchyManager застаблен.
-        - PassportConverter.transform выбрасывает исключение при первом вызове
+        - PassportConverter.convert выбрасывает исключение при первом вызове
           и завершается успешно в остальных.
 
     Шаги:
-        1. Сделать так, чтобы PassportConverter.transform выбрасывал ValueError
+        1. Сделать так, чтобы PassportConverter.convert выбрасывал ValueError
            при первом вызове.
         2. Вызвать execute().
 
@@ -461,13 +461,13 @@ def test_failure_of_one_page_does_not_stop_others(
 
     call_count: list[int] = [0]
 
-    def transform_side_effect(*args: Any, **kwargs: Any) -> dict:
+    def convert_side_effect(*args: Any, **kwargs: Any) -> dict:
         call_count[0] += 1
         if call_count[0] == 1:
             raise ValueError("Simulated failure on first passport page")
         return dict(_BL_PS_TRANSFORM_RESULT)
 
-    mocker.patch.object(PassportConverter, "transform", side_effect=transform_side_effect)
+    mocker.patch.object(PassportConverter, "convert", side_effect=convert_side_effect)
 
     strategy = PassportsStrategy(
         confluence_client=FakeConfluenceClient(),
@@ -507,7 +507,7 @@ def test_one_passport_publish_failure_isolated_from_others(
     )
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         return_value=dict(_BL_PS_TRANSFORM_RESULT),
     )
 
@@ -569,7 +569,7 @@ def test_report_pages_published_count_equals_successful_pages(
     )
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         return_value=dict(_BL_PS_TRANSFORM_RESULT),
     )
 
@@ -606,7 +606,7 @@ def test_report_pages_failed_count_equals_failed_pages(
 
     Предусловия:
         - PageHierarchyManager застаблен.
-        - PassportConverter.transform всегда выбрасывает ValueError.
+        - PassportConverter.convert всегда выбрасывает ValueError.
 
     Шаги:
         1. Вызвать execute() с всегда падающим конвертером.
@@ -622,7 +622,7 @@ def test_report_pages_failed_count_equals_failed_pages(
     )
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         side_effect=ValueError("Always fails"),
     )
 
@@ -659,13 +659,13 @@ def test_legacy_content_extracted_before_overwrite(
 
     Предусловия:
         - PageHierarchyManager застаблен.
-        - PassportConverter.transform возвращает минимальный корректный view_model.
+        - PassportConverter.convert возвращает минимальный корректный view_model.
         - CapturingBuilder фиксирует каждый view_model, переданный в build().
         - FakeConfluenceClient возвращает непустое тело из get_page_body().
 
     Шаги:
         1. Застабить PageHierarchyManager.ensure_hierarchy_exists.
-        2. Застабить PassportConverter.transform, чтобы вернуть view_model
+        2. Застабить PassportConverter.convert, чтобы вернуть view_model
            с platform_version.
         3. Перехватить builder.build(), чтобы зафиксировать итоговый view_model.
         4. Предварительно настроить client.get_page_body на возврат существующего
@@ -682,10 +682,10 @@ def test_legacy_content_extracted_before_overwrite(
         "ensure_hierarchy_exists",
         return_value=_BL_PS_VERSION_PAGE_ID,
     )
-    # PassportConverter.transform(self, data) — 'self' здесь это экземпляр конвертера
+    # PassportConverter.convert(self, data) — 'self' здесь это экземпляр конвертера
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         return_value={
             "platform_version": "2.0",
             "component": {"name": "openssl"},
@@ -750,7 +750,7 @@ def test_hierarchy_created_for_each_component(
 
     Предусловия:
         - PageHierarchyManager.ensure_hierarchy_exists перехватывается.
-        - PassportConverter.transform застаблен.
+        - PassportConverter.convert застаблен.
 
     Шаги:
         1. Патчим ensure_hierarchy_exists, чтобы фиксировать пары
@@ -774,7 +774,7 @@ def test_hierarchy_created_for_each_component(
     mocker.patch.object(PageHierarchyManager, "ensure_hierarchy_exists", tracking_ensure)
     mocker.patch.object(
         PassportConverter,
-        "transform",
+        "convert",
         return_value=dict(_BL_PS_TRANSFORM_RESULT),
     )
 

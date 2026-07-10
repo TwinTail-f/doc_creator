@@ -10,7 +10,6 @@ import pytest
 import requests
 
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
-from autodoc.parser.clients.artifactory_client_protocol import ArtifactoryClientProtocol
 
 _EXAMPLE_URL: str = "https://art.example.com/artifactory/conan2/openssl"
 
@@ -40,10 +39,3 @@ def test_artifactory_client_head_returns_response(mocker, parser_config) -> None
 
     assert response.status_code == 200
 
-
-@pytest.mark.contract
-def test_artifactory_client_satisfies_protocol(parser_config) -> None:
-    """ArtifactoryClient структурно удовлетворяет протоколу IArtifactoryClient."""
-    client = ArtifactoryClient.__new__(ArtifactoryClient)
-
-    assert isinstance(client, ArtifactoryClientProtocol)
