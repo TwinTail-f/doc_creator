@@ -8,6 +8,7 @@ from pydantic import ValidationError as PydanticValidationError
 from rich.console import Console
 from rich.panel import Panel
 
+from autodoc.common.logger import logger
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError, ValidationError
 from autodoc.models.parsed_result import ParsedResult
@@ -70,9 +71,10 @@ def load_parsed_data(base_dir: Path) -> ParsedResult:
     try:
         return ParsedResult.model_validate_json(raw)
     except PydanticValidationError as e:
+        logger.debug(f"Не удалось разобрать {data_file}: {e}")
         raise ValidationError(
-            f"Файл {data_file} повреждён или не соответствует ожидаемому формату "
-            f'(см. подробности ниже). Запустите "parse" заново.\n{e}'
+            f"Файл {data_file} повреждён или не соответствует ожидаемому формату. "
+            f'Запустите "parse" заново (подробности ошибки валидации — в лог-файле запуска).'
         ) from e
 
 

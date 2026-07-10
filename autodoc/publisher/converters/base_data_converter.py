@@ -22,7 +22,7 @@ class BadgeClass(str, Enum):
 
 
 class _VariantOpts(NamedTuple):
-    """Опции сборки для одного варианта Conan в view-model."""
+    """Опции сборки для одного варианта Conan во view-model."""
 
     conan_options: dict[str, Any]
     install_options_override: str | None = None

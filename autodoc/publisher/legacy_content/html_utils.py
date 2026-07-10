@@ -21,7 +21,7 @@ _TAB_MACRO_NAMES: frozenset[str] = frozenset({"tab", "tab-pane"})
 HtmlOrSoup = str | BeautifulSoup
 
 
-def _soup(html: HtmlOrSoup) -> BeautifulSoup:
+def _to_bs_obj(html: HtmlOrSoup) -> BeautifulSoup:
     """Преобразует строку в объект BeautifulSoup или возвращает переданный объект.
 
     Args:
@@ -56,7 +56,7 @@ def find_h1_sections(html: HtmlOrSoup) -> list[Tag]:
     Returns:
         Список найденных тегов h1 в порядке их появления.
     """
-    return _soup(html).find_all("h1")
+    return _to_bs_obj(html).find_all("h1")
 
 
 def extract_platform_h1_sections(html: HtmlOrSoup) -> dict[str, str]:
@@ -91,7 +91,7 @@ def extract_tab_sections(html: HtmlOrSoup) -> dict[str, str]:
     if not html:
         return {}
 
-    soup = _soup(html)
+    soup = _to_bs_obj(html)
     result: dict[str, str] = {}
 
     for pane in soup.find_all("ac:structured-macro"):
@@ -119,7 +119,7 @@ def _parse_h2_version_sections(html: HtmlOrSoup) -> dict[str, str]:
     Returns:
         Словарь, где ключами являются найденные версии, а значениями — их содержимое.
     """
-    soup = _soup(html)
+    soup = _to_bs_obj(html)
     headers = [
         (h, m.group(0))
         for h in soup.find_all(["h2", "h3"])
@@ -153,7 +153,7 @@ def parse_page_sections(html: str) -> dict[str, str]:
     if not html:
         return {}
 
-    soup = _soup(html)
+    soup = _to_bs_obj(html)
 
     if result := extract_tab_sections(soup):
         logger.debug(f"Разобрано {len(result)} секций из вкладок")

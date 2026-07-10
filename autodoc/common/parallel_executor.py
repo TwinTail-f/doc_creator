@@ -12,10 +12,6 @@ from collections.abc import Callable
 from autodoc.common.logger import logger
 from autodoc.exceptions import ComponentParsingError, NetworkError, ParsingError
 
-_DEFAULT_LOG_PROGRESS_INTERVAL: int = 50
-_DEFAULT_BATCH_SIZE: int = 0
-_DEFAULT_BATCH_DELAY: float = 0.0
-
 
 class ParallelExecutor:
     """
@@ -48,9 +44,9 @@ class ParallelExecutor:
     def __init__(
         self,
         max_workers: int,
-        log_progress_interval: int = _DEFAULT_LOG_PROGRESS_INTERVAL,
-        batch_size: int = _DEFAULT_BATCH_SIZE,
-        batch_delay: float = _DEFAULT_BATCH_DELAY,
+        log_progress_interval: int = 50,
+        batch_size: int = 0,
+        batch_delay: float = 0.0,
     ) -> None:
         """
         Args:
