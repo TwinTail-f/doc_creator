@@ -29,17 +29,30 @@ def cli_error_boundary(panel_header: str) -> Generator[None, None, None]:
     Выводит заголовок панели, перехватывает доменные исключения,
     печатает сообщение об ошибке и завершает процесс с кодом 1.
 
+    Дополнительно перехватывает любые непредвиденные исключения чтобы пользователь 
+    никогда не видел "сырой" Python-трейсбек. Полный трейсбек в этом случае пишется 
+    в лог (уровень ERROR), а на экран выводится общее сообщение об ошибке.
+
     Args:
         panel_header: Текст заголовка панели Rich для отображения перед запуском.
 
     Raises:
-        SystemExit: При перехвате ConfigError, DocGeneratorError или PublishError.
+        SystemExit: При перехвате любого исключения, унаследованного от
+            ``Exception`` (в том числе ``ConfigError``, ``DocGeneratorError``,
+            ``PublishError`` и любых непредвиденных ошибок).
     """
     console.print(Panel.fit(f"[bold blue]{panel_header}[/bold blue]", style="blue"))
     try:
         yield
     except (ConfigError, DocGeneratorError, PublishError) as e:
         console.print(f"❌ Ошибка: {e}", style="red bold")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(f"Непредвиденная ошибка при выполнении команды: {e}")
+        console.print(
+            f"❌ Непредвиденная ошибка: {e}\nПодробности — в лог-файле запуска.",
+            style="red bold",
+        )
         sys.exit(1)
 
 
@@ -53,15 +66,28 @@ def load_parsed_data(base_dir: Path) -> ParsedResult:
         Десериализованный результат парсинга.
 
     Raises:
-        DocGeneratorError: Если файл ``parsed_data.json`` не найден.
-        ValidationError: Если файл пустой, содержит невалидный JSON или не
-            соответствует ожидаемой схеме ``ParsedResult``.
+        DocGeneratorError: Если файл ``parsed_data.json`` не найден или
+            не может быть прочитан (нет прав доступа, это директория и т.п.).
+        ValidationError: Если файл пустой, повреждён (в т.ч. некорректная
+            кодировка), содержит невалидный JSON или не соответствует
+            ожидаемой схеме ``ParsedResult``.
     """
     data_file = base_dir / "data" / "parsed_data.json"
     if not data_file.exists():
         raise DocGeneratorError('Файл parsed_data.json не найден. Сначала запустите "parse".')
 
-    raw = data_file.read_text(encoding="utf-8")
+    try:
+        raw = data_file.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        logger.debug(f"Не удалось прочитать {data_file} как UTF-8: {e}")
+        raise ValidationError(
+            f"Файл {data_file} повреждён: содержимое не в кодировке UTF-8. "
+            'Запустите "parse" заново.'
+        ) from e
+    except OSError as e:
+        logger.debug(f"Не удалось прочитать {data_file}: {e}")
+        raise DocGeneratorError(f"Не удалось прочитать файл {data_file}: {e}") from e
+
     if not raw.strip():
         raise ValidationError(
             f'Файл {data_file} пуст. Похоже, команда "parse" завершилась с ошибкой '

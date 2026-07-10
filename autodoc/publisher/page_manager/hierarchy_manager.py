@@ -101,7 +101,7 @@ class PageHierarchyManager:
         return version_page_id
 
     def _get_or_create_page_id(
-        self, space: str, parent_id: str, title: str, body_html: str
+        self, *, space: str, parent_id: str, title: str, body_html: str
     ) -> str:
         """
         Возвращает ID страницы с заданным заголовком, создавая её при отсутствии.
