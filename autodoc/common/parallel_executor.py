@@ -117,18 +117,16 @@ class ParallelExecutor:
         """
         total = len(items)
         total_batches = (total + self._batch_size - 1) // self._batch_size
-        results: list[R | None] = [None] * total
+        results: list[R | None] = []
 
         for batch_num, batch_start in enumerate(range(0, total, self._batch_size), start=1):
             batch_items = items[batch_start : batch_start + self._batch_size]
-            batch_indices = list(range(batch_start, batch_start + len(batch_items)))
             logger.debug(f"Пакет {batch_num}/{total_batches}: {len(batch_items)} {task_label}")
 
             batch_results = self._execute_pool(fn, batch_items, task_label)
-            for local_idx, global_idx in enumerate(batch_indices):
-                results[global_idx] = batch_results[local_idx]
+            results.extend(batch_results)
 
-            is_last_batch = batch_start + self._batch_size >= total
+            is_last_batch = batch_num == total_batches
             if self._batch_delay > 0 and not is_last_batch:
                 logger.debug(f"Пауза {self._batch_delay}с перед следующим пакетом")
                 time.sleep(self._batch_delay)
