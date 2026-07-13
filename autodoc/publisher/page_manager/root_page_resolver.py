@@ -33,8 +33,7 @@ class RootPageResolver:
         name: str | None,
         page_id: str | None,
         field_label: str,
-        required: bool = True,
-    ) -> str | None:
+    ) -> str:
         """
         Разрешает ссылку на страницу Confluence в её идентификатор.
 
@@ -43,16 +42,13 @@ class RootPageResolver:
             page_id: Запасной ID страницы, если ``name`` не задан или пуст.
             field_label: Имя поля конфигурации для сообщений об ошибках
                          (например ``'release_docs_root_parent'``).
-            required: Если ``True`` и ни ``name``, ни ``page_id`` не заданы,
-                      генерирует ``ConfigError``. Если ``False`` — возвращает ``None``.
 
         Returns:
-            Строка с ID страницы или ``None``, если ``required=False``
-            и ни имя, ни ID не настроены.
+            Строка с ID страницы.
 
         Raises:
             ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         или если ``required=True`` и оба параметра отсутствуют.
+                         либо если ни ``name``, ни ``page_id`` не заданы.
         """
         if name:
             page = self._client.find_page(name, space=self._config.space)
@@ -64,12 +60,10 @@ class RootPageResolver:
             return page.id
         if page_id:
             return page_id
-        if required:
-            raise ConfigError(
-                f"Необходимо указать '{field_label}_name' или '{field_label}'"
-                f" в конфигурации Confluence"
-            )
-        return None
+        raise ConfigError(
+            f"Необходимо указать '{field_label}_name' или '{field_label}'"
+            f" в конфигурации Confluence"
+        )
 
     @staticmethod
     def _merge_page_ref(
@@ -99,7 +93,7 @@ class RootPageResolver:
         self,
         name: str | None,
         page_id: str | None,
-    ) -> str | None:
+    ) -> str:
         """
         Резолвит ID корневой страницы иерархии паспортов.
 
@@ -129,24 +123,21 @@ class RootPageResolver:
         self,
         name: str | None,
         page_id: str | None,
-    ) -> str | None:
+    ) -> str:
         """
         Резолвит ID родительской страницы для релизной документации.
-
-        Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
-        Confluence как запасной вариант. В отличие от паспортов, родитель
-        не обязателен — публикация допускается без родительской страницы.
 
         Args:
             name: Название родительской страницы, введённое пользователем.
             page_id: ID родительской страницы, введённый пользователем.
 
         Returns:
-            ID родительской страницы или ``None``, если ни одно из значений
-            не настроено.
+            ID родительской страницы.
 
         Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
+                         либо если ни имя, ни ID не заданы ни через параметры,
+                         ни в конфигурации.
         """
         eff_name, eff_id = self._merge_page_ref(
             name,
@@ -154,31 +145,27 @@ class RootPageResolver:
             self._config.release_docs_root_parent_name,
             self._config.release_docs_root_parent_id,
         )
-        return self.resolve_page_id(eff_name, eff_id, "release_docs_root_parent", required=False)
+        return self.resolve_page_id(eff_name, eff_id, "release_docs_root_parent")
 
     def resolve_profile_parent(
         self,
         name: str | None,
         page_id: str | None,
-    ) -> str | None:
+    ) -> str:
         """
         Резолвит ID родительской страницы для профиль-центричной документации.
-
-        Если ``name``/``page_id`` не заданы — берёт значения из конфигурации
-        Confluence (``profile_docs_root_parent_name`` / ``profile_docs_root_parent_id``)
-        как запасной вариант. Родитель не обязателен — публикация допускается
-        без родительской страницы.
 
         Args:
             name: Название родительской страницы, введённое пользователем.
             page_id: ID родительской страницы, введённый пользователем.
 
         Returns:
-            ID родительской страницы или ``None``, если ни одно из значений
-            не настроено.
+            ID родительской страницы.
 
         Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
+                         либо если ни имя, ни ID не заданы ни через параметры,
+                         ни в конфигурации.
         """
         eff_name, eff_id = self._merge_page_ref(
             name,
@@ -186,14 +173,14 @@ class RootPageResolver:
             self._config.profile_docs_root_parent_name,
             self._config.profile_docs_root_parent_id,
         )
-        return self.resolve_page_id(eff_name, eff_id, "profile_docs_root_parent", required=False)
+        return self.resolve_page_id(eff_name, eff_id, "profile_docs_root_parent")
 
     def resolve_single_page_parent(
         self,
         strategy_type: str,
         name: str | None,
         page_id: str | None,
-    ) -> str | None:
+    ) -> str:
         """
         Резолвит родительскую страницу для публикации одной страницы.
 
@@ -205,11 +192,12 @@ class RootPageResolver:
             page_id: ID родительской страницы, введённый пользователем.
 
         Returns:
-            ID родительской страницы или ``None``, если ни одно из значений
-            не настроено.
+            ID родительской страницы.
 
         Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence.
+            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
+                         либо если родитель не задан ни через параметры,
+                         ни в конфигурации.
         """
         if strategy_type == "profile_centric":
             return self.resolve_profile_parent(name, page_id)
@@ -221,7 +209,7 @@ class RootPageResolver:
         passports_root_parent_id: str | None,
         release_root_page_name: str | None,
         release_root_page_id: str | None,
-    ) -> tuple[str | None, str | None]:
+    ) -> tuple[str, str]:
         """
         Резолвит ID корневых страниц для паспортов и релизной документации.
 
@@ -239,8 +227,8 @@ class RootPageResolver:
             Кортеж ``(resolved_passports_root, resolved_release_parent)``.
 
         Raises:
-            ConfigError: Если корневая страница паспортов не найдена
-                         и не задана в конфигурации.
+            ConfigError: Если корневая страница паспортов или родитель релиза
+                         не найдены и не заданы в конфигурации.
         """
         resolved_root = self.resolve_passports_root(
             passports_root_parent_name, passports_root_parent_id

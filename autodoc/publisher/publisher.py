@@ -183,16 +183,24 @@ class DocumentPublisher:
             include_passport_links: Вставлять ли ссылки на паспорта компонентов.
 
         Returns:
-            ``PublishReport`` с результатом публикации профильной страницы.
+            ``PublishReport`` с результатом публикации профильной страницы,
+            либо отчёт о неудаче, если родительская (релизная) страница
+            недоступна.
         """
-        profile_parent_id = (
-            str(release_report.details[0]["page_id"]) if release_report.details else None
-        )
-        if profile_parent_id is None:
-            logger.warning(
-                "Релизная страница не была опубликована; "
-                "профильная страница будет опубликована без родителя."
+        if not release_report.details:
+            reason = (
+                f"Профильная страница {profile_title!r} не опубликована: "
+                "страница релиза не была опубликована, родитель недоступен"
             )
+            logger.error(reason)
+            return PublishReport(
+                success=False,
+                pages_published=0,
+                pages_failed=1,
+                errors=[reason],
+                failed_pages=[{"page_title": profile_title, "reason": reason}],
+            )
+        profile_parent_id = str(release_report.details[0]["page_id"])
         return self.publish(
             strategy_type="profile_centric",
             parsed_data=parsed_data,
