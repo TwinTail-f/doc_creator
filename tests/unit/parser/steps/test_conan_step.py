@@ -25,7 +25,10 @@ def test_conan_step_stores_conan_report_in_intermediate(
 
 @pytest.mark.infrastructure
 def test_conan_step_is_not_critical() -> None:
-    """ConanEnrichStep является некритичным шагом пайплайна."""
+    """
+    ConanEnrichStep является некритичным шагом пайплайна.
+    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
+    """
     assert ConanEnrichStep.is_critical is False
 
 

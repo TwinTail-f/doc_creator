@@ -41,7 +41,10 @@ def test_docker_step_upserts_profile_definitions(
 
 @pytest.mark.infrastructure
 def test_docker_step_is_not_critical() -> None:
-    """DockerResolveStep является некритичным шагом пайплайна."""
+    """
+    DockerResolveStep является некритичным шагом пайплайна.
+    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
+    """
     assert DockerResolveStep.is_critical is False
 
 

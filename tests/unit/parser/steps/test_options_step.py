@@ -79,7 +79,10 @@ def test_options_step_applies_options_to_components(
 
 @pytest.mark.infrastructure
 def test_options_step_is_not_critical() -> None:
-    """OptionsResolveStep является некритичным шагом пайплайна."""
+    """
+    OptionsResolveStep является некритичным шагом пайплайна.
+    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
+    """
     assert OptionsResolveStep.is_critical is False
 
 

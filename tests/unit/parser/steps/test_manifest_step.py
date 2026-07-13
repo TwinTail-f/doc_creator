@@ -59,7 +59,10 @@ def test_manifest_step_calls_configure_before_fetch(
 
 @pytest.mark.infrastructure
 def test_manifest_step_is_critical() -> None:
-    """ManifestStep является критичным шагом пайплайна."""
+    """
+    ManifestStep является критичным шагом пайплайна.
+    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
+    """
     assert ManifestStep.is_critical is True
 
 
