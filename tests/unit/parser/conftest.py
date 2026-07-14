@@ -19,11 +19,8 @@ from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.pipeline.context import PipelineContext
 
-# ---------------------------------------------------------------------------
+
 # Фикстуры конфигурации / путей
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def parser_config() -> ParserConfigSchema:
     """Минимальная корректная ParserConfigSchema для юнит-тестов (без реальных сетевых вызовов)."""
@@ -52,22 +49,14 @@ def real_manifests_dir(resources_dir: Path) -> Path:
     return resources_dir / "manifests"
 
 
-# ---------------------------------------------------------------------------
 # Фикстура контекста пайплайна (используется в steps/ и test_pipeline.py)
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def parser_pipeline_context(parser_config: ParserConfigSchema, tmp_path: Path) -> PipelineContext:
     """Полностью инициализированный PipelineContext на основе parser_config и tmp_path."""
     return PipelineContext(config=parser_config, tmp_dir=tmp_path)
 
 
-# ---------------------------------------------------------------------------
 # Фикстуры Component / Release (общие для steps/, enrichment/, test_pipeline.py)
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def manifest_release() -> Release:
     """Release для openssl 1.0.0 на платформе 2.0 / канал 'tech'."""
@@ -86,11 +75,7 @@ def manifest_component(manifest_release: Release) -> Component:
     return Component(name="openssl", releases=[manifest_release])
 
 
-# ---------------------------------------------------------------------------
 # Фейковый клиент Artifactory (используется в тестах validation_step)
-# ---------------------------------------------------------------------------
-
-
 class _FakeArtifactoryClient:
     """Минимальная заглушка клиента Artifactory, записывающая вызовы head()."""
 
@@ -157,10 +142,6 @@ class FakeTFSClient:
     ) -> None:
         """Ничего не делает по умолчанию (файлы не записываются)."""
 
-
-# ---------------------------------------------------------------------------
-# Factory helpers (module-level, importable by test modules — not fixtures)
-# ---------------------------------------------------------------------------
 
 #: SHA-1 of the empty string — Conan's sentinel package_id for header-only packages.
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"

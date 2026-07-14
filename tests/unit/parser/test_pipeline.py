@@ -5,10 +5,6 @@ import pytest
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 
-# ---------------------------------------------------------------------------
-# Тесты: PipelineContext
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.contract
 def test_pipeline_context_construction(
@@ -77,11 +73,6 @@ def test_pipeline_context_snapshot_converts_tuple_keys(
     snapshot = ctx.to_snapshot_dict()
     keys = list(snapshot["intermediate"]["test_data"].keys())
     assert all(isinstance(k, str) for k in keys)
-
-
-# ---------------------------------------------------------------------------
-# Тесты: BaseParseStep
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.contract

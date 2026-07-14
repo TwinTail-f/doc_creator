@@ -234,8 +234,7 @@ def test_conan_step_apr_fast_channel_no_dependencies(
 
     Использует FakeFetcher, возвращающий ConanEnrichmentResult, заранее
     заполненный данными apr. После ConanEnrichStep.execute список
-    dependencies релиза apr должен быть пустым (у apr нет runtime-зависимостей
-    в продакшене).
+    dependencies релиза apr должен быть пустым (у apr нет runtime-зависимостей).
     """
     comp, rel, pb = _make_release_with_pb("apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2")
     parser_pipeline_context.components = [comp]

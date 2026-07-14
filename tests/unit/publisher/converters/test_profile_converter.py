@@ -169,7 +169,6 @@ def test_data_restructured_from_component_to_profile_axis(
     publisher_multi_channel_result,
 ) -> None:
     """
-    BL-PCC-01
     Бизнес-правило: ProfileCentricConverter преобразует входную структуру
     Компонент→Релиз→Профиль в Профиль→словарь каналов→[компоненты].
 
@@ -214,7 +213,6 @@ def test_header_only_components_excluded_from_profile_metadata(
     publisher_profile_definition,
 ) -> None:
     """
-    BL-PCC-02
     Бизнес-правило: is_header_only у компонента означает, что такие
     компоненты НЕ используются для определения conan_settings / docker_url
     профиля.
@@ -251,7 +249,6 @@ def test_channels_within_profile_sorted_consistently(
     publisher_multi_channel_result,
 ) -> None:
     """
-    BL-PCC-03
     Бизнес-правило: каналы внутри профиля имеют стабильный алфавитный
     порядок, чтобы обеспечить идентичный HTML-вывод при повторной публикации.
 
@@ -282,7 +279,6 @@ def test_components_within_channel_sorted_by_name(
     publisher_multi_channel_result,
 ) -> None:
     """
-    BL-PCC-04
     Бизнес-правило: компоненты внутри канала отсортированы по имени для
     детерминированного вывода в Confluence.
 
@@ -313,7 +309,6 @@ def test_components_within_channel_sorted_by_name(
 @pytest.mark.business_logic
 def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> None:
     """
-    BL-PCC-05
     Бизнес-правило: без include_passport_links=True passport_link равен
     None или отсутствует для каждого компонента в каждом канале.
 
@@ -346,7 +341,6 @@ def test_passport_link_key_present_and_none_when_include_links_true(
     publisher_multi_channel_result,
 ) -> None:
     """
-    BL-PCC-06
     Бизнес-правило: при include_passport_links=True каждая не-header-only
     запись компонента в каждом канале получает ключ "passport_link",
     инициализированный значением None. Сам конвертер не форматирует

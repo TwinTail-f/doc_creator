@@ -12,11 +12,7 @@ from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
-# ---------------------------------------------------------------------------
 # Фейковые шаги пайплайна
-# ---------------------------------------------------------------------------
-
-
 class FakeStep(BaseParseStep):
     """Фейковый шаг пайплайна, записывающий порядок выполнения и опционально вызывающий исключение."""
 
@@ -61,11 +57,6 @@ class NonCriticalStep(BaseParseStep):
     def execute(self, ctx: PipelineContext) -> None:
         """Всегда вызывает исключение для имитации некритичного сбоя."""
         raise ParsingError("non-critical boom")
-
-
-# ---------------------------------------------------------------------------
-# Тесты
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.business_logic

@@ -149,15 +149,6 @@ def test_finalize_step_output_length_matches_input(
         len(result.components) <= n_manifest_files
     ), "FinalizeStep must not create more components than ManifestStep parsed"
 
-
-# ===========================================================================
-# BL-E2E-01 … BL-E2E-06  — E2E Интеграционные тесты пайплайна (часть 4)
-# ===========================================================================
-
-# ---------------------------------------------------------------------------
-# Общие вспомогательные функции E2E
-# ---------------------------------------------------------------------------
-
 _HTTP_OK_E2E: int = 200
 
 
@@ -197,11 +188,6 @@ def _make_real_pipeline(
     )
 
 
-# ---------------------------------------------------------------------------
-# BL-E2E-01 — patchelf has exactly 2 releases in ParsedResult
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_pipeline_patchelf_has_two_releases_after_full_run(
@@ -210,7 +196,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-01: patchelf имеет ровно 2 релиза после полного прохода пайплайна.
+    """patchelf имеет ровно 2 релиза после полного прохода пайплайна.
 
     Бизнес-сценарий:
         Фиксчур ``patchelf.properties`` объявляет две версии компонента
@@ -244,11 +230,6 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
     ), f"patchelf should have 2 releases, got: {len(patchelf_components[0].releases)}"
 
 
-# ---------------------------------------------------------------------------
-# BL-E2E-02 — nlohmann_json помечена is_header_only=True после ConanEnrichStep
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_pipeline_header_only_component_marked_after_conan_enrich(
@@ -257,7 +238,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-02: nlohmann_json помечена is_header_only=True после обогащения.
+    """nlohmann_json помечена is_header_only=True после обогащения.
 
     Бизнес-сценарий:
         ``FinalizeStep._compute_header_only_flags`` устанавливает
@@ -335,11 +316,6 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
     )
 
 
-# ---------------------------------------------------------------------------
-# BL-E2E-03 — скелеты ProfileBuild заполнены после ManifestStep
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_pipeline_profile_builds_populated_after_manifest_step(
@@ -348,7 +324,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-03: После ManifestStep все компоненты имеют скелеты ProfileBuild.
+    """После ManifestStep все компоненты имеют скелеты ProfileBuild.
 
     Бизнес-сценарий:
         После того как выполняется ``ManifestStep``, каждый Release в каждом
@@ -402,11 +378,6 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
         )
 
 
-# ---------------------------------------------------------------------------
-# BL-E2E-04 — build_option_sets заполнены после OptionsResolveStep
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_pipeline_options_applied_after_options_step(
@@ -415,7 +386,7 @@ def test_pipeline_options_applied_after_options_step(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-04: По крайней мере один релиз имеет build_option_sets после OptionsResolveStep.
+    """По крайней мере один релиз имеет build_option_sets после OptionsResolveStep.
 
     Бизнес-сценарий:
         ``OptionsResolveStep`` получает конфигурацию параметров Conan из TFS и
@@ -469,11 +440,6 @@ def test_pipeline_options_applied_after_options_step(
     ), "_ObserveAfterOptions должен был выполниться; ни один релиз не был наблюден"
 
 
-# ---------------------------------------------------------------------------
-# BL-E2E-05 — компоненты в ParsedResult отсортированы в алфавитном порядке
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_pipeline_result_components_sorted_alphabetically(
@@ -482,7 +448,7 @@ def test_pipeline_result_components_sorted_alphabetically(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-05: Компоненты в ParsedResult.components отсортированы в алфавитном порядке.
+    """Компоненты в ParsedResult.components отсортированы в алфавитном порядке.
 
     Бизнес-сценарий:
         ``FinalizeStep`` сортирует финальный список компонентов по имени
@@ -514,11 +480,6 @@ def test_pipeline_result_components_sorted_alphabetically(
     )
 
 
-# ---------------------------------------------------------------------------
-# BL-E2E-06 — нет ProfileBuild с exists=False в финальном ParsedResult
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_pipeline_non_existing_profiles_removed_after_finalize(
@@ -527,7 +488,7 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """BL-E2E-06: Финальный ParsedResult не содержит записей ProfileBuild с exists=False.
+    """Финальный ParsedResult не содержит записей ProfileBuild с exists=False.
 
     Бизнес-сценарий:
         ``ManifestStep`` создаёт скелеты ``ProfileBuild`` с ``exists=False``.
@@ -562,11 +523,6 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
                 )
 
 
-# ---------------------------------------------------------------------------
-# Реальный сбой критичного шага сквозь весь пайплайн
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.integration
 def test_full_pipeline_raises_parsing_error_when_no_manifests_found(
     parser_config: ParserConfigSchema,
@@ -596,11 +552,6 @@ def test_full_pipeline_raises_parsing_error_when_no_manifests_found(
         parser.parse()
 
 
-# ---------------------------------------------------------------------------
-# save_intermediate=True сквозь реальный пайплайн
-# ---------------------------------------------------------------------------
-
-
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
 def test_full_pipeline_save_intermediate_writes_real_files(
@@ -627,11 +578,6 @@ def test_full_pipeline_save_intermediate_writes_real_files(
         f"Ожидалось 6 файлов снимков (по одному на шаг реального пайплайна), "
         f"получено {len(json_files)}"
     )
-
-
-# ---------------------------------------------------------------------------
-# HTTP 404 от Artifactory сквозь реальный пайплайн
-# ---------------------------------------------------------------------------
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")

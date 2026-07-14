@@ -47,9 +47,9 @@ def confluence_client(minimal_confluence_config: dict, mocker: Any) -> Confluenc
 def confluence_client_move_policy(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
     """ConfluenceClient, настроенный с title_conflict_policy='move' через публичный конфиг.
 
-    Собран так же, как продакшн-код собирает его (через ConfluenceConfigSchema),
-    а не прямой подменой приватного атрибута _title_conflict_policy,
-    чтобы тест проверял реальный путь, управляемый конфигурацией.
+    Собирает его через ConfluenceConfigSchema, а не прямой подменой приватного 
+    атрибута _title_conflict_policy, чтобы тест проверял реальный путь, управляемый 
+    конфигурацией.
     """
     cfg = dict(minimal_confluence_config)
     cfg["title_conflict_policy"] = "move"

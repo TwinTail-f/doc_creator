@@ -28,11 +28,7 @@ from tests.unit.publisher.fixtures.shared_html import (
 )
 
 
-# --------------------------------------------------------------------------
 # find_h1_sections
-# --------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_find_h1_sections_empty_when_no_h1() -> None:
     """Возвращает пустой список при отсутствии тегов <h1>."""
@@ -83,11 +79,7 @@ def test_find_h1_sections_unclosed_tag_is_auto_closed_by_parser() -> None:
     assert result[0].get_text() == "Unclosed heading"
 
 
-# --------------------------------------------------------------------------
 # extract_platform_h1_sections
-# --------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_extract_platform_h1_sections_returns_content_by_platform_version() -> None:
     """Разбивает документ на секции по заголовкам h1 вида 'Platform X.Y'."""
@@ -126,11 +118,7 @@ def test_extract_platform_h1_sections_skips_section_with_no_content() -> None:
     assert "Platform 2.1" in result
 
 
-# --------------------------------------------------------------------------
 # extract_tab_sections
-# --------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_extract_tab_sections_empty_string_returns_empty_dict() -> None:
     """Возвращает {} на пустой строке."""
@@ -226,11 +214,7 @@ def test_extract_tab_sections_skips_pane_with_blank_name() -> None:
     assert result == {}
 
 
-# --------------------------------------------------------------------------
 # parse_page_sections
-# --------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_parse_page_sections_empty_html_returns_empty_dict() -> None:
     """Возвращает {} на пустом HTML — отсутствие контента означает отсутствие секций."""

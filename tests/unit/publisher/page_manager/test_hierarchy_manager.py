@@ -143,7 +143,7 @@ def test_ensure_hierarchy_passes_space_to_both_calls(
 def test_component_page_created_under_root_parent(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """BL-PHM-01: страница компонента создаётся с parent_id = root_parent_id."""
+    """страница компонента создаётся с parent_id = root_parent_id."""
     publisher_confluence_client.create_responses = [
         PageResult(id="1000", version=1, status="created", message=""),
         PageResult(id="1001", version=1, status="created", message=""),
@@ -169,7 +169,7 @@ def test_component_page_created_under_root_parent(
 def test_version_page_created_under_component_page(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """BL-PHM-02: страница релиза создаётся с parent_id = id(страницы компонента)."""
+    """страница релиза создаётся с parent_id = id(страницы компонента)."""
     component_page_id = "COMP_PAGE_ID"
     publisher_confluence_client.create_responses = [
         PageResult(id=component_page_id, version=1, status="created", message=""),
@@ -196,7 +196,7 @@ def test_version_page_created_under_component_page(
 def test_returns_version_page_id_not_component_page_id(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """BL-PHM-03: ensure_hierarchy_exists возвращает ID страницы РЕЛИЗА, а не страницы компонента."""
+    """ensure_hierarchy_exists возвращает ID страницы РЕЛИЗА, а не страницы компонента."""
     component_page_id = "COMP_PAGE_42"
     version_page_id = "VERSION_PAGE_99"
     publisher_confluence_client.create_responses = [
@@ -221,7 +221,7 @@ def test_returns_version_page_id_not_component_page_id(
 def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """BL-PHM-04: если страницы уже существуют, create_page повторно не вызывается."""
+    """если страницы уже существуют, create_page повторно не вызывается."""
     publisher_confluence_client.register_page(title=COMP_NAME, page_id=COMP_PAGE_ID)
     publisher_confluence_client.register_page(
         title=f"{COMP_NAME} {RELEASE_VERSION}", page_id=VERSION_PAGE_ID
@@ -240,7 +240,7 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
 def test_version_page_title_format(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """BL-PHM-05: заголовок страницы релиза имеет формат '{comp_name} {release_version}'."""
+    """заголовок страницы релиза имеет формат '{comp_name} {release_version}'."""
     publisher_confluence_client.create_responses = [
         PageResult(id="page-id-1", version=1, status="created", message=""),
         PageResult(id="page-id-2", version=1, status="created", message=""),

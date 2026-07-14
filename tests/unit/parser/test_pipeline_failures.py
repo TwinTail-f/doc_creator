@@ -233,15 +233,6 @@ def test_critical_failure_stops_pipeline(
     ), "Шаг после критичного сбоя не должен выполниться, но он работал"
 
 
-# ===========================================================================
-# BL-PP-01 … BL-PP-10  — Правила оркестрации пайплайна (часть 4)
-# ===========================================================================
-
-# ---------------------------------------------------------------------------
-# Общие помощники шагов для BL-PP тестов
-# ---------------------------------------------------------------------------
-
-
 class _FakeManifestStep(BaseParseStep):
     """Устанавливает ctx.components с одним минимальным компонентом для BL-PP тестов.
 
@@ -279,17 +270,12 @@ class _FakeManifestStep(BaseParseStep):
         ctx.components = [comp]
 
 
-# ---------------------------------------------------------------------------
-# BL-PP-07 — ctx.components is empty before any step populates it
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_context_components_empty_before_manifest_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-07: ctx.components пусто в самом начале пайплайна.
+    """ctx.components пусто в самом начале пайплайна.
 
     Бизнес-правило:
         Начальный ``PipelineContext`` должен начинаться с пустого списка компонентов.
@@ -329,17 +315,12 @@ def test_context_components_empty_before_manifest_step(
     )
 
 
-# ---------------------------------------------------------------------------
-# BL-PP-08 — ctx.result равен None перед выполнением FinalizeStep
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.business_logic
 def test_context_result_none_before_finalize_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-08: ctx.result равен None перед запуском FinalizeStep.
+    """ctx.result равен None перед запуском FinalizeStep.
 
     Бизнес-правило:
         Только FinalizeStep отвечает за установку ``ctx.result``.  Все
@@ -377,17 +358,12 @@ def test_context_result_none_before_finalize_step(
     ), f"ctx.result должен быть None перед FinalizeStep, получено {observed_results[0]}"
 
 
-# ---------------------------------------------------------------------------
-# BL-PP-09 — with_steps_excluded удаляет по классу, не по сходству имён
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.infrastructure
 def test_with_steps_excluded_removes_class_not_instance(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """BL-PP-09: with_steps_excluded удаляет шаги по типу класса, не по строке имени.
+    """with_steps_excluded удаляет шаги по типу класса, не по строке имени.
 
     Бизнес-правило:
         ``ComponentParser.with_steps_excluded(config, data_dir, [ConanEnrichStep])``
@@ -424,6 +400,3 @@ def test_with_steps_excluded_removes_class_not_instance(
         f"Отфильтрованный пайплайн должен иметь {default_count - 1} шагов, "
         f"получили {len(filtered_parser._steps)}"
     )
-
-
-

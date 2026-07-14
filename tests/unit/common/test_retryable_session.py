@@ -83,7 +83,6 @@ def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock
     )
 
 
-# T4A.2.6 — сессия реально повторяет запрос после ответа 429
 @pytest.mark.infrastructure
 def test_retryable_session_retries_on_429(mocker: MockerFixture) -> None:
     """После первого ответа 429 сессия автоматически повторяет запрос и
@@ -102,7 +101,6 @@ def test_retryable_session_retries_on_429(mocker: MockerFixture) -> None:
     assert mock_transport.call_count == 2
 
 
-# T4A.2.7 — сессия реально повторяет запрос после ответа 503
 @pytest.mark.infrastructure
 def test_retryable_session_retries_on_503(mocker: MockerFixture) -> None:
     """После первого ответа 503 («сервис недоступен» — временная проблема
@@ -117,7 +115,6 @@ def test_retryable_session_retries_on_503(mocker: MockerFixture) -> None:
     assert mock_transport.call_count == 2
 
 
-# T4A.2.8 — лимит повторных попыток соблюдается
 @pytest.mark.infrastructure
 def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture) -> None:
     """Если транспорт неизменно отвечает 429, сессия делает не более
@@ -134,7 +131,6 @@ def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture
     assert mock_transport.call_count == max_retries + 1
 
 
-# T4A.2.9 — фактор экспоненциальной задержки хранится в адаптере повторных попыток
 @pytest.mark.infrastructure
 def test_retryable_session_uses_exponential_backoff() -> None:
     """Настроенный backoff_factor подключён к объекту urllib3 Retry.
@@ -157,7 +153,6 @@ def test_retryable_session_uses_exponential_backoff() -> None:
     assert second_delay > first_delay
 
 
-# T4A.2.10 — переопределение request() пересылает timeout родительской реализации
 @pytest.mark.infrastructure
 def test_retryable_session_timeout_forwarded_to_request(
     mocker: MockerFixture,

@@ -150,7 +150,6 @@ def test_variant_with_unknown_options_ref_has_empty_options(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    BL-PC-02
     Бизнес-правило: если options_ref не найден в total_option_sets,
     conan_options={}; исключение не должно бросаться.
 
@@ -195,7 +194,6 @@ def test_install_options_built_from_build_option_sets_not_total(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    BL-PC-03
     Бизнес-правило: строка install_options строится из build_option_sets
     (то, что передал пользователь), а не из total_option_sets.
 
@@ -228,7 +226,6 @@ def test_variants_are_conan_variant_view_dataclasses(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    BL-PC-04
     Бизнес-правило: каждый вариант в view-model — это ConanVariantView
     (dataclass), а не исходный ConanVariant.
 
@@ -263,7 +260,6 @@ def test_profile_build_enriched_with_conan_settings_from_profile_definition(
     publisher_profile_definition,
 ) -> None:
     """
-    BL-PC-05
     Бизнес-правило: conan_settings берётся из ProfileDefinition (по
     совпадению profile_name), а не из самого ProfileBuild.
 
@@ -299,7 +295,6 @@ def test_profile_build_enriched_with_docker_image_from_profile_definition(
     publisher_profile_definition,
 ) -> None:
     """
-    BL-PC-06
     Бизнес-правило: docker_image берётся из ProfileDefinition.
 
     Предусловия:
@@ -328,7 +323,6 @@ def test_missing_profile_definition_gives_empty_settings_not_error(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    BL-PC-07
     Бизнес-правило: если ProfileDefinition отсутствует для профиля,
     conan_settings={} и docker_image=""; исключение не бросается.
 
@@ -362,7 +356,6 @@ def test_profile_builds_ordered_by_profile_name(
     publisher_two_profile_parsed_result: ParsedResult,
 ) -> None:
     """
-    BL-PC-08
     Бизнес-правило: profile_builds в view-model упорядочены по имени профиля
     в алфавитном порядке, независимо от порядка их следования в Release.
 
@@ -394,7 +387,6 @@ def test_legacy_contents_key_absent_from_view(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    BL-PC-09
     Бизнес-правило: PassportConverter.convert() сам не устанавливает
     legacy_contents; данные legacy добавляются СНАРУЖИ, стратегией
     PassportsStrategy (см. passports_strategy.py: view_model["legacy_contents"] =

@@ -148,7 +148,6 @@ def test_header_only_component_has_no_profile_builds_in_view(
     publisher_profile_definition,
 ) -> None:
     """
-    BL-FRC-01
     Бизнес-правило: у компонента с is_header_only=True в view-model для всех
     его релизов profile_builds=[] (поле перенесено с Release на Component).
 
@@ -189,7 +188,6 @@ def test_non_header_only_component_has_profile_builds(
     publisher_parsed_result,
 ) -> None:
     """
-    BL-FRC-02
     Бизнес-правило: у компонента с is_header_only=False непустой profile_builds
     в view-model (если у релиза есть ProfileBuild).
 
@@ -225,7 +223,6 @@ def test_components_sorted_alphabetically_in_view(
     publisher_multi_component_result,
 ) -> None:
     """
-    BL-FRC-03
     Бизнес-правило: компоненты в view-model отсортированы по имени в алфавитном порядке.
 
     Предусловия:
@@ -253,7 +250,6 @@ def test_components_sorted_alphabetically_in_view(
 @pytest.mark.contract
 def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, flag: bool) -> None:
     """
-    BL-FRC-04
     Бизнес-правило: значение include_passport_links, переданное в конструктор
     FullReleaseConverter, появляется без изменений в
     view_model["include_passport_links"].
@@ -285,7 +281,6 @@ def test_no_passport_link_field_added_by_converter_itself(
     publisher_parsed_result,
 ) -> None:
     """
-    BL-FRC-05
     Бизнес-правило: FullReleaseConverter.convert() сам по себе не добавляет
     поле passport_link / passport_versions ни в release_view, ни в comp_view,
     независимо от include_passport_links. Согласно докстрингу

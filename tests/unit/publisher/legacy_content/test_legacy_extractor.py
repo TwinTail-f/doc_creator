@@ -6,10 +6,6 @@
 - extract_platform_versions() переключается на формат заголовков h1, если вкладки не найдены.
 - extract_platform_versions() пропускает вкладки без извлекаемого содержимого.
 - extract_platform_versions() убирает дубликаты вкладок с одинаковыми именами.
-
-NOTE: тесты extract_by_platform_tab() были удалены — эта функция больше не
-существует в autodoc.publisher.legacy_content.legacy_extractor (кодовая база
-разошлась с этим набором тестов).
 """
 
 from __future__ import annotations

@@ -288,7 +288,7 @@ def test_options_fetcher_invalid_json_does_not_raise_openssl_alias(
 class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
     """Отдаёт разные соответствия путь→содержимое в зависимости от запрошенной ветки.
 
-    В продакшене каждая ветка релиза одного репозитория имеет свой набор файлов
+    Каждая ветка релиза одного репозитория имеет свой набор файлов
     опций (например, ветка fast — ci-2.0/fast/options.json; ветка slow —
     ci-1.6/slow/options.json). Этот фейк отражает такую изоляцию по веткам.
     """

@@ -25,7 +25,6 @@ MINIMAL_RELEASE_KWARGS: dict = {
 }
 
 
-# _parse_option_str: успешный путь с префиксом пакета
 @pytest.mark.business_logic
 def test_parse_option_str_strips_package_prefix() -> None:
     """_parse_option_str удаляет префикс пакета из каждого ключа."""
@@ -33,7 +32,6 @@ def test_parse_option_str_strips_package_prefix() -> None:
     assert result == {"shared": "True", "fPIC": "False"}
 
 
-# _parse_option_str: пустая строка
 @pytest.mark.business_logic
 def test_parse_option_str_empty_string_returns_empty_dict() -> None:
     """_parse_option_str возвращает пустой словарь для пустой входной строки."""
@@ -41,7 +39,6 @@ def test_parse_option_str_empty_string_returns_empty_dict() -> None:
     assert result == {}
 
 
-# _parse_option_str: без префикса
 @pytest.mark.business_logic
 def test_parse_option_str_no_prefix() -> None:
     """_parse_option_str принимает ключи без префикса пакета."""
@@ -49,7 +46,6 @@ def test_parse_option_str_no_prefix() -> None:
     assert result == {"shared": "True"}
 
 
-# _parse_option_str: символ подстановки удаляется
 @pytest.mark.business_logic
 def test_parse_option_str_wildcard_prefix_stripped() -> None:
     """_parse_option_str удаляет префикс с символом подстановки (mylib/*:key) и оставляет чистый ключ."""
@@ -57,7 +53,6 @@ def test_parse_option_str_wildcard_prefix_stripped() -> None:
     assert "shared" in result
 
 
-# ConanInputOptions: parsed_options автоматически заполняется из options
 @pytest.mark.business_logic
 def test_conan_input_options_auto_fills_parsed_options() -> None:
     """ConanInputOptions.parsed_options автоматически заполняется из строки options при создании."""
@@ -65,7 +60,6 @@ def test_conan_input_options_auto_fills_parsed_options() -> None:
     assert instance.parsed_options == {"shared": "True", "fPIC": "False"}
 
 
-# ConanInputOptions: пустые options → parsed_options остаётся пустым
 @pytest.mark.business_logic
 def test_conan_input_options_empty_options_parsed_options_empty() -> None:
     """ConanInputOptions.parsed_options остаётся пустым, если options — пустая строка."""
@@ -73,7 +67,6 @@ def test_conan_input_options_empty_options_parsed_options_empty() -> None:
     assert instance.parsed_options == {}
 
 
-# ConanInputOptions: явно заданный parsed_options не перезаписывается (параметризованный)
 @pytest.mark.parametrize(
     "options_str, explicit_parsed",
     [
@@ -95,7 +88,6 @@ def test_conan_input_options_explicit_parsed_options_not_overwritten(
     assert instance.parsed_options == explicit_parsed
 
 
-# ProfileBuild: exists по умолчанию равен False
 @pytest.mark.contract
 def test_profile_build_default_exists_is_false() -> None:
     """ProfileBuild.exists по умолчанию равен False, если не задан явно."""
@@ -103,7 +95,6 @@ def test_profile_build_default_exists_is_false() -> None:
     assert instance.exists is False
 
 
-# Release: коллекции по умолчанию пусты
 @pytest.mark.contract
 def test_release_defaults_are_empty_collections() -> None:
     """Release.build_option_sets и profile_builds по умолчанию []."""
@@ -130,7 +121,6 @@ def test_component_roundtrip_serialization() -> None:
     assert restored.name == original.name
 
 
-# T3.10 — тесты моделей ProfileDefinition и ParsedResult
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
