@@ -9,16 +9,27 @@
 """
 
 from __future__ import annotations
+
+from pathlib import Path
+
 import pytest
 
 from autodoc.publisher.legacy_content.legacy_service import extract_for_platform
-from tests.unit.publisher.fixtures.shared_html import (
-    H1_HTML,
-    H2_VERSION_HTML,
-    TAB_HTML_CUSTOM_OS,
-    TAB_HTML_MULTI,
-    TAB_HTML_SINGLE,
-)
+
+# tests/unit/publisher/resources/html/
+_HTML_DIR = Path(__file__).resolve().parents[1] / "resources" / "html"
+
+
+def _html(filename: str) -> str:
+    """Читает HTML-фикстуру из tests/unit/publisher/resources/html/<filename>."""
+    return (_HTML_DIR / filename).read_text(encoding="utf-8").strip("\n")
+
+
+H1_HTML = _html("h1_sections.html")
+H2_VERSION_HTML = _html("h2_version.html")
+TAB_HTML_CUSTOM_OS = _html("tab_custom_os.html")
+TAB_HTML_MULTI = _html("tab_multi.html")
+TAB_HTML_SINGLE = _html("tab_single.html")
 
 
 @pytest.mark.business_logic

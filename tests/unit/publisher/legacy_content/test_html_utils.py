@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from bs4 import BeautifulSoup, Tag
 
@@ -16,16 +18,24 @@ from autodoc.publisher.legacy_content.html_utils import (
     find_h1_sections,
     parse_page_sections,
 )
-from tests.unit.publisher.fixtures.shared_html import (
-    H1_HTML,
-    H2_VERSION_HTML,
-    TAB_HTML_DUPLICATE_NAMES,
-    TAB_HTML_MULTI,
-    TAB_HTML_NESTED,
-    TAB_HTML_NO_BODY,
-    TAB_HTML_SINGLE,
-    TABS_GROUP_HTML,
-)
+
+# tests/unit/publisher/resources/html/
+_HTML_DIR = Path(__file__).resolve().parents[1] / "resources" / "html"
+
+
+def _html(filename: str) -> str:
+    """Читает HTML-фикстуру из tests/unit/publisher/resources/html/<filename>."""
+    return (_HTML_DIR / filename).read_text(encoding="utf-8").strip("\n")
+
+
+H1_HTML = _html("h1_sections.html")
+H2_VERSION_HTML = _html("h2_version.html")
+TAB_HTML_DUPLICATE_NAMES = _html("tab_duplicate_names.html")
+TAB_HTML_MULTI = _html("tab_multi.html")
+TAB_HTML_NESTED = _html("tab_nested.html")
+TAB_HTML_NO_BODY = _html("tab_no_body.html")
+TAB_HTML_SINGLE = _html("tab_single.html")
+TABS_GROUP_HTML = _html("tabs_group.html")
 
 
 # find_h1_sections
