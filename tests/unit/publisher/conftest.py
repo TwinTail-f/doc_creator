@@ -1,6 +1,6 @@
 """
 Специфичные для паблишера фикстуры и заглушки.
-Не трогать агенту Parser. Не дублировать minimal_confluence_config из tests/conftest.py.
+Не трогать агенту Parser.
 """
 
 from __future__ import annotations
@@ -171,6 +171,21 @@ PUBLISHER_RESOURCES_DIR: Path = Path(__file__).parent.parent.parent / "resources
 def publisher_resources_dir() -> Path:
     """Путь к ресурсам паблишера (parsed_data/)."""
     return PUBLISHER_RESOURCES_DIR
+
+
+@pytest.fixture
+def minimal_confluence_config() -> dict:
+    """Минимальный валидный словарь, совместимый со схемой ConfluenceConfigSchema."""
+    return {
+        "url": "https://confluence.example.com",
+        "token": "test-token-abc123",
+        "space": "TEST",
+        "verify_ssl": False,
+        "confluence_request_timeout": 30,
+        "publish_batch_size": 10,
+        "publish_batch_delay_seconds": 0.0,
+        "target_release_version": "Platform 2.0",
+    }
 
 
 @pytest.fixture

@@ -4,20 +4,26 @@ RetryableSession оборачивает сеанс HTTP с автоматиче�
 для временных ошибок сервера (429, 503) с экспоненциальной задержкой.
 
 Поведение повторных попыток обеспечивается адаптером Retry от urllib3 на уровне транспорта.
-Тесты, которые проверяют срабатывание повторных попыток, проверяют конфигурацию адаптера, а не
-моделируют полный цикл повторных попыток urllib3, потому что собственный цикл повторных попыток urllib3 работает
-внутри HTTPAdapter.send — ниже уровня, который можно перехватить простым
-mocker.patch без полной замены транспорта.
+Тесты, которые проверяют срабатывание повторных попыток, подменяют самый нижний уровень —
+``HTTPConnectionPool._make_request`` — фальшивым транспортом, возвращающим заданную
+последовательность ответов. Благодаря этому настоящий цикл повторных попыток urllib3
+(проверка status_forcelist, инкремент счётчика, рекурсивный вызов urlopen) отрабатывает
+по-настоящему, а не подменяется моком целиком: тест проверяет фактическое количество
+попыток и итоговый результат запроса, а не только то, что конфигурация выглядит правильно.
 
 Тест пересылки тайм-аута использует переопределение request() в RetryableSession,
 которое является единственной логикой, которая живёт в коде приложения, а не в urllib3.
 """
 
+import io
+from collections.abc import Iterator
 from unittest.mock import MagicMock
 
 import pytest
 import requests
+import urllib3
 from pytest_mock import MockerFixture
+from urllib3.connectionpool import HTTPConnectionPool
 from urllib3.util.retry import Retry
 
 from autodoc.common.retryable_session import RetryableSession
@@ -37,50 +43,95 @@ def _get_retry(session: RetryableSession) -> Retry:
     return session.get_adapter(_HTTPS_PREFIX).max_retries
 
 
-# T4A.2.6 — адаптер настроен для повторных попыток на 429
-@pytest.mark.infrastructure
-def test_retryable_session_retries_on_429() -> None:
-    """Адаптер повторных попыток сеанса включает 429 в его status_forcelist.
+def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock:
+    """Подменяет ``HTTPConnectionPool._make_request`` фальшивым транспортом.
 
-    urllib3 автоматически повторит любой запрос, который получит ответ 429.
-    Этот тест проверяет конфигурацию, которая подключает это поведение в
-    сеанс — тестируя проводку на уровне приложения, а не сам urllib3.
+    На каждый вызов возвращает ``urllib3.HTTPResponse`` со следующим статусом
+    из ``statuses``. Это самый нижний уровень, на котором ещё можно
+    перехватить запрос без реального сокета, поэтому вся логика повторных
+    попыток urllib3 (чтение status_forcelist, инкремент Retry, рекурсия
+    urlopen) выполняется по-настоящему.
+
+    Args:
+        mocker: Фикстура pytest-mock для патчинга.
+        statuses: Последовательность HTTP-статусов, отдаваемых по одному на вызов.
+
+    Returns:
+        Мок, по которому можно проверить фактическое количество попыток
+        (``call_count``).
     """
+
+    def _make_request(
+        self: HTTPConnectionPool,
+        conn: object,
+        method: str,
+        url: str,
+        *args: object,
+        **kwargs: object,
+    ) -> urllib3.HTTPResponse:
+        status = next(statuses)
+        return urllib3.HTTPResponse(
+            body=io.BytesIO(b""),
+            status=status,
+            headers={},
+            preload_content=False,
+            request_method=method,
+        )
+
+    return mocker.patch.object(
+        HTTPConnectionPool, "_make_request", autospec=True, side_effect=_make_request
+    )
+
+
+# T4A.2.6 — сессия реально повторяет запрос после ответа 429
+@pytest.mark.infrastructure
+def test_retryable_session_retries_on_429(mocker: MockerFixture) -> None:
+    """После первого ответа 429 сессия автоматически повторяет запрос и
+    возвращает результат второй, успешной попытки.
+
+    Тест гоняет запрос через настоящий цикл повторных попыток urllib3 (а не
+    только проверяет конфигурацию Retry), поэтому фиксирует и итоговый
+    статус, и фактическое число обращений к транспорту.
+    """
+    mock_transport = _fake_transport(mocker, iter([_HTTP_TOO_MANY, _HTTP_OK]))
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
-    retry = _get_retry(session)
 
-    assert _HTTP_TOO_MANY in retry.status_forcelist
-    assert retry.total == _MAX_RETRIES
+    response = session.get(_TEST_URL)
+
+    assert response.status_code == _HTTP_OK
+    assert mock_transport.call_count == 2
 
 
-# T4A.2.7 — адаптер настроен для повторных попыток на 503
+# T4A.2.7 — сессия реально повторяет запрос после ответа 503
 @pytest.mark.infrastructure
-def test_retryable_session_retries_on_503() -> None:
-    """Адаптер повторных попыток сеанса включает 503 в его status_forcelist.
-
-    Ответы "сервис недоступен" — это временные проблемы инфраструктуры;
-    адаптер должен быть настроен на автоматический повтор их.
-    """
+def test_retryable_session_retries_on_503(mocker: MockerFixture) -> None:
+    """После первого ответа 503 («сервис недоступен» — временная проблема
+    инфраструктуры) сессия автоматически повторяет запрос и возвращает
+    результат второй, успешной попытки."""
+    mock_transport = _fake_transport(mocker, iter([_HTTP_UNAVAILABLE, _HTTP_OK]))
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
-    retry = _get_retry(session)
 
-    assert _HTTP_UNAVAILABLE in retry.status_forcelist
+    response = session.get(_TEST_URL)
+
+    assert response.status_code == _HTTP_OK
+    assert mock_transport.call_count == 2
 
 
-# T4A.2.8 — лимит повторных попыток соблюдается (адаптер настроен правильно)
+# T4A.2.8 — лимит повторных попыток соблюдается
 @pytest.mark.infrastructure
-def test_retryable_session_raises_after_exhausting_retries() -> None:
-    """Общее количество адаптера повторных попыток соответствует аргументу конструктора max_retries.
-
-    urllib3 вызовет MaxRetryError (отобразится в requests как RetryError) после того, как
-    этот лимит будет достигнут. Этот тест проверяет, что лимит подключён правильно, чтобы
-    запросы не циклились бесконечно.
-    """
+def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture) -> None:
+    """Если транспорт неизменно отвечает 429, сессия делает не более
+    ``max_retries`` повторов, после чего пробрасывает ``RetryError``, а не
+    зацикливается бесконечно."""
     max_retries: int = 2
+    mock_transport = _fake_transport(mocker, iter(lambda: _HTTP_TOO_MANY, None))
     session = RetryableSession(max_retries=max_retries, backoff_factor=0.0)
-    retry = _get_retry(session)
 
-    assert retry.total == max_retries
+    with pytest.raises(requests.exceptions.RetryError):
+        session.get(_TEST_URL)
+
+    # Первая попытка + max_retries повторов.
+    assert mock_transport.call_count == max_retries + 1
 
 
 # T4A.2.9 — фактор экспоненциальной задержки хранится в адаптере повторных попыток
@@ -90,8 +141,10 @@ def test_retryable_session_uses_exponential_backoff() -> None:
 
     urllib3 вычисляет задержки сна как backoff_factor * (2 ** (retry_count - 1)),
     поэтому вторая задержка всегда строго больше первой, когда
-    backoff_factor > 0. Этот тест проверяет, что фактор сохранён правильно, чтобы
-    задержки увеличивались между повторными попытками.
+    backoff_factor > 0. Реальный сон между повторами здесь намеренно не
+    проверяется (это удлинило бы тест или потребовало мокать time.sleep
+    внутри urllib3), а лишь то, что фактор сохранён и формула задержки
+    действительно возрастающая.
     """
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=_BACKOFF_FACTOR)
     retry = _get_retry(session)

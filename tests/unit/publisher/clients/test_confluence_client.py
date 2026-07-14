@@ -9,7 +9,7 @@
 - Объект mock_transport предоставляет управляемые ответы search_content /
   get_content / create_content / update_content (сырые JSON-словари,
   соответствующие публичному контракту ConfluenceTransport).
-- Фикстура minimal_confluence_config приходит из tests/conftest.py.
+- Фикстура minimal_confluence_config приходит из tests/unit/publisher/conftest.py.
 """
 
 from __future__ import annotations

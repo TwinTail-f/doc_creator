@@ -61,11 +61,15 @@ def test_cli_error_boundary_catches_domain_exceptions_as_system_exit(exc_cls: ty
 
 @pytest.mark.infrastructure
 @pytest.mark.parametrize("exc_cls", [ValueError, RuntimeError])
-def test_cli_error_boundary_lets_unrelated_exceptions_propagate(exc_cls: type) -> None:
-    """Исключение, не входящее в (ConfigError, DocGeneratorError, PublishError), пробрасывается необработанным."""
-    with pytest.raises(exc_cls):
+def test_cli_error_boundary_catches_unrelated_exceptions_as_system_exit(exc_cls: type) -> None:
+    """Исключение, не входящее в (ConfigError, DocGeneratorError, PublishError), тоже
+    перехватывается — пользователь никогда не видит «сырой» трейсбек — и превращается
+    в SystemExit(1)."""
+    with pytest.raises(SystemExit) as exc_info:
         with cli_error_boundary("Test Panel"):
             raise exc_cls("not a domain error")
+
+    assert exc_info.value.code == 1
 
 
 @pytest.mark.business_logic

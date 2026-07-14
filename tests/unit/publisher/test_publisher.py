@@ -188,6 +188,7 @@ class TestDocumentPublisherPublishAll:
             passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
+            release_root_page_id=_ROOT_PAGE_ID,
         )
         assert call_order == ["passports", "release"]
 
@@ -210,6 +211,7 @@ class TestDocumentPublisherPublishAll:
             passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
+            release_root_page_id=_ROOT_PAGE_ID,
         )
         assert result.pages_published == 4
 
@@ -232,6 +234,7 @@ class TestDocumentPublisherPublishAll:
             passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
+            release_root_page_id=_ROOT_PAGE_ID,
         )
         assert result.success is False
 
@@ -254,6 +257,7 @@ class TestDocumentPublisherPublishAll:
             passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
+            release_root_page_id=_ROOT_PAGE_ID,
         )
         assert "err1" in result.errors
         assert "err2" in result.errors
@@ -301,6 +305,7 @@ class TestDocumentPublisherPublishAll:
             passports_root_parent_id=_ROOT_PAGE_ID,
             release_page_title=_RELEASE_PAGE_TITLE,
             release_template_name=_RELEASE_TEMPLATE,
+            release_root_page_id=_ROOT_PAGE_ID,
             profile_title="Profile Page",
             profile_template_name="profile_doc.jinja2",
         )
@@ -416,23 +421,20 @@ class TestDocumentPublisherPublishProfilePage:
         assert result is expected_report
 
     @pytest.mark.business_logic
-    def test_publisher_publish_profile_page_warns_and_publishes_without_parent_when_release_failed(
+    def test_publisher_publish_profile_page_fails_without_publishing_when_release_failed(
         self,
         publisher_document_publisher: DocumentPublisher,
         publisher_parsed_result: ParsedResult,
         mocker: MockerFixture,
     ) -> None:
         """
-        Если релизная страница не была опубликована, profile_parent_id становится None,
-        логируется предупреждение, и профильная страница всё равно публикуется без родителя.
+        Если релизная страница не была опубликована (в отчёте нет details), профильная
+        страница не публикуется вовсе: create_strategy не вызывается, ошибка логируется,
+        а результат — отчёт о неудаче с указанием причины.
         """
         release_report = PublishReport(success=False, pages_published=0, errors=["fail"])
-        expected_report = PublishReport(success=True, pages_published=1)
-        mock_create = mocker.patch(
-            "autodoc.publisher.publisher.create_strategy",
-            return_value=_mock_strategy(expected_report, mocker),
-        )
-        mock_logger_warning = mocker.patch("autodoc.publisher.publisher.logger.warning")
+        mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
+        mock_logger_error = mocker.patch("autodoc.publisher.publisher.logger.error")
 
         result = publisher_document_publisher.publish_profile_page(
             parsed_data=publisher_parsed_result,
@@ -441,7 +443,17 @@ class TestDocumentPublisherPublishProfilePage:
             release_report=release_report,
         )
 
-        mock_logger_warning.assert_called_once()
-        _, kwargs = mock_create.call_args
-        assert kwargs["parent_id"] is None
-        assert result is expected_report
+        mock_logger_error.assert_called_once()
+        mock_create.assert_not_called()
+        assert result.success is False
+        assert result.pages_published == 0
+        assert result.pages_failed == 1
+        assert result.failed_pages == [
+            {
+                "page_title": "Profile Page",
+                "reason": (
+                    "Профильная страница 'Profile Page' не опубликована: "
+                    "страница релиза не была опубликована, родитель недоступен"
+                ),
+            }
+        ]

@@ -7,7 +7,7 @@
   и _create_session там никогда не выполняется. Этот файл мокает на уровень
   ниже — метод ``request`` нижележащей сессии, — чтобы собственная логика
   ConfluenceTransport выполнялась по-настоящему и была объектом тестирования.
-- Фикстура minimal_confluence_config приходит из tests/conftest.py.
+- Фикстура minimal_confluence_config приходит из tests/unit/publisher/conftest.py.
 """
 
 from __future__ import annotations

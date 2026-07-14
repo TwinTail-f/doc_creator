@@ -8,7 +8,7 @@
   Это позволяет каждому тесту напрямую проверять обе ветки — «найдено» и
   «не найдено», — не затрагивая вопросы HTTP/транспорта (они относятся к
   test_confluence_transport.py).
-- Фикстура minimal_confluence_config берётся из tests/conftest.py.
+- Фикстура minimal_confluence_config берётся из tests/unit/publisher/conftest.py.
 """
 
 from __future__ import annotations
@@ -115,27 +115,16 @@ class TestResolvePageId:
         mock_client.find_page.assert_not_called()
 
     @pytest.mark.business_logic
-    def test_nothing_set_and_required_raises_config_error(
+    def test_nothing_set_raises_config_error(
         self, mocker: Any, minimal_confluence_config: dict
     ) -> None:
-        """Если ни имя, ни ID не заданы и required=True — поднимается ConfigError."""
+        """Если ни имя, ни ID не заданы — всегда поднимается ConfigError."""
         resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
         with pytest.raises(ConfigError) as exc_info:
-            resolver.resolve_page_id(None, None, "release_docs_root_parent", required=True)
+            resolver.resolve_page_id(None, None, "release_docs_root_parent")
 
         assert "release_docs_root_parent" in str(exc_info.value)
-
-    @pytest.mark.business_logic
-    def test_nothing_set_and_not_required_returns_none(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Если ни имя, ни ID не заданы и required=False — возвращается None без исключения."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-
-        result = resolver.resolve_page_id(None, None, "release_docs_root_parent", required=False)
-
-        assert result is None
 
 
 class TestResolvePassportsRoot:
@@ -243,8 +232,8 @@ _PROFILE_CONFIG_ID_FIELD: str = "profile_docs_root_parent_id"
     ],
     ids=["release", "profile"],
 )
-class TestResolveOptionalParent:
-    """Общая логика приоритета CLI/конфиг и имя/ID для необязательных родителей (release и profile)."""
+class TestResolveRequiredParent:
+    """Общая логика приоритета CLI/конфиг и имя/ID для обязательных родителей (release и profile)."""
 
     @pytest.mark.business_logic
     def test_cli_name_wins_over_config_id(
@@ -348,7 +337,7 @@ class TestResolveOptionalParent:
         mock_client.find_page.assert_not_called()
 
     @pytest.mark.business_logic
-    def test_nothing_set_anywhere_returns_none(
+    def test_nothing_set_anywhere_raises_config_error(
         self,
         mocker: Any,
         minimal_confluence_config: dict,
@@ -356,12 +345,11 @@ class TestResolveOptionalParent:
         config_name_field: str,
         config_id_field: str,
     ) -> None:
-        """Ничего не задано нигде — возвращается None без исключения (родитель не обязателен)."""
+        """Ничего не задано нигде — поднимается ConfigError (родитель обязателен)."""
         resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
-        result = getattr(resolver, method_name)(None, None)
-
-        assert result is None
+        with pytest.raises(ConfigError):
+            getattr(resolver, method_name)(None, None)
 
 
 @pytest.mark.business_logic

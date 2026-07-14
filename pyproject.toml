@@ -22,6 +22,8 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov",
+    "pytest-mock",
+    "pytest-timeout",
 ]
 
 [project.scripts]
