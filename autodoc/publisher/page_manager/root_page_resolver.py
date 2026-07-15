@@ -58,18 +58,22 @@ class RootPageResolver:
             )
         return page.id
 
-    def _resolve_or_raise(
+    def _resolve_root_parent(
         self,
-        name: str | None,
-        default: str | None,
+        cli_name: str | None,
+        cli_id: str | None,
+        config_name: str | None,
+        config_id: str | None,
         field_label: str,
     ) -> str:
         """
-        Оборачивает :meth:`resolve_page_id`, требуя непустой результат.
+        Резолвит ID родительской страницы, требуя непустой результат.
 
         Args:
-            name: Название страницы для поиска в настроенном Space.
-            default: Запасной ID страницы, если ``name`` не задан.
+            cli_name: Название страницы, переданное через CLI.
+            cli_id: ID страницы, переданный через CLI.
+            config_name: Название страницы из конфигурации.
+            config_id: ID страницы из конфигурации.
             field_label: Имя поля конфигурации для сообщения об ошибке
                          (например ``'release_docs_root_parent'``).
 
@@ -77,9 +81,12 @@ class RootPageResolver:
             Строка с ID страницы.
 
         Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         либо если ни ``name``, ни ``default`` не заданы.
+            ConfigError: Если выбранное ``name`` задано, но страница с таким
+                         названием не найдена в Confluence (бросает
+                         :meth:`resolve_page_id`), либо если ни имя, ни ID
+                         не заданы ни через CLI, ни в конфигурации.
         """
+        name, default = (cli_name, cli_id) if (cli_name or cli_id) else (config_name, config_id)
         resolved = self.resolve_page_id(name, default)
         if not resolved:
             raise ConfigError(
@@ -87,30 +94,6 @@ class RootPageResolver:
                 f" в конфигурации Confluence"
             )
         return resolved
-
-    @staticmethod
-    def _merge_page_ref(
-        cli_name: str | None,
-        cli_id: str | None,
-        config_name: str | None,
-        config_id: str | None,
-    ) -> tuple[str | None, str | None]:
-        """
-        Выбирает пару (имя, ID) для разрешения страницы: CLI или конфиг целиком.
-
-        Args:
-            cli_name: Название страницы, переданное через CLI.
-            cli_id: ID страницы, переданный через CLI.
-            config_name: Название страницы из конфигурации.
-            config_id: ID страницы из конфигурации.
-
-        Returns:
-            Пара ``(name, id)`` из CLI, если задано хотя бы одно из значений CLI;
-            иначе пара из конфигурации.
-        """
-        if cli_name or cli_id:
-            return cli_name, cli_id
-        return config_name, config_id
 
     def resolve_passports_root(
         self,
@@ -134,13 +117,13 @@ class RootPageResolver:
             ConfigError: Если страница не найдена ни по имени, ни по ID,
                          ни в конфигурации.
         """
-        eff_name, eff_id = self._merge_page_ref(
+        return self._resolve_root_parent(
             name,
             page_id,
             self._config.passports_root_parent_name,
             self._config.passports_root_parent_id,
+            "passports_root_parent",
         )
-        return self._resolve_or_raise(eff_name, eff_id, "passports_root_parent")
 
     def resolve_release_parent(
         self,
@@ -162,13 +145,13 @@ class RootPageResolver:
                          либо если ни имя, ни ID не заданы ни через параметры,
                          ни в конфигурации.
         """
-        eff_name, eff_id = self._merge_page_ref(
+        return self._resolve_root_parent(
             name,
             page_id,
             self._config.release_docs_root_parent_name,
             self._config.release_docs_root_parent_id,
+            "release_docs_root_parent",
         )
-        return self._resolve_or_raise(eff_name, eff_id, "release_docs_root_parent")
 
     def resolve_profile_parent(
         self,
@@ -190,13 +173,13 @@ class RootPageResolver:
                          либо если ни имя, ни ID не заданы ни через параметры,
                          ни в конфигурации.
         """
-        eff_name, eff_id = self._merge_page_ref(
+        return self._resolve_root_parent(
             name,
             page_id,
             self._config.profile_docs_root_parent_name,
             self._config.profile_docs_root_parent_id,
+            "profile_docs_root_parent",
         )
-        return self._resolve_or_raise(eff_name, eff_id, "profile_docs_root_parent")
 
     def resolve_single_page_parent(
         self,

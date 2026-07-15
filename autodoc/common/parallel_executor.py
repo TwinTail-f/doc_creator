@@ -56,14 +56,19 @@ class ParallelExecutor:
                         не выполняется — все задачи запускаются в одном пуле.
             batch_delay: Задержка в секундах между пакетами. Применяется
                          только если ``batch_size > 0`` и пакетов более одного.
-
-        Raises:
-            ValueError: Если ``batch_size < 0`` или ``batch_delay < 0``.
         """
         if batch_size < 0:
-            raise ValueError(f"batch_size должен быть неотрицательным, получено: {batch_size}")
+            logger.warning(
+                f"batch_size должен быть неотрицательным, получено: {batch_size}."
+                f" Будет использовано значение по умолчанию: 0"
+            )
+            batch_size = 0
         if batch_delay < 0:
-            raise ValueError(f"batch_delay должен быть неотрицательным, получено: {batch_delay}")
+            logger.warning(
+                f"batch_delay должен быть неотрицательным, получено: {batch_delay}."
+                f" Будет использовано значение по умолчанию: 0.0"
+            )
+            batch_delay = 0.0
         self._max_workers: int = max_workers
         self._log_progress_interval: int = log_progress_interval
         self._batch_size: int = batch_size

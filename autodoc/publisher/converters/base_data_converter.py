@@ -1,8 +1,9 @@
 """Абстрактный базовый класс конвертеров данных."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, NamedTuple
+from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.view_models.passports import ConanVariantView
@@ -21,15 +22,22 @@ class BadgeClass(str, Enum):
     """Жёлтый — значение отличается от дефолта (нейтральное/числовое)."""
 
 
-class _VariantOpts(NamedTuple):
-    """Опции сборки для одного варианта Conan во view-model."""
+@dataclass(frozen=True, slots=True)
+class _VariantOpts:
+    """Опции сборки для одного варианта Conan во view-model.
+
+    Датакласс вместо именованного кортежа — чтобы у ``default_options``
+    был безопасный дефолт: ``default_factory=dict`` создаёт новый словарь
+    на каждый экземпляр, а не один общий объект на все вызовы со значением
+    по умолчанию.
+    """
 
     conan_options: dict[str, Any]
     install_options_override: str | None = None
     # {имя_опции: дефолтное_значение} компонента (DefaultOptionsSet), для подсветки
     # в UI отличий от дефолта. Если опция здесь не найдена — дефолт считается
     # неизвестным (бейдж остаётся нейтральным).
-    default_options: dict[str, Any] = {}
+    default_options: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseDataConverter(ABC):
