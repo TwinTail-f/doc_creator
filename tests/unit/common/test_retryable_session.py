@@ -24,7 +24,6 @@ import requests
 import urllib3
 from pytest_mock import MockerFixture
 from urllib3.connectionpool import HTTPConnectionPool
-from urllib3.util.retry import Retry
 
 from autodoc.common.retryable_session import RetryableSession
 
@@ -34,13 +33,7 @@ _HTTP_UNAVAILABLE: int = 503
 _HTTP_OK: int = 200
 _MAX_RETRIES: int = 3
 _BACKOFF_FACTOR: float = 2.0
-_HTTPS_PREFIX: str = "https://"
 _TEST_URL: str = "https://example.com/api"
-
-
-def _get_retry(session: RetryableSession) -> Retry:
-    """Извлекает объект urllib3 Retry из HTTPS адаптера сеанса."""
-    return session.get_adapter(_HTTPS_PREFIX).max_retries
 
 
 def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock:
@@ -132,24 +125,28 @@ def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture
 
 
 @pytest.mark.infrastructure
-def test_retryable_session_uses_exponential_backoff() -> None:
-    """Настроенный backoff_factor подключён к объекту urllib3 Retry.
+def test_retryable_session_backs_off_between_retries(mocker: MockerFixture) -> None:
+    """Пауза между повторными попытками растёт от повтора к повтору.
 
-    urllib3 вычисляет задержки сна как backoff_factor * (2 ** (retry_count - 1)),
-    поэтому вторая задержка всегда строго больше первой, когда
-    backoff_factor > 0. Реальный сон между повторами здесь намеренно не
-    проверяется (это удлинило бы тест или потребовало мокать time.sleep
-    внутри urllib3), а лишь то, что фактор сохранён и формула задержки
-    действительно возрастающая.
+    ``RetryableSession`` передаёт ``backoff_factor`` в конструктор urllib3
+    ``Retry``; единственный способ убедиться, что это значение действительно
+    влияет на поведение сессии — прогнать несколько неудачных попыток через
+    настоящий цикл повторов urllib3 и посмотреть на фактические паузы между
+    ними (``time.sleep``), а не лезть во внутренний объект ``Retry`` напрямую
+    или пересчитывать формулу backoff локальными константами теста.
     """
+    mock_sleep = mocker.patch("time.sleep")
+    # urllib3 не спит перед самым первым повтором (backoff=0 при одном подряд
+    # сбое), поэтому нужны три неудачи подряд, чтобы получить два ненулевых,
+    # растущих интервала ожидания.
+    _fake_transport(mocker, iter([_HTTP_TOO_MANY, _HTTP_TOO_MANY, _HTTP_TOO_MANY, _HTTP_OK]))
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=_BACKOFF_FACTOR)
-    retry = _get_retry(session)
 
-    assert retry.backoff_factor == _BACKOFF_FACTOR
-    # Проверка, что вторая задержка > первой задержки для настроенного backoff_factor.
-    # Формула задержки: backoff_factor * (2 ** (retry_index - 1))
-    first_delay: float = _BACKOFF_FACTOR * (2**0)  # retry 1 → backoff_factor * 1
-    second_delay: float = _BACKOFF_FACTOR * (2**1)  # retry 2 → backoff_factor * 2
+    response = session.get(_TEST_URL)
+
+    assert response.status_code == _HTTP_OK
+    assert mock_sleep.call_count == 2
+    first_delay, second_delay = (call.args[0] for call in mock_sleep.call_args_list)
     assert second_delay > first_delay
 
 

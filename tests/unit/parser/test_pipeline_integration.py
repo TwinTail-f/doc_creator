@@ -22,7 +22,6 @@ from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentR
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 
 _MIN_COMPONENTS: int = 1
-_HTTP_OK: int = 200
 
 _EMPTY_CONAN_RESULT = FetchResult(value=ConanEnrichmentResult(), warnings=[])
 
@@ -105,7 +104,7 @@ def test_manifest_step_populates_ctx_components(
     """ManifestStep заполняет ctx.components непустым списком.
 
     Защита от переименований ключей контекста, которые могли бы незаметно
-    очистить список компонентов до того, как他 будут обработаны нисходящими шагами.
+    очистить список компонентов до того, как они будут обработаны нисходящими шагами.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 

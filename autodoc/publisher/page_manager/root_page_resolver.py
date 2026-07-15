@@ -31,16 +31,46 @@ class RootPageResolver:
     def resolve_page_id(
         self,
         name: str | None,
-        page_id: str | None,
-        field_label: str,
-    ) -> str:
+        default: str | None = None,
+    ) -> str | None:
         """
-        Разрешает ссылку на страницу Confluence в её идентификатор.
+        Разрешает название страницы Confluence в её ID, либо возвращает ``default``.
 
         Args:
             name: Название страницы для поиска в настроенном Space.
-            page_id: Запасной ID страницы, если ``name`` не задан или пуст.
-            field_label: Имя поля конфигурации для сообщений об ошибках
+            default: Значение, возвращаемое, если ``name`` не задано.
+
+        Returns:
+            ID найденной по имени страницы, либо ``default``, если имя не задано.
+
+        Raises:
+            ConfigError: Если ``name`` задан, но страница с таким названием
+                         не найдена в Confluence — эту ситуацию метод не может
+                         обработать самостоятельно, так как явного плана Б
+                         для неё нет.
+        """
+        if not name:
+            return default
+        page = self._client.find_page(name, space=self._config.space)
+        if not page:
+            raise ConfigError(
+                f"Страница '{name}' не найдена в пространстве '{self._config.space}'"
+            )
+        return page.id
+
+    def _resolve_or_raise(
+        self,
+        name: str | None,
+        default: str | None,
+        field_label: str,
+    ) -> str:
+        """
+        Оборачивает :meth:`resolve_page_id`, требуя непустой результат.
+
+        Args:
+            name: Название страницы для поиска в настроенном Space.
+            default: Запасной ID страницы, если ``name`` не задан.
+            field_label: Имя поля конфигурации для сообщения об ошибке
                          (например ``'release_docs_root_parent'``).
 
         Returns:
@@ -48,22 +78,15 @@ class RootPageResolver:
 
         Raises:
             ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         либо если ни ``name``, ни ``page_id`` не заданы.
+                         либо если ни ``name``, ни ``default`` не заданы.
         """
-        if name:
-            page = self._client.find_page(name, space=self._config.space)
-            if not page:
-                raise ConfigError(
-                    f"Страница '{name}' не найдена в пространстве '{self._config.space}'"
-                    f" (параметр конфигурации: {field_label}_name)"
-                )
-            return page.id
-        if page_id:
-            return page_id
-        raise ConfigError(
-            f"Необходимо указать '{field_label}_name' или '{field_label}'"
-            f" в конфигурации Confluence"
-        )
+        resolved = self.resolve_page_id(name, default)
+        if not resolved:
+            raise ConfigError(
+                f"Необходимо указать '{field_label}_name' или '{field_label}'"
+                f" в конфигурации Confluence"
+            )
+        return resolved
 
     @staticmethod
     def _merge_page_ref(
@@ -117,7 +140,7 @@ class RootPageResolver:
             self._config.passports_root_parent_name,
             self._config.passports_root_parent_id,
         )
-        return self.resolve_page_id(eff_name, eff_id, "passports_root_parent")
+        return self._resolve_or_raise(eff_name, eff_id, "passports_root_parent")
 
     def resolve_release_parent(
         self,
@@ -145,7 +168,7 @@ class RootPageResolver:
             self._config.release_docs_root_parent_name,
             self._config.release_docs_root_parent_id,
         )
-        return self.resolve_page_id(eff_name, eff_id, "release_docs_root_parent")
+        return self._resolve_or_raise(eff_name, eff_id, "release_docs_root_parent")
 
     def resolve_profile_parent(
         self,
@@ -173,7 +196,7 @@ class RootPageResolver:
             self._config.profile_docs_root_parent_name,
             self._config.profile_docs_root_parent_id,
         )
-        return self.resolve_page_id(eff_name, eff_id, "profile_docs_root_parent")
+        return self._resolve_or_raise(eff_name, eff_id, "profile_docs_root_parent")
 
     def resolve_single_page_parent(
         self,

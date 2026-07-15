@@ -10,28 +10,12 @@ from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.finalize_step import FinalizeStep
 
-from tests.unit.parser.conftest import (
-    make_conan_variant,
-    NULL_PACKAGE_ID as _NULL_PACKAGE_ID,
-)
-
-NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"
+from tests.unit.parser.conftest import make_conan_variant, NULL_PACKAGE_ID
 
 
 def _null_variant() -> ConanVariant:
     """Создаёт ConanVariant с нулевым (header-only) package_id."""
     return ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")
-
-
-def _real_variant() -> ConanVariant:
-    """Создаёт ConanVariant с ненулевым package_id."""
-    return ConanVariant(
-        package_id=REAL_PACKAGE_ID,
-        build_url="https://art.example.com/pkg",
-        build_date="2024-01-01",
-        options_ref="1",
-    )
 
 
 def _make_release(profile_builds: list[ProfileBuild]) -> Release:
@@ -268,11 +252,6 @@ def test_finalize_step_execute_applies_steps_in_order(
     ]
 
 
-_SHARED_PROFILE: str = "linux_x64_gcc12"
-_IMAGE_V1: str = "registry.example.com/builder:v1"
-_IMAGE_V2: str = "registry.example.com/builder:v2"
-
-
 @pytest.mark.business_logic
 def test_finalize_step_sets_header_only_for_nlohmann_json(
     parser_pipeline_context,
@@ -429,7 +408,7 @@ def test_header_only_requires_all_profiles_to_have_null_package_id(
     parser_pipeline_context,
 ) -> None:
     """Хотя бы один вариант с ненулевым package_id делает весь компонент не header-only."""
-    null_id = _NULL_PACKAGE_ID
+    null_id = NULL_PACKAGE_ID
     pb1 = ProfileBuild(
         profile_name="p1",
         exists=True,
@@ -472,7 +451,7 @@ def test_header_only_evaluated_per_component_independently(
     parser_pipeline_context,
 ) -> None:
     """is_header_only вычисляется независимо для каждого компонента в одном запуске."""
-    comp_a = _make_comp_with_variant("compA", package_id=_NULL_PACKAGE_ID)
+    comp_a = _make_comp_with_variant("compA", package_id=NULL_PACKAGE_ID)
     comp_b = _make_comp_with_variant("compB", package_id="regular_id")
 
     ctx = parser_pipeline_context

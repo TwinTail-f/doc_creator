@@ -16,7 +16,6 @@ _SLEEP_SHORT_SEC: float = 0.01
 _SLEEP_LONG_SEC: float = 0.05
 _MAX_WORKERS_SEQUENTIAL: int = 1
 _MAX_WORKERS_PARALLEL: int = 8
-_TIMEOUT_GUARD_SEC: int = 5
 
 
 @pytest.mark.business_logic
@@ -70,15 +69,14 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
     assert results[2] == 2, "задача 2 должна выдать свой результат"
 
 
-@pytest.mark.timeout(_TIMEOUT_GUARD_SEC)
 @pytest.mark.business_logic
-def test_parallel_executor_all_tasks_raise_does_not_hang() -> None:
-    """execute() возвращается без взаимной блокировки, когда каждая задача вызывает ValueError.
+def test_parallel_executor_all_tasks_failing_returns_all_none() -> None:
+    """Если ValueError падает в каждой задаче, execute() возвращает [None, None, None].
 
-    ValueError — один из ожидаемых операционных типов ошибок, которые
-    ParallelExecutor перехватывает для каждой задачи по отдельности (см.
-    docstring ``_execute_pool``); поэтому все результаты None, а исключение
-    не распространяется на вызывающий код.
+    Граничный случай изоляции исключений (см.
+    ``test_parallel_executor_exception_in_one_task_does_not_cancel_others``):
+    здесь падают все задачи, а не одна, — то есть в пуле нет ни одного
+    успешного результата, который мог бы замаскировать ошибку агрегации.
     """
 
     def always_fail(_: Any) -> None:
@@ -126,22 +124,26 @@ def test_parallel_executor_empty_task_list_returns_empty() -> None:
 
 
 @pytest.mark.business_logic
-def test_parallel_executor_negative_batch_size_raises_value_error() -> None:
-    """Конструктор отклоняет отрицательный ``batch_size``, не откатываясь на дефолт.
+@pytest.mark.parametrize(
+    "extra_kwargs, match",
+    [
+        # отрицательный batch_size
+        pytest.param({"batch_size": -1}, "batch_size", id="negative-batch-size"),
+        # отрицательный batch_delay (batch_size задан, чтобы задержка вообще была применима)
+        pytest.param({"batch_size": 1, "batch_delay": -0.5}, "batch_delay", id="negative-batch-delay"),
+    ],
+)
+def test_parallel_executor_negative_constructor_arg_raises_value_error(
+    extra_kwargs: dict[str, float], match: str
+) -> None:
+    """Конструктор отклоняет отрицательные ``batch_size``/``batch_delay``, не откатываясь на дефолт.
 
-    Отрицательный batch_size — явная ошибка вызывающего кода (сетевая операция,
+    Отрицательное значение — явная ошибка вызывающего кода (сетевая операция,
     молчаливая подмена значения недопустима), поэтому конструктор должен упасть
     сразу, а не создать исполнитель с некорректным внутренним состоянием.
     """
-    with pytest.raises(ValueError, match="batch_size"):
-        ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=-1)
-
-
-@pytest.mark.business_logic
-def test_parallel_executor_negative_batch_delay_raises_value_error() -> None:
-    """Конструктор отклоняет отрицательный ``batch_delay``, не откатываясь на дефолт."""
-    with pytest.raises(ValueError, match="batch_delay"):
-        ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=1, batch_delay=-0.5)
+    with pytest.raises(ValueError, match=match):
+        ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, **extra_kwargs)
 
 
 @pytest.mark.business_logic

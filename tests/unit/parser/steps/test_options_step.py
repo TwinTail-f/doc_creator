@@ -174,14 +174,34 @@ def test_options_step_patchelf_both_versions_get_options(
 
 
 @pytest.mark.integration
-def test_options_step_nlohmann_single_empty_option(
+@pytest.mark.parametrize(
+    "comp_name, version, channel, option_str, expected_parsed",
+    [
+        # nlohmann_json/slow — единственная опция пустая, parsed_options пуст
+        pytest.param("nlohmann_json", "3.9.1", "slow", "", {}, id="nlohmann-empty-option"),
+        # apr/fast — единственная опция содержит shared=True
+        pytest.param(
+            "apr", "1.7.6", "fast", "apr:shared=True", {"shared": "True"}, id="apr-shared-option"
+        ),
+        # libnetfilter_queue/slow (PRG_Quant) — единственная опция пустая
+        pytest.param(
+            "libnetfilter_queue", "1.0.5", "slow", "", {}, id="libnetfilter-queue-empty-option"
+        ),
+    ],
+)
+def test_options_step_single_release_single_option_applied(
     parser_config,
     tmp_path: Path,
     make_fake_fetcher,
+    comp_name: str,
+    version: str,
+    channel: str,
+    option_str: str,
+    expected_parsed: dict[str, str],
 ) -> None:
-    """FakeFetcher, вернувший {'1': ''}, даёт релизу один build_option_set с пустыми опциями."""
-    options_map: OptionsMap = {("nlohmann_json", "3.9.1", "slow"): {"1": ""}}
-    comp = _make_component("nlohmann_json", [_make_release("3.9.1", "slow")])
+    """Релиз с единственной опцией в options_map получает ровно один build_option_set с этой опцией."""
+    options_map: OptionsMap = {(comp_name, version, channel): {"1": option_str}}
+    comp = _make_component(comp_name, [_make_release(version, channel)])
     ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])
     fake = make_fake_fetcher(value=options_map)
     step = OptionsResolveStep(fetcher=fake)
@@ -189,8 +209,8 @@ def test_options_step_nlohmann_single_empty_option(
 
     build_sets = ctx.components[0].releases[0].build_option_sets
     assert len(build_sets) == 1
-    assert build_sets[0].options == ""
-    assert build_sets[0].parsed_options == {}
+    assert build_sets[0].options == option_str
+    assert build_sets[0].parsed_options == expected_parsed
 
 
 @pytest.mark.infrastructure
@@ -220,43 +240,6 @@ def test_options_step_configure_called_before_fetch(
     step = OptionsResolveStep(fetcher=fake)
     step.execute(parser_pipeline_context)
     assert fake.configure_called is True
-
-
-@pytest.mark.integration
-def test_options_step_apr_single_shared_option(
-    parser_config,
-    tmp_path: Path,
-    make_fake_fetcher,
-) -> None:
-    """apr/fast получает ровно один build_option_set со значением 'apr:shared=True'."""
-    options_map: OptionsMap = {("apr", "1.7.6", "fast"): {"1": "apr:shared=True"}}
-    comp = _make_component("apr", [_make_release("1.7.6", "fast")])
-    ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])
-    step = OptionsResolveStep(fetcher=make_fake_fetcher(value=options_map))
-    step.execute(ctx)
-
-    build_sets = ctx.components[0].releases[0].build_option_sets
-    assert len(build_sets) == 1
-    assert build_sets[0].options == "apr:shared=True"
-    assert build_sets[0].parsed_options == {"shared": "True"}
-
-
-@pytest.mark.integration
-def test_options_step_libnetfilter_queue_single_empty_option(
-    parser_config,
-    tmp_path: Path,
-    make_fake_fetcher,
-) -> None:
-    """libnetfilter_queue/slow (PRG_Quant) получает один пустой build_option_set."""
-    options_map: OptionsMap = {("libnetfilter_queue", "1.0.5", "slow"): {"1": ""}}
-    comp = _make_component("libnetfilter_queue", [_make_release("1.0.5", "slow")])
-    ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])
-    step = OptionsResolveStep(fetcher=make_fake_fetcher(value=options_map))
-    step.execute(ctx)
-
-    build_sets = ctx.components[0].releases[0].build_option_sets
-    assert len(build_sets) == 1
-    assert build_sets[0].options == ""
 
 
 @pytest.mark.integration

@@ -18,8 +18,6 @@ import pytest
 
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.component import Component
-from autodoc.models.conan_variant import ProfileBuild
-from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
@@ -63,247 +61,223 @@ def make_passports_strategy(
     )
 
 
-class TestPassportsStrategyInit:
-    """Тесты валидации PassportsStrategy.__init__."""
-
-    @pytest.mark.business_logic
-    def test_passports_strategy_init_raises_on_empty_space(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-    ) -> None:
-        """Пустая строка space вызывает ValueError."""
-        with pytest.raises(ValueError, match="space"):
-            PassportsStrategy(
-                confluence_client=publisher_confluence_client,
-                document_builder=publisher_document_builder,
-                parsed_data=publisher_parsed_result,
-                space="",
-                root_page_id=_ROOT_PAGE_ID,
-                data_dir=tmp_path,
-            )
-
-    @pytest.mark.business_logic
-    def test_passports_strategy_init_raises_on_empty_root_page_id(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-    ) -> None:
-        """Пустая строка root_page_id вызывает ValueError."""
-        with pytest.raises(ValueError, match="root_page_id"):
-            PassportsStrategy(
-                confluence_client=publisher_confluence_client,
-                document_builder=publisher_document_builder,
-                parsed_data=publisher_parsed_result,
-                space=_SPACE,
-                root_page_id="",
-                data_dir=tmp_path,
-            )
-
-
-class TestPassportsStrategyExecute:
-    """Тесты поведения PassportsStrategy.execute()."""
-
-    @pytest.mark.business_logic
-    def test_passports_strategy_execute_records_failed_component_without_releases(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_profile_definition: ProfileDefinition,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Компоненты без релизов фиксируются как ошибки в отчёте."""
-        empty_component = Component(
-            name="no-release-lib",
-            description="Component without releases",
-            git_project="DEP",
-            git_repo="contrib_empty",
-            releases=[],
-        )
-        data = ParsedResult(
-            generated_at="2024-01-15T12:00:00",
-            platform_version="2.0",
-            profile_definitions=[publisher_profile_definition],
-            components=[empty_component],
-        )
-        strategy = make_passports_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            data,
-            tmp_path,
-        )
-        report = strategy.execute()
-        assert any("no-release-lib" in err for err in report.errors)
-
-    @pytest.mark.business_logic
-    def test_passports_strategy_execute_saves_registry_after_publish(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """После execute() файл passport_pages.json существует в data_dir."""
-        mocker.patch.object(
-            PageHierarchyManager,
-            "ensure_hierarchy_exists",
-            return_value=_VERSION_PAGE_ID,
-        )
-        mocker.patch.object(
-            PassportConverter,
-            "convert",
-            return_value=dict(_STUB_TRANSFORM_RESULT),
-        )
-        strategy = make_passports_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        strategy.execute()
-        assert (tmp_path / _REGISTRY_FILENAME).exists()
-
-    @pytest.mark.contract
-    def test_passports_strategy_execute_report_contains_details(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Успешная публикация создаёт минимум одну запись details с page_title и page_id."""
-        mocker.patch.object(
-            PageHierarchyManager,
-            "ensure_hierarchy_exists",
-            return_value=_VERSION_PAGE_ID,
-        )
-        mocker.patch.object(
-            PassportConverter,
-            "convert",
-            return_value=dict(_STUB_TRANSFORM_RESULT),
-        )
-        strategy = make_passports_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        report = strategy.execute()
-        assert len(report.details) >= 1
-        detail = report.details[0]
-        assert "page_title" in detail
-        assert "page_id" in detail
-
-    @pytest.mark.business_logic
-    def test_publish_one_continues_when_get_page_body_raises(
-        self,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Если получение тела существующей страницы падает с ConfluenceError,
-        публикация паспорта всё равно продолжается и завершается успешно
-        (устойчивость _fetch_existing_body: страница публикуется без legacy-контента)."""
-        mocker.patch.object(
-            PageHierarchyManager,
-            "ensure_hierarchy_exists",
-            return_value=_VERSION_PAGE_ID,
-        )
-        mocker.patch.object(
-            PassportConverter,
-            "convert",
-            return_value=dict(_STUB_TRANSFORM_RESULT),
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "space, root_page_id, expected_match",
+    [
+        # пустой space — ValueError с упоминанием space
+        pytest.param("", _ROOT_PAGE_ID, "space", id="empty-space"),
+        # пустой root_page_id — ValueError с упоминанием root_page_id
+        pytest.param(_SPACE, "", "root_page_id", id="empty-root-page-id"),
+    ],
+)
+def test_passports_strategy_init_raises_on_empty_required_field(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    space: str,
+    root_page_id: str,
+    expected_match: str,
+) -> None:
+    """Пустая строка space или root_page_id вызывает ValueError с указанием на пустое поле."""
+    with pytest.raises(ValueError, match=expected_match):
+        PassportsStrategy(
+            confluence_client=publisher_confluence_client,
+            document_builder=publisher_document_builder,
+            parsed_data=publisher_parsed_result,
+            space=space,
+            root_page_id=root_page_id,
+            data_dir=tmp_path,
         )
 
-        class FailingBodyClient(FakeConfluenceClient):
-            def get_page_body(self, space, title, parent_id=None):
-                raise ConfluenceError("не удалось получить тело страницы")
 
-        strategy = make_passports_strategy(
-            FailingBodyClient(),
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        report = strategy.execute()
+# PassportsStrategy.execute()
+@pytest.mark.business_logic
+def test_passports_strategy_execute_records_failed_component_without_releases(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_profile_definition: ProfileDefinition,
+    tmp_path: Path,
+) -> None:
+    """Компоненты без релизов фиксируются как ошибки в отчёте."""
+    empty_component = Component(
+        name="no-release-lib",
+        description="Component without releases",
+        git_project="DEP",
+        git_repo="contrib_empty",
+        releases=[],
+    )
+    data = ParsedResult(
+        generated_at="2024-01-15T12:00:00",
+        platform_version="2.0",
+        profile_definitions=[publisher_profile_definition],
+        components=[empty_component],
+    )
+    strategy = make_passports_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        data,
+        tmp_path,
+    )
+    report = strategy.execute()
+    assert any("no-release-lib" in err for err in report.errors)
 
-        assert report.pages_failed == 0, "сбой get_page_body не должен приводить к неудаче публикации"
-        assert report.pages_published >= 1
+
+@pytest.mark.business_logic
+def test_passports_strategy_execute_saves_registry_after_publish(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """После execute() файл passport_pages.json существует в data_dir."""
+    mocker.patch.object(
+        PageHierarchyManager,
+        "ensure_hierarchy_exists",
+        return_value=_VERSION_PAGE_ID,
+    )
+    mocker.patch.object(
+        PassportConverter,
+        "convert",
+        return_value=dict(_STUB_TRANSFORM_RESULT),
+    )
+    strategy = make_passports_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+    )
+    strategy.execute()
+    assert (tmp_path / _REGISTRY_FILENAME).exists()
 
 
-class TestPassportsStrategyUtils:
-    """Тесты статических вспомогательных методов PassportsStrategy."""
+@pytest.mark.contract
+def test_passports_strategy_execute_report_contains_details(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """Успешная публикация создаёт минимум одну запись details с page_title и page_id."""
+    mocker.patch.object(
+        PageHierarchyManager,
+        "ensure_hierarchy_exists",
+        return_value=_VERSION_PAGE_ID,
+    )
+    mocker.patch.object(
+        PassportConverter,
+        "convert",
+        return_value=dict(_STUB_TRANSFORM_RESULT),
+    )
+    strategy = make_passports_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+    )
+    report = strategy.execute()
+    assert len(report.details) >= 1
+    detail = report.details[0]
+    assert "page_title" in detail
+    assert "page_id" in detail
 
-    @pytest.mark.contract
-    def test_passports_strategy_page_title_format(self) -> None:
-        """_make_page_title возвращает ожидаемую отформатированную строку."""
-        title = PassportsStrategy._make_page_title("openssl", "1.0.0")
-        assert "openssl" in title
-        assert "1.0.0" in title
 
-    @pytest.mark.business_logic
-    def test_page_title_is_unique_for_different_component_release_pairs(self) -> None:
-        """Разные пары (компонент, версия) всегда дают различающиеся заголовки страниц."""
-        pairs = [
-            ("openssl", "3.0.9"),  # из openssl.properties
-            ("patchelf", "0.16.1"),  # из patchelf.properties
-            ("patchelf", "0.18.0"),  # тот же компонент, другая версия
-            ("sqlite3", "3.51.2"),  # из sqlite3.properties
-            ("nlohmann_json", "3.9.1"),  # из nlohmann_json.properties
-        ]
-        titles = [PassportsStrategy._make_page_title(comp, ver) for comp, ver in pairs]
-        assert len(titles) == len(set(titles)), f"Duplicate titles detected: {titles}"
+@pytest.mark.business_logic
+def test_publish_one_continues_when_get_page_body_raises(
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """Если получение тела существующей страницы падает с ConfluenceError,
+    публикация паспорта всё равно продолжается и завершается успешно
+    (устойчивость _fetch_existing_body: страница публикуется без legacy-контента)."""
+    mocker.patch.object(
+        PageHierarchyManager,
+        "ensure_hierarchy_exists",
+        return_value=_VERSION_PAGE_ID,
+    )
+    mocker.patch.object(
+        PassportConverter,
+        "convert",
+        return_value=dict(_STUB_TRANSFORM_RESULT),
+    )
 
-    @pytest.mark.contract
-    def test_page_title_exact_format(self) -> None:
-        """_make_page_title возвращает 'Документация <name> <version>' — точный формат."""
-        # sqlite3/3.51.2 из sqlite3.properties (версии: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
-        assert (
-            PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
-        )
-        # patchelf/0.18.0 из patchelf.properties
-        assert (
-            PassportsStrategy._make_page_title("patchelf", "0.18.0")
-            == "Документация patchelf 0.18.0"
-        )
+    class FailingBodyClient(FakeConfluenceClient):
+        def get_page_body(self, space, title, parent_id=None):
+            raise ConfluenceError("не удалось получить тело страницы")
 
-    @pytest.mark.contract
-    def test_passports_strategy_build_pages_map_structure(self) -> None:
-        """_build_pages_map строит вложенную структуру {comp: {version: {...}}}."""
-        details = [
-            {
-                "component_name": "openssl",
-                "release_version": "1.0.0",
-                "page_title": "T",
-                "page_id": "p-1",
-                "version": 1,
-                "status": "created",
-            }
-        ]
-        result = PassportsStrategy._build_pages_map(details)
-        assert "openssl" in result
-        assert "1.0.0" in result["openssl"]
-        entry = result["openssl"]["1.0.0"]
-        assert entry["page_id"] == "p-1"
-        assert entry["page_title"] == "T"
-        assert entry["version"] == 1
+    strategy = make_passports_strategy(
+        FailingBodyClient(),
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+    )
+    report = strategy.execute()
+
+    assert report.pages_failed == 0, "сбой get_page_body не должен приводить к неудаче публикации"
+    assert report.pages_published >= 1
+
+
+# _make_page_title / _build_pages_map (статические хелперы)
+@pytest.mark.business_logic
+def test_page_title_is_unique_for_different_component_release_pairs() -> None:
+    """Разные пары (компонент, версия) всегда дают различающиеся заголовки страниц."""
+    pairs = [
+        ("openssl", "3.0.9"),  # из openssl.properties
+        ("patchelf", "0.16.1"),  # из patchelf.properties
+        ("patchelf", "0.18.0"),  # тот же компонент, другая версия
+        ("sqlite3", "3.51.2"),  # из sqlite3.properties
+        ("nlohmann_json", "3.9.1"),  # из nlohmann_json.properties
+    ]
+    titles = [PassportsStrategy._make_page_title(comp, ver) for comp, ver in pairs]
+    assert len(titles) == len(set(titles)), f"Duplicate titles detected: {titles}"
+
+
+@pytest.mark.contract
+def test_page_title_exact_format() -> None:
+    """_make_page_title возвращает 'Документация <name> <version>' — точный формат."""
+    # openssl/1.0.0 — базовый случай
+    assert (
+        PassportsStrategy._make_page_title("openssl", "1.0.0") == "Документация openssl 1.0.0"
+    )
+    # sqlite3/3.51.2 из sqlite3.properties (версии: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
+    assert (
+        PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
+    )
+    # patchelf/0.18.0 из patchelf.properties
+    assert (
+        PassportsStrategy._make_page_title("patchelf", "0.18.0")
+        == "Документация patchelf 0.18.0"
+    )
+
+
+@pytest.mark.contract
+def test_passports_strategy_build_pages_map_structure() -> None:
+    """_build_pages_map строит вложенную структуру {comp: {version: {...}}}."""
+    details = [
+        {
+            "component_name": "openssl",
+            "release_version": "1.0.0",
+            "page_title": "T",
+            "page_id": "p-1",
+            "version": 1,
+            "status": "created",
+        }
+    ]
+    result = PassportsStrategy._build_pages_map(details)
+    assert "openssl" in result
+    assert "1.0.0" in result["openssl"]
+    entry = result["openssl"]["1.0.0"]
+    assert entry["page_id"] == "p-1"
+    assert entry["page_title"] == "T"
+    assert entry["version"] == 1
 
 
 _BL_PS_VERSION_PAGE_ID = "bl-ps-ver-page-001"
-_BL_PS_TRANSFORM_RESULT: dict = {
-    "platform_version": "2.0",
-    "component": {"name": "openssl"},
-    "release": {"version": "1.0.0"},
-    "legacy_contents": {},
-}
 
 
 @pytest.mark.business_logic
@@ -339,7 +313,7 @@ def test_one_page_per_component_release_combination(
     mocker.patch.object(
         PassportConverter,
         "convert",
-        return_value=dict(_BL_PS_TRANSFORM_RESULT),
+        return_value=dict(_STUB_TRANSFORM_RESULT),
     )
 
     client = FakeConfluenceClient()
@@ -393,7 +367,7 @@ def test_registry_saved_after_all_pages_published(
     mocker.patch.object(
         PassportConverter,
         "convert",
-        return_value=dict(_BL_PS_TRANSFORM_RESULT),
+        return_value=dict(_STUB_TRANSFORM_RESULT),
     )
 
     client = FakeConfluenceClient()
@@ -465,7 +439,7 @@ def test_failure_of_one_page_does_not_stop_others(
         call_count[0] += 1
         if call_count[0] == 1:
             raise ValueError("Simulated failure on first passport page")
-        return dict(_BL_PS_TRANSFORM_RESULT)
+        return dict(_STUB_TRANSFORM_RESULT)
 
     mocker.patch.object(PassportConverter, "convert", side_effect=convert_side_effect)
 
@@ -508,7 +482,7 @@ def test_one_passport_publish_failure_isolated_from_others(
     mocker.patch.object(
         PassportConverter,
         "convert",
-        return_value=dict(_BL_PS_TRANSFORM_RESULT),
+        return_value=dict(_STUB_TRANSFORM_RESULT),
     )
 
     call_count: list[int] = [0]
@@ -570,7 +544,7 @@ def test_report_pages_published_count_equals_successful_pages(
     mocker.patch.object(
         PassportConverter,
         "convert",
-        return_value=dict(_BL_PS_TRANSFORM_RESULT),
+        return_value=dict(_STUB_TRANSFORM_RESULT),
     )
 
     strategy = PassportsStrategy(
@@ -775,7 +749,7 @@ def test_hierarchy_created_for_each_component(
     mocker.patch.object(
         PassportConverter,
         "convert",
-        return_value=dict(_BL_PS_TRANSFORM_RESULT),
+        return_value=dict(_STUB_TRANSFORM_RESULT),
     )
 
     strategy = PassportsStrategy(

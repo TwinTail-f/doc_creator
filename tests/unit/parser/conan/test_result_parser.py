@@ -212,7 +212,11 @@ def test_result_parser_nlohmann_json_null_package_id(
     nlohmann_json_graph: dict[str, Any],
     nlohmann_task: ConanTask,
 ) -> None:
-    """nlohmann_json возвращает SHA1 NULL_PACKAGE_ID, характерный для header-only библиотек."""
+    """nlohmann_json возвращает SHA1 NULL_PACKAGE_ID, характерный для header-only библиотек.
+
+    NULL_PACKAGE_ID — это SHA1 пустой строки; Conan использует его как package_id
+    для header-only компонентов, у которых нет бинарного пакета для конкретного профиля.
+    """
     result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
 
     assert result is not None
@@ -399,18 +403,6 @@ def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> No
 
     assert result is not None
     assert result.default_options == []
-
-
-@pytest.mark.business_logic
-def test_result_parser_nlohmann_json_package_id_equals_null_sha1(
-    nlohmann_json_graph: dict[str, Any],
-    nlohmann_task: ConanTask,
-) -> None:
-    """Значение NULL_PACKAGE_ID является SHA1 пустой строки — подтверждает определение header-only."""
-    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
-    assert result is not None
-    assert result.package_id == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-    assert len(result.package_id) == 40
 
 
 @pytest.mark.business_logic

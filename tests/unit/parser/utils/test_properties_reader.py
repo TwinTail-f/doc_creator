@@ -62,31 +62,26 @@ def test_properties_reader_file_without_trailing_newline(tmp_path: Path) -> None
 
 
 @pytest.mark.business_logic
-def test_properties_reader_detect_separator_equals(tmp_path: Path) -> None:
-    """Строки вида 'key=value' используют '=' в качестве разделителя."""
+@pytest.mark.parametrize(
+    "sep",
+    [
+        # '=' — новый формат манифестов
+        pytest.param(_SEP_EQ, id="equals"),
+        # ':' — устаревший формат
+        pytest.param(_SEP_COLON, id="colon"),
+    ],
+)
+def test_properties_reader_detect_separator(tmp_path: Path, sep: str) -> None:
+    """Строки вида 'key<sep>value' используют <sep> в качестве разделителя ключ-значение."""
     props_file: Path = tmp_path / "component.properties"
     props_file.write_text(
-        f"{_KEY_NAME}=mylib\n{_KEY_VERSION}=1.0.0\n",
+        f"{_KEY_NAME}{sep}mylib\n{_KEY_VERSION}{sep}1.0.0\n",
         encoding="utf-8",
     )
     result: dict[str, str] = read_properties(props_file)
     assert result[_KEY_NAME] == "mylib"
     assert result[_KEY_VERSION] == "1.0.0"
-    assert _detect_separator(f"{_KEY_NAME}=mylib") == _SEP_EQ
-
-
-@pytest.mark.business_logic
-def test_properties_reader_detect_separator_colon(tmp_path: Path) -> None:
-    """Строки вида 'key:value' используют ':' в качестве разделителя (устаревший формат)."""
-    props_file: Path = tmp_path / "component.properties"
-    props_file.write_text(
-        f"{_KEY_NAME}:mylib\n{_KEY_VERSION}:1.0.0\n",
-        encoding="utf-8",
-    )
-    result: dict[str, str] = read_properties(props_file)
-    assert result[_KEY_NAME] == "mylib"
-    assert result[_KEY_VERSION] == "1.0.0"
-    assert _detect_separator(f"{_KEY_NAME}:mylib") == _SEP_COLON
+    assert _detect_separator(f"{_KEY_NAME}{sep}mylib") == sep
 
 
 @pytest.mark.business_logic

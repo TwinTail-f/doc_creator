@@ -16,7 +16,6 @@ CI_PREFIX_V2: str = "/ci-2.0/"
 CI_PREFIX_V16: str = "/ci-1.6/"
 
 PATH_V2_TECH: str = "/repo/ci-2.0/tech/options.json"
-PATH_V16_TECH: str = "/repo/ci-1.6/tech/options.json"
 PATH_OTHER: str = "/repo/other/options.json"
 
 
@@ -27,93 +26,156 @@ def options_dir(resources_dir: Path) -> Path:
 
 
 @pytest.mark.business_logic
-def test_select_ci_prefix_uses_ci_16_alone() -> None:
-    """select_ci_prefix возвращает '/ci-1.6/', если присутствуют только пути ci-1.6."""
-    paths = ["/conan/ci-1.6/options.json"]
-    result = OptionsParser.select_ci_prefix(paths)
-    assert result == CI_PREFIX_V16
-
-
-@pytest.mark.business_logic
-def test_select_ci_prefix_no_match_returns_empty_string() -> None:
-    """select_ci_prefix возвращает '', если ни одна из известных CI-директорий не найдена."""
-    result = OptionsParser.select_ci_prefix([PATH_OTHER])
-    assert result == ""
-
-
-@pytest.mark.business_logic
-def test_select_ci_prefix_empty_list_returns_empty_string() -> None:
-    """select_ci_prefix возвращает '' для пустого списка путей."""
-    result = OptionsParser.select_ci_prefix([])
-    assert result == ""
-
-
-@pytest.mark.integration
-def test_parse_file_apr_single_option(options_dir: Path) -> None:
-    """parse_file на apr_options.json возвращает словарь из 1 записи 'apr:shared=True'."""
-    text = (options_dir / "apr_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-1.6/options.json",
-        ci_prefix=CI_PREFIX_V16,
-    )
-    # Глобальный файл (нет поддиректории после ci-префикса) -> channel is None
-    assert channel is None
-    assert cleaned == {"1": "apr:shared=True"}
+@pytest.mark.parametrize(
+    "paths, expected",
+    [
+        # только ci-1.6 -> выбирается единственный присутствующий префикс
+        pytest.param(["/conan/ci-1.6/options.json"], CI_PREFIX_V16, id="ci16-alone"),
+        # только ci-2.0 -> выбирается единственный присутствующий префикс
+        pytest.param(["/conan/ci-2.0/options.json"], CI_PREFIX_V2, id="ci20-alone"),
+        # ни одна из известных CI-директорий не найдена -> пустая строка
+        pytest.param([PATH_OTHER], "", id="no-match"),
+        # пустой список путей -> пустая строка
+        pytest.param([], "", id="empty-list"),
+        # присутствуют оба префикса -> ci-2.0 приоритетнее ci-1.6 независимо от порядка путей
+        pytest.param(
+            [
+                "/components/mylib/ci-1.6/global/options.json",
+                "/components/mylib/ci-2.0/global/options.json",
+            ],
+            CI_PREFIX_V2,
+            id="both-present-ci20-preferred",
+        ),
+    ],
+)
+def test_select_ci_prefix(paths: list[str], expected: str) -> None:
+    """select_ci_prefix выбирает CI-директорию по приоритету ci-2.0 > ci-1.6, либо '' при отсутствии совпадений."""
+    assert OptionsParser.select_ci_prefix(paths) == expected
 
 
 @pytest.mark.integration
-def test_parse_file_sqlite3_fast_five_options(options_dir: Path) -> None:
-    """parse_file на sqlite3_fast_options.json возвращает словарь из 5 записей; ключ '5' содержит 'with_icu'."""
-    text = (options_dir / "sqlite3_fast_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-2.0/fast/options.json",
-        ci_prefix=CI_PREFIX_V2,
-    )
-    assert channel == "fast"
-    assert len(cleaned) == 5
-    assert "with_icu" in cleaned["5"]
-
-
-@pytest.mark.integration
-def test_parse_file_sqlite3_slow_twelve_options(options_dir: Path) -> None:
-    """parse_file на sqlite3_slow_options.json возвращает словарь из 12 записей; ключ '12' содержит 'with_icu'."""
-    text = (options_dir / "sqlite3_slow_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-1.6/slow/options.json",
-        ci_prefix=CI_PREFIX_V16,
-    )
-    assert channel == "slow"
-    assert len(cleaned) == 12
-    assert "with_icu" in cleaned["12"]
-
-
-@pytest.mark.integration
-def test_parse_file_icu_fast_two_options(options_dir: Path) -> None:
-    """parse_file на icu_fast_options.json возвращает словарь из 2 записей; '2' == 'icu:mobile=True'."""
-    text = (options_dir / "icu_fast_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-1.6/fast/options.json",
-        ci_prefix=CI_PREFIX_V16,
-    )
-    assert channel == "fast"
-    assert len(cleaned) == 2
-    assert cleaned["2"] == "icu:mobile=True"
-
-
-@pytest.mark.integration
-def test_parse_file_nlohmann_single_empty_option(options_dir: Path) -> None:
-    """parse_file на nlohmann_json_options.json возвращает {'1': ''} для header-only компонента."""
-    text = (options_dir / "nlohmann_json_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-2.0/options.json",
-        ci_prefix=CI_PREFIX_V2,
-    )
-    assert cleaned == {"1": ""}
+@pytest.mark.parametrize(
+    "filename, opt_path, ci_prefix, expected_channel, expected_cleaned",
+    [
+        # apr: единственный глобальный options.json без поддиректории канала (ci-1.6)
+        pytest.param(
+            "apr_options.json",
+            "/conan/ci-1.6/options.json",
+            CI_PREFIX_V16,
+            None,
+            {"1": "apr:shared=True"},
+            id="apr-ci16-global",
+        ),
+        # sqlite3 fast: options.json в поддиректории канала ci-2.0/fast, 5 записей
+        pytest.param(
+            "sqlite3_fast_options.json",
+            "/conan/ci-2.0/fast/options.json",
+            CI_PREFIX_V2,
+            "fast",
+            {
+                "1": "",
+                "2": "sqlite3:enable_json1=True",
+                "3": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True",
+                "4": (
+                    "sqlite3:RTree_patch_enable=True, sqlite3:enable_json1=True, "
+                    "sqlite3:enable_fts3=True, sqlite3:enable_fts5=True, "
+                    "sqlite3:enable_dbstat_vtab=True, sqlite3:enable_explain_comments=True"
+                ),
+                "5": "sqlite3:with_icu=True",
+            },
+            id="sqlite3-ci20-fast",
+        ),
+        # sqlite3 slow: options.json в поддиректории канала ci-1.6/slow, 12 записей
+        pytest.param(
+            "sqlite3_slow_options.json",
+            "/conan/ci-1.6/slow/options.json",
+            CI_PREFIX_V16,
+            "slow",
+            {
+                "1": "",
+                "2": "sqlite3:shared=True",
+                "3": "sqlite3:enable_json1=True",
+                "4": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True",
+                "5": "sqlite3:enable_json1=True, sqlite3:shared=True",
+                "6": "sqlite3:shared=True, sqlite3:RTree_patch_enable=True",
+                "7": (
+                    "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True, "
+                    "sqlite3:shared=True"
+                ),
+                "8": "sqlite3:shared=True, sqlite3:strip_binary=True",
+                "9": "sqlite3:enable_json1=True, sqlite3:shared=True, sqlite3:strip_binary=True",
+                "10": (
+                    "sqlite3:shared=True, sqlite3:RTree_patch_enable=True, "
+                    "sqlite3:strip_binary=True"
+                ),
+                "11": (
+                    "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True, "
+                    "sqlite3:shared=True, sqlite3:strip_binary=True"
+                ),
+                "12": "sqlite3:with_icu=True",
+            },
+            id="sqlite3-ci16-slow",
+        ),
+        # icu fast: options.json в поддиректории канала ci-1.6/fast, 2 записи
+        pytest.param(
+            "icu_fast_options.json",
+            "/conan/ci-1.6/fast/options.json",
+            CI_PREFIX_V16,
+            "fast",
+            {"1": "", "2": "icu:mobile=True"},
+            id="icu-ci16-fast",
+        ),
+        # nlohmann_json: плоский ci-2.0/options.json (без поддиректории канала), header-only компонент
+        pytest.param(
+            "nlohmann_json_options.json",
+            "/conan/ci-2.0/options.json",
+            CI_PREFIX_V2,
+            None,
+            {"1": ""},
+            id="nlohmann-ci20-global",
+        ),
+        # patchelf: плоский ci-1.6/options.json (без поддиректории канала)
+        pytest.param(
+            "patchelf_options.json",
+            "/conan/ci-1.6/options.json",
+            CI_PREFIX_V16,
+            None,
+            {"1": ""},
+            id="patchelf-ci16-global",
+        ),
+        # openssl: options.json в поддиректории канала ci-2.0/trusted
+        pytest.param(
+            "openssl_options.json",
+            "/ci-2.0/trusted/options.json",
+            CI_PREFIX_V2,
+            "trusted",
+            {"1": "", "2": "openssl:shared=True"},
+            id="openssl-ci20-trusted",
+        ),
+        # zlib: options.json в поддиректории канала ci-2.0/fast, единственная пустая опция
+        pytest.param(
+            "zlib_options.json",
+            "/ci-2.0/fast/options.json",
+            CI_PREFIX_V2,
+            "fast",
+            {"1": ""},
+            id="zlib-ci20-fast",
+        ),
+    ],
+)
+def test_parse_file_real_options_files(
+    options_dir: Path,
+    filename: str,
+    opt_path: str,
+    ci_prefix: str,
+    expected_channel: str | None,
+    expected_cleaned: dict[str, str],
+) -> None:
+    """parse_file на реальных options.json из resources/options/ возвращает ожидаемые channel и cleaned."""
+    text = (options_dir / filename).read_text(encoding="utf-8")
+    channel, cleaned = OptionsParser.parse_file(text, opt_path=opt_path, ci_prefix=ci_prefix)
+    assert channel == expected_channel
+    assert cleaned == expected_cleaned
 
 
 @pytest.mark.business_logic
@@ -141,17 +203,6 @@ def test_parse_file_empty_json_object() -> None:
         ci_prefix=CI_PREFIX_V2,
     )
     assert cleaned == {}
-
-
-@pytest.mark.business_logic
-def test_parse_file_no_channel_segment_returns_none() -> None:
-    """parse_file возвращает channel=None, если после CI-префикса нет поддиректории."""
-    channel, _ = OptionsParser.parse_file(
-        '{"1": "shared=True"}',
-        opt_path="/repo/ci-2.0/options.json",
-        ci_prefix=CI_PREFIX_V2,
-    )
-    assert channel is None
 
 
 @pytest.mark.business_logic
@@ -189,89 +240,61 @@ def test_pick_options_selects_channel_specific_over_global() -> None:
 
 
 @pytest.mark.business_logic
-def test_pick_options_falls_back_to_global_when_no_channel_match() -> None:
-    """pick_options возвращает глобальную запись, если запрошенный канал отсутствует."""
-    repo_data = {
-        "global": {"1": "apr:shared=True"},
-        "channels": {},
-    }
-    result = OptionsParser.pick_options(repo_data, "tech")
-    assert result == {"1": "apr:shared=True"}
+@pytest.mark.parametrize(
+    "repo_data, channel, expected",
+    [
+        # запрошенный канал отсутствует среди channels -> используется global
+        pytest.param(
+            {"global": {"1": "apr:shared=True"}, "channels": {}},
+            "tech",
+            {"1": "apr:shared=True"},
+            id="no-channel-match-uses-global",
+        ),
+        # тот же случай отсутствия канала, но с другим содержимым global (кейс patchelf)
+        pytest.param(
+            {"global": {"1": ""}, "channels": {}},
+            "tech",
+            {"1": ""},
+            id="no-channel-match-uses-global-patchelf",
+        ),
+        # channel — пустая строка, среди channels есть только непустые ключи -> используется global
+        pytest.param(
+            {"channels": {"tech": {"1": "x"}}, "global": {"1": "y"}},
+            "",
+            {"1": "y"},
+            id="empty-channel-uses-global",
+        ),
+    ],
+)
+def test_pick_options_falls_back_to_global(
+    repo_data: dict, channel: str, expected: dict[str, str]
+) -> None:
+    """pick_options возвращает global, если запрошенный канал отсутствует среди channels."""
+    assert OptionsParser.pick_options(repo_data, channel) == expected
 
 
 @pytest.mark.business_logic
-def test_pick_options_returns_default_when_no_data() -> None:
-    """pick_options возвращает {'1': ''}, если repo_data пуст."""
-    result = OptionsParser.pick_options({}, "fast")
-    assert result == {"1": ""}
-
-
-@pytest.mark.business_logic
-def test_pick_options_empty_channel_uses_global() -> None:
-    """pick_options возвращается к global, если channel — пустая строка."""
-    data: dict = {"channels": {"tech": {"1": "x"}}, "global": {"1": "y"}}
-    result = OptionsParser.pick_options(data, "")
-    assert result == {"1": "y"}
-
-
-@pytest.mark.integration
-def test_options_parser_parses_real_openssl_options(resources_dir: Path) -> None:
-    """OptionsParser.parse_file читает реальный options.json openssl и возвращает корректный маппинг."""
-    options_file = resources_dir / "options" / "openssl_options.json"
-    text = options_file.read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text, opt_path="/ci-2.0/trusted/options.json", ci_prefix=CI_PREFIX_V2
-    )
-    assert channel == "trusted"
-    assert "1" in cleaned
-    assert cleaned["1"] == ""
-    assert "2" in cleaned
-    assert cleaned["2"] == "openssl:shared=True"
-
-
-@pytest.mark.integration
-def test_options_parser_parses_zlib_single_empty_option(resources_dir: Path) -> None:
-    """OptionsParser.parse_file корректно обрабатывает файл с одной пустой опцией."""
-    options_file = resources_dir / "options" / "zlib_options.json"
-    text = options_file.read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text, opt_path="/ci-2.0/fast/options.json", ci_prefix=CI_PREFIX_V2
-    )
-    assert channel == "fast"
-    assert "1" in cleaned
-    assert cleaned["1"] == ""
-
-
-@pytest.mark.business_logic
-def test_select_ci_prefix_uses_ci_20_alone() -> None:
-    """select_ci_prefix возвращает '/ci-2.0/', если присутствуют только пути ci-2.0 (без ci-1.6)."""
-    paths = ["/conan/ci-2.0/options.json"]
-    result = OptionsParser.select_ci_prefix(paths)
-    assert result == CI_PREFIX_V2
-
-
-@pytest.mark.integration
-def test_parse_file_patchelf_ci16_flat_global(options_dir: Path) -> None:
-    """patchelf использует ci-1.6/options.json (без поддиректории канала); channel is None, 1 запись."""
-    text = (options_dir / "patchelf_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-1.6/options.json",
-        ci_prefix=CI_PREFIX_V16,
-    )
-    assert channel is None
-    assert cleaned == {"1": ""}
-
-
-@pytest.mark.business_logic
-def test_pick_options_tech_channel_falls_back_to_global_ci16() -> None:
-    """pick_options с channel='tech' и без ключа 'tech' возвращает глобальную запись (случай patchelf)."""
-    repo_data = {
-        "global": {"1": ""},
-        "channels": {},
-    }
-    result = OptionsParser.pick_options(repo_data, "tech")
-    assert result == {"1": ""}
+@pytest.mark.parametrize(
+    "opt_path, ci_prefix, expected_channel",
+    [
+        # нет поддиректории после ci-префикса -> канал не определён
+        pytest.param("/repo/ci-2.0/options.json", CI_PREFIX_V2, None, id="no-channel-segment"),
+        # канал извлекается из поддиректории после ci-2.0/
+        pytest.param(
+            "/conan/ci-2.0/fast/options.json", CI_PREFIX_V2, "fast", id="ci20-channel-fast"
+        ),
+        # канал извлекается из поддиректории после ci-1.6/
+        pytest.param(
+            "/conan/ci-1.6/slow/options.json", CI_PREFIX_V16, "slow", id="ci16-channel-slow"
+        ),
+    ],
+)
+def test_parse_file_channel_extraction(
+    opt_path: str, ci_prefix: str, expected_channel: str | None
+) -> None:
+    """parse_file извлекает имя канала из первой поддиректории после ci-префикса, либо None при её отсутствии."""
+    channel, _ = OptionsParser.parse_file('{"1": ""}', opt_path=opt_path, ci_prefix=ci_prefix)
+    assert channel == expected_channel
 
 
 @pytest.mark.business_logic
@@ -290,28 +313,6 @@ def test_pick_options_sqlite3_fast_selected_over_slow() -> None:
 
 
 @pytest.mark.business_logic
-def test_parse_file_channel_extracted_from_ci20_path() -> None:
-    """parse_file корректно извлекает канал 'fast' из пути /ci-2.0/fast/options.json."""
-    channel, _ = OptionsParser.parse_file(
-        '{"1": ""}',
-        opt_path="/conan/ci-2.0/fast/options.json",
-        ci_prefix=CI_PREFIX_V2,
-    )
-    assert channel == "fast"
-
-
-@pytest.mark.business_logic
-def test_parse_file_channel_extracted_from_ci16_path() -> None:
-    """parse_file корректно извлекает канал 'slow' из пути /ci-1.6/slow/options.json."""
-    channel, _ = OptionsParser.parse_file(
-        '{"1": ""}',
-        opt_path="/conan/ci-1.6/slow/options.json",
-        ci_prefix=CI_PREFIX_V16,
-    )
-    assert channel == "slow"
-
-
-@pytest.mark.business_logic
 def test_pick_options_apr_global_returned_for_any_channel() -> None:
     """pick_options возвращает глобальные опции apr независимо от запрошенного канала.
 
@@ -326,41 +327,6 @@ def test_pick_options_apr_global_returned_for_any_channel() -> None:
     for channel in ("fast", "slow", "tech", ""):
         result = OptionsParser.pick_options(repo_data, channel)
         assert result == {"1": "apr:shared=True"}, f"failed for channel={channel!r}"
-
-
-@pytest.mark.integration
-def test_parse_file_nlohmann_ci20_flat_returns_none_channel(options_dir: Path) -> None:
-    """Плоский nlohmann_json ci-2.0/options.json возвращает channel=None и одну пустую запись."""
-    text = (options_dir / "nlohmann_json_options.json").read_text(encoding="utf-8")
-    channel, cleaned = OptionsParser.parse_file(
-        text,
-        opt_path="/conan/ci-2.0/options.json",
-        ci_prefix=CI_PREFIX_V2,
-    )
-    assert channel is None
-    assert len(cleaned) == 1
-    assert cleaned.get("1") == ""
-
-
-@pytest.mark.business_logic
-def test_pick_options_missing_global_key_returns_default() -> None:
-    """pick_options возвращает {'1': ''}, если в repo_data есть channels, но нет ключа 'global'."""
-    repo_data = {"channels": {"fast": {"1": "x=True"}}}
-    result = OptionsParser.pick_options(repo_data, "slow")
-    assert result == {"1": ""}
-
-
-@pytest.mark.business_logic
-def test_ci20_preferred_over_ci16_when_both_present() -> None:
-    """select_ci_prefix выбирает ci-2.0, если присутствуют пути и ci-2.0, и ci-1.6, независимо от их порядка."""
-    paths = [
-        "/components/mylib/ci-1.6/global/options.json",
-        "/components/mylib/ci-2.0/global/options.json",
-    ]
-
-    selected = OptionsParser.select_ci_prefix(paths)
-
-    assert selected == "/ci-2.0/"
 
 
 @pytest.mark.business_logic
@@ -383,8 +349,21 @@ def test_parse_file_ci_prefix_not_in_path_raises_or_is_guarded() -> None:
 
 
 @pytest.mark.business_logic
-def test_pick_options_no_channel_match_and_none_global_returns_default() -> None:
-    """pick_options возвращает плейсхолдер {'1': ''}, если global is None и канал не найден."""
-    repo_data = {"global": None, "channels": {"fast": {"1": "x=True"}}}
-    result = OptionsParser.pick_options(repo_data, "slow")
-    assert result == {"1": ""}
+@pytest.mark.parametrize(
+    "repo_data, channel",
+    [
+        # repo_data полностью пуст
+        pytest.param({}, "fast", id="empty-repo-data"),
+        # channels присутствует и не содержит запрошенный канал, но ключ 'global' отсутствует
+        pytest.param({"channels": {"fast": {"1": "x=True"}}}, "slow", id="missing-global-key"),
+        # channels присутствует и не содержит запрошенный канал, а 'global' явно None
+        pytest.param(
+            {"global": None, "channels": {"fast": {"1": "x=True"}}},
+            "slow",
+            id="explicit-none-global",
+        ),
+    ],
+)
+def test_pick_options_returns_default_placeholder(repo_data: dict, channel: str) -> None:
+    """pick_options возвращает плейсхолдер {'1': ''}, если нет ни подходящего канала, ни данных global."""
+    assert OptionsParser.pick_options(repo_data, channel) == {"1": ""}

@@ -137,13 +137,23 @@ def test_parser_sqlite3_many_profiles(
 
 
 @pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "manifest_filename",
+    [
+        # компонент с плоским списком версий/каналов
+        pytest.param("apr.properties", id="apr"),
+        # компонент с несколькими релизами и каналами (slow/fast)
+        pytest.param("nlohmann_json.properties", id="nlohmann_json"),
+    ],
+)
 def test_parser_profile_builds_populated_as_skeletons(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
+    manifest_filename: str,
 ) -> None:
     """Каждый ProfileBuild из парсинга имеет exists=False и variants==[] (простые скелеты)."""
     components, _ = parser_20.parse(
-        [real_manifests_dir / "apr.properties"],
+        [real_manifests_dir / manifest_filename],
         component_names=[],
         filter_mode="exclude",
     )
@@ -277,23 +287,6 @@ def test_parser_nlohmann_json_fast_release_has_one_profile(
     assert fast_release is not None
     assert len(fast_release.profile_builds) == 1
     assert fast_release.profile_builds[0].profile_name == "mobile-windows-x86_64.jinja"
-
-
-@pytest.mark.integration
-def test_parser_nlohmann_json_profile_builds_are_skeletons(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """Все nlohmann_json profile_builds имеют exists=False и variants==[] после парсинга манифеста."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "nlohmann_json.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    for rel in components[0].releases:
-        for pb in rel.profile_builds:
-            assert pb.exists is False
-            assert pb.variants == []
 
 
 @pytest.mark.integration
@@ -516,64 +509,50 @@ def _minimal_manifest(
 
 
 @pytest.mark.business_logic
-def test_channel_suffix_fast_extracted(tmp_path: Path) -> None:
-    """Проверить, что строка платформы, заканчивающаяся на "-fast", даёт channel="fast"."""
-    f = _write_manifest(tmp_path, "mylib", _minimal_manifest(plat_version="2.2-fast"))
+@pytest.mark.parametrize(
+    "plat_version, profiles_key_suffix, expected_channel",
+    [
+        # суффикс "-fast" -> channel="fast"
+        pytest.param("2.2-fast", "2.2-fast", "fast", id="suffix-fast"),
+        # суффикс "-slow" -> channel="slow"
+        pytest.param("2.2-slow", "2.2-slow", "slow", id="suffix-slow"),
+        # версия платформы без дефиса -> channel=""
+        pytest.param("2.2", "2.2", "", id="no-suffix-empty-channel"),
+        # несколько дефисов -> каналом является только последний сегмент
+        pytest.param("2.2-extra-slow", "2.2-extra-slow", "slow", id="multi-dash-last-segment"),
+    ],
+)
+def test_channel_extracted_from_platform_version_suffix(
+    tmp_path: Path, plat_version: str, profiles_key_suffix: str, expected_channel: str
+) -> None:
+    """Канал релиза — это последний дефис-разделённый сегмент строки версии платформы, либо '' при его отсутствии."""
+    content = (
+        "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
+        f"versions.component=1.0\nversions.platform={plat_version}\n"
+        f"profiles-1.0-{profiles_key_suffix}=hw-linux-x86_64\n"
+    )
+    f = _write_manifest(tmp_path, "mylib", content)
     parser = ManifestParser(target_platform="2.2", tfs_collection_url="http://tfs")
     components, _ = parser.parse([f], component_names=[], filter_mode="include")
 
     assert len(components) == 1
-    assert components[0].releases[0].channel == "fast"
+    assert components[0].releases[0].channel == expected_channel
 
 
 @pytest.mark.business_logic
-def test_channel_suffix_slow_extracted(tmp_path: Path) -> None:
-    """Проверить, что строка платформы, заканчивающаяся на "-slow", даёт channel="slow"."""
-    content = _minimal_manifest(plat_version="2.2-slow")
-    f = _write_manifest(tmp_path, "mylib", content)
-    parser = ManifestParser(target_platform="2.2", tfs_collection_url="http://tfs")
-    components, _ = parser.parse([f], component_names=[], filter_mode="include")
-
-    assert components[0].releases[0].channel == "slow"
-
-
-@pytest.mark.business_logic
-def test_channel_no_suffix_gives_empty_string(tmp_path: Path) -> None:
-    """Проверить, что строка платформы без суффикса с дефисом даёт channel=""."""
-    content = _minimal_manifest(plat_version="2.2")
-    # ключ profiles также должен использовать версию платформы без суффикса
-    content = (
-        "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
-        "versions.component=1.0\nversions.platform=2.2\n"
-        "profiles-1.0-2.2=hw-linux-x86_64\n"
-    )
-    f = _write_manifest(tmp_path, "mylib", content)
-    parser = ManifestParser(target_platform="2.2", tfs_collection_url="http://tfs")
-    components, _ = parser.parse([f], component_names=[], filter_mode="include")
-
-    assert components[0].releases[0].channel == ""
-
-
-@pytest.mark.business_logic
-def test_channel_multi_dash_last_segment_is_channel(tmp_path: Path) -> None:
-    """Проверить, что для строк платформы с несколькими дефисами только последний сегмент является каналом."""
-    content = (
-        "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
-        "versions.component=1.0\nversions.platform=2.2-extra-slow\n"
-        "profiles-1.0-2.2-extra-slow=hw-linux-x86_64\n"
-    )
-    f = _write_manifest(tmp_path, "mylib", content)
-    parser = ManifestParser(target_platform="2.2", tfs_collection_url="http://tfs")
-    components, _ = parser.parse([f], component_names=[], filter_mode="include")
-
-    release = components[0].releases[0]
-    assert release.channel == "slow"
-    assert "2" not in release.channel
-
-
-@pytest.mark.business_logic
-def test_include_filter_exact_match_only(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="include" точно совпадает с названиями компонентов."""
+@pytest.mark.parametrize(
+    "filter_mode, expected_names",
+    [
+        # include с точным именем -> остаётся только 'openssl', 'openssl-extra' не совпадает
+        pytest.param("include", {"openssl"}, id="include-exact-match"),
+        # exclude с точным именем -> исключается только 'openssl', 'openssl-extra' остаётся
+        pytest.param("exclude", {"openssl-extra"}, id="exclude-exact-match"),
+    ],
+)
+def test_filter_mode_exact_match_only(
+    tmp_path: Path, filter_mode: str, expected_names: set[str]
+) -> None:
+    """filter_mode с component_names=['openssl'] точно совпадает по имени, не задевая 'openssl-extra'."""
     for name in ["openssl", "openssl-extra"]:
         content = _minimal_manifest(
             comp_name=name, git_project="P", git_repo=name, plat_version="2.2-fast"
@@ -582,16 +561,26 @@ def test_include_filter_exact_match_only(tmp_path: Path) -> None:
 
     parser = ManifestParser(target_platform="2.2")
     files = list(tmp_path.glob("*.properties"))
-    components, _ = parser.parse(files, component_names=["openssl"], filter_mode="include")
+    components, _ = parser.parse(files, component_names=["openssl"], filter_mode=filter_mode)
 
-    assert len(components) == 1
-    assert components[0].name == "openssl"
+    assert {c.name for c in components} == expected_names
 
 
 @pytest.mark.business_logic
-def test_exclude_filter_exact_match_only(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="exclude" исключает только именованный компонент точно."""
-    for name in ["openssl", "openssl-extra"]:
+@pytest.mark.parametrize(
+    "filter_mode, component_names",
+    [
+        # include с пустым списком имён -> фильтр не активен, возвращаются все компоненты
+        pytest.param("include", ["libA", "libB", "libC"], id="include-empty-list"),
+        # exclude с пустым списком имён -> исключать нечего, возвращаются все компоненты
+        pytest.param("exclude", ["libA", "libB"], id="exclude-empty-list"),
+    ],
+)
+def test_filter_mode_empty_list_returns_all_components(
+    tmp_path: Path, filter_mode: str, component_names: list[str]
+) -> None:
+    """filter_mode с пустым списком component_names возвращает все компоненты независимо от режима."""
+    for name in component_names:
         content = _minimal_manifest(
             comp_name=name, git_project="P", git_repo=name, plat_version="2.2-fast"
         )
@@ -599,43 +588,9 @@ def test_exclude_filter_exact_match_only(tmp_path: Path) -> None:
 
     parser = ManifestParser(target_platform="2.2")
     files = list(tmp_path.glob("*.properties"))
-    components, _ = parser.parse(files, component_names=["openssl"], filter_mode="exclude")
+    components, _ = parser.parse(files, component_names=[], filter_mode=filter_mode)
 
-    names = {c.name for c in components}
-    assert "openssl" not in names
-    assert "openssl-extra" in names
-
-
-@pytest.mark.business_logic
-def test_include_empty_list_returns_all_components(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="include" с пустым списком имён возвращает все компоненты."""
-    for name in ["libA", "libB", "libC"]:
-        content = _minimal_manifest(
-            comp_name=name, git_project="P", git_repo=name, plat_version="2.2-fast"
-        )
-        _write_manifest(tmp_path, name, content)
-
-    parser = ManifestParser(target_platform="2.2")
-    files = list(tmp_path.glob("*.properties"))
-    components, _ = parser.parse(files, component_names=[], filter_mode="include")
-
-    assert len(components) == 3
-
-
-@pytest.mark.business_logic
-def test_exclude_empty_list_returns_all_components(tmp_path: Path) -> None:
-    """Проверить, что filter_mode="exclude" с пустым списком имён возвращает все компоненты."""
-    for name in ["libA", "libB"]:
-        content = _minimal_manifest(
-            comp_name=name, git_project="P", git_repo=name, plat_version="2.2-fast"
-        )
-        _write_manifest(tmp_path, name, content)
-
-    parser = ManifestParser(target_platform="2.2")
-    files = list(tmp_path.glob("*.properties"))
-    components, _ = parser.parse(files, component_names=[], filter_mode="exclude")
-
-    assert len(components) == 2
+    assert len(components) == len(component_names)
 
 
 @pytest.mark.business_logic
@@ -658,8 +613,10 @@ def test_profile_builds_created_from_profiles_property(tmp_path: Path) -> None:
 
 
 @pytest.mark.business_logic
-def test_profile_builds_all_have_exists_false(tmp_path: Path) -> None:
-    """Проверить, что все объекты ProfileBuild созданные ManifestParser имеют exists=False."""
+def test_profile_builds_are_skeletons_with_exists_false_and_empty_variants(
+    tmp_path: Path,
+) -> None:
+    """Проверить, что все объекты ProfileBuild созданные ManifestParser имеют exists=False и variants=[]."""
     content = (
         "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
         "versions.component=1.0\nversions.platform=2.2-fast\n"
@@ -671,17 +628,6 @@ def test_profile_builds_all_have_exists_false(tmp_path: Path) -> None:
 
     for pb in components[0].releases[0].profile_builds:
         assert pb.exists is False
-
-
-@pytest.mark.business_logic
-def test_profile_builds_all_have_empty_variants(tmp_path: Path) -> None:
-    """Проверить, что все скелеты ProfileBuild произведённые ManifestParser имеют variants=[]."""
-    content = _minimal_manifest(plat_version="2.2-fast")
-    f = _write_manifest(tmp_path, "mylib", content)
-    parser = ManifestParser(target_platform="2.2")
-    components, _ = parser.parse([f], component_names=[], filter_mode="include")
-
-    for pb in components[0].releases[0].profile_builds:
         assert pb.variants == []
 
 

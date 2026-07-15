@@ -29,11 +29,6 @@ from tests.unit.cli.conftest import (
     write_parsed_data,
 )
 
-_NAME_FLAG: str = "--the-name-flag"
-_ID_FLAG: str = "--the-id-flag"
-
-
-
 
 @pytest.mark.infrastructure
 def test_cli_error_boundary_no_exception_completes_normally() -> None:

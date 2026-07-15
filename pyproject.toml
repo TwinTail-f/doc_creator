@@ -39,5 +39,11 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 
+[tool.coverage.run]
+source = ["autodoc"]
+omit = [
+    "*.jinja2",
+]
+
 [tool.black]
 line-length = 100

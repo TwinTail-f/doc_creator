@@ -14,11 +14,6 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 
-# Значения-дозоры, записываемые в ctx.intermediate для отслеживания порядка выполнения шагов.
-_SENTINEL_SECOND_STEP: str = "second_step_ran"
-_SENTINEL_AFTER_CRITICAL: str = "after_critical_ran"
-_SENTINEL_VALUE: str = "yes"
-
 # Сообщения об ошибках, встроенные в отказывающие шаги — используются для утверждения, что оба сообщаются.
 _ERROR_MSG_FIRST: str = "first non-critical failure"
 _ERROR_MSG_SECOND: str = "second non-critical failure"
@@ -39,11 +34,6 @@ def parser_config() -> ParserConfigSchema:
     )
 
 
-def _make_context(config: ParserConfigSchema, tmp_path: Path) -> PipelineContext:
-    """Построить пустой PipelineContext для использования в тестах сбоев."""
-    return PipelineContext(config=config, tmp_dir=tmp_path)
-
-
 class _FailingNonCriticalStep(BaseParseStep):
     """Тестовый двойник: некритичный шаг, который всегда вызывает DocGeneratorError."""
 
@@ -57,22 +47,6 @@ class _FailingNonCriticalStep(BaseParseStep):
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
         """Raise DocGeneratorError unconditionally."""
         raise DocGeneratorError(self._error_message)
-
-
-class _SentinelStep(BaseParseStep):
-    """Тестовый двойник: некритичный шаг, который записывает дозор в ctx.intermediate."""
-
-    name = "_SentinelStep"
-    is_critical = False
-
-    def __init__(self, key: str, value: str) -> None:
-        """Args: key/value записанные в ctx.intermediate при execute()."""
-        self._key = key
-        self._value = value
-
-    def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Написать пару ключ-значение дозора в ctx.intermediate."""
-        ctx.intermediate[self._key] = self._value
 
 
 class _FailingCriticalStep(BaseParseStep):

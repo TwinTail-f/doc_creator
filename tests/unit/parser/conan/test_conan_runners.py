@@ -1,6 +1,6 @@
 """Юнит-тесты для классов Conan runner.
 
-Охватывает: Conan2Runner, ConanEnvironmentManager, BaseConanRunner.
+Охватывает: Conan2Runner, ConanEnvironmentManager.
 Все вызовы subprocess.run и shutil замокированы — бинарный файл conan не требуется.
 """
 
@@ -12,7 +12,6 @@ import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
-from autodoc.parser.conan.base_conan_runner import BaseConanRunner
 from autodoc.parser.conan.conan2_runner import Conan2Runner
 from autodoc.parser.conan.conan_environment_manager import ConanEnvironmentManager
 from autodoc.parser.conan.models.conan_raw_result import ConanRawResult

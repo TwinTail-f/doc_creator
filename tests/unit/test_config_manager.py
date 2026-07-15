@@ -47,63 +47,38 @@ _VALID_CONFLUENCE_CONFIG: dict[str, Any] = {
 _PARSER_CONFIG_YAML: str = "parser_config.yaml"
 _PARSER_CONFIG_JSON: str = "parser_config.json"
 _CONFLUENCE_CONFIG_YAML: str = "confluence_config.yaml"
-_CONFLUENCE_CONFIG_JSON: str = "confluence_config.json"
-
-# Старые имена оставлены как алиасы для тестов, которые всё ещё используют JSON.
-_PARSER_CONFIG_FILENAME: str = _PARSER_CONFIG_JSON
-_CONFLUENCE_CONFIG_FILENAME: str = _CONFLUENCE_CONFIG_JSON
 
 
-def _write_yaml(directory: Path, filename: str, data: dict) -> Path:
-    """Записывает *data* в виде YAML в *directory / filename* и возвращает путь."""
-    p = directory / filename
-    p.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
-    return p
+def _dump(fmt: str, data: dict) -> str:
+    """Сериализует *data* в текст указанного формата (``json``/``yaml``/``yml``)."""
+    if fmt == "json":
+        return json.dumps(data)
+    return yaml.dump(data)
 
 
 @pytest.mark.business_logic
-def test_config_manager_loads_valid_json(tmp_path: Path) -> None:
-    """ConfigManager успешно загружает валидный конфиг парсера из .json-файла.
-
-    Проверяет базовый сценарий: определение формата JSON и валидацию по схеме.
+@pytest.mark.parametrize(
+    "filename, fmt",
+    [
+        pytest.param(_PARSER_CONFIG_JSON, "json", id="json"),
+        pytest.param(_PARSER_CONFIG_YAML, "yaml", id="yaml"),
+        pytest.param("parser_config.yml", "yaml", id="yml"),
+    ],
+)
+def test_config_manager_loads_valid_config_by_extension(
+    tmp_path: Path, filename: str, fmt: str
+) -> None:
+    """ConfigManager успешно загружает и валидирует парсер-конфиг из любого
+    поддерживаемого расширения (.json, .yaml, .yml), возвращая экземпляр
+    ParserConfigSchema, а не «сырой» dict.
     """
-    config_file: Path = tmp_path / _PARSER_CONFIG_FILENAME
-    config_file.write_text(json.dumps(_VALID_PARSER_CONFIG), encoding="utf-8")
+    config_file: Path = tmp_path / filename
+    config_file.write_text(_dump(fmt, _VALID_PARSER_CONFIG), encoding="utf-8")
 
     manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config(_PARSER_CONFIG_FILENAME)
+    result = manager.load_parser_config(filename)
 
-    assert result is not None
-
-
-@pytest.mark.business_logic
-def test_config_manager_loads_valid_yaml(tmp_path: Path) -> None:
-    """ConfigManager успешно загружает валидный конфиг парсера из .yaml-файла.
-
-    Проверяет, что определение формата YAML работает наравне с JSON.
-    """
-    config_file: Path = tmp_path / "parser_config.yaml"
-    config_file.write_text(yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8")
-
-    manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config("parser_config.yaml")
-
-    assert result is not None
-
-
-@pytest.mark.business_logic
-def test_config_manager_loads_valid_yml_extension(tmp_path: Path) -> None:
-    """ConfigManager успешно загружает валидный конфиг парсера из .yml-файла.
-
-    И .yaml, и .yml должны приниматься как валидные расширения YAML.
-    """
-    config_file: Path = tmp_path / "parser_config.yml"
-    config_file.write_text(yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8")
-
-    manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config("parser_config.yml")
-
-    assert result is not None
+    assert isinstance(result, ParserConfigSchema)
 
 
 @pytest.mark.business_logic
@@ -152,24 +127,6 @@ def test_config_manager_raises_on_file_as_configs_dir(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError):
         manager.load_raw("parser_config")
-
-
-@pytest.mark.contract
-def test_config_manager_load_parser_config_returns_correct_type(
-    tmp_path: Path,
-) -> None:
-    """load_parser_config() при успехе возвращает экземпляр ParserConfigSchema.
-
-    Защищает от случая, когда загрузчик вернёт обычный dict или схему не того
-    класса, что сломает весь код, обращающийся к конфигу через атрибуты.
-    """
-    config_file: Path = tmp_path / _PARSER_CONFIG_YAML
-    config_file.write_text(yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8")
-
-    manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config(_PARSER_CONFIG_YAML)
-
-    assert isinstance(result, ParserConfigSchema)
 
 
 @pytest.mark.contract
@@ -279,9 +236,12 @@ def test_list_example_configs_returns_empty_when_no_examples_dir(
 def test_config_manager_still_loads_json_for_backward_compatibility(
     tmp_path: Path,
 ) -> None:
-    """JSON-конфиг загружается корректно, даже когда YAML является приоритетным форматом.
+    """Конфиг в формате JSON без соседнего YAML успешно находится и загружается.
 
-    Обратная совместимость: проекты с существующими .json-конфигами не должны ломаться.
+    YAML в SUPPORTED_FORMATS стоит перед JSON (см.
+    test_config_manager_prefers_yaml_over_json_when_both_exist), но это не должно
+    означать, что автопоиск отказывается работать с JSON, когда YAML-файла попросту
+    нет: проекты с существующими .json-конфигами не должны ломаться.
     """
     config_file = tmp_path / "parser_config.json"
     config_file.write_text(json.dumps(_VALID_PARSER_CONFIG), encoding="utf-8")

@@ -2,13 +2,24 @@
 
 import pytest
 
-from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.options import TotalOptionsSet
+from autodoc.models.release import Release
+from autodoc.parser.conan.models.conan_enrichment_result import (
+    ConanEnrichmentResult,
+    ProfileConanData,
+    ReleaseConanData,
+)
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
     release_data={}, profile_data={}, errors={}
 )
+
+# NULL_PACKAGE_ID — SHA1 пустой строки (header-only компоненты)
+NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
 @pytest.mark.contract
@@ -41,20 +52,6 @@ def test_conan_step_warnings_do_not_raise(
     fake = make_fake_fetcher(value=EMPTY_CONAN_RESULT, warnings=["conan timeout"])
     step = ConanEnrichStep(fetcher=fake)
     step.execute(parser_pipeline_context)  # не должно вызывать исключений
-
-
-# NULL_PACKAGE_ID — SHA1 пустой строки (header-only компоненты)
-NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-
-from autodoc.models.component import Component
-from autodoc.models.conan_variant import ConanVariant, ProfileBuild
-from autodoc.models.release import Release
-from autodoc.parser.conan.models.conan_enrichment_result import (
-    ConanEnrichmentResult,
-    ProfileConanData,
-    ReleaseConanData,
-)
-from autodoc.models.options import TotalOptionsSet
 
 
 def _make_release_with_pb(name: str, version: str, channel: str, profile_name: str):
@@ -130,87 +127,84 @@ def _make_conan_result(
 
 
 @pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "comp_name, version, channel, profile_name, package_id, deps, expected_dependencies",
+    [
+        # patchelf/tech — обычный релиз, conan_reference устанавливается, зависимостей нет
+        pytest.param(
+            "patchelf",
+            "0.18.0",
+            "tech",
+            "crypto_alpine_gcc_x86_64.jinja",
+            "461534fe50686ce31d073dc24f005bd12e08c9fd",
+            None,
+            [],
+            id="applies-conan-results",
+        ),
+        # nlohmann_json/slow — header-only компонент (NULL_PACKAGE_ID), вариант всё равно сохраняется
+        pytest.param(
+            "nlohmann_json",
+            "3.9.1",
+            "slow",
+            "hw-linux-x86_64-gcc10_2",
+            NULL_PACKAGE_ID,
+            None,
+            [],
+            id="header-only-variant-stored",
+        ),
+        # libnetfilter_queue/slow — релиз с зависимостями, dependencies заполняется
+        pytest.param(
+            "libnetfilter_queue",
+            "1.0.5",
+            "slow",
+            "hw-linux-armv7-gcc10_2",
+            "46bf0ba807876c7591c702abfa2ba19d3133f1af",
+            ["libmnl", "libnfnetlink"],
+            ["libmnl", "libnfnetlink"],
+            id="component-with-dependencies",
+        ),
+        # apr/fast — у apr нет runtime-зависимостей, пустой список остаётся пустым
+        pytest.param(
+            "apr",
+            "1.7.6",
+            "fast",
+            "hw-linux-x86_64-gcc10_2",
+            "7741115342fe6159bd16463d6d349e4c02e33237",
+            [],
+            [],
+            id="apr-fast-no-dependencies",
+        ),
+    ],
+)
 def test_conan_step_applies_conan_results_to_components(
     parser_pipeline_context,
     make_fake_fetcher,
+    comp_name: str,
+    version: str,
+    channel: str,
+    profile_name: str,
+    package_id: str,
+    deps: list[str] | None,
+    expected_dependencies: list[str],
 ) -> None:
-    """После execute у целевого релиза установлен conan_reference (контекст изменён).
+    """После execute целевой релиз обогащён данными Conan: conan_reference установлен,
+    variants сохранены в ProfileBuild, а dependencies соответствуют данным из fetcher.
 
-    Конкретные значения полей обогащения проверяются в test_data_enricher.py.
+    Конкретные значения полей обогащения проверяются в test_data_enricher.py —
+    здесь проверяется только сквозной проход ConanEnrichStep.
     """
-    comp, rel, pb = _make_release_with_pb(
-        "patchelf", "0.18.0", "tech", "crypto_alpine_gcc_x86_64.jinja"
-    )
+    comp, rel, pb = _make_release_with_pb(comp_name, version, channel, profile_name)
     parser_pipeline_context.components = [comp]
     conan_result = _make_conan_result(
-        "patchelf",
-        "0.18.0",
-        "tech",
-        pb,
-        package_id="461534fe50686ce31d073dc24f005bd12e08c9fd",
+        comp_name, version, channel, pb, package_id=package_id, deps=deps
     )
     fake = make_fake_fetcher(value=conan_result)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
-    # Проверяется только сквозной проход: контекст изменён, исключений нет.
     assert rel.conan_reference is not None
     assert rel.conan_reference != ""
-
-
-@pytest.mark.business_logic
-def test_conan_step_header_only_component_variants_stored(
-    parser_pipeline_context,
-    make_fake_fetcher,
-) -> None:
-    """FakeFetcher возвращает вариант с NULL_PACKAGE_ID — variants сохраняются в ProfileBuild.
-
-    Конкретные значения поля package_id проверяются в test_data_enricher.py.
-    """
-    comp, rel, pb = _make_release_with_pb(
-        "nlohmann_json", "3.9.1", "slow", "hw-linux-x86_64-gcc10_2"
-    )
-    parser_pipeline_context.components = [comp]
-    conan_result = _make_conan_result(
-        "nlohmann_json",
-        "3.9.1",
-        "slow",
-        pb,
-        package_id=NULL_PACKAGE_ID,
-    )
-    fake = make_fake_fetcher(value=conan_result)
-    ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
-
-    # Проверяется только сквозной проход: variants заполнены в ProfileBuild.
     assert len(pb.variants) == 1
-
-
-@pytest.mark.business_logic
-def test_conan_step_component_with_dependencies(
-    parser_pipeline_context,
-    make_fake_fetcher,
-) -> None:
-    """FakeFetcher возвращает список deps — release.dependencies заполняется после execute.
-
-    Конкретные значения зависимостей проверяются в test_data_enricher.py.
-    """
-    comp, rel, pb = _make_release_with_pb(
-        "libnetfilter_queue", "1.0.5", "slow", "hw-linux-armv7-gcc10_2"
-    )
-    parser_pipeline_context.components = [comp]
-    conan_result = _make_conan_result(
-        "libnetfilter_queue",
-        "1.0.5",
-        "slow",
-        pb,
-        package_id="46bf0ba807876c7591c702abfa2ba19d3133f1af",
-        deps=["libmnl", "libnfnetlink"],
-    )
-    fake = make_fake_fetcher(value=conan_result)
-    ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
-
-    # Проверяется только сквозной проход: контекст изменён, dependencies не пуст.
-    assert rel.dependencies is not None
-    assert len(rel.dependencies) > 0
+    assert rel.dependencies == expected_dependencies
 
 
 @pytest.mark.contract
@@ -223,35 +217,6 @@ def test_conan_step_configure_called_before_fetch(
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
     assert fake.configure_called is True
-
-
-@pytest.mark.business_logic
-def test_conan_step_apr_fast_channel_no_dependencies(
-    parser_pipeline_context,
-    make_fake_fetcher,
-) -> None:
-    """ConanEnrichStep корректно обогащает релиз apr/fast с пустым списком зависимостей.
-
-    Использует FakeFetcher, возвращающий ConanEnrichmentResult, заранее
-    заполненный данными apr. После ConanEnrichStep.execute список
-    dependencies релиза apr должен быть пустым (у apr нет runtime-зависимостей).
-    """
-    comp, rel, pb = _make_release_with_pb("apr", "1.7.6", "fast", "hw-linux-x86_64-gcc10_2")
-    parser_pipeline_context.components = [comp]
-    conan_result = _make_conan_result(
-        "apr",
-        "1.7.6",
-        "fast",
-        pb,
-        package_id="7741115342fe6159bd16463d6d349e4c02e33237",
-        deps=[],
-    )
-    fake = make_fake_fetcher(value=conan_result)
-    ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
-
-    assert (
-        rel.dependencies == [] or rel.dependencies is None
-    ), f"Expected empty dependencies for apr, got: {rel.dependencies}"
 
 
 @pytest.mark.business_logic

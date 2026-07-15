@@ -5,14 +5,12 @@
 сбоев и структуру результата. Без subprocess и ввода/вывода.
 """
 
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
-from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
 from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser

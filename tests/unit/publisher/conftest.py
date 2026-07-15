@@ -5,9 +5,7 @@
 
 from __future__ import annotations
 
-import json
 import threading
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -160,7 +158,7 @@ class FakeDocumentBuilder:
 
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
-from autodoc.models.options import ConanInputOptions, DefaultOptionsSet, TotalOptionsSet
+from autodoc.models.options import ConanInputOptions, TotalOptionsSet
 from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 
@@ -548,57 +546,6 @@ class RecordingConfluenceClient:
     def get_page_body(self, space: str, title: str, parent_id: str | None = None) -> str:
         """Возвращает заранее заданное тело из ``existing_bodies`` или пустую строку."""
         return self._existing_bodies.get(title, " ")
-
-
-@pytest.fixture
-def recording_client() -> RecordingConfluenceClient:
-    """Свежий RecordingConfluenceClient для проверки количества и порядка publish_page."""
-    return RecordingConfluenceClient()
-
-
-@pytest.fixture
-def recording_client_with_existing_body() -> RecordingConfluenceClient:
-    """RecordingConfluenceClient, заранее заполненный телом устаревшей страницы Confluence."""
-    return RecordingConfluenceClient(
-        existing_bodies={
-            "Документация mylib 1.0": (
-                '<ac:structured-macro ac:name="tabs">'
-                '<ac:parameter ac:name="tabName">1.9</ac:parameter>'
-                "<ac:rich-text-body><p>Old platform 1.9</p></ac:rich-text-body>"
-                "</ac:structured-macro>"
-            )
-        }
-    )
-
-
-@pytest.fixture
-def fake_builder_recording():
-    """FakeDocumentBuilder, записывающий все вызовы build() с отрендеренным HTML."""
-
-    class RecordingBuilder:
-        def __init__(self) -> None:
-            self.calls: list[dict] = []
-
-        def build(self, template_name: str, view_model: dict) -> str:
-            """Записывает вызов и возвращает детерминированную строку отрендеренного HTML."""
-            self.calls.append({"template_name": template_name, "view_model": view_model})
-            return f"<html>rendered {template_name}</html>"
-
-    return RecordingBuilder()
-
-
-@pytest.fixture
-def registry_pages_map() -> dict:
-    """Минимальный словарь pages_map для тестов PassportPageRegistry.save()."""
-    return {
-        "openssl": {
-            "1.0.0": {
-                "page_id": "p-001",
-                "page_title": "Документация openssl 1.0.0",
-                "version": 1,
-            }
-        }
-    }
 
 
 @pytest.fixture

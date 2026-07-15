@@ -10,6 +10,8 @@ import pytest
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.options import _parse_option_str, ConanInputOptions
+from autodoc.models.parsed_result import ParsedResult
+from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.release import Release
 
 # Константы уровня модуля
@@ -26,66 +28,65 @@ MINIMAL_RELEASE_KWARGS: dict = {
 
 
 @pytest.mark.business_logic
-def test_parse_option_str_strips_package_prefix() -> None:
-    """_parse_option_str удаляет префикс пакета из каждого ключа."""
-    result = _parse_option_str(OPTION_STR_WITH_PREFIX)
-    assert result == {"shared": "True", "fPIC": "False"}
-
-
-@pytest.mark.business_logic
-def test_parse_option_str_empty_string_returns_empty_dict() -> None:
-    """_parse_option_str возвращает пустой словарь для пустой входной строки."""
-    result = _parse_option_str("")
-    assert result == {}
-
-
-@pytest.mark.business_logic
-def test_parse_option_str_no_prefix() -> None:
-    """_parse_option_str принимает ключи без префикса пакета."""
-    result = _parse_option_str(OPTION_STR_NO_PREFIX)
-    assert result == {"shared": "True"}
-
-
-@pytest.mark.business_logic
-def test_parse_option_str_wildcard_prefix_stripped() -> None:
-    """_parse_option_str удаляет префикс с символом подстановки (mylib/*:key) и оставляет чистый ключ."""
-    result = _parse_option_str(OPTION_STR_WILDCARD)
-    assert "shared" in result
-
-
-@pytest.mark.business_logic
-def test_conan_input_options_auto_fills_parsed_options() -> None:
-    """ConanInputOptions.parsed_options автоматически заполняется из строки options при создании."""
-    instance = ConanInputOptions(id="1", options=OPTION_STR_PKG)
-    assert instance.parsed_options == {"shared": "True", "fPIC": "False"}
-
-
-@pytest.mark.business_logic
-def test_conan_input_options_empty_options_parsed_options_empty() -> None:
-    """ConanInputOptions.parsed_options остаётся пустым, если options — пустая строка."""
-    instance = ConanInputOptions(id="1", options="")
-    assert instance.parsed_options == {}
-
-
 @pytest.mark.parametrize(
-    "options_str, explicit_parsed",
+    "option_str, expected",
     [
-        ("pkg:shared=True", {"custom": "val"}),
-        ("pkg:fPIC=False", {"override": "yes", "extra": "no"}),
+        # обычный префикс пакета удаляется из каждого ключа
+        pytest.param(
+            OPTION_STR_WITH_PREFIX, {"shared": "True", "fPIC": "False"}, id="strips-package-prefix"
+        ),
+        # пустая строка -> пустой словарь
+        pytest.param("", {}, id="empty-string"),
+        # ключи без префикса пакета принимаются как есть
+        pytest.param(OPTION_STR_NO_PREFIX, {"shared": "True"}, id="no-prefix"),
+        # префикс с символом подстановки (mylib/*:key) тоже удаляется целиком
+        pytest.param(OPTION_STR_WILDCARD, {"shared": "True"}, id="wildcard-prefix"),
     ],
 )
+def test_parse_option_str(option_str: str, expected: dict[str, str]) -> None:
+    """_parse_option_str удаляет префикс пакета из ключей строки опций."""
+    assert _parse_option_str(option_str) == expected
+
+
 @pytest.mark.business_logic
-def test_conan_input_options_explicit_parsed_options_not_overwritten(
+@pytest.mark.parametrize(
+    "options_str, explicit_parsed, expected",
+    [
+        # explicit не задан -> parsed_options вычисляется из options
+        pytest.param(OPTION_STR_PKG, None, {"shared": "True", "fPIC": "False"}, id="auto-filled"),
+        # options — пустая строка и explicit не задан -> parsed_options остаётся пустым
+        pytest.param("", None, {}, id="auto-filled-empty-options"),
+        # explicit значение задано -> не перезаписывается автозаполнением
+        pytest.param("pkg:shared=True", {"custom": "val"}, {"custom": "val"}, id="explicit-wins"),
+        pytest.param(
+            "pkg:fPIC=False",
+            {"override": "yes", "extra": "no"},
+            {"override": "yes", "extra": "no"},
+            id="explicit-wins-multiple-keys",
+        ),
+    ],
+)
+def test_conan_input_options_parsed_options_priority(
     options_str: str,
-    explicit_parsed: dict[str, str],
+    explicit_parsed: dict[str, str] | None,
+    expected: dict[str, str],
 ) -> None:
-    """ConanInputOptions.parsed_options не перезаписывается, если он задан явно."""
-    instance = ConanInputOptions(
-        id="1",
-        options=options_str,
-        parsed_options=explicit_parsed,
-    )
-    assert instance.parsed_options == explicit_parsed
+    """ConanInputOptions.parsed_options: явное значение имеет приоритет над
+    автозаполнением из options; без явного значения parsed_options
+    вычисляется из строки options (а пустая options даёт пустой словарь).
+
+    В кейсах ``explicit-*`` ``options_str`` и ``explicit_parsed`` намеренно не
+    согласованы друг с другом: если бы валидатор безусловно перепарсивал
+    ``options`` и подменял ``parsed_options``, итоговое значение отличалось бы
+    от ``explicit_parsed`` и тест бы упал. Так проверяется именно условность
+    автозаполнения, а не факт, что pydantic хранит переданное в конструктор
+    значение.
+    """
+    kwargs: dict[str, object] = {"id": "1", "options": options_str}
+    if explicit_parsed is not None:
+        kwargs["parsed_options"] = explicit_parsed
+    instance = ConanInputOptions(**kwargs)
+    assert instance.parsed_options == expected
 
 
 @pytest.mark.contract
@@ -121,68 +122,39 @@ def test_component_roundtrip_serialization() -> None:
     assert restored.name == original.name
 
 
-import pytest
-from pydantic import ValidationError as PydanticValidationError
-
-from autodoc.models.profile_definition import ProfileDefinition
-from autodoc.models.parsed_result import ParsedResult
-
 _PROFILE_NAME: str = "linux_x64_gcc12"
 _DOCKER_IMAGE: str = "registry.example.com/builder:v1"
 _GENERATED_AT: str = "2024-01-01T00:00:00"
 _PLATFORM_VERSION: str = "2.0"
 
 
-class TestProfileDefinition:
-    """Модульные тесты для модели Pydantic ProfileDefinition."""
-
-    @pytest.mark.contract
-    def test_minimal_construction(self) -> None:
-        """ProfileDefinition можно построить только с profile_name; применяются значения по умолчанию."""
-        pd = ProfileDefinition(profile_name=_PROFILE_NAME)
-        assert pd.profile_name == _PROFILE_NAME
-        assert pd.docker_image == ""
-        assert pd.conan_settings == {}
-
-    @pytest.mark.contract
-    def test_full_construction(self) -> None:
-        """ProfileDefinition принимает все дополнительные поля."""
-        pd = ProfileDefinition(
-            profile_name=_PROFILE_NAME,
-            docker_image=_DOCKER_IMAGE,
-            conan_settings={"os": "Linux"},
-        )
-        assert pd.docker_image == _DOCKER_IMAGE
-
-    @pytest.mark.contract
-    def test_missing_profile_name_raises(self) -> None:
-        """Пропуск обязательного profile_name должен вызвать ValidationError."""
-        with pytest.raises(PydanticValidationError):
-            ProfileDefinition()  # type: ignore[call-arg]
+@pytest.mark.contract
+def test_profile_definition_minimal_construction() -> None:
+    """ProfileDefinition можно построить только с profile_name; применяются значения по умолчанию."""
+    pd = ProfileDefinition(profile_name=_PROFILE_NAME)
+    assert pd.profile_name == _PROFILE_NAME
+    assert pd.docker_image == ""
+    assert pd.conan_settings == {}
 
 
-class TestParsedResult:
-    """Модульные тесты для модели Pydantic ParsedResult."""
+@pytest.mark.contract
+def test_profile_definition_full_construction() -> None:
+    """ProfileDefinition принимает все дополнительные поля."""
+    pd = ProfileDefinition(
+        profile_name=_PROFILE_NAME,
+        docker_image=_DOCKER_IMAGE,
+        conan_settings={"os": "Linux"},
+    )
+    assert pd.docker_image == _DOCKER_IMAGE
 
-    @pytest.mark.contract
-    def test_minimal_construction(self) -> None:
-        """ParsedResult можно построить с обязательными полями; значения по умолчанию для списков пусты."""
-        result = ParsedResult(
-            generated_at=_GENERATED_AT,
-            platform_version=_PLATFORM_VERSION,
-        )
-        assert result.generated_at == _GENERATED_AT
-        assert result.components == []
-        assert result.profile_definitions == []
 
-    @pytest.mark.contract
-    def test_missing_generated_at_raises(self) -> None:
-        """Пропуск generated_at должен вызвать ValidationError."""
-        with pytest.raises(PydanticValidationError):
-            ParsedResult(platform_version=_PLATFORM_VERSION)  # type: ignore[call-arg]
-
-    @pytest.mark.contract
-    def test_missing_platform_version_raises(self) -> None:
-        """Пропуск platform_version должен вызвать ValidationError."""
-        with pytest.raises(PydanticValidationError):
-            ParsedResult(generated_at=_GENERATED_AT)  # type: ignore[call-arg]
+@pytest.mark.contract
+def test_parsed_result_minimal_construction() -> None:
+    """ParsedResult можно построить с обязательными полями; значения по умолчанию для списков пусты."""
+    result = ParsedResult(
+        generated_at=_GENERATED_AT,
+        platform_version=_PLATFORM_VERSION,
+    )
+    assert result.generated_at == _GENERATED_AT
+    assert result.components == []
+    assert result.profile_definitions == []

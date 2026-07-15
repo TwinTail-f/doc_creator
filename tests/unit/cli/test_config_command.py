@@ -32,39 +32,29 @@ def _write_yaml(directory: Path, filename: str, data: dict) -> Path:
 
 
 @pytest.mark.business_logic
+@pytest.mark.parametrize(
+    ("filename", "writer"),
+    [
+        # .yaml — защита от падения команды validate на корректных входных данных
+        pytest.param("parser_config.yaml", _write_yaml, id="yaml"),
+        # .json — обратная совместимость: проекты с существующими .json конфигами
+        # не должны ломаться
+        pytest.param("parser_config.json", _write_json, id="json-backward-compat"),
+    ],
+)
 def test_cli_config_validate_exits_zero_on_valid_config(
     configs_dir: Path,
+    filename: str,
+    writer,
 ) -> None:
-    """Подкоманда validate завершается с кодом 0, если файл — синтаксически валидный YAML.
-
-    Защита от падения команды validate на корректных входных данных.
-    """
-    _write_yaml(configs_dir, "parser_config.yaml", VALID_PARSER_CONFIG)
+    """Подкоманда validate завершается с кодом 0 для валидного конфига в формате YAML или JSON."""
+    writer(configs_dir, filename, VALID_PARSER_CONFIG)
     result = CliRunner().invoke(
         cli,
-        ["--configs-dir", str(configs_dir), "config", "validate", "parser_config.yaml"],
+        ["--configs-dir", str(configs_dir), "config", "validate", filename],
     )
     assert result.exit_code == _EXIT_SUCCESS, (
         f"Ожидался код выхода 0 для валидного конфига, получено {result.exit_code}.\n"
-        f"вывод: {result.output}\nисключение: {result.exception}"
-    )
-
-
-@pytest.mark.business_logic
-def test_cli_config_validate_exits_zero_on_valid_json_config(
-    configs_dir: Path,
-) -> None:
-    """validate принимает .json файл (обратная совместимость).
-
-    Проекты с существующими .json конфигами не должны ломаться.
-    """
-    _write_json(configs_dir, "parser_config.json", VALID_PARSER_CONFIG)
-    result = CliRunner().invoke(
-        cli,
-        ["--configs-dir", str(configs_dir), "config", "validate", "parser_config.json"],
-    )
-    assert result.exit_code == _EXIT_SUCCESS, (
-        f"Ожидался код выхода 0 для валидного JSON-конфига, получено {result.exit_code}.\n"
         f"вывод: {result.output}\nисключение: {result.exception}"
     )
 
@@ -115,15 +105,25 @@ def test_cli_config_validate_error_is_human_readable(
 
 
 @pytest.mark.business_logic
+@pytest.mark.parametrize(
+    ("filenames", "writer"),
+    [
+        # Несколько JSON-файлов — команда list должна найти и показать все сразу
+        pytest.param(
+            ["config_a.json", "config_b.json"], _write_json, id="json-multiple",
+        ),
+        # .yaml файл также должен отображаться в выводе list
+        pytest.param(["parser_config.yaml"], _write_yaml, id="yaml"),
+    ],
+)
 def test_cli_config_list_shows_config_filenames(
     configs_dir: Path,
+    filenames: list[str],
+    writer,
 ) -> None:
-    """Подкоманда config list печатает имена всех JSON-файлов конфигов из configs_dir.
-
-    Проверяет, что команда list находит файлы и показывает их имена пользователю.
-    """
-    _write_json(configs_dir, "config_a.json", VALID_PARSER_CONFIG)
-    _write_json(configs_dir, "config_b.json", VALID_PARSER_CONFIG)
+    """Подкоманда config list печатает имена всех файлов конфигов из configs_dir."""
+    for filename in filenames:
+        writer(configs_dir, filename, VALID_PARSER_CONFIG)
     result = CliRunner().invoke(
         cli,
         ["--configs-dir", str(configs_dir), "config", "list"],
@@ -132,8 +132,8 @@ def test_cli_config_list_shows_config_filenames(
         f"Ожидался код выхода 0 от config list, получено {result.exit_code}.\n"
         f"вывод: {result.output}\nисключение: {result.exception}"
     )
-    assert "config_a.json" in result.output, "config_a.json отсутствует в выводе list"
-    assert "config_b.json" in result.output, "config_b.json отсутствует в выводе list"
+    for filename in filenames:
+        assert filename in result.output, f"{filename} отсутствует в выводе list"
 
 
 @pytest.mark.business_logic
@@ -152,15 +152,6 @@ def test_cli_config_list_on_empty_dir_exits_zero(
         f"Ожидался код выхода 0 для пустой директории конфигов, получено {result.exit_code}.\n"
         f"вывод: {result.output}\nисключение: {result.exception}"
     )
-
-
-@pytest.mark.business_logic
-def test_cli_config_list_shows_yaml_config_filenames(configs_dir: Path) -> None:
-    """config list отображает .yaml файлы в выводе."""
-    _write_yaml(configs_dir, "parser_config.yaml", VALID_PARSER_CONFIG)
-    result = CliRunner().invoke(cli, ["--configs-dir", str(configs_dir), "config", "list"])
-    assert result.exit_code == _EXIT_SUCCESS
-    assert "parser_config.yaml" in result.output
 
 
 @pytest.mark.business_logic

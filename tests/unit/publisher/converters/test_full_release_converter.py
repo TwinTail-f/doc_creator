@@ -34,7 +34,6 @@ def multi_result_with_unknown_profile(
     return publisher_multi_component_result.model_copy(update={"components": components})
 
 
-from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult as _ParsedResult
 
 

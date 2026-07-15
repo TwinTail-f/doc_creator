@@ -8,13 +8,9 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 
-COMP_NAME: str = "openssl"
-RELEASE_VERSION: str = "1.0.0"
 CHANNEL_TECH: str = "tech"
-PLATFORM_VERSION: str = "2.0"
 DOCKER_IMAGE: str = "registry.example.com/build/linux-gcc10:latest"
 OS_LINUX: str = "Linux"
-PASSPORT_PATTERN_SHORT: str = "/p/{component_name}/{release_version}"
 EXCLUSIVE_PROFILE_NAME: str = "header-only-exclusive-profile"
 
 

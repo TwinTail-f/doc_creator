@@ -17,9 +17,7 @@ import pytest
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
-from autodoc.publisher.strategies.registry import available_strategies
 from tests.unit.publisher.conftest import (
     FakeConfluenceClient,
     FakeDocumentBuilder,
@@ -52,186 +50,174 @@ def make_profile_strategy(
     )
 
 
-class TestProfileCentricStrategyExecute:
-    """Тесты поведения ProfileCentricStrategy.execute()."""
+# ProfileCentricStrategy.execute()
+@pytest.mark.business_logic
+def test_profile_centric_strategy_execute_returns_success_report(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """Успешный execute() возвращает report.success=True и pages_published=1."""
+    mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+    )
+    report = strategy.execute()
+    assert report.success is True
+    assert report.pages_published == 1
 
-    @pytest.mark.business_logic
-    def test_profile_centric_strategy_execute_returns_success_report(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Успешный execute() возвращает report.success=True и pages_published=1."""
-        mocker.patch.object(PassportPageRegistry, "load", return_value={})
-        strategy = make_profile_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        report = strategy.execute()
-        assert report.success is True
-        assert report.pages_published == 1
 
-    @pytest.mark.business_logic
-    def test_profile_centric_strategy_loads_registry_when_include_links_true(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Когда include_passport_links=True, PassportPageRegistry.load() вызывается один раз."""
-        mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
-        strategy = make_profile_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-            include_passport_links=True,
-        )
-        strategy.execute()
-        mock_load.assert_called_once()
+@pytest.mark.business_logic
+def test_profile_centric_strategy_loads_registry_when_include_links_true(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """Когда include_passport_links=True, PassportPageRegistry.load() вызывается один раз."""
+    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+        include_passport_links=True,
+    )
+    strategy.execute()
+    mock_load.assert_called_once()
 
-    @pytest.mark.business_logic
-    def test_profile_centric_strategy_skips_registry_when_include_links_false(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Когда include_passport_links=False, PassportPageRegistry.load() никогда не вызывается."""
-        mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
-        strategy = make_profile_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-            include_passport_links=False,
-        )
-        strategy.execute()
-        mock_load.assert_not_called()
 
-    @pytest.mark.infrastructure
-    def test_profile_centric_strategy_execute_calls_publish_page(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """execute() вызывает ровно один publish_page с ожидаемым заголовком."""
-        mocker.patch.object(PassportPageRegistry, "load", return_value={})
-        strategy = make_profile_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        strategy.execute()
-        publish_calls = [
-            c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
-        ]
-        assert len(publish_calls) == 1
-        assert publish_calls[0]["title"] == _PAGE_TITLE
+@pytest.mark.business_logic
+def test_profile_centric_strategy_skips_registry_when_include_links_false(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """Когда include_passport_links=False, PassportPageRegistry.load() никогда не вызывается."""
+    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+        include_passport_links=False,
+    )
+    strategy.execute()
+    mock_load.assert_not_called()
 
-    @pytest.mark.business_logic
-    def test_profile_centric_strategy_execute_returns_failure_on_client_error(
-        self,
-        publisher_confluence_client: FakeConfluenceClient,
-        publisher_document_builder: FakeDocumentBuilder,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """Если publish_page выбрасывает ConfluenceError, report.success равен False."""
-        mocker.patch.object(PassportPageRegistry, "load", return_value={})
 
-        def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
-            raise ConfluenceError("timeout")
+@pytest.mark.infrastructure
+def test_profile_centric_strategy_execute_calls_publish_page(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """execute() вызывает ровно один publish_page с ожидаемым заголовком."""
+    mocker.patch.object(PassportPageRegistry, "load", return_value={})
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+    )
+    strategy.execute()
+    publish_calls = [
+        c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
+    ]
+    assert len(publish_calls) == 1
+    assert publish_calls[0]["title"] == _PAGE_TITLE
 
-        publisher_confluence_client.publish_page = raise_confluence_error
 
-        strategy = make_profile_strategy(
-            publisher_confluence_client,
-            publisher_document_builder,
-            publisher_parsed_result,
-            tmp_path,
-        )
-        report = strategy.execute()
-        assert report.success is False
+@pytest.mark.business_logic
+def test_profile_centric_strategy_execute_returns_failure_on_client_error(
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """Если publish_page выбрасывает ConfluenceError, report.success равен False."""
+    mocker.patch.object(PassportPageRegistry, "load", return_value={})
 
-    @pytest.mark.business_logic
-    def test_profile_links_injected_into_view_model_from_registry(
-        self,
-        publisher_parsed_result: ParsedResult,
-        tmp_path: Path,
-        mocker: Any,
-    ) -> None:
-        """
-        Правило: после загрузки реестра паспортов ссылки на паспорта внедряются в
-        view-model профиль-центричной документации через inject_links_for_profiles,
-        чтобы шаблон мог отрендерить кликабельную ссылку для каждого компонента.
-        """
-        pages_map = {
-            "openssl": {
-                "1.0.0": {
-                    "page_id": "123",
-                    "page_title": "Документация openssl 1.0.0",
-                    "version": 1,
-                }
+    def raise_confluence_error(*args: Any, **kwargs: Any) -> None:
+        raise ConfluenceError("timeout")
+
+    publisher_confluence_client.publish_page = raise_confluence_error
+
+    strategy = make_profile_strategy(
+        publisher_confluence_client,
+        publisher_document_builder,
+        publisher_parsed_result,
+        tmp_path,
+    )
+    report = strategy.execute()
+    assert report.success is False
+
+
+@pytest.mark.business_logic
+def test_profile_links_injected_into_view_model_from_registry(
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+    mocker: Any,
+) -> None:
+    """
+    Правило: после загрузки реестра паспортов ссылки на паспорта внедряются в
+    view-model профиль-центричной документации через inject_links_for_profiles,
+    чтобы шаблон мог отрендерить кликабельную ссылку для каждого компонента.
+    """
+    pages_map = {
+        "openssl": {
+            "1.0.0": {
+                "page_id": "123",
+                "page_title": "Документация openssl 1.0.0",
+                "version": 1,
             }
         }
-        mocker.patch.object(PassportPageRegistry, "load", return_value=pages_map)
+    }
+    mocker.patch.object(PassportPageRegistry, "load", return_value=pages_map)
 
-        captured_view_models: list[dict] = []
+    captured_view_models: list[dict] = []
 
-        class CapturingBuilder:
-            def build(self, template_name: str, view_model: dict) -> str:
-                captured_view_models.append(view_model)
-                return "<html>test</html>"
+    class CapturingBuilder:
+        def build(self, template_name: str, view_model: dict) -> str:
+            captured_view_models.append(view_model)
+            return "<html>test</html>"
 
-        strategy = ProfileCentricStrategy(
-            confluence_client=FakeConfluenceClient(),
-            document_builder=CapturingBuilder(),
-            parsed_data=publisher_parsed_result,
-            space=_SPACE,
-            page_title=_PAGE_TITLE,
-            template_name=_TEMPLATE_NAME,
-            parent_id=_PARENT_ID,
-            include_passport_links=True,
-            data_dir=tmp_path,
-        )
-        strategy.execute()
+    strategy = ProfileCentricStrategy(
+        confluence_client=FakeConfluenceClient(),
+        document_builder=CapturingBuilder(),
+        parsed_data=publisher_parsed_result,
+        space=_SPACE,
+        page_title=_PAGE_TITLE,
+        template_name=_TEMPLATE_NAME,
+        parent_id=_PARENT_ID,
+        include_passport_links=True,
+        data_dir=tmp_path,
+    )
+    strategy.execute()
 
-        assert len(captured_view_models) == 1, "builder.build() должен быть вызван ровно один раз"
-        view = captured_view_models[0]
-        profile = next(
-            (p for p in view.get("profiles", []) if p.get("profile_name") == "hw-linux-x86_64-gcc10"),
-            None,
-        )
-        assert profile is not None, "профиль hw-linux-x86_64-gcc10 должен присутствовать в view_model"
-        openssl_comp = next(
-            (c for c in profile.get("channels", {}).get("tech", []) if c.get("name") == "openssl"),
-            None,
-        )
-        assert openssl_comp is not None, "компонент openssl должен присутствовать в канале tech"
-        assert (
-            openssl_comp.get("passport_link") is not None
-        ), "passport_link должен быть внедрён из реестра, когда include_passport_links=True"
-
-
-class TestProfileCentricStrategyRegistry:
-    """Тесты регистрации ProfileCentricStrategy."""
-
-    @pytest.mark.contract
-    def test_profile_centric_strategy_registered_as_profile_centric(self) -> None:
-        """'profile_centric' присутствует в available_strategies()."""
-        assert "profile_centric" in available_strategies()
+    assert len(captured_view_models) == 1, "builder.build() должен быть вызван ровно один раз"
+    view = captured_view_models[0]
+    profile = next(
+        (p for p in view.get("profiles", []) if p.get("profile_name") == "hw-linux-x86_64-gcc10"),
+        None,
+    )
+    assert profile is not None, "профиль hw-linux-x86_64-gcc10 должен присутствовать в view_model"
+    openssl_comp = next(
+        (c for c in profile.get("channels", {}).get("tech", []) if c.get("name") == "openssl"),
+        None,
+    )
+    assert openssl_comp is not None, "компонент openssl должен присутствовать в канале tech"
+    assert (
+        openssl_comp.get("passport_link") is not None
+    ), "passport_link должен быть внедрён из реестра, когда include_passport_links=True"

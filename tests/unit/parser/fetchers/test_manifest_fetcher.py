@@ -203,28 +203,6 @@ def test_manifest_fetcher_no_files_returns_empty(
         fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
 
-@pytest.mark.infrastructure
-def test_manifest_fetcher_configure_sets_tfs_client(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """После configure() внутренняя ссылка _tfs фетчера не равна None."""
-    fake_client = WritingFakeTFSClient(
-        content=(
-            "name= openssl\n"
-            "versions.component= 1.0.0\n"
-            "versions.platform= 2.0-tech\n"
-            "profiles-1.0.0-2.0-tech= hw-linux-x86_64-gcc10_2\n"
-        )
-    )
-    ctx = _make_context(parser_config, fake_client, tmp_path)
-    fetcher = ManifestFetcher()
-
-    fetcher.configure(ctx)
-
-    assert fetcher._tfs is not None
-
-
 @pytest.mark.integration
 def test_manifest_fetcher_single_version_single_channel_fast(
     parser_config: ParserConfigSchema,

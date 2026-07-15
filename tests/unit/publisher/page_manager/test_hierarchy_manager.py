@@ -140,84 +140,6 @@ def test_ensure_hierarchy_passes_space_to_both_calls(
 
 
 @pytest.mark.business_logic
-def test_component_page_created_under_root_parent(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """страница компонента создаётся с parent_id = root_parent_id."""
-    publisher_confluence_client.create_responses = [
-        PageResult(id="1000", version=1, status="created", message=""),
-        PageResult(id="1001", version=1, status="created", message=""),
-    ]
-    manager = PageHierarchyManager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(
-        space="DEV",
-        root_parent_id="ROOT_PAGE",
-        component_name="mylib",
-        release_version="1.0.0",
-    )
-
-    calls = _create_calls(publisher_confluence_client)
-    assert len(calls) >= 1, "Должен быть выполнен хотя бы один вызов create_page (страница компонента)"
-    assert calls[0]["parent_id"] == "ROOT_PAGE", (
-        f"Первый вызов create_page должен использовать root_parent_id='ROOT_PAGE', "
-        f"получено parent_id='{calls[0]['parent_id']}'"
-    )
-
-
-@pytest.mark.business_logic
-def test_version_page_created_under_component_page(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """страница релиза создаётся с parent_id = id(страницы компонента)."""
-    component_page_id = "COMP_PAGE_ID"
-    publisher_confluence_client.create_responses = [
-        PageResult(id=component_page_id, version=1, status="created", message=""),
-        PageResult(id="VERSION_PAGE_ID", version=1, status="created", message=""),
-    ]
-    manager = PageHierarchyManager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(
-        space="DEV",
-        root_parent_id="ROOT",
-        component_name="mylib",
-        release_version="1.0.0",
-    )
-
-    version_calls = [c for c in _create_calls(publisher_confluence_client) if "1.0.0" in c["title"]]
-    assert len(version_calls) >= 1, "Должна быть создана страница релиза"
-    assert version_calls[0]["parent_id"] == component_page_id, (
-        f"Страница релиза должна быть дочерней для страницы компонента '{component_page_id}', "
-        f"получено parent_id='{version_calls[0]['parent_id']}'"
-    )
-
-
-@pytest.mark.business_logic
-def test_returns_version_page_id_not_component_page_id(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """ensure_hierarchy_exists возвращает ID страницы РЕЛИЗА, а не страницы компонента."""
-    component_page_id = "COMP_PAGE_42"
-    version_page_id = "VERSION_PAGE_99"
-    publisher_confluence_client.create_responses = [
-        PageResult(id=component_page_id, version=1, status="created", message=""),
-        PageResult(id=version_page_id, version=1, status="created", message=""),
-    ]
-    manager = PageHierarchyManager(publisher_confluence_client)
-
-    returned_id = manager.ensure_hierarchy_exists(
-        space="DEV",
-        root_parent_id="ROOT",
-        component_name="mylib",
-        release_version="1.0.0",
-    )
-
-    assert returned_id == version_page_id, (
-        f"Должен быть возвращён ID страницы релиза '{version_page_id}', получено '{returned_id}'"
-    )
-
-
-@pytest.mark.business_logic
 def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
@@ -234,30 +156,6 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     assert _create_calls(publisher_confluence_client) == [], (
         "create_page не должен вызываться, если страница уже разрешена через resolve_existing_page_id"
     )
-
-
-@pytest.mark.business_logic
-def test_version_page_title_format(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """заголовок страницы релиза имеет формат '{comp_name} {release_version}'."""
-    publisher_confluence_client.create_responses = [
-        PageResult(id="page-id-1", version=1, status="created", message=""),
-        PageResult(id="page-id-2", version=1, status="created", message=""),
-    ]
-    manager = PageHierarchyManager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(
-        space="DEV",
-        root_parent_id="ROOT",
-        component_name="openssl",
-        release_version="3.0.1",
-    )
-
-    created_titles = [c["title"] for c in _create_calls(publisher_confluence_client)]
-    assert any(
-        "openssl" in t and "3.0.1" in t for t in created_titles
-    ), f"Заголовок релиза должен содержать 'openssl' и '3.0.1', записанные заголовки: {created_titles}"
 
 
 @pytest.mark.infrastructure

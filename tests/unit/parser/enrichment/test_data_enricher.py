@@ -192,13 +192,12 @@ def test_apply_conan_results_missing_release_key_unchanged() -> None:
 
 
 # make_component / make_conan_variant — фабрики, определённые в
-# tests/unit/parser/conftest.py. NULL_PACKAGE_ID определён там же.
+# tests/unit/parser/conftest.py.
 # Импортируем их явно, чтобы тесты оставались самодостаточными и
 # читались без неявной магии pytest-фикстур.
 from tests.unit.parser.conftest import (  # noqa: E402
     make_component,
     make_conan_variant,
-    NULL_PACKAGE_ID,
 )
 
 
