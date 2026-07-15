@@ -25,11 +25,6 @@ class BadgeClass(str, Enum):
 @dataclass(frozen=True, slots=True)
 class _VariantOpts:
     """Опции сборки для одного варианта Conan во view-model.
-
-    Датакласс вместо именованного кортежа — чтобы у ``default_options``
-    был безопасный дефолт: ``default_factory=dict`` создаёт новый словарь
-    на каждый экземпляр, а не один общий объект на все вызовы со значением
-    по умолчанию.
     """
 
     conan_options: dict[str, Any]
