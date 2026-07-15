@@ -84,9 +84,6 @@ def run_single_page_command(
         cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
         no_passport_links: Если ``True`` — отключает вставку ссылок на паспорта.
     """
-    if cli_root_page_name and cli_root_page_id:
-        raise click.UsageError("Укажите только один флаг: --root-page-name или --root-page-id.")
-
     cli_ctx: CliCtx = ctx.obj
 
     with cli_error_boundary(panel_header):

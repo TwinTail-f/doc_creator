@@ -1,5 +1,6 @@
 """Резолвер ссылок на корневые/родительские страницы Confluence."""
 
+from autodoc.common.logger import logger
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
@@ -7,11 +8,8 @@ from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
 class RootPageResolver:
     """
-    Резолвит ссылки на корневые/родительские страницы Confluence.
-
-    Источник значения выбирается по двум правилам: между CLI и конфигом —
-    CLI побеждает целиком парой (имя+ID), если задано хоть одно из двух;
-    внутри одного источника — название страницы приоритетнее ID.
+    Резолвит ссылки на корневые/родительские страницы Confluence, разрешая
+    конфликты между несколькими источниками значения.
     """
 
     def __init__(
@@ -58,6 +56,33 @@ class RootPageResolver:
             )
         return page.id
 
+    def _warn_name_id_conflict(
+        self,
+        source_label: str,
+        field_label: str,
+        name: str,
+        id_value: str,
+        resolved_by_name: str,
+    ) -> None:
+        """
+        Логирует несовпадение между заданными ``name`` и ``id`` одного источника.
+
+        Args:
+            source_label: Источник, в котором обнаружено несовпадение (``'CLI'``
+                          либо ``'Config'``).
+            field_label: Имя поля конфигурации, к которому относится конфликт.
+            name: Заданное название страницы.
+            id_value: Заданный ID страницы.
+            resolved_by_name: ID страницы, полученный резолвингом ``name``.
+        """
+        logger.warning(
+            "Конфликт параметров в источнике %s: '%s_name'=%r и '%s'=%r "
+            "указывают на разные страницы Confluence (id по имени: %s). "
+            "Используется значение '%s_name'.",
+            source_label, field_label, name, field_label, id_value,
+            resolved_by_name, field_label,
+        )
+
     def _resolve_root_parent(
         self,
         cli_name: str | None,
@@ -86,13 +111,25 @@ class RootPageResolver:
                          :meth:`resolve_page_id`), либо если ни имя, ни ID
                          не заданы ни через CLI, ни в конфигурации.
         """
-        name, default = (cli_name, cli_id) if (cli_name or cli_id) else (config_name, config_id)
-        resolved = self.resolve_page_id(name, default)
-        if not resolved:
+        if cli_name or cli_id:
+            source_label, name, id_value = "CLI", cli_name, cli_id
+        else:
+            source_label, name, id_value = "Config", config_name, config_id
+
+        if name and id_value:
+            resolved = self.resolve_page_id(name)
+            if resolved != id_value:
+                self._warn_name_id_conflict(source_label, field_label, name, id_value, resolved)
+        elif name:
+            resolved = self.resolve_page_id(name)
+        elif id_value:
+            resolved = id_value
+        else:
             raise ConfigError(
                 f"Необходимо указать '{field_label}_name' или '{field_label}'"
                 f" в конфигурации Confluence"
             )
+
         return resolved
 
     def resolve_passports_root(

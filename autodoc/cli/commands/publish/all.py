@@ -96,14 +96,6 @@ def publish_all(
     no_passport_links: bool,
 ) -> None:
     """Публикация паспортов, релизной документации и опционально страницы профилей за один вызов."""
-    if passports_root_parent_name and passports_root_parent_id:
-        raise click.UsageError(
-            "Укажите только один флаг: --passports-root-parent-name или --passports-root-parent-id."
-        )
-    if root_page_name and root_page_id:
-        raise click.UsageError(
-            "Укажите только один флаг: --release-root-page-name или --release-root-page-id."
-        )
     if additional_page_profile_name and not with_additional_page_profile:
         raise click.UsageError(
             "Флаг --additional-page-profile-name требует указания флага --with-additional-page-profile."

@@ -36,11 +36,6 @@ def publish_passports(
     passports_root_parent_name: str | None,
 ) -> None:
     """Публикация паспортов компонентов в виде иерархии страниц."""
-    if passports_root_parent_name and passports_root_parent_id:
-        raise click.UsageError(
-            "Укажите только один флаг: --passports-root-parent-name или --passports-root-parent-id."
-        )
-
     cli_ctx: CliCtx = ctx.obj
 
     with cli_error_boundary("🚀 Публикация паспортов компонентов"):

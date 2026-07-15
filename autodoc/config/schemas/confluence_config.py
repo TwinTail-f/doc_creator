@@ -31,18 +31,11 @@ class ConfluenceConfigSchema(BaseModel):
 
     release_docs_root_parent_id: str | None = Field(
         default=None,
-        description=(
-            "ID корневой родительской страницы релизной документации. "
-            "Используется как запасной вариант, если release_docs_root_parent_name не задан."
-        ),
+        description="ID корневой родительской страницы релизной документации.",
     )
     release_docs_root_parent_name: str | None = Field(
         default=None,
-        description=(
-            "Название корневой родительской страницы релизной документации. "
-            "Если задано — используется вместо release_docs_root_parent_id "
-            "(приоритет: release_docs_root_parent_name > release_docs_root_parent_id)."
-        ),
+        description="Название корневой родительской страницы релизной документации.",
     )
     release_docs_page_title: str | None = Field(
         default="Сборки компонентов Платформы",
@@ -54,18 +47,11 @@ class ConfluenceConfigSchema(BaseModel):
     )
     profile_docs_root_parent_id: str | None = Field(
         default=None,
-        description=(
-            "ID корневой родительской страницы профиль-центричной документации. "
-            "Используется как запасной вариант, если profile_docs_root_parent_name не задан."
-        ),
+        description="ID корневой родительской страницы профиль-центричной документации.",
     )
     profile_docs_root_parent_name: str | None = Field(
         default=None,
-        description=(
-            "Название корневой родительской страницы профиль-центричной документации. "
-            "Если задано — используется вместо profile_docs_root_parent_id "
-            "(приоритет: profile_docs_root_parent_name > profile_docs_root_parent_id)."
-        ),
+        description="Название корневой родительской страницы профиль-центричной документации.",
     )
     passports_root_parent_id: str | None = Field(
         default=None,
@@ -73,11 +59,7 @@ class ConfluenceConfigSchema(BaseModel):
     )
     passports_root_parent_name: str | None = Field(
         default=None,
-        description=(
-            "Название корневой страницы для дерева паспортов. "
-            "Если задано — используется вместо passports_root_parent_id "
-            "(приоритет: passports_root_parent_name > passports_root_parent_id)."
-        ),
+        description="Название корневой страницы для дерева паспортов.",
     )
 
     confluence_request_timeout: int = Field(
