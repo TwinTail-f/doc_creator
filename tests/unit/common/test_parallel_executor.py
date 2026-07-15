@@ -123,3 +123,35 @@ def test_parallel_executor_empty_task_list_returns_empty() -> None:
     results: list[Any] = executor.execute(lambda x: x, [])
 
     assert results == []
+
+
+@pytest.mark.business_logic
+def test_parallel_executor_negative_batch_size_raises_value_error() -> None:
+    """Конструктор отклоняет отрицательный ``batch_size``, не откатываясь на дефолт.
+
+    Отрицательный batch_size — явная ошибка вызывающего кода (сетевая операция,
+    молчаливая подмена значения недопустима), поэтому конструктор должен упасть
+    сразу, а не создать исполнитель с некорректным внутренним состоянием.
+    """
+    with pytest.raises(ValueError, match="batch_size"):
+        ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=-1)
+
+
+@pytest.mark.business_logic
+def test_parallel_executor_negative_batch_delay_raises_value_error() -> None:
+    """Конструктор отклоняет отрицательный ``batch_delay``, не откатываясь на дефолт."""
+    with pytest.raises(ValueError, match="batch_delay"):
+        ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=1, batch_delay=-0.5)
+
+
+@pytest.mark.business_logic
+def test_parallel_executor_zero_batch_size_is_valid_and_disables_batching() -> None:
+    """``batch_size=0`` (граница, а не отрицательное значение) — валидный дефолт.
+
+    Отделяет граничный случай ``== 0`` от собственно проверяемого ``< 0``:
+    ноль не должен попадать под валидацию как ошибка.
+    """
+    executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=0)
+    results: list[int | None] = executor.execute(lambda x: x, list(range(_TASK_COUNT)))
+
+    assert results == list(range(_TASK_COUNT))

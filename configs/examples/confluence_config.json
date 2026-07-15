@@ -21,7 +21,7 @@
   "confluence_request_timeout": 30,
 
   "publish_batch_size": 10,
-  "publish_batch_delay_seconds": 0.5,
+  "publish_batch_delay_seconds": 0.0,
 
   "_comment_title_conflict_policy": "Поведение при конфликте заголовков: 'error' — прервать с исключением (по умолчанию), 'move' — перенести существующую страницу под ожидаемого родителя",
   "title_conflict_policy": "error",

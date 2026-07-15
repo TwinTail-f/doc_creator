@@ -120,11 +120,11 @@ def _parse_h2_version_sections(html: HtmlOrSoup) -> dict[str, str]:
         Словарь, где ключами являются найденные версии, а значениями — их содержимое.
     """
     soup = _to_bs_obj(html)
-    headers = [
-        (h, m.group(0))
-        for h in soup.find_all(["h2", "h3"])
-        if (m := _VERSION_RE.search(h.get_text()))
-    ]
+    headers: list[tuple[Tag, str]] = []
+    for h in soup.find_all(["h2", "h3"]):
+        match = _VERSION_RE.search(h.get_text())
+        if match is not None:
+            headers.append((h, match.group(0)))
 
     sections: dict[str, str] = {}
 
