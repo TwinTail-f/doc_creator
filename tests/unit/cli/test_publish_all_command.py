@@ -172,41 +172,47 @@ def test_publish_all_profile_name_without_flag_raises_usage_error(
 
 
 @pytest.mark.contract
-def test_publish_all_passports_root_name_and_id_both_given_raises(
-    tmp_path: Path, configs_dir: Path, mocker
+@pytest.mark.parametrize(
+    "name_flag, id_flag, name_kwarg, id_kwarg",
+    [
+        # пара для паспортов
+        pytest.param(
+            "--passports-root-parent-name",
+            "--passports-root-parent-id",
+            "passports_root_parent_name",
+            "passports_root_parent_id",
+            id="passports",
+        ),
+        # пара для релизной документации
+        pytest.param(
+            "--release-root-page-name",
+            "--release-root-page-id",
+            "release_root_page_name",
+            "release_root_page_id",
+            id="release",
+        ),
+    ],
+)
+def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    name_flag: str,
+    id_flag: str,
+    name_kwarg: str,
+    id_kwarg: str,
 ) -> None:
-    """Совместное указание --passports-root-parent-name и --passports-root-parent-id приводит к UsageError."""
-    _mock_collaborators(mocker)
+    """Название и ID родительской страницы (для паспортов и отдельно для релиза) можно
+    указывать вместе: CLI их не проверяет и не отклоняет — разрешение конфликта между
+    ними (RootPageResolver._resolve_root_parent)"""
+    mock_publisher = _mock_collaborators(mocker)
 
-    result = _invoke(
-        tmp_path,
-        configs_dir,
-        "--passports-root-parent-name", "Foo",
-        "--passports-root-parent-id", "123",
-    )
+    result = _invoke(tmp_path, configs_dir, name_flag, "Foo", id_flag, "123")
 
-    assert result.exit_code != _EXIT_SUCCESS
-    assert "--passports-root-parent-name" in result.output
-    assert "--passports-root-parent-id" in result.output
-
-
-@pytest.mark.contract
-def test_publish_all_release_root_name_and_id_both_given_raises(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
-    """Совместное указание --release-root-page-name и --release-root-page-id приводит к UsageError."""
-    _mock_collaborators(mocker)
-
-    result = _invoke(
-        tmp_path,
-        configs_dir,
-        "--release-root-page-name", "Foo",
-        "--release-root-page-id", "123",
-    )
-
-    assert result.exit_code != _EXIT_SUCCESS
-    assert "--release-root-page-name" in result.output
-    assert "--release-root-page-id" in result.output
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_all.call_args.kwargs
+    assert kwargs[name_kwarg] == "Foo"
+    assert kwargs[id_kwarg] == "123"
 
 
 @pytest.mark.business_logic

@@ -111,20 +111,23 @@ def test_publish_release_page_title_precedence(
 
 
 @pytest.mark.contract
-def test_publish_release_root_id_and_name_both_given_raises(
+def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
-    """Совместное указание --root-page-id и --root-page-name приводит к UsageError через require_exclusive."""
-    _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    """--root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
+    в publish_single_page как есть; решение о приоритете и конфликте между ними принимает
+    RootPageResolver, а не эта команда."""
+    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
 
     result = _invoke(
         tmp_path, configs_dir, "release",
         "--root-page-id", "123", "--root-page-name", "Foo",
     )
 
-    assert result.exit_code != _EXIT_SUCCESS
-    assert "--root-page-id" in result.output
-    assert "--root-page-name" in result.output
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_single_page.call_args.kwargs
+    assert kwargs["root_page_name"] == "Foo"
+    assert kwargs["root_page_id"] == "123"
 
 
 @pytest.mark.business_logic

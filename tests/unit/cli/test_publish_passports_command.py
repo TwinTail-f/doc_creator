@@ -100,11 +100,13 @@ def test_publish_passports_root_parent_name_passed_through(
 
 
 @pytest.mark.contract
-def test_publish_passports_name_and_id_both_given_raises(
+def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
-    """Совместное указание --passports-root-parent-name и --passports-root-parent-id приводит к UsageError."""
-    _mock_collaborators(mocker)
+    """--passports-root-parent-name и --passports-root-parent-id можно указывать вместе —
+    CLI пробрасывает оба значения в publish_passports без изменений и без проверки
+    конфликта (это делает RootPageResolver)."""
+    mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(
         tmp_path, configs_dir,
@@ -112,9 +114,10 @@ def test_publish_passports_name_and_id_both_given_raises(
         "--passports-root-parent-id", "123",
     )
 
-    assert result.exit_code != _EXIT_SUCCESS
-    assert "--passports-root-parent-name" in result.output
-    assert "--passports-root-parent-id" in result.output
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    kwargs = mock_publisher.publish_passports.call_args.kwargs
+    assert kwargs["passports_root_parent_name"] == "Foo"
+    assert kwargs["passports_root_parent_id"] == "123"
 
 
 @pytest.mark.business_logic

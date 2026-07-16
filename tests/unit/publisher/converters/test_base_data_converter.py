@@ -124,6 +124,29 @@ def test_build_install_options_from_string(options_str: str, expected: str) -> N
 
 
 @pytest.mark.contract
+def test_variant_opts_is_frozen_dataclass() -> None:
+    """_VariantOpts заморожен (frozen=True) — присвоение поля после создания поднимает ошибку."""
+    opts = _VariantOpts(conan_options={})
+
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        opts.conan_options = {"x": "1"}
+
+
+@pytest.mark.business_logic
+def test_variant_opts_default_options_default_is_not_shared_between_instances() -> None:
+    """default_options по умолчанию — независимый dict на каждый экземпляр, а не общий объект.
+    """
+    opts_a = _VariantOpts(conan_options={})
+    opts_b = _VariantOpts(conan_options={})
+
+    assert opts_a.default_options is not opts_b.default_options
+
+    opts_a.default_options["shared"] = "True"
+
+    assert opts_b.default_options == {}
+
+
+@pytest.mark.contract
 def test_build_variant_view_maps_fields_from_variant(sample_variant: ConanVariant) -> None:
     """package_id и build_url из ConanVariant попадают в итоговое представление."""
     view = PassportConverter._build_variant_view(sample_variant, COMP_NAME)
@@ -173,15 +196,6 @@ def test_build_variant_view_builds_install_options_from_conan_options_if_no_over
 
 # Тесты для PassportConverter._classify_option_badge (конкретная реализация
 # BaseDataConverter._classify_option_badge).
-#
-# Примечание: текущая реализация различает только два исхода —
-# 'autodoc-badge-def' (значение совпадает с известным дефолтом) и
-# 'autodoc-badge-n' (все остальные случаи: значение отличается от дефолта
-# любого типа, либо дефолт для опции неизвестен). Отдельных CSS-классов
-# для true/false-отличий в текущей реализации нет, хотя стили для них
-# определены в _styles_base.jinja2 — сценарии ниже зафиксированы по
-# входным данным из спецификации задачи, а ожидаемый результат — по
-# фактическому поведению метода.
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
     "value,default_value,has_default,expected_badge",
@@ -213,17 +227,6 @@ def test_classify_option_badge(
 
 
 # Тесты передачи include_passport_links из BaseReleaseConverter в view-model.
-#
-# PassportLinkMixin / FullReleaseConverter._passport_link() и аргумент конструктора
-# passport_page_pattern больше не существуют. Согласно докстрингу
-# BaseReleaseConverter, конвертеры больше не строят строки ссылок на паспорта
-# сами — эта ответственность перенесена в
-# autodoc.publisher.page_manager.passport_link_injector (inject_links /
-# inject_links_for_profiles), что проверяется в
-# tests/unit/publisher/page_manager/test_passport_registry.py.
-# Единственная оставшаяся у BaseReleaseConverter ответственность, связанная
-# с паспортами, — передача флага include_passport_links в view-model,
-# проверяемая ниже.
 @pytest.mark.contract
 @pytest.mark.parametrize("flag", [False, True])
 def test_include_passport_links_is_forwarded(flag: bool) -> None:

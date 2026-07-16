@@ -4,6 +4,7 @@ ParallelExecutor запускает список вызываемых объек
 Тесты проверяют упорядочение результатов, изоляцию исключений и граничные случаи.
 """
 
+import logging
 import time
 from typing import Any
 
@@ -125,25 +126,38 @@ def test_parallel_executor_empty_task_list_returns_empty() -> None:
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
-    "extra_kwargs, match",
+    "extra_kwargs, expected_batch_size, expected_batch_delay, match",
     [
-        # отрицательный batch_size
-        pytest.param({"batch_size": -1}, "batch_size", id="negative-batch-size"),
-        # отрицательный batch_delay (batch_size задан, чтобы задержка вообще была применима)
-        pytest.param({"batch_size": 1, "batch_delay": -0.5}, "batch_delay", id="negative-batch-delay"),
+        # отрицательный batch_size откатывается на дефолт 0 (пакетная обработка отключена)
+        pytest.param({"batch_size": -1}, 0, 0.0, "batch_size", id="negative-batch-size"),
+        # отрицательный batch_delay откатывается на дефолт 0.0 (пауза между пакетами отключена);
+        # batch_size задан отдельно, чтобы задержка вообще была применима
+        pytest.param({"batch_size": 1, "batch_delay": -0.5}, 1, 0.0, "batch_delay", id="negative-batch-delay"),
     ],
 )
-def test_parallel_executor_negative_constructor_arg_raises_value_error(
-    extra_kwargs: dict[str, float], match: str
+def test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_default(
+    caplog: pytest.LogCaptureFixture,
+    extra_kwargs: dict[str, float],
+    expected_batch_size: int,
+    expected_batch_delay: float,
+    match: str,
 ) -> None:
-    """Конструктор отклоняет отрицательные ``batch_size``/``batch_delay``, не откатываясь на дефолт.
-
-    Отрицательное значение — явная ошибка вызывающего кода (сетевая операция,
-    молчаливая подмена значения недопустима), поэтому конструктор должен упасть
-    сразу, а не создать исполнитель с некорректным внутренним состоянием.
+    """Отрицательные batch_size/batch_delay не обрывают публикацию: конструктор логирует
+    WARNING и откатывается на дефолт (0 / 0.0), а не поднимает исключение.
     """
-    with pytest.raises(ValueError, match=match):
-        ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, **extra_kwargs)
+    with caplog.at_level(logging.WARNING):
+        executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, **extra_kwargs)
+
+    assert executor._batch_size == expected_batch_size
+    assert executor._batch_delay == expected_batch_delay
+
+    warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any(match in m for m in warning_messages)
+
+    # Исполнитель с откаченным значением остаётся рабочим, а не в поломанном состоянии.
+    results = executor.execute(lambda x: x, list(range(_TASK_COUNT)))
+    assert results == list(range(_TASK_COUNT))
+
 
 
 @pytest.mark.business_logic

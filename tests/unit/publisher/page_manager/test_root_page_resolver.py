@@ -9,10 +9,17 @@
   «не найдено», — не затрагивая вопросы HTTP/транспорта (они относятся к
   test_confluence_transport.py).
 - Фикстура minimal_confluence_config берётся из tests/unit/publisher/conftest.py.
+- Приоритет между источниками (CLI/конфиг) и между name/id внутри одного
+  источника — общая логика для passports/release/profile, реализованная в
+  _resolve_root_parent. Она проверяется один раз, параметризованно по всем
+  трём методам, в TestResolveRequiredParent — там же покрыты сценарии
+  конфликта name/id и предупреждений (WARNING), описанные в задаче на
+  приоритеты root page.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pytest
@@ -81,8 +88,9 @@ class TestResolvePageId:
     resolve_page_id — get-подобный метод: имя ищется в Confluence (план А),
     а если имя не задано, без похода в Confluence возвращается ``default``
     (план Б). За решение о том, что делать с пустым результатом (в т.ч.
-    поднимать ли ConfigError с учётом конкретного поля конфигурации),
-    отвечает вызывающий код — см. TestResolveOrRaise.
+    поднимать ли ConfigError с учётом конкретного поля конфигурации) и за
+    выбор источника (CLI/конфиг) и приоритет name/id, отвечает вызывающий
+    код — TestResolveRootParentDirect и TestResolveRequiredParent.
     """
 
     @pytest.mark.business_logic
@@ -137,31 +145,40 @@ class TestResolvePageId:
         mock_client.find_page.assert_not_called()
 
 
-class TestResolveOrRaise:
-    """Тесты _resolve_or_raise — обёртки, требующей непустой результат."""
+class TestResolveRootParentDirect:
+    """Тесты приватного _resolve_root_parent — единой точки выбора источника (CLI/конфиг)
+    и приоритета name/id внутри него.
+
+    Публичное поведение метода дублируется в TestResolveRequiredParent
+    (параметризованно по всем трём вызывающим методам); здесь проверяются
+    только два граничных случая самого метода напрямую: успешное разрешение
+    и обязательность результата.
+    """
 
     @pytest.mark.business_logic
-    def test_resolved_value_passed_through(
+    def test_cli_name_resolved_value_passed_through(
         self, mocker: Any, minimal_confluence_config: dict
     ) -> None:
-        """Если resolve_page_id вернул значение — оно возвращается как есть."""
+        """Если CLI-имя резолвится в Confluence — итоговый ID возвращается как есть."""
         resolver, _ = _make_resolver(
             mocker, minimal_confluence_config, known_pages={"Root Page": "page-1"}
         )
 
-        result = resolver._resolve_or_raise("Root Page", None, "release_docs_root_parent")
+        result = resolver._resolve_root_parent(
+            "Root Page", None, None, None, "release_docs_root_parent"
+        )
 
         assert result == "page-1"
 
     @pytest.mark.business_logic
-    def test_nothing_set_raises_config_error_with_field_label(
+    def test_nothing_set_anywhere_raises_config_error_with_field_label(
         self, mocker: Any, minimal_confluence_config: dict
     ) -> None:
-        """Если ни имя, ни default не заданы — поднимается ConfigError с именем поля."""
+        """Если ни CLI, ни конфиг не задают ни имя, ни ID — поднимается ConfigError с именем поля."""
         resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
         with pytest.raises(ConfigError) as exc_info:
-            resolver._resolve_or_raise(None, None, "release_docs_root_parent")
+            resolver._resolve_root_parent(None, None, None, None, "release_docs_root_parent")
 
         assert "release_docs_root_parent" in str(exc_info.value)
 
@@ -306,6 +323,116 @@ class TestResolveRequiredParent:
 
         with pytest.raises(ConfigError):
             getattr(resolver, method_name)(None, None)
+
+    @pytest.mark.business_logic
+    @pytest.mark.parametrize(
+        "cli_id, expect_warning",
+        [
+            # CLI-ID совпадает с ID, найденным по CLI-имени, — конфликта нет
+            pytest.param("shared-id", False, id="matching-id-no-warning"),
+            # CLI-ID указывает на другую страницу, чем CLI-имя, — конфликт
+            pytest.param("id-from-cli-flag", True, id="mismatching-id-warns"),
+        ],
+    )
+    def test_cli_name_and_id_conflict_resolution(
+        self,
+        mocker: Any,
+        minimal_confluence_config: dict,
+        caplog: pytest.LogCaptureFixture,
+        method_name: str,
+        config_name_field: str,
+        config_id_field: str,
+        cli_id: str,
+        expect_warning: bool,
+    ) -> None:
+        """При одновременном CLI-имени и CLI-ID побеждает имя: при совпадении с ID,
+        найденным по имени, — молча; при расхождении — используется найденный по имени
+        ID, а расхождение логируется как WARNING с указанием источника 'CLI', чтобы
+        разработчик заметил случайно устаревший --root-page-id при следующем прогоне."""
+        resolver, mock_client = _make_resolver(
+            mocker, minimal_confluence_config, known_pages={"CLI Parent": "shared-id"}
+        )
+
+        with caplog.at_level(logging.WARNING):
+            result = getattr(resolver, method_name)("CLI Parent", cli_id)
+
+        assert result == "shared-id"
+        mock_client.find_page.assert_called_once_with("CLI Parent", space=SPACE)
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        if expect_warning:
+            assert any("CLI" in m for m in warnings)
+        else:
+            assert warnings == []
+
+    @pytest.mark.business_logic
+    @pytest.mark.parametrize(
+        "config_id_value, expect_warning",
+        [
+            # ID в конфиге совпадает с ID, найденным по имени из конфига, — конфликта нет
+            pytest.param("shared-id", False, id="matching-id-no-warning"),
+            # ID в конфиге указывает на другую страницу, чем имя из конфига, — конфликт
+            pytest.param("stale-id-in-config", True, id="mismatching-id-warns"),
+        ],
+    )
+    def test_config_name_and_id_conflict_resolution(
+        self,
+        mocker: Any,
+        minimal_confluence_config: dict,
+        caplog: pytest.LogCaptureFixture,
+        method_name: str,
+        config_name_field: str,
+        config_id_field: str,
+        config_id_value: str,
+        expect_warning: bool,
+    ) -> None:
+        """Та же логика приоритета name/id, что и для CLI (
+        test_cli_name_and_id_conflict_resolution), применяется и внутри конфига: при
+        расхождении между *_name и *_id используется страница по имени, а конфликт
+        логируется как WARNING с указанием источника 'Config'. Тест описывает случай, когда
+        страницу переименовали в Confluence, а старый ID в конфиге не обновили."""
+        resolver, mock_client = _make_resolver(
+            mocker,
+            minimal_confluence_config,
+            known_pages={"Config Parent": "shared-id"},
+            **{config_name_field: "Config Parent", config_id_field: config_id_value},
+        )
+
+        with caplog.at_level(logging.WARNING):
+            result = getattr(resolver, method_name)(None, None)
+
+        assert result == "shared-id"
+        mock_client.find_page.assert_called_once_with("Config Parent", space=SPACE)
+        warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        if expect_warning:
+            assert any("Config" in m for m in warnings)
+        else:
+            assert warnings == []
+
+    @pytest.mark.business_logic
+    def test_cli_value_set_silences_conflicting_config_no_warning(
+        self,
+        mocker: Any,
+        minimal_confluence_config: dict,
+        caplog: pytest.LogCaptureFixture,
+        method_name: str,
+        config_name_field: str,
+        config_id_field: str,
+    ) -> None:
+        """Если хотя бы одно CLI-значение задано, конфиг вообще не участвует в резолюции,
+        поэтому конфликт name/id внутри него не проверяется и не логируется ."""
+        resolver, mock_client = _make_resolver(
+            mocker,
+            minimal_confluence_config,
+            known_pages={"CLI Parent": "cli-page-id", "Config Parent": "config-page-id"},
+            **{config_name_field: "Config Parent", config_id_field: "stale-config-id"},
+        )
+
+        with caplog.at_level(logging.WARNING):
+            result = getattr(resolver, method_name)("CLI Parent", None)
+
+        assert result == "cli-page-id"
+        mock_client.find_page.assert_called_once_with("CLI Parent", space=SPACE)
+        assert not any(r.levelno == logging.WARNING for r in caplog.records)
 
 
 @pytest.mark.business_logic
