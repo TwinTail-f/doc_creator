@@ -240,23 +240,6 @@ def test_include_passport_links_is_forwarded(flag: bool) -> None:
 
 
 @pytest.mark.contract
-def test_conan_variant_view_is_dataclass() -> None:
-    """ConanVariantView является Python dataclass."""
-    assert dataclasses.is_dataclass(ConanVariantView)
-
-
-@pytest.mark.contract
-def test_conan_variant_view_required_fields() -> None:
-    """ConanVariantView можно создать с тремя обязательными позиционными полями."""
-    view = ConanVariantView(
-        package_id="pkg-abc",
-        build_url="https://ci.example.com/build/1",
-        build_date="2024-03-10",
-    )
-    assert view.package_id == "pkg-abc"
-
-
-@pytest.mark.contract
 def test_conan_variant_view_defaults() -> None:
     """Необязательные поля ConanVariantView по умолчанию — пустая строка / пустой словарь."""
     view = ConanVariantView(

@@ -94,6 +94,44 @@ def test_load_parsed_data_empty_file_raises_validation_error_mentioning_interrup
 
 
 @pytest.mark.business_logic
+def test_load_parsed_data_invalid_encoding_raises_validation_error(tmp_path: Path) -> None:
+    """parsed_data.json, записанный в кодировке, отличной от UTF-8 (например, содержащий
+    невалидные UTF-8 байты), приводит к ValidationError, а не к падению с «сырым»
+    UnicodeDecodeError."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    data_file = data_dir / "parsed_data.json"
+    # 0xff 0xfe не образуют валидную UTF-8 последовательность.
+    data_file.write_bytes(b"\xff\xfe\x00\x01invalid")
+
+    with pytest.raises(ValidationError) as exc_info:
+        load_parsed_data(tmp_path)
+
+    assert "utf-8" in str(exc_info.value).lower() or "кодиров" in str(exc_info.value).lower()
+
+
+@pytest.mark.infrastructure
+def test_load_parsed_data_os_error_on_read_raises_doc_generator_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """OSError при чтении parsed_data.json (например, ошибка доступа к диску) оборачивается
+    в DocGeneratorError, а не пробрасывается наружу как есть."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    (data_dir / "parsed_data.json").write_text("{}", encoding="utf-8")
+
+    def _raise_os_error(self, *args, **kwargs):
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "read_text", _raise_os_error)
+
+    with pytest.raises(DocGeneratorError) as exc_info:
+        load_parsed_data(tmp_path)
+
+    assert "не удалось прочитать" in str(exc_info.value).lower()
+
+
+@pytest.mark.business_logic
 def test_load_parsed_data_schema_violation_raises_validation_error_mentioning_parse(
     tmp_path: Path,
 ) -> None:

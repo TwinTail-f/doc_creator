@@ -31,6 +31,19 @@ from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 
 SPACE: str = "TEST"
 
+# Каждый набор описывает: имя метода резолвера, а также имена CLI-совместимых
+# полей конфигурации, специфичных для passports/release/profile.
+_PASSPORTS_METHOD: str = "resolve_passports_root"
+_RELEASE_METHOD: str = "resolve_release_parent"
+_PROFILE_METHOD: str = "resolve_profile_parent"
+_PASSPORTS_CONFIG_NAME_FIELD: str = "passports_root_parent_name"
+_PASSPORTS_CONFIG_ID_FIELD: str = "passports_root_parent_id"
+_RELEASE_CONFIG_NAME_FIELD: str = "release_docs_root_parent_name"
+_RELEASE_CONFIG_ID_FIELD: str = "release_docs_root_parent_id"
+_PROFILE_CONFIG_NAME_FIELD: str = "profile_docs_root_parent_name"
+_PROFILE_CONFIG_ID_FIELD: str = "profile_docs_root_parent_id"
+
+
 
 def _make_mock_client(mocker: Any, known_pages: dict[str, str]) -> Any:
     """
@@ -82,119 +95,99 @@ def _make_resolver(
     return resolver, mock_client
 
 
-class TestResolvePageId:
-    """Тесты общего низкоуровневого метода resolve_page_id.
+# resolve_page_id — get-подобный метод: имя ищется в Confluence (план А),
+# а если имя не задано, без похода в Confluence возвращается ``default``
+# (план Б). За решение о том, что делать с пустым результатом (в т.ч.
+# поднимать ли ConfigError с учётом конкретного поля конфигурации) и за
+# выбор источника (CLI/конфиг) и приоритет name/id, отвечает вызывающий
+# код — тесты ниже (_resolve_root_parent и обёртки над ним).
+@pytest.mark.business_logic
+def test_name_found_returns_page_id(mocker: Any, minimal_confluence_config: dict) -> None:
+    """Если страница с заданным именем найдена — возвращается её ID."""
+    resolver, _ = _make_resolver(
+        mocker, minimal_confluence_config, known_pages={"Root Page": "page-1"}
+    )
 
-    resolve_page_id — get-подобный метод: имя ищется в Confluence (план А),
-    а если имя не задано, без похода в Confluence возвращается ``default``
-    (план Б). За решение о том, что делать с пустым результатом (в т.ч.
-    поднимать ли ConfigError с учётом конкретного поля конфигурации) и за
-    выбор источника (CLI/конфиг) и приоритет name/id, отвечает вызывающий
-    код — TestResolveRootParentDirect и TestResolveRequiredParent.
+    result = resolver.resolve_page_id("Root Page", None)
+
+    assert result == "page-1"
+
+
+@pytest.mark.business_logic
+def test_name_not_found_raises_config_error(mocker: Any, minimal_confluence_config: dict) -> None:
+    """Если страница с заданным именем не найдена — поднимается ConfigError с описанием поиска."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_pages={})
+
+    with pytest.raises(ConfigError) as exc_info:
+        resolver.resolve_page_id("Missing Page", None)
+
+    message = str(exc_info.value)
+    assert "Missing Page" in message
+    assert minimal_confluence_config["space"] in message
+
+
+@pytest.mark.business_logic
+def test_no_name_returns_default_without_lookup(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Если имя не задано — возвращается default без обращения к find_page."""
+    resolver, mock_client = _make_resolver(mocker, minimal_confluence_config)
+
+    result = resolver.resolve_page_id(None, "explicit-id")
+
+    assert result == "explicit-id"
+    mock_client.find_page.assert_not_called()
+
+
+@pytest.mark.business_logic
+def test_nothing_set_returns_none_without_lookup(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Если ни имя, ни default не заданы — возвращается None, ConfigError не поднимается.
+
+    resolve_page_id сам по себе не решает, обязательно ли значение —
+    это забота конкретного поля конфигурации (проверяется через
+    _resolve_root_parent ниже).
     """
+    resolver, mock_client = _make_resolver(mocker, minimal_confluence_config)
 
-    @pytest.mark.business_logic
-    def test_name_found_returns_page_id(self, mocker: Any, minimal_confluence_config: dict) -> None:
-        """Если страница с заданным именем найдена — возвращается её ID."""
-        resolver, _ = _make_resolver(
-            mocker, minimal_confluence_config, known_pages={"Root Page": "page-1"}
-        )
+    result = resolver.resolve_page_id(None, None)
 
-        result = resolver.resolve_page_id("Root Page", None)
-
-        assert result == "page-1"
-
-    @pytest.mark.business_logic
-    def test_name_not_found_raises_config_error(self, mocker: Any, minimal_confluence_config: dict) -> None:
-        """Если страница с заданным именем не найдена — поднимается ConfigError с описанием поиска."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_pages={})
-
-        with pytest.raises(ConfigError) as exc_info:
-            resolver.resolve_page_id("Missing Page", None)
-
-        message = str(exc_info.value)
-        assert "Missing Page" in message
-        assert minimal_confluence_config["space"] in message
-
-    @pytest.mark.business_logic
-    def test_no_name_returns_default_without_lookup(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Если имя не задано — возвращается default без обращения к find_page."""
-        resolver, mock_client = _make_resolver(mocker, minimal_confluence_config)
-
-        result = resolver.resolve_page_id(None, "explicit-id")
-
-        assert result == "explicit-id"
-        mock_client.find_page.assert_not_called()
-
-    @pytest.mark.business_logic
-    def test_nothing_set_returns_none_without_lookup(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Если ни имя, ни default не заданы — возвращается None, ConfigError не поднимается.
-
-        resolve_page_id сам по себе не решает, обязательно ли значение —
-        это забота конкретного поля конфигурации (см. TestResolveOrRaise).
-        """
-        resolver, mock_client = _make_resolver(mocker, minimal_confluence_config)
-
-        result = resolver.resolve_page_id(None, None)
-
-        assert result is None
-        mock_client.find_page.assert_not_called()
+    assert result is None
+    mock_client.find_page.assert_not_called()
 
 
-class TestResolveRootParentDirect:
-    """Тесты приватного _resolve_root_parent — единой точки выбора источника (CLI/конфиг)
-    и приоритета name/id внутри него.
+# _resolve_root_parent — единая точка выбора источника (CLI/конфиг) и приоритета
+# name/id внутри него. Публичное поведение метода дублируется в
+# TestResolveRequiredParent; здесь проверяются только два граничных случая самого 
+# метода напрямую успешное разрешение и обязательность результата.
+@pytest.mark.business_logic
+def test_cli_name_resolved_value_passed_through(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Если CLI-имя резолвится в Confluence — итоговый ID возвращается как есть."""
+    resolver, _ = _make_resolver(
+        mocker, minimal_confluence_config, known_pages={"Root Page": "page-1"}
+    )
 
-    Публичное поведение метода дублируется в TestResolveRequiredParent
-    (параметризованно по всем трём вызывающим методам); здесь проверяются
-    только два граничных случая самого метода напрямую: успешное разрешение
-    и обязательность результата.
-    """
+    result = resolver._resolve_root_parent(
+        "Root Page", None, None, None, "release_docs_root_parent"
+    )
 
-    @pytest.mark.business_logic
-    def test_cli_name_resolved_value_passed_through(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Если CLI-имя резолвится в Confluence — итоговый ID возвращается как есть."""
-        resolver, _ = _make_resolver(
-            mocker, minimal_confluence_config, known_pages={"Root Page": "page-1"}
-        )
-
-        result = resolver._resolve_root_parent(
-            "Root Page", None, None, None, "release_docs_root_parent"
-        )
-
-        assert result == "page-1"
-
-    @pytest.mark.business_logic
-    def test_nothing_set_anywhere_raises_config_error_with_field_label(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Если ни CLI, ни конфиг не задают ни имя, ни ID — поднимается ConfigError с именем поля."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-
-        with pytest.raises(ConfigError) as exc_info:
-            resolver._resolve_root_parent(None, None, None, None, "release_docs_root_parent")
-
-        assert "release_docs_root_parent" in str(exc_info.value)
+    assert result == "page-1"
 
 
-# Каждый набор описывает: имя метода резолвера, а также имена CLI-совместимых
-# полей конфигурации, специфичных для passports/release/profile.
-_PASSPORTS_METHOD: str = "resolve_passports_root"
-_RELEASE_METHOD: str = "resolve_release_parent"
-_PROFILE_METHOD: str = "resolve_profile_parent"
-_PASSPORTS_CONFIG_NAME_FIELD: str = "passports_root_parent_name"
-_PASSPORTS_CONFIG_ID_FIELD: str = "passports_root_parent_id"
-_RELEASE_CONFIG_NAME_FIELD: str = "release_docs_root_parent_name"
-_RELEASE_CONFIG_ID_FIELD: str = "release_docs_root_parent_id"
-_PROFILE_CONFIG_NAME_FIELD: str = "profile_docs_root_parent_name"
-_PROFILE_CONFIG_ID_FIELD: str = "profile_docs_root_parent_id"
+@pytest.mark.business_logic
+def test_nothing_set_anywhere_raises_config_error_with_field_label(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Если ни CLI, ни конфиг не задают ни имя, ни ID — поднимается ConfigError с именем поля."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
+    with pytest.raises(ConfigError) as exc_info:
+        resolver._resolve_root_parent(None, None, None, None, "release_docs_root_parent")
+
+    assert "release_docs_root_parent" in str(exc_info.value)
 
 @pytest.mark.parametrize(
     "method_name,config_name_field,config_id_field",
@@ -454,76 +447,73 @@ def test_resolve_profile_parent_reads_its_own_config_fields(
     mock_client.find_page.assert_called_once_with("Profile Parent Page", space=SPACE)
 
 
-class TestResolveSinglePageParent:
-    """Диспетчеризация по strategy_type в resolve_single_page_parent."""
+# Диспетчеризация по strategy_type в resolve_single_page_parent
+@pytest.mark.business_logic
+def test_release_strategy_delegates_to_resolve_release_parent(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """strategy_type='release' делегирует в resolve_release_parent."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
+    mock_release = mocker.patch.object(resolver, "resolve_release_parent", return_value="release-id")
 
-    @pytest.mark.business_logic
-    def test_release_strategy_delegates_to_resolve_release_parent(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """strategy_type='release' делегирует в resolve_release_parent."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-        mock_release = mocker.patch.object(resolver, "resolve_release_parent", return_value="release-id")
+    result = resolver.resolve_single_page_parent("release", "Some Name", None)
 
-        result = resolver.resolve_single_page_parent("release", "Some Name", None)
-
-        assert result == "release-id"
-        mock_release.assert_called_once_with("Some Name", None)
-
-    @pytest.mark.business_logic
-    def test_profile_centric_strategy_delegates_to_resolve_profile_parent(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """strategy_type='profile_centric' делегирует в resolve_profile_parent."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-        mock_profile = mocker.patch.object(resolver, "resolve_profile_parent", return_value="profile-id")
-
-        result = resolver.resolve_single_page_parent("profile_centric", "Some Name", None)
-
-        assert result == "profile-id"
-        mock_profile.assert_called_once_with("Some Name", None)
-
-    @pytest.mark.business_logic
-    def test_unknown_strategy_type_falls_through_to_release(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Любой strategy_type, отличный от 'profile_centric', намеренно попадает в release-путь по умолчанию."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-        mock_release = mocker.patch.object(resolver, "resolve_release_parent", return_value="release-id")
-
-        result = resolver.resolve_single_page_parent("some_other_strategy", "Some Name", None)
-
-        assert result == "release-id"
-        mock_release.assert_called_once_with("Some Name", None)
+    assert result == "release-id"
+    mock_release.assert_called_once_with("Some Name", None)
 
 
-class TestResolveRootPages:
-    """Комбинированное разрешение корневых страниц паспортов и релиза."""
+@pytest.mark.business_logic
+def test_profile_centric_strategy_delegates_to_resolve_profile_parent(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """strategy_type='profile_centric' делегирует в resolve_profile_parent."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
+    mock_profile = mocker.patch.object(resolver, "resolve_profile_parent", return_value="profile-id")
 
-    @pytest.mark.business_logic
-    def test_happy_path_returns_both_resolved_ids(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Оба значения успешно резолвятся и возвращаются в виде кортежа (паспорта, релиз)."""
-        resolver, _ = _make_resolver(
-            mocker,
-            minimal_confluence_config,
-            known_pages={"Passports Root": "passports-id", "Release Parent": "release-id"},
-        )
+    result = resolver.resolve_single_page_parent("profile_centric", "Some Name", None)
 
-        resolved_root, resolved_release_parent = resolver.resolve_root_pages(
-            "Passports Root", None, "Release Parent", None
-        )
+    assert result == "profile-id"
+    mock_profile.assert_called_once_with("Some Name", None)
 
-        assert resolved_root == "passports-id"
-        assert resolved_release_parent == "release-id"
 
-    @pytest.mark.business_logic
-    def test_missing_passports_root_propagates_config_error(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Отсутствие обязательной корневой страницы паспортов пробрасывает ConfigError наружу."""
-        resolver, _ = _make_resolver(mocker, minimal_confluence_config)
+@pytest.mark.business_logic
+def test_unknown_strategy_type_falls_through_to_release(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Любой strategy_type, отличный от 'profile_centric', намеренно попадает в release-путь по умолчанию."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
+    mock_release = mocker.patch.object(resolver, "resolve_release_parent", return_value="release-id")
 
-        with pytest.raises(ConfigError):
-            resolver.resolve_root_pages(None, None, None, None)
+    result = resolver.resolve_single_page_parent("some_other_strategy", "Some Name", None)
+
+    assert result == "release-id"
+    mock_release.assert_called_once_with("Some Name", None)
+
+
+# Комбинированное разрешение корневых страниц паспортов и релиза
+@pytest.mark.business_logic
+def test_happy_path_returns_both_resolved_ids(mocker: Any, minimal_confluence_config: dict) -> None:
+    """Оба значения успешно резолвятся и возвращаются в виде кортежа (паспорта, релиз)."""
+    resolver, _ = _make_resolver(
+        mocker,
+        minimal_confluence_config,
+        known_pages={"Passports Root": "passports-id", "Release Parent": "release-id"},
+    )
+
+    resolved_root, resolved_release_parent = resolver.resolve_root_pages(
+        "Passports Root", None, "Release Parent", None
+    )
+
+    assert resolved_root == "passports-id"
+    assert resolved_release_parent == "release-id"
+
+
+@pytest.mark.business_logic
+def test_missing_passports_root_propagates_config_error(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Отсутствие обязательной корневой страницы паспортов пробрасывает ConfigError наружу."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
+
+    with pytest.raises(ConfigError):
+        resolver.resolve_root_pages(None, None, None, None)

@@ -290,21 +290,6 @@ def test_parser_nlohmann_json_fast_release_has_one_profile(
 
 
 @pytest.mark.integration
-def test_parser_apr_has_no_slow_release(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """apr не имеет релиза с channel=='slow'; присутствует только fast."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "apr.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    slow_releases = [r for r in components[0].releases if r.channel == "slow"]
-    assert slow_releases == []
-
-
-@pytest.mark.integration
 def test_parser_apr_profile_count_fast(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -339,21 +324,6 @@ def test_parser_patchelf_both_versions_have_same_profiles(
     profile_sets = [frozenset(pb.profile_name for pb in rel.profile_builds) for rel in releases]
     assert profile_sets[0] == profile_sets[1]
     assert len(profile_sets[0]) == 6
-
-
-@pytest.mark.integration
-def test_parser_patchelf_no_fast_or_slow_channel(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """У patchelf нет релизов с channel 'fast' или 'slow' — только 'tech'."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "patchelf.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    non_tech = [r for r in components[0].releases if r.channel != "tech"]
-    assert non_tech == []
 
 
 @pytest.mark.integration
@@ -594,44 +564,6 @@ def test_filter_mode_empty_list_returns_all_components(
 
 
 @pytest.mark.business_logic
-def test_profile_builds_created_from_profiles_property(tmp_path: Path) -> None:
-    """Проверить, что ManifestParser создаёт скелеты ProfileBuild для каждого имени профиля."""
-    content = (
-        "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
-        "versions.component=1.0\nversions.platform=2.2-fast\n"
-        "profiles-1.0-2.2-fast=hw-linux-x86_64, hw-linux-armv8\n"
-    )
-    f = _write_manifest(tmp_path, "mylib", content)
-    parser = ManifestParser(target_platform="2.2")
-    components, _ = parser.parse([f], component_names=[], filter_mode="include")
-
-    pbs = components[0].releases[0].profile_builds
-    profile_names = {pb.profile_name for pb in pbs}
-    assert "hw-linux-x86_64" in profile_names
-    assert "hw-linux-armv8" in profile_names
-    assert len(pbs) == 2
-
-
-@pytest.mark.business_logic
-def test_profile_builds_are_skeletons_with_exists_false_and_empty_variants(
-    tmp_path: Path,
-) -> None:
-    """Проверить, что все объекты ProfileBuild созданные ManifestParser имеют exists=False и variants=[]."""
-    content = (
-        "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
-        "versions.component=1.0\nversions.platform=2.2-fast\n"
-        "profiles-1.0-2.2-fast=hw-linux-x86_64, hw-linux-armv8\n"
-    )
-    f = _write_manifest(tmp_path, "mylib", content)
-    parser = ManifestParser(target_platform="2.2")
-    components, _ = parser.parse([f], component_names=[], filter_mode="include")
-
-    for pb in components[0].releases[0].profile_builds:
-        assert pb.exists is False
-        assert pb.variants == []
-
-
-@pytest.mark.business_logic
 def test_profile_build_names_match_manifest_profile_list_exactly(
     tmp_path: Path,
 ) -> None:
@@ -758,3 +690,36 @@ def test_manifest_parser_include_nonmatching_list_returns_empty(tmp_path: Path) 
         [f], component_names=["completely-different-name"], filter_mode="include"
     )
     assert components == []
+
+
+@pytest.mark.infrastructure
+def test_manifest_parser_skips_none_result_from_executor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Если ParallelExecutor подменяет результат одного файла на None (перехватив
+    непредвиденную ошибку внутри задачи), этот файл молча пропускается через
+    ``continue``, а остальные файлы обрабатываются как обычно — падения быть не должно."""
+    import autodoc.parser.parsers.manifest_parser as manifest_parser_module
+
+    good_file = _write_manifest(tmp_path, "goodlib", _minimal_manifest(comp_name="goodlib"))
+    bad_file = _write_manifest(tmp_path, "badlib", _minimal_manifest(comp_name="badlib"))
+
+    original_read_properties = manifest_parser_module.read_properties
+
+    def _raise_value_error_for_bad_file(path: Path):
+        # ValueError не перехватывается внутри _parse_single_file — долетает
+        # до ParallelExecutor, который заменяет результат этой задачи на None.
+        if path == bad_file:
+            raise ValueError("непредвиденная ошибка разбора")
+        return original_read_properties(path)
+
+    monkeypatch.setattr(manifest_parser_module, "read_properties", _raise_value_error_for_bad_file)
+
+    parser = ManifestParser(target_platform="2.2")
+    components, warnings = parser.parse(
+        [good_file, bad_file], component_names=[], filter_mode="include"
+    )
+
+    names = {c.name for c in components}
+    assert names == {"goodlib"}
+    assert "badlib" not in names

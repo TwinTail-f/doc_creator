@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 import yaml
+from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.config.manager import ConfigManager
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
@@ -251,3 +252,99 @@ def test_config_manager_still_loads_json_for_backward_compatibility(
 
     assert result is not None
     assert isinstance(result, ParserConfigSchema)
+
+
+@pytest.mark.business_logic
+def test_parse_file_wraps_yaml_syntax_error_in_config_error(tmp_path: Path) -> None:
+    """_parse_file() оборачивает yaml.YAMLError в ConfigError вместо того, чтобы
+    пропускать исключение PyYAML наружу как есть."""
+    config_file = tmp_path / "parser_config.yaml"
+    # Несбалансированные скобки-флоу — гарантированно ломают YAML-парсер.
+    config_file.write_text("platform_version: [unclosed\n", encoding="utf-8")
+    manager = ConfigManager(configs_dir=tmp_path)
+
+    with pytest.raises(ConfigError, match="Некорректный YAML"):
+        manager._parse_file(config_file)  # type: ignore[attr-defined]
+
+
+@pytest.mark.business_logic
+def test_parse_file_wraps_os_error_in_config_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """_parse_file() оборачивает OSError при чтении файла в ConfigError."""
+    config_file = tmp_path / "parser_config.yaml"
+    config_file.write_text(yaml.dump(_VALID_PARSER_CONFIG), encoding="utf-8")
+
+    def _raise_os_error(self, *args, **kwargs):
+        raise OSError("disk error")
+
+    monkeypatch.setattr(Path, "open", _raise_os_error)
+    manager = ConfigManager(configs_dir=tmp_path)
+
+    with pytest.raises(ConfigError, match="Ошибка чтения"):
+        manager._parse_file(config_file)  # type: ignore[attr-defined]
+
+
+@pytest.mark.business_logic
+def test_parse_file_raises_when_content_is_not_a_dict(tmp_path: Path) -> None:
+    """_parse_file() поднимает ConfigError, если верхнеуровневое содержимое файла — не dict."""
+    config_file = tmp_path / "parser_config.yaml"
+    config_file.write_text("- 1\n- 2\n", encoding="utf-8")  # верхний уровень — список
+    manager = ConfigManager(configs_dir=tmp_path)
+
+    with pytest.raises(ConfigError, match="должен содержать объект"):
+        manager._parse_file(config_file)  # type: ignore[attr-defined]
+
+
+@pytest.mark.business_logic
+def test_parse_file_raises_when_path_is_not_a_file(tmp_path: Path) -> None:
+    """_parse_file() поднимает ConfigError, если переданный путь не указывает на файл."""
+    manager = ConfigManager(configs_dir=tmp_path)
+    missing = tmp_path / "does_not_exist.yaml"
+
+    with pytest.raises(ConfigError, match="не указывает на файл"):
+        manager._parse_file(missing)  # type: ignore[attr-defined]
+
+
+@pytest.mark.business_logic
+def test_validate_config_file_raises_on_unsupported_extension(tmp_path: Path) -> None:
+    """validate_config_file() поднимает ConfigError для расширений вне SUPPORTED_FORMATS."""
+    config_file = tmp_path / "parser_config.toml"
+    config_file.write_text("platform_version = '2.0'\n", encoding="utf-8")
+    manager = ConfigManager(configs_dir=tmp_path)
+
+    with pytest.raises(ConfigError, match="Неподдерживаемый формат"):
+        manager.validate_config_file(str(config_file))
+
+
+@pytest.mark.business_logic
+def test_confluence_config_normalize_url_rejects_empty_url() -> None:
+    """ConfluenceConfigSchema._normalize_url отклоняет пустой (или состоящий из
+    пробелов) url именно со своим сообщением об ошибке — это подтверждает, что
+    отказ идёт из проверки непустоты внутри _normalize_url, а не из какого-то
+    другого механизма валидации (например, обязательности поля)."""
+    data = {**_VALID_CONFLUENCE_CONFIG, "url": "   "}
+
+    with pytest.raises(PydanticValidationError, match="url не может быть пустым"):
+        ConfluenceConfigSchema(**data)
+
+
+@pytest.mark.business_logic
+def test_confluence_config_normalize_url_strips_trailing_slash() -> None:
+    """ConfluenceConfigSchema._normalize_url убирает завершающий слеш у валидного url."""
+    data = {**_VALID_CONFLUENCE_CONFIG, "url": "https://confluence.example.com/"}
+
+    config = ConfluenceConfigSchema(**data)
+
+    assert config.url == "https://confluence.example.com"
+
+
+@pytest.mark.business_logic
+def test_parser_config_tfs_token_not_empty_rejects_empty_string() -> None:
+    """ParserConfigSchema.tfs_token_not_empty отклоняет пустую строку именно со
+    своим сообщением об ошибке — подтверждает, что отказ приходит из проверки
+    непустоты внутри tfs_token_not_empty, а не из общей обязательности поля."""
+    data = {**_VALID_PARSER_CONFIG, "tfs_token": ""}
+
+    with pytest.raises(PydanticValidationError, match="tfs_token не может быть пустой строкой"):
+        ParserConfigSchema(**data)

@@ -334,6 +334,57 @@ def test_validation_step_mixed_alive_and_dead_variants_partial_removal(
 
 
 @pytest.mark.business_logic
+def test_validation_step_removes_two_consecutive_dead_variants_without_skipping(
+    parser_pipeline_context,
+) -> None:
+    """Два подряд идущих мёртвых варианта в списке из четырёх удаляются оба —
+    без классической ошибки пропуска соседнего элемента, которая возникает
+    при удалении элементов во время прямой итерации по индексу того же списка."""
+    v_alive_1 = _make_variant(f"{_VS_UI_URL_PREFIX}/alive1.zip", "alive-1")
+    v_dead_1 = _make_variant(f"{_VS_UI_URL_PREFIX}/dead1.zip", "dead-1")
+    v_dead_2 = _make_variant(f"{_VS_UI_URL_PREFIX}/dead2.zip", "dead-2")
+    v_alive_2 = _make_variant(f"{_VS_UI_URL_PREFIX}/alive2.zip", "alive-2")
+    pb = ProfileBuild(
+        profile_name="hw-linux-x86_64",
+        exists=True,
+        variants=[v_alive_1, v_dead_1, v_dead_2, v_alive_2],
+    )
+    release = Release(
+        version="1.0",
+        platform="2.0",
+        channel="fast",
+        conan_reference="",
+        artifactory_url="",
+        profile_builds=[pb],
+    )
+    comp = Component(
+        name="mylib",
+        description="",
+        git_project="P",
+        git_repo="r",
+        git_url="",
+        is_header_only=False,
+        releases=[release],
+    )
+
+    class _DeadMiddleClient:
+        """Возвращает 404 для 'dead', 200 для остальных URL."""
+
+        def head(self, url: str) -> requests.Response:
+            resp = requests.Response()
+            resp.status_code = 404 if "dead" in url else 200
+            return resp
+
+    ctx = parser_pipeline_context
+    ctx.components = [comp]
+    ctx.artifactory_client = _DeadMiddleClient()
+
+    ArtifactoryValidationStep().execute(ctx)
+
+    assert pb.variants == [v_alive_1, v_alive_2]
+
+
+@pytest.mark.business_logic
 def test_validation_step_non_404_error_status_keeps_variant(
     parser_pipeline_context,
 ) -> None:

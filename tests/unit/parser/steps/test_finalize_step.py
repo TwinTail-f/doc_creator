@@ -214,6 +214,29 @@ def test_finalize_step_raises_parsing_error_on_validation_failure(
         step.execute(parser_pipeline_context)
 
 
+@pytest.mark.business_logic
+def test_build_result_wraps_real_validation_error_without_mocking_build_result(
+    parser_pipeline_context,
+) -> None:
+    """FinalizeStep._build_result() сама оборачивает PydanticValidationError в ParsingError
+    на реальном, не подменённом пути (в отличие от
+    test_finalize_step_raises_parsing_error_on_validation_failure выше, где
+    _build_result целиком заменён моком, чтобы бросить ValidationError напрямую).
+
+    В коде есть только один настоящий источник невалидности для ParsedResult —
+    конструирование самого ``ParsedResult(...)`` внутри _build_result. Здесь мы
+    воспроизводим её реальными данными: ``platform_version=None`` в конфиге
+    (обязательное строковое поле ParsedResult), без патчинга _build_result или
+    ParsedResult.
+    """
+    parser_pipeline_context.config.platform_version = None  # type: ignore[assignment]
+    parser_pipeline_context.components = []
+    step = FinalizeStep()
+
+    with pytest.raises(ParsingError, match="FinalizeStep: валидация данных не прошла"):
+        step._build_result(parser_pipeline_context)
+
+
 @pytest.mark.contract
 def test_finalize_step_execute_applies_steps_in_order(
     parser_pipeline_context,

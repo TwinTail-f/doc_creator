@@ -840,15 +840,15 @@ _строки: 93%, ветки: 93%, непокрытых строк: 4, неп�
 _строки: 93%, ветки: 50%, непокрытых строк: 1, непокрытых веток: 1_
 Связанный тест: **не найден автоматически — проверить вручную**
 
-### `ConfluenceConfigSchema._normalize_url` — строки 125-126
+### `ConfluenceConfigSchema._normalize_url` — строки 107-108
 ```python
-  123:     def _normalize_url(cls, v: str) -> str:
-  124:         """Проверяет непустоту URL и убирает завершающий слеш."""
-  125:         if not v or not v.strip():
-  126:             raise ValueError("url не может быть пустым")  # НЕ ПОКРЫТО — путь ошибки (raise/except)
-  127:         return v.rstrip("/")
+  105:     def _normalize_url(cls, v: str) -> str:
+  106:         """Проверяет непустоту URL и убирает завершающий слеш."""
+  107:         if not v or not v.strip():
+  108:             raise ValueError("url не может быть пустым")  # НЕ ПОКРЫТО — путь ошибки (raise/except)
+  109:         return v.rstrip("/")
 ```
-- ветка 125 → 126 ни разу не выполнялась в тестах
+- ветка 107 → 108 ни разу не выполнялась в тестах
 
 ---
 
@@ -916,24 +916,6 @@ _строки: 95%, ветки: 75%, непокрытых строк: 1, неп�
    65:         self._template_name: str = template_name
 ```
 - ветка 62 → 63 ни разу не выполнялась в тестах
-
----
-
-## `autodoc\common\parallel_executor.py`
-_строки: 96%, ветки: 94%, непокрытых строк: 2, непокрытых веток: 1_
-Связанный тест: `tests\unit\common\test_parallel_executor.py`
-
-### `ParallelExecutor._execute_in_batches` — строки 130-132
-```python
-  128: 
-  129:             is_last_batch = batch_num == total_batches
-  130:             if self._batch_delay > 0 and not is_last_batch:
-  131:                 logger.debug(f"Пауза {self._batch_delay}с перед следующим пакетом")  # НЕ ПОКРЫТО
-  132:                 time.sleep(self._batch_delay)  # НЕ ПОКРЫТО
-  133: 
-  134:         return results
-```
-- ветка 130 → 131 ни разу не выполнялась в тестах
 
 ---
 
@@ -1006,6 +988,24 @@ _строки: 96%, ветки: 94%, непокрытых строк: 1, неп�
   100:         comp["passport_versions"] = {
 ```
 - ветка 97 → 98 ни разу не выполнялась в тестах
+
+---
+
+## `autodoc\common\parallel_executor.py`
+_строки: 96%, ветки: 94%, непокрытых строк: 2, непокрытых веток: 1_
+Связанный тест: `tests\unit\common\test_parallel_executor.py`
+
+### `ParallelExecutor._execute_in_batches` — строки 135-137
+```python
+  133: 
+  134:             is_last_batch = batch_num == total_batches
+  135:             if self._batch_delay > 0 and not is_last_batch:
+  136:                 logger.debug(f"Пауза {self._batch_delay}с перед следующим пакетом")  # НЕ ПОКРЫТО
+  137:                 time.sleep(self._batch_delay)  # НЕ ПОКРЫТО
+  138: 
+  139:         return results
+```
+- ветка 135 → 136 ни разу не выполнялась в тестах
 
 ---
 
@@ -1111,16 +1111,16 @@ _строки: 97%, ветки: 100%, непокрытых строк: 2, неп
 _строки: 97%, ветки: 88%, непокрытых строк: 1, непокрытых веток: 1_
 Связанный тест: `tests\unit\publisher\converters\test_base_data_converter.py`
 
-### `BaseDataConverter._build_install_options_from_string._qualify` — строки 77-78
+### `BaseDataConverter._build_install_options_from_string._qualify` — строки 80-81
 ```python
-   75: 
-   76:         def _qualify(p: str) -> str:
-   77:             if ":" not in p:
-   78:                 return p  # НЕ ПОКРЫТО
-   79:             pkg, rest = p.split(":", 1)
-   80:             return f"{BaseDataConverter._qualify_package_ref(pkg)}:{rest}"
+   78: 
+   79:         def _qualify(p: str) -> str:
+   80:             if ":" not in p:
+   81:                 return p  # НЕ ПОКРЫТО
+   82:             pkg, rest = p.split(":", 1)
+   83:             return f"{BaseDataConverter._qualify_package_ref(pkg)}:{rest}"
 ```
-- ветка 77 → 78 ни разу не выполнялась в тестах
+- ветка 80 → 81 ни разу не выполнялась в тестах
 
 ---
 

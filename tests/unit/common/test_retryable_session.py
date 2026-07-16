@@ -21,11 +21,12 @@ from unittest.mock import MagicMock
 
 import pytest
 import requests
+import responses
 import urllib3
 from pytest_mock import MockerFixture
 from urllib3.connectionpool import HTTPConnectionPool
 
-from autodoc.common.retryable_session import RetryableSession
+from autodoc.common.retryable_session import RetryableSession, create_retryable_session
 
 _TIMEOUT_SEC: int = 10
 _HTTP_TOO_MANY: int = 429
@@ -170,3 +171,35 @@ def test_retryable_session_timeout_forwarded_to_request(
     mock_super_request.assert_called_once()
     call_kwargs = mock_super_request.call_args.kwargs
     assert call_kwargs.get("timeout") == _TIMEOUT_SEC
+
+
+@pytest.mark.business_logic
+@responses.activate
+def test_create_retryable_session_bearer_true_sends_bearer_authorization_header() -> None:
+    """create_retryable_session(bearer=True, token=...) делегирует в create_bearer_session
+    и в итоге реально отправляет заголовок 'Authorization: Bearer <token>' в запросе —
+    проверяется через фактический перехваченный HTTP-запрос (``responses``), а не
+    через чтение внутреннего атрибута session.headers."""
+    responses.add(responses.GET, _TEST_URL, status=_HTTP_OK, json={"ok": True})
+
+    session = create_retryable_session(bearer=True, token="secret-token-abc")
+    session.get(_TEST_URL)
+
+    assert len(responses.calls) == 1
+    assert responses.calls[0].request.headers["Authorization"] == "Bearer secret-token-abc"
+
+
+@pytest.mark.business_logic
+@responses.activate
+def test_create_retryable_session_bearer_false_uses_basic_auth_not_bearer_header() -> None:
+    """create_retryable_session(bearer=False, token=...) делегирует в create_pat_session:
+    учётные данные передаются через HTTP Basic Auth, заголовок Authorization не
+    содержит 'Bearer'."""
+    responses.add(responses.GET, _TEST_URL, status=_HTTP_OK, json={"ok": True})
+
+    session = create_retryable_session(bearer=False, token="secret-token-abc")
+    session.get(_TEST_URL)
+
+    assert len(responses.calls) == 1
+    auth_header = responses.calls[0].request.headers["Authorization"]
+    assert not auth_header.startswith("Bearer")

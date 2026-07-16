@@ -164,20 +164,32 @@ def test_apply_conan_results_upserts_conan_settings() -> None:
 
 
 @pytest.mark.business_logic
-def test_apply_conan_results_does_not_overwrite_with_empty_settings() -> None:
-    """Непустые conan_settings в существующем ProfileDefinition не стираются пустыми данными."""
+@pytest.mark.parametrize(
+    "new_conan_settings, expected_conan_settings",
+    [
+        # pb_data.conan_settings пуст -> существующее значение сохраняется как есть
+        pytest.param({}, {"os": "Linux"}, id="empty-does-not-overwrite"),
+        # pb_data.conan_settings непуст -> перезаписывает существующее значение
+        pytest.param({"os": "Windows"}, {"os": "Windows"}, id="non-empty-overwrites"),
+    ],
+)
+def test_apply_conan_results_conan_settings_overwrite_priority(
+    new_conan_settings: dict, expected_conan_settings: dict
+) -> None:
+    """Существующий ProfileDefinition.conan_settings перезаписывается новыми
+    данными, только если они непусты; пустые conan_settings из повторного
+    обогащения не затирают уже сохранённое значение."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
     existing_pd = ProfileDefinition(
         profile_name="hw-linux-x86_64-gcc10_2",
         conan_settings={"os": "Linux"},
     )
-    # Новый profile_data содержит пустые conan_settings
-    result = _minimal_enrich_result(comp, rel, pb, conan_settings={})
+    result = _minimal_enrich_result(comp, rel, pb, conan_settings=new_conan_settings)
     profile_definitions: list[ProfileDefinition] = [existing_pd]
 
     DataEnricher.apply_conan_results([comp], result, profile_definitions)
 
-    assert existing_pd.conan_settings == {"os": "Linux"}
+    assert existing_pd.conan_settings == expected_conan_settings
 
 
 @pytest.mark.business_logic

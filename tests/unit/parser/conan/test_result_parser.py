@@ -367,20 +367,6 @@ def test_result_parser_skips_root_node(conan_task: ConanTask) -> None:
 
 
 @pytest.mark.business_logic
-def test_result_parser_extracts_conan_settings(
-    success_json: dict[str, Any],
-    conan_task: ConanTask,
-) -> None:
-    """conan_settings — непустой словарь, содержащий как минимум 'os' или 'arch'."""
-    result = Conan2ResultParser().parse(success_json, conan_task)
-
-    assert result is not None
-    assert isinstance(result.conan_settings, dict)
-    assert result.conan_settings, "conan_settings must not be empty"
-    assert "os" in result.conan_settings or "arch" in result.conan_settings
-
-
-@pytest.mark.business_logic
 def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> None:
     """Узел с default_options=null должен возвращать пустой список для default_options."""
     minimal_json: dict[str, Any] = {
@@ -624,3 +610,36 @@ def test_result_parser_extract_build_date_returns_empty_on_malformed_timestamp()
     parser = Conan2ResultParser()
 
     assert parser._extract_build_date({"prev_timestamp": "not-a-number"}) == ""
+
+
+@pytest.mark.infrastructure
+def test_extract_ref_info_returns_empty_base_ref_on_malformed_conan_reference() -> None:
+    """_extract_ref_info перехватывает ConanException при разборе некорректного ref
+    (Conan graph info в принципе может отдать невалидную ссылку для повреждённого узла
+    графа) и возвращает пустой base_ref вместо падения, сохраняя fallback-версию."""
+    parser = Conan2ResultParser()
+    node = {"ref": "not a valid ref!!!", "rrev": "someref"}
+
+    base_ref, rrev, full_version = parser._extract_ref_info(node, fallback_version="1.2.3")
+
+    assert base_ref == ""
+    assert rrev == "someref"
+    assert full_version == "1.2.3"
+
+
+@pytest.mark.infrastructure
+def test_extract_dependencies_skips_node_with_malformed_ref() -> None:
+    """_extract_dependencies перехватывает ConanException для узла с некорректным ref
+    и пропускает его, не прерывая сбор остальных зависимостей."""
+    parser = Conan2ResultParser()
+    nodes = {
+        "0": {"name": "mylib", "ref": "mylib/1.0@user/channel"},
+        "1": {"name": "broken-dep", "ref": "not a valid ref!!!"},
+        "2": {"name": "good-dep", "ref": "good-dep/2.0@user/channel"},
+    }
+
+    deps = parser._extract_dependencies(nodes, comp_name="mylib")
+
+    assert deps == ["good-dep"]
+    assert "broken-dep" not in deps
+

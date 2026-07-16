@@ -356,3 +356,67 @@ def test_conan_environment_manager_install_config_raises_on_invalid_url(mocker) 
         manager.setup()
 
     mock_run.assert_not_called()
+
+
+@pytest.mark.infrastructure
+def test_conan_environment_manager_setup_raises_when_conan_missing_from_path(mocker) -> None:
+    """setup() поднимает RuntimeError, если утилита conan не найдена в PATH,
+    ещё до создания временной директории и обращения к conan CLI."""
+    mocker.patch("shutil.which", return_value=None)
+    mock_mkdtemp = mocker.patch("tempfile.mkdtemp")
+    mock_run = mocker.patch("subprocess.run")
+
+    manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
+
+    with pytest.raises(RuntimeError, match="PATH"):
+        manager.setup()
+
+    mock_mkdtemp.assert_not_called()
+    mock_run.assert_not_called()
+
+
+@pytest.mark.infrastructure
+def test_install_config_calls_cleanup_before_raising_on_subprocess_failure(
+    tmp_path: Path, mocker
+) -> None:
+    """Если сама команда 'conan config install' завершилась ненулевым кодом,
+    _install_config обязан вызвать cleanup() ДО того, как исключение
+    покинет метод — иначе временный каталог CONAN_HOME останется висеть на
+    диске (агенты CI годами накапливали бы такие директории при регулярных
+    сбоях установки конфигурации).
+
+    Порядок проверяется явно: список call_order фиксирует момент вызова
+    rmtree() (внутри настоящего cleanup()) и момент перехвата исключения в
+    этом тесте — а не полагается на то, что в синхронном коде это и так
+    гарантировано.
+    """
+    setup_dir = tmp_path / "setup_dir"
+    setup_dir.mkdir()
+
+    call_order: list[str] = []
+
+    def _record_rmtree(path, ignore_errors=False):
+        call_order.append("cleanup")
+
+    mocker.patch("shutil.rmtree", side_effect=_record_rmtree)
+    mocker.patch(
+        "subprocess.run",
+        return_value=MagicMock(returncode=1, stdout="", stderr="config install failed"),
+    )
+
+    manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
+    manager._setup_dir = setup_dir
+
+    try:
+        manager._install_config(env={})
+    except RuntimeError:
+        call_order.append("raise")
+    else:
+        pytest.fail("_install_config must raise RuntimeError on subprocess failure")
+
+    assert call_order == ["cleanup", "raise"], (
+        "cleanup() должен быть вызван строго до того, как исключение покинет "
+        f"_install_config; фактический порядок: {call_order}"
+    )
+    # Реальный эффект cleanup() — _setup_dir сброшен в None — а не просто вызов мока.
+    assert manager._setup_dir is None
