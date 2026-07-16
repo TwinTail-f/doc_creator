@@ -2,7 +2,7 @@
 
 from autodoc.common.logger import logger
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
-from autodoc.exceptions import ConfigError
+from autodoc.exceptions import ConfigError, ConfluenceError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 
 
@@ -26,62 +26,35 @@ class RootPageResolver:
         self._client: ConfluenceClient = confluence_client
         self._config: ConfluenceConfigSchema = confluence_config
 
-    def resolve_page_id(
-        self,
-        name: str | None,
-        default: str | None = None,
-    ) -> str | None:
+    def _find_page_id(self, name: str) -> str | None:
         """
-        Разрешает название страницы Confluence в её ID, либо возвращает ``default``.
+        Ищет страницу по названию в настроенном Space.
 
         Args:
-            name: Название страницы для поиска в настроенном Space.
-            default: Значение, возвращаемое, если ``name`` не задано.
+            name: Название страницы для поиска.
 
         Returns:
-            ID найденной по имени страницы, либо ``default``, если имя не задано.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница с таким названием
-                         не найдена в Confluence — эту ситуацию метод не может
-                         обработать самостоятельно, так как явного плана Б
-                         для неё нет.
+            ID найденной страницы, либо ``None``, если страница с таким
+            названием не найдена. 
         """
-        if not name:
-            return default
         page = self._client.find_page(name, space=self._config.space)
-        if not page:
-            raise ConfigError(
-                f"Страница '{name}' не найдена в пространстве '{self._config.space}'"
-            )
-        return page.id
+        return page.id if page else None
 
-    def _warn_name_id_conflict(
-        self,
-        source_label: str,
-        field_label: str,
-        name: str,
-        id_value: str,
-        resolved_by_name: str,
-    ) -> None:
+    def _page_id_exists(self, page_id: str) -> bool:
         """
-        Логирует несовпадение между заданными ``name`` и ``id`` одного источника.
+        Проверяет, что страница с данным ID существует в Confluence.
 
         Args:
-            source_label: Источник, в котором обнаружено несовпадение (``'CLI'``
-                          либо ``'Config'``).
-            field_label: Имя поля конфигурации, к которому относится конфликт.
-            name: Заданное название страницы.
-            id_value: Заданный ID страницы.
-            resolved_by_name: ID страницы, полученный резолвингом ``name``.
+            page_id: Проверяемый ID страницы.
+
+        Returns:
+            ``True``, если страница существует, иначе ``False``.
         """
-        logger.warning(
-            "Конфликт параметров в источнике %s: '%s_name'=%r и '%s'=%r "
-            "указывают на разные страницы Confluence (id по имени: %s). "
-            "Используется значение '%s_name'.",
-            source_label, field_label, name, field_label, id_value,
-            resolved_by_name, field_label,
-        )
+        try:
+            self._client.get_page(page_id)
+            return True
+        except ConfluenceError:
+            return False
 
     def _resolve_root_parent(
         self,
@@ -93,6 +66,10 @@ class RootPageResolver:
     ) -> str:
         """
         Резолвит ID родительской страницы, требуя непустой результат.
+
+        Приоритет источников: CLI важнее конфигурации (используется
+        конфигурация, только если в CLI не задано вообще ничего).
+        Внутри источника приоритет ``name``->``id``.
 
         Args:
             cli_name: Название страницы, переданное через CLI.
@@ -106,31 +83,56 @@ class RootPageResolver:
             Строка с ID страницы.
 
         Raises:
-            ConfigError: Если выбранное ``name`` задано, но страница с таким
-                         названием не найдена в Confluence (бросает
-                         :meth:`resolve_page_id`), либо если ни имя, ни ID
-                         не заданы ни через CLI, ни в конфигурации.
+            ConfigError: Если ни имя, ни ID не заданы, либо заданы, но ни
+                         один из них не резолвится в реальную страницу
+                         Confluence.
         """
         if cli_name or cli_id:
             source_label, name, id_value = "CLI", cli_name, cli_id
         else:
             source_label, name, id_value = "Config", config_name, config_id
 
-        if name and id_value:
-            resolved = self.resolve_page_id(name)
-            if resolved != id_value:
-                self._warn_name_id_conflict(source_label, field_label, name, id_value, resolved)
-        elif name:
-            resolved = self.resolve_page_id(name)
-        elif id_value:
-            resolved = id_value
-        else:
+        if name:
+            resolved_by_name = self._find_page_id(name)
+            if resolved_by_name is not None:
+                if id_value and resolved_by_name != id_value:
+                    logger.warning(
+                        f"Конфликт параметров в источнике {source_label}: "
+                        f"'{field_label}_name'={name!r} и '{field_label}'="
+                        f"{id_value!r} указывают на разные страницы "
+                        f"Confluence (id по имени: {resolved_by_name}). "
+                        f"Используется значение '{field_label}_name'."
+                    )
+                return resolved_by_name
+
+            if id_value and self._page_id_exists(id_value):
+                logger.warning(
+                    f"В источнике {source_label} '{field_label}_name'="
+                    f"{name!r} не резолвится в существующую страницу "
+                    f"Confluence в пространстве '{self._config.space}'. "
+                    f"Используется запасное значение '{field_label}'="
+                    f"{id_value!r}."
+                )
+                return id_value
+
             raise ConfigError(
-                f"Необходимо указать '{field_label}_name' или '{field_label}'"
-                f" в конфигурации Confluence"
+                f"Страница '{name}' не найдена в пространстве "
+                f"'{self._config.space}', а запасной '{field_label}' не "
+                f"задан либо тоже указывает на несуществующую страницу"
             )
 
-        return resolved
+        if id_value:
+            if not self._page_id_exists(id_value):
+                raise ConfigError(
+                    f"Страница с ID='{id_value}', указанным для "
+                    f"'{field_label}', не найдена в Confluence"
+                )
+            return id_value
+
+        raise ConfigError(
+            f"Необходимо указать '{field_label}_name' или '{field_label}'"
+            f" в конфигурации Confluence"
+        )
 
     def resolve_passports_root(
         self,
@@ -149,10 +151,6 @@ class RootPageResolver:
 
         Returns:
             ID корневой страницы паспортов.
-
-        Raises:
-            ConfigError: Если страница не найдена ни по имени, ни по ID,
-                         ни в конфигурации.
         """
         return self._resolve_root_parent(
             name,
@@ -176,11 +174,6 @@ class RootPageResolver:
 
         Returns:
             ID родительской страницы.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         либо если ни имя, ни ID не заданы ни через параметры,
-                         ни в конфигурации.
         """
         return self._resolve_root_parent(
             name,
@@ -204,11 +197,6 @@ class RootPageResolver:
 
         Returns:
             ID родительской страницы.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         либо если ни имя, ни ID не заданы ни через параметры,
-                         ни в конфигурации.
         """
         return self._resolve_root_parent(
             name,
@@ -236,11 +224,6 @@ class RootPageResolver:
 
         Returns:
             ID родительской страницы.
-
-        Raises:
-            ConfigError: Если ``name`` задан, но страница не найдена в Confluence,
-                         либо если родитель не задан ни через параметры,
-                         ни в конфигурации.
         """
         if strategy_type == "profile_centric":
             return self.resolve_profile_parent(name, page_id)
@@ -269,9 +252,6 @@ class RootPageResolver:
         Returns:
             Кортеж ``(resolved_passports_root, resolved_release_parent)``.
 
-        Raises:
-            ConfigError: Если корневая страница паспортов или родитель релиза
-                         не найдены и не заданы в конфигурации.
         """
         resolved_root = self.resolve_passports_root(
             passports_root_parent_name, passports_root_parent_id
