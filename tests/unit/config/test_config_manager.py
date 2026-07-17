@@ -4,6 +4,11 @@ ConfigManager загружает и валидирует конфиги в фо�
 покрывают определение формата, валидацию по схеме и оборачивание ошибок.
 Весь файловый ввод-вывод идёт через tmp_path — реальные конфиги с диска
 не читаются.
+
+Имена файлов-фикстур (parser_config.json/.yaml/.yml и т.п.) заданы прямо в
+местах использования, а не через модульные константы: каждое такое имя
+встречается ровно в одном тесте/parametrize-блоке, а константа ради
+единственного использования не добавляет ничего, кроме косвенности.
 """
 
 import json
@@ -18,16 +23,6 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
 
-_PLATFORM_VERSION: str = "2.0"
-
-_PARSER_CONFIG_YAML: str = "parser_config.yaml"
-_PARSER_CONFIG_YML: str = "parser_config.yml"
-_PARSER_CONFIG_JSON: str = "parser_config.json"
-_CONFLUENCE_CONFIG_YAML: str = "confluence_config.yaml"
-_CONFLUENCE_CONFIG_YML: str = "confluence_config.yml"
-_CONFLUENCE_CONFIG_JSON: str = "confluence_config.json"
-
-
 def _dump(fmt: str, data: dict) -> str:
     """Сериализует *data* в текст указанного формата (``json``/``yaml``/``yml``)."""
     if fmt == "json":
@@ -39,9 +34,9 @@ def _dump(fmt: str, data: dict) -> str:
 @pytest.mark.parametrize(
     "filename, fmt",
     [
-        pytest.param(_PARSER_CONFIG_JSON, "json", id="json"),
-        pytest.param(_PARSER_CONFIG_YAML, "yaml", id="yaml"),
-        pytest.param(_PARSER_CONFIG_YML, "yaml", id="yml"),
+        pytest.param("parser_config.json", "json", id="json"),
+        pytest.param("parser_config.yaml", "yaml", id="yaml"),
+        pytest.param("parser_config.yml", "yaml", id="yml"),
     ],
 )
 def test_config_manager_loads_valid_config_by_extension(
@@ -61,42 +56,31 @@ def test_config_manager_loads_valid_config_by_extension(
 
 
 @pytest.mark.contract
-def test_config_manager_loads_real_parser_config_resource_files(resources_dir: Path) -> None:
-    """ConfigManager грузит настоящие файлы из tests/unit/config/resources/ напрямую.
-
-    В отличие от остальных тестов этого модуля, здесь не создаётся временный
-    файл через tmp_path и yaml.dump/json.dumps — configs_dir указывает прямо
-    на committed-ресурсы репозитория (valid_parser_config.json/.yaml), как
-    это делается для conan/manifests/options-фикстур в tests/unit/parser/.
-    Это подтверждает, что сами ресурсные файлы валидны и пригодны к использованию,
-    а не только словари, полученные через фикстуру valid_parser_config.
+@pytest.mark.parametrize(
+    "loader_name, schema_class, stem",
+    [
+        pytest.param("load_parser_config", ParserConfigSchema, "valid_parser_config", id="parser"),
+        pytest.param(
+            "load_confluence_config", ConfluenceConfigSchema, "valid_confluence_config", id="confluence"
+        ),
+    ],
+)
+def test_config_manager_loads_real_resource_files_json_and_yaml_agree(
+    resources_dir: Path, loader_name: str, schema_class: type, stem: str
+) -> None:
+    """ConfigManager грузит настоящие файлы из tests/unit/config/resources/ напрямую —
+    и для парсер-, и для confluence-конфига одним и тем же способом.
     """
     manager = ConfigManager(configs_dir=resources_dir)
+    loader = getattr(manager, loader_name)
 
-    json_result = manager.load_parser_config("valid_parser_config.json")
-    yaml_result = manager.load_parser_config("valid_parser_config.yaml")
+    json_result = loader(f"{stem}.json")
+    yaml_result = loader(f"{stem}.yaml")
 
-    assert isinstance(json_result, ParserConfigSchema)
-    assert isinstance(yaml_result, ParserConfigSchema)
+    assert isinstance(json_result, schema_class)
+    assert isinstance(yaml_result, schema_class)
     assert json_result == yaml_result, (
-        "valid_parser_config.json и valid_parser_config.yaml должны описывать "
-        "один и тот же конфиг в двух форматах."
-    )
-
-
-@pytest.mark.contract
-def test_config_manager_loads_real_confluence_config_resource_files(resources_dir: Path) -> None:
-    """Аналог test_config_manager_loads_real_parser_config_resource_files для Confluence-конфига."""
-    manager = ConfigManager(configs_dir=resources_dir)
-
-    json_result = manager.load_confluence_config("valid_confluence_config.json")
-    yaml_result = manager.load_confluence_config("valid_confluence_config.yaml")
-
-    assert isinstance(json_result, ConfluenceConfigSchema)
-    assert isinstance(yaml_result, ConfluenceConfigSchema)
-    assert json_result == yaml_result, (
-        "valid_confluence_config.json и valid_confluence_config.yaml должны описывать "
-        "один и тот же конфиг в двух форматах."
+        f"{stem}.json и {stem}.yaml должны описывать один и тот же конфиг в двух форматах."
     )
 
 
@@ -105,44 +89,42 @@ def test_config_manager_raises_config_error_on_invalid_schema(
     tmp_path: Path,
 ) -> None:
     """_validate() оборачивает pydantic.ValidationError в ConfigError для невалидных данных.
-
-    ConfigManager никогда не должен пропускать внутренние исключения pydantic наружу —
-    каждая ошибка валидации должна проявляться как ConfigError, чтобы вызывающий код
-    мог ловить один стабильный тип исключения.
     """
     manager = ConfigManager(configs_dir=tmp_path)
-    incomplete_data: dict[str, Any] = {"platform_version": _PLATFORM_VERSION}
+    incomplete_data: dict[str, Any] = {"platform_version": "2.0"}
 
     with pytest.raises(ConfigError):
         manager._validate(incomplete_data, ParserConfigSchema)  # type: ignore[attr-defined]
 
 
-@pytest.mark.business_logic
-def test_config_manager_raises_on_nonexistent_configs_dir(tmp_path: Path) -> None:
-    """load_raw() поднимает ConfigError, если configs_dir не существует.
-
-    ConfigManager откладывает проверку директории до первой операции, которой
-    она реально нужна, но при этом должен стабильно пробрасывать ConfigError,
-    чтобы вызывающий код мог полагаться на единый тип исключения для всех
-    ошибок конфигурации.
-    """
-    nonexistent_dir: Path = tmp_path / "nonexistent"
-    manager = ConfigManager(configs_dir=nonexistent_dir)
-
-    with pytest.raises(ConfigError):
-        manager.load_raw("parser_config")
+def _make_nonexistent_dir(tmp_path: Path) -> Path:
+    """Путь, который никогда не создавался на диске."""
+    return tmp_path / "nonexistent"
 
 
-@pytest.mark.business_logic
-def test_config_manager_raises_on_file_as_configs_dir(tmp_path: Path) -> None:
-    """load_raw() поднимает ConfigError, если configs_dir указывает на файл, а не директорию.
-
-    Передача пути к файлу там, где ожидается директория, должна завершаться
-    ConfigError, а не «сырым» OSError или AttributeError.
-    """
-    not_a_dir: Path = tmp_path / "not_a_dir.json"
+def _make_file_instead_of_dir(tmp_path: Path) -> Path:
+    """Существующий файл — валидный Path, но не директория."""
+    not_a_dir = tmp_path / "not_a_dir.json"
     not_a_dir.write_text("{}", encoding="utf-8")
-    manager = ConfigManager(configs_dir=not_a_dir)
+    return not_a_dir
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "make_bad_configs_dir",
+    [
+        pytest.param(_make_nonexistent_dir, id="nonexistent-dir"),
+        pytest.param(_make_file_instead_of_dir, id="file-instead-of-dir"),
+    ],
+)
+def test_config_manager_raises_on_invalid_configs_dir(
+    tmp_path: Path, make_bad_configs_dir
+) -> None:
+    """load_raw() поднимает ConfigError, если configs_dir не указывает на существующую
+    директорию — будь то отсутствующий путь или путь, указывающий на файл.
+    """
+    bad_configs_dir = make_bad_configs_dir(tmp_path)
+    manager = ConfigManager(configs_dir=bad_configs_dir)
 
     with pytest.raises(ConfigError):
         manager.load_raw("parser_config")
@@ -152,9 +134,9 @@ def test_config_manager_raises_on_file_as_configs_dir(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "filename, fmt",
     [
-        pytest.param(_CONFLUENCE_CONFIG_JSON, "json", id="json"),
-        pytest.param(_CONFLUENCE_CONFIG_YAML, "yaml", id="yaml"),
-        pytest.param(_CONFLUENCE_CONFIG_YML, "yaml", id="yml"),
+        pytest.param("confluence_config.json", "json", id="json"),
+        pytest.param("confluence_config.yaml", "yaml", id="yaml"),
+        pytest.param("confluence_config.yml", "yaml", id="yml"),
     ],
 )
 def test_config_manager_load_confluence_config_returns_correct_type(
@@ -195,15 +177,7 @@ def test_config_manager_autodiscover_prefers_yaml_but_falls_back_to_json(
     """Автопоиск конфига по базовому имени (без явного расширения):
     при наличии обоих файлов побеждает YAML (SUPPORTED_FORMATS ставит его
     перед JSON), а если YAML-файла нет вовсе — автопоиск не ломается и
-    находит JSON, чтобы существующие проекты с .json-конфигами не пострадали.
-
-    Это парный кейс формата "приоритет vs обратная совместимость": оба
-    сценария бьют по одному и тому же коду автопоиска, поэтому собраны в один
-    параметризованный тест, а не в два похожих отдельных.
-
-    Помечено как ``contract`` (а не ``business_logic``): порядок разбора
-    расширений конфигов — это деталь механики загрузки, а не правило
-    предметной области.
+    находит JSON.
     """
     if "yaml" in present_formats:
         yaml_data = {**valid_parser_config, "platform_version": "yaml_wins"}
@@ -247,52 +221,60 @@ def test_list_available_configs_excludes_examples_subdir(
 
 
 @pytest.mark.contract
-def test_list_example_configs_returns_files_from_examples_subdir(
-    tmp_path: Path, valid_parser_config: dict,
+@pytest.mark.parametrize("examples_dir_exists", [True, False], ids=["present", "missing"])
+def test_list_example_configs_reflects_examples_subdir_presence(
+    tmp_path: Path, valid_parser_config: dict, examples_dir_exists: bool
 ) -> None:
-    """list_example_configs() возвращает файлы из configs/examples/.
-
-    Проверяет, что метод корректно читает подпапку examples/ и возвращает
-    файлы, сгруппированные по формату.
-    """
-    examples_dir = tmp_path / "examples"
-    examples_dir.mkdir()
-    (examples_dir / "parser_config.yaml").write_text(
-        yaml.dump(valid_parser_config), encoding="utf-8"
-    )
-    (examples_dir / "parser_config.json").write_text(
-        json.dumps(valid_parser_config), encoding="utf-8"
-    )
+    """list_example_configs() возвращает файлы из configs/examples/, если она есть
+    и заполнена, и пустые списки по каждому формату, если её нет вовсе."""
+    if examples_dir_exists:
+        examples_dir = tmp_path / "examples"
+        examples_dir.mkdir()
+        (examples_dir / "parser_config.yaml").write_text(
+            yaml.dump(valid_parser_config), encoding="utf-8"
+        )
+        (examples_dir / "parser_config.json").write_text(
+            json.dumps(valid_parser_config), encoding="utf-8"
+        )
 
     manager = ConfigManager(configs_dir=tmp_path)
     result = manager.list_example_configs()
 
-    assert "parser_config.yaml" in result["yaml"]
-    assert "parser_config.json" in result["json"]
-
-
-@pytest.mark.contract
-def test_list_example_configs_returns_empty_when_no_examples_dir(
-    tmp_path: Path,
-) -> None:
-    """list_example_configs() возвращает пустые списки, если examples/ отсутствует."""
-    manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.list_example_configs()
-
-    assert all(files == [] for files in result.values()), (
-        "Ожидались пустые списки при отсутствии examples/, " f"получено: {result}"
-    )
+    if examples_dir_exists:
+        assert "parser_config.yaml" in result["yaml"]
+        assert "parser_config.json" in result["json"]
+    else:
+        assert all(files == [] for files in result.values()), (
+            "Ожидались пустые списки при отсутствии examples/, " f"получено: {result}"
+        )
 
 
 @pytest.mark.business_logic
-def test_config_manager_wraps_yaml_error_in_config_error(tmp_path: Path) -> None:
-    """_parse_file() оборачивает yaml.YAMLError в ConfigError с именем файла в сообщении."""
-    config_file = tmp_path / "parser_config.yaml"
-    config_file.write_text("key: [unbalanced", encoding="utf-8")
+@pytest.mark.parametrize(
+    "filename, content, match",
+    [
+        # синтаксически невалидный YAML -> сообщение об ошибке содержит имя файла
+        pytest.param(
+            "parser_config.yaml", "key: [unbalanced", "parser_config.yaml", id="malformed-yaml-syntax"
+        ),
+        # синтаксически валидный JSON, но верхний уровень — не dict (список)
+        pytest.param("parser_config.json", json.dumps([1, 2, 3]), "dict", id="non-dict-top-level"),
+    ],
+)
+def test_config_manager_wraps_malformed_content_in_config_error(
+    tmp_path: Path, filename: str, content: str, match: str
+) -> None:
+    """_parse_file() оборачивает разные виды «плохого» содержимого файла в ConfigError
+    с понятным сообщением: синтаксически невалидный YAML — с именем файла в
+    тексте ошибки, а структурно невалидный (не-dict) контент — с явным
+    упоминанием "dict", а не пропускает исходное исключение PyYAML/json наружу как есть.
+    """
+    config_file = tmp_path / filename
+    config_file.write_text(content, encoding="utf-8")
 
     manager = ConfigManager(configs_dir=tmp_path)
-    with pytest.raises(ConfigError, match="parser_config.yaml"):
-        manager.load_raw("parser_config.yaml")
+    with pytest.raises(ConfigError, match=match):
+        manager.load_raw(filename)
 
 
 @pytest.mark.infrastructure
@@ -320,35 +302,29 @@ def test_config_manager_wraps_oserror_in_config_error(
 
 
 @pytest.mark.business_logic
-def test_config_manager_rejects_non_dict_content(tmp_path: Path) -> None:
-    """_parse_file() поднимает ConfigError, если верхний уровень содержимого — не dict
-    (например список), даже если сам файл синтаксически валиден."""
-    config_file = tmp_path / "parser_config.json"
-    config_file.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
-
-    manager = ConfigManager(configs_dir=tmp_path)
-    with pytest.raises(ConfigError, match="dict"):
-        manager.load_raw("parser_config.json")
-
-
-@pytest.mark.business_logic
-def test_config_manager_validate_config_file_rejects_unsupported_extension(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    "create_unsupported_file, match",
+    [
+        # файл существует, но расширение вне SUPPORTED_FORMATS
+        pytest.param(True, "Неподдерживаемый формат", id="unsupported-extension"),
+        # расширение поддерживается, но по пути ничего нет
+        pytest.param(False, "Файл не найден", id="missing-file"),
+    ],
+)
+def test_config_manager_validate_config_file_rejects_bad_path(
+    tmp_path: Path, create_unsupported_file: bool, match: str
 ) -> None:
-    """validate_config_file() поднимает ConfigError для расширения вне SUPPORTED_FORMATS,
-    не пытаясь прочитать и разобрать содержимое файла."""
-    config_file = tmp_path / "parser_config.toml"
-    config_file.write_text("key = 'value'", encoding="utf-8")
+    """validate_config_file() поднимает ConfigError для двух разных «плохих путей» —
+    неподдерживаемого расширения и отсутствующего файла — каждый раз со своим,
+    специфичным для причины сообщением, не пытаясь прочитать и разобрать
+    содержимое там, где в этом нет смысла.
+    """
+    if create_unsupported_file:
+        target_file = tmp_path / "parser_config.toml"
+        target_file.write_text("key = 'value'", encoding="utf-8")
+    else:
+        target_file = tmp_path / "does_not_exist.yaml"
 
     manager = ConfigManager(configs_dir=tmp_path)
-    with pytest.raises(ConfigError, match="Неподдерживаемый формат"):
-        manager.validate_config_file(str(config_file))
-
-
-@pytest.mark.business_logic
-def test_config_manager_validate_config_file_missing_file(tmp_path: Path) -> None:
-    """validate_config_file() поднимает ConfigError, если файл по указанному пути не существует."""
-    manager = ConfigManager(configs_dir=tmp_path)
-    missing = tmp_path / "does_not_exist.yaml"
-    with pytest.raises(ConfigError, match="Файл не найден"):
-        manager.validate_config_file(str(missing))
+    with pytest.raises(ConfigError, match=match):
+        manager.validate_config_file(str(target_file))
