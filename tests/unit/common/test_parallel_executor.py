@@ -9,6 +9,7 @@ import time
 from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.common.parallel_executor import ParallelExecutor
 
@@ -112,16 +113,24 @@ def test_parallel_executor_max_workers_one_is_sequential() -> None:
 
 
 @pytest.mark.business_logic
-def test_parallel_executor_empty_task_list_returns_empty() -> None:
-    """execute([]) возвращает [] немедленно, не вызывая ошибку или запуская потоки.
+def test_parallel_executor_empty_task_list_returns_empty_without_spawning_threads(
+    mocker: MockerFixture,
+) -> None:
+    """execute([]) возвращает [] немедленно, не создавая ThreadPoolExecutor.
 
-    Защищает короткий путь, который избегает создания ThreadPoolExecutor
-    для пустой очереди работ.
+    Оставлен отдельным тестом, а не кейсом в общей параметризации: это не
+    ещё один набор входных данных для того же пути выполнения, а отдельная
+    ранняя ветка (``if not items: return []``), которая обязана вообще не
+    доходить до ``ThreadPoolExecutor`` — что и проверяется здесь патчем
+    класса и assert_not_called(), а не только сравнением результата.
     """
+    pool_spy = mocker.patch("autodoc.common.parallel_executor.ThreadPoolExecutor")
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL)
+
     results: list[Any] = executor.execute(lambda x: x, [])
 
     assert results == []
+    pool_spy.assert_not_called()
 
 
 @pytest.mark.business_logic
@@ -161,13 +170,52 @@ def test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_defa
 
 
 @pytest.mark.business_logic
-def test_parallel_executor_zero_batch_size_is_valid_and_disables_batching() -> None:
-    """``batch_size=0`` (граница, а не отрицательное значение) — валидный дефолт.
+def test_parallel_executor_zero_batch_size_is_valid_and_disables_batching(
+    mocker: MockerFixture,
+) -> None:
+    """``batch_size=0`` (граница, а не отрицательное значение) — валидный дефолт,
+    который отправляет все задачи в один пул, минуя пакетную ветку целиком.
 
     Отделяет граничный случай ``== 0`` от собственно проверяемого ``< 0``:
-    ноль не должен попадать под валидацию как ошибка.
+    ноль не должен попадать под валидацию как ошибка (в отличие от
+    отрицательных значений в
+    ``test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_default``).
+
+    "Отключение батчинга" проверяется не по результату (он одинаков в обоих
+    режимах), а по факту вызова: с ``batch_size=0`` ``_execute_in_batches``
+    не должен вызываться вовсе — иначе assert по результату прошёл бы даже
+    если пакетная ветка молча использовалась бы всегда.
     """
+    batches_spy = mocker.spy(ParallelExecutor, "_execute_in_batches")
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=0)
+
     results: list[int | None] = executor.execute(lambda x: x, list(range(_TASK_COUNT)))
 
     assert results == list(range(_TASK_COUNT))
+    batches_spy.assert_not_called()
+
+
+@pytest.mark.business_logic
+def test_parallel_executor_batch_size_one_is_not_equivalent_to_disabled_batching(
+    mocker: MockerFixture,
+) -> None:
+    """``batch_size=1`` — это НЕ то же самое, что отключённый батчинг (``batch_size=0``).
+
+    Отвечает на вопрос ревью «чем batch_size=1 отличается от последовательной
+    обработки»: формально по каждому отдельному "пакету" из одного элемента
+    результат совпал бы с последовательным выполнением, но
+    ``batch_size=1`` всё равно идёт через ``_execute_in_batches`` — со своей
+    паузой ``batch_delay`` между каждой парой соседних задач. При
+    ``batch_size=0`` такой паузы нет и быть не может, т.к. батчинг вообще
+    не запускается (см. предыдущий тест). Здесь это проверяется по числу
+    вызовов ``time.sleep`` между задачами, а не только по итоговому списку
+    результатов.
+    """
+    mock_sleep = mocker.patch("autodoc.common.parallel_executor.time.sleep")
+    executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL, batch_size=1, batch_delay=0.01)
+
+    results: list[int | None] = executor.execute(lambda x: x, list(range(_TASK_COUNT)))
+
+    assert results == list(range(_TASK_COUNT))
+    # Пауза между каждой парой соседних задач-"пакетов": TASK_COUNT - 1 раз.
+    assert mock_sleep.call_count == _TASK_COUNT - 1

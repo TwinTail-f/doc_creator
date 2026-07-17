@@ -27,6 +27,7 @@ from pytest_mock import MockerFixture
 from urllib3.connectionpool import HTTPConnectionPool
 
 from autodoc.common.retryable_session import (
+    _RETRY_STATUS_CODES,
     RetryableSession,
     create_bearer_session,
     create_pat_session,
@@ -35,7 +36,6 @@ from autodoc.common.retryable_session import (
 
 _TIMEOUT_SEC: int = 10
 _HTTP_TOO_MANY: int = 429
-_HTTP_UNAVAILABLE: int = 503
 _HTTP_OK: int = 200
 _MAX_RETRIES: int = 3
 _BACKOFF_FACTOR: float = 2.0
@@ -57,7 +57,12 @@ def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock
 
     Returns:
         Мок, по которому можно проверить фактическое количество попыток
-        (``call_count``).
+        (``call_count``). Это единственная причина оборачивать функцию через
+        ``side_effect``, а не подставлять её напрямую как ``new=`` в
+        ``patch.object``: если передать голую функцию как ``new``, атрибут
+        ``_make_request`` перестаёт быть Mock-объектом и теряет ``call_count`` —
+        а тестам ниже как раз нужно проверять фактическое число обращений
+        к транспорту, а не только итоговый результат запроса.
     """
 
     def _make_request(
@@ -83,29 +88,20 @@ def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock
 
 
 @pytest.mark.infrastructure
-def test_retryable_session_retries_on_429(mocker: MockerFixture) -> None:
-    """После первого ответа 429 сессия автоматически повторяет запрос и
-    возвращает результат второй, успешной попытки.
+@pytest.mark.parametrize("retryable_status", _RETRY_STATUS_CODES)
+def test_retryable_session_retries_on_every_configured_status(
+    mocker: MockerFixture, retryable_status: int
+) -> None:
+    """После одного ответа с любым статусом из ``_RETRY_STATUS_CODES`` сессия
+    автоматически повторяет запрос и возвращает результат второй, успешной
+    попытки.
 
-    Тест гоняет запрос через настоящий цикл повторных попыток urllib3 (а не
-    только проверяет конфигурацию Retry), поэтому фиксирует и итоговый
-    статус, и фактическое число обращений к транспорту.
+    Параметризовано по самому ``_RETRY_STATUS_CODES`` (а не по двум статусам
+    "навскидку"), чтобы тест реально покрывал все коды, которые модуль
+    считает временными и достойными повтора — 408/429/500/502/503/504 — а не
+    только пару произвольно выбранных.
     """
-    mock_transport = _fake_transport(mocker, iter([_HTTP_TOO_MANY, _HTTP_OK]))
-    session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
-
-    response = session.get(_TEST_URL)
-
-    assert response.status_code == _HTTP_OK
-    assert mock_transport.call_count == 2
-
-
-@pytest.mark.infrastructure
-def test_retryable_session_retries_on_503(mocker: MockerFixture) -> None:
-    """После первого ответа 503 («сервис недоступен» — временная проблема
-    инфраструктуры) сессия автоматически повторяет запрос и возвращает
-    результат второй, успешной попытки."""
-    mock_transport = _fake_transport(mocker, iter([_HTTP_UNAVAILABLE, _HTTP_OK]))
+    mock_transport = _fake_transport(mocker, iter([retryable_status, _HTTP_OK]))
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
 
     response = session.get(_TEST_URL)

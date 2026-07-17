@@ -21,8 +21,10 @@ from autodoc.exceptions import ConfigError
 _PLATFORM_VERSION: str = "2.0"
 
 _PARSER_CONFIG_YAML: str = "parser_config.yaml"
+_PARSER_CONFIG_YML: str = "parser_config.yml"
 _PARSER_CONFIG_JSON: str = "parser_config.json"
 _CONFLUENCE_CONFIG_YAML: str = "confluence_config.yaml"
+_CONFLUENCE_CONFIG_YML: str = "confluence_config.yml"
 _CONFLUENCE_CONFIG_JSON: str = "confluence_config.json"
 
 
@@ -39,7 +41,7 @@ def _dump(fmt: str, data: dict) -> str:
     [
         pytest.param(_PARSER_CONFIG_JSON, "json", id="json"),
         pytest.param(_PARSER_CONFIG_YAML, "yaml", id="yaml"),
-        pytest.param("parser_config.yml", "yaml", id="yml"),
+        pytest.param(_PARSER_CONFIG_YML, "yaml", id="yml"),
     ],
 )
 def test_config_manager_loads_valid_config_by_extension(
@@ -152,7 +154,7 @@ def test_config_manager_raises_on_file_as_configs_dir(tmp_path: Path) -> None:
     [
         pytest.param(_CONFLUENCE_CONFIG_JSON, "json", id="json"),
         pytest.param(_CONFLUENCE_CONFIG_YAML, "yaml", id="yaml"),
-        pytest.param("confluence_config.yml", "yaml", id="yml"),
+        pytest.param(_CONFLUENCE_CONFIG_YML, "yaml", id="yml"),
     ],
 )
 def test_config_manager_load_confluence_config_returns_correct_type(
@@ -174,33 +176,53 @@ def test_config_manager_load_confluence_config_returns_correct_type(
     assert isinstance(result, ConfluenceConfigSchema)
 
 
-@pytest.mark.business_logic
-def test_config_manager_prefers_yaml_over_json_when_both_exist(
-    tmp_path: Path, valid_parser_config: dict
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "present_formats, expected_marker",
+    [
+        # оба файла есть -> автопоиск по SUPPORTED_FORMATS должен предпочесть YAML
+        pytest.param(("yaml", "json"), "yaml_wins", id="yaml-and-json-yaml-wins"),
+        # YAML-файла нет вовсе -> автопоиск не должен отказывать, а найти JSON
+        pytest.param(("json",), "json_only", id="json-only-backward-compat"),
+    ],
+)
+def test_config_manager_autodiscover_prefers_yaml_but_falls_back_to_json(
+    tmp_path: Path,
+    valid_parser_config: dict,
+    present_formats: tuple[str, ...],
+    expected_marker: str,
 ) -> None:
-    """При наличии обоих файлов (yaml + json) загружается YAML-версия.
+    """Автопоиск конфига по базовому имени (без явного расширения):
+    при наличии обоих файлов побеждает YAML (SUPPORTED_FORMATS ставит его
+    перед JSON), а если YAML-файла нет вовсе — автопоиск не ломается и
+    находит JSON, чтобы существующие проекты с .json-конфигами не пострадали.
 
-    Гарантирует, что SUPPORTED_FORMATS=['.yaml', ...] применяется корректно
-    и YAML побеждает JSON при автопоиске по базовому имени.
+    Это парный кейс формата "приоритет vs обратная совместимость": оба
+    сценария бьют по одному и тому же коду автопоиска, поэтому собраны в один
+    параметризованный тест, а не в два похожих отдельных.
+
+    Помечено как ``contract`` (а не ``business_logic``): порядок разбора
+    расширений конфигов — это деталь механики загрузки, а не правило
+    предметной области.
     """
-    yaml_file = tmp_path / "parser_config.yaml"
-    yaml_data = {**valid_parser_config, "platform_version": "yaml_wins"}
-    yaml_file.write_text(yaml.dump(yaml_data), encoding="utf-8")
-
-    json_file = tmp_path / "parser_config.json"
-    json_data = {**valid_parser_config, "platform_version": "json_loses"}
-    json_file.write_text(json.dumps(json_data), encoding="utf-8")
+    if "yaml" in present_formats:
+        yaml_data = {**valid_parser_config, "platform_version": "yaml_wins"}
+        (tmp_path / "parser_config.yaml").write_text(yaml.dump(yaml_data), encoding="utf-8")
+    if "json" in present_formats:
+        # Когда YAML тоже присутствует, JSON-файл намеренно несёт другой маркер
+        # ("json_loses"), чтобы assert ниже провалился, если бы автопоиск на
+        # самом деле выбрал JSON, а не YAML.
+        json_marker = "json_loses" if "yaml" in present_formats else "json_only"
+        json_data = {**valid_parser_config, "platform_version": json_marker}
+        (tmp_path / "parser_config.json").write_text(json.dumps(json_data), encoding="utf-8")
 
     manager = ConfigManager(configs_dir=tmp_path)
     result = manager.load_parser_config()  # без явного имени → автопоиск
 
-    assert result.platform_version == "yaml_wins", (
-        "Ожидался YAML (yaml_wins), но загружен JSON (json_loses). "
-        "SUPPORTED_FORMATS должен ставить YAML перед JSON."
-    )
+    assert result.platform_version == expected_marker
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_list_available_configs_excludes_examples_subdir(
     tmp_path: Path, valid_parser_config: dict
 ) -> None:
@@ -224,7 +246,7 @@ def test_list_available_configs_excludes_examples_subdir(
     )
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_list_example_configs_returns_files_from_examples_subdir(
     tmp_path: Path, valid_parser_config: dict,
 ) -> None:
@@ -249,7 +271,7 @@ def test_list_example_configs_returns_files_from_examples_subdir(
     assert "parser_config.json" in result["json"]
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_list_example_configs_returns_empty_when_no_examples_dir(
     tmp_path: Path,
 ) -> None:
@@ -260,26 +282,6 @@ def test_list_example_configs_returns_empty_when_no_examples_dir(
     assert all(files == [] for files in result.values()), (
         "Ожидались пустые списки при отсутствии examples/, " f"получено: {result}"
     )
-
-
-@pytest.mark.business_logic
-def test_config_manager_still_loads_json_for_backward_compatibility(
-    tmp_path: Path, valid_parser_config: dict,
-) -> None:
-    """Конфиг в формате JSON без соседнего YAML успешно находится и загружается.
-
-    YAML в SUPPORTED_FORMATS стоит перед JSON (см.
-    test_config_manager_prefers_yaml_over_json_when_both_exist), но это не должно
-    означать, что автопоиск отказывается работать с JSON, когда YAML-файла попросту
-    нет: проекты с существующими .json-конфигами не должны ломаться.
-    """
-    config_file = tmp_path / "parser_config.json"
-    config_file.write_text(json.dumps(valid_parser_config), encoding="utf-8")
-
-    manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config()  # автопоиск — найдёт .json
-
-    assert isinstance(result, ParserConfigSchema)
 
 
 @pytest.mark.business_logic
