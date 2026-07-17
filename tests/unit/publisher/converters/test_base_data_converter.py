@@ -1,13 +1,14 @@
 """Тесты для статических методов BaseDataConverter и PassportLinkMixin."""
+import dataclasses
+from typing import Any
+
 import pytest
 
 from autodoc.models.conan_variant import ConanVariant
-from autodoc.publisher.converters.base_data_converter import BaseDataConverter, _VariantOpts
-from autodoc.publisher.converters.passport_converter import PassportConverter
+from autodoc.publisher.converters.base_data_converter import _VariantOpts
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
-import dataclasses
-from typing import Any
 
 COMP_NAME: str = "openssl"
 OPT_KEY_SHARED: str = "shared"
@@ -129,7 +130,7 @@ def test_variant_opts_is_frozen_dataclass() -> None:
         opts.conan_options = {"x": "1"}
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_variant_opts_default_options_default_is_not_shared_between_instances() -> None:
     """default_options по умолчанию — независимый dict на каждый экземпляр, а не общий объект.
     """
@@ -170,25 +171,33 @@ def test_build_variant_view_no_opts_gives_empty_conan_options(sample_variant: Co
 
 
 @pytest.mark.business_logic
-def test_build_variant_view_install_options_override_used_directly(
+@pytest.mark.parametrize(
+    "conan_options, install_options_override, expected_install_options",
+    [
+        # override задан явно — используется дословно, conan_options игнорируются
+        pytest.param({}, INSTALL_OVERRIDE, INSTALL_OVERRIDE, id="override-used-directly"),
+        # override не задан (None) — install_options строится из conan_options
+        pytest.param(
+            {OPT_KEY_SHARED: "True"},
+            None,
+            f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True",
+            id="built-from-conan-options-if-no-override",
+        ),
+    ],
+)
+def test_build_variant_view_install_options_priority(
     sample_variant: ConanVariant,
+    conan_options: dict[str, str],
+    install_options_override: str | None,
+    expected_install_options: str,
 ) -> None:
-    """install_options_override записывается в view.install_options дословно."""
-    opts = _VariantOpts(conan_options={}, install_options_override=INSTALL_OVERRIDE)
+    """Правило приоритета: install_options_override, если задан, используется дословно; иначе install_options строится из conan_options."""
+    opts = _VariantOpts(
+        conan_options=conan_options, install_options_override=install_options_override
+    )
     view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
 
-    assert view.install_options == INSTALL_OVERRIDE
-
-
-@pytest.mark.business_logic
-def test_build_variant_view_builds_install_options_from_conan_options_if_no_override(
-    sample_variant: ConanVariant,
-) -> None:
-    """Если override равен None, install_options строится из conan_options."""
-    opts = _VariantOpts(conan_options={OPT_KEY_SHARED: "True"}, install_options_override=None)
-    view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
-
-    assert view.install_options == f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True"
+    assert view.install_options == expected_install_options
 
 
 # Тесты для PassportConverter._classify_option_badge (конкретная реализация
@@ -204,10 +213,10 @@ def test_build_variant_view_builds_install_options_from_conan_options_if_no_over
         ("True", "True", False, "autodoc-badge-n"),
     ],
     ids=[
-        "test_classify_option_badge_matches_default_is_neutral",
-        "test_classify_option_badge_differs_true_is_green",
-        "test_classify_option_badge_differs_false_is_red",
-        "test_classify_option_badge_differs_non_boolean_is_yellow",
+        "test_classify_option_badge_matches_default_is_default",
+        "test_classify_option_badge_differs_bool_true_is_neutral",
+        "test_classify_option_badge_differs_bool_false_is_neutral",
+        "test_classify_option_badge_differs_non_boolean_is_neutral",
         "test_classify_option_badge_no_default_known_is_neutral",
     ],
 )
@@ -249,21 +258,3 @@ def test_conan_variant_view_defaults() -> None:
     assert view.install_options == ""
 
 
-@pytest.mark.contract
-def test_conan_variant_view_custom_values() -> None:
-    """ConanVariantView корректно хранит все переданные значения полей."""
-    opts: dict[str, Any] = {"shared": "True", "fPIC": "False"}
-    view = ConanVariantView(
-        package_id="deadbeef",
-        build_url="https://ci.example.com/build/99",
-        build_date="2024-06-01",
-        options_ref="opt-set-7",
-        conan_options=opts,
-        install_options="-o pkg/*:shared=True -o pkg/*:fPIC=False",
-    )
-    assert view.package_id == "deadbeef"
-    assert view.build_url == "https://ci.example.com/build/99"
-    assert view.build_date == "2024-06-01"
-    assert view.options_ref == "opt-set-7"
-    assert view.conan_options == opts
-    assert view.install_options == "-o pkg/*:shared=True -o pkg/*:fPIC=False"

@@ -16,10 +16,10 @@ import pytest
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
+from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
-from autodoc.publisher.converters.passport_converter import PassportConverter
 from tests.unit.publisher.conftest import (
     FakeConfluenceClient,
     FakeDocumentBuilder,
@@ -238,7 +238,7 @@ def test_page_title_is_unique_for_different_component_release_pairs() -> None:
         ("nlohmann_json", "3.9.1"),  # из nlohmann_json.properties
     ]
     titles = [PassportsStrategy._make_page_title(comp, ver) for comp, ver in pairs]
-    assert len(titles) == len(set(titles)), f"Duplicate titles detected: {titles}"
+    assert len(titles) == len(set(titles)), f"Обнаружены дублирующиеся заголовки: {titles}"
 
 
 @pytest.mark.contract
@@ -335,7 +335,8 @@ def test_one_page_per_component_release_combination(
 
     total_releases = sum(len(comp.releases) for comp in publisher_multi_component_result.components)
     assert report.pages_published == total_releases, (
-        f"Expected {total_releases} passport pages published, " f"got {report.pages_published}"
+        f"Ожидалось {total_releases} опубликованных страниц паспортов, "
+        f"получено {report.pages_published}"
     )
 
 
@@ -397,12 +398,12 @@ def test_registry_saved_after_all_pages_published(
     strategy.execute()
 
     assert len(save_calls) == 1, (
-        f"PassportPageRegistry.save() must be called exactly once, "
-        f"called {len(save_calls)} times"
+        f"PassportPageRegistry.save() должен вызываться ровно один раз, "
+        f"вызван {len(save_calls)} раз(а)"
     )
     assert (
         save_calls[0]["published_count"] > 0
-    ), "By the time save() is called, publish_page must have been called at least once"
+    ), "К моменту вызова save() publish_page должен был быть вызван хотя бы один раз"
 
 
 @pytest.mark.business_logic
@@ -459,10 +460,10 @@ def test_failure_of_one_page_does_not_stop_others(
     )
     report = strategy.execute()
 
-    assert report.pages_failed >= 1, "There must be at least one recorded failure"
+    assert report.pages_failed >= 1, "Должна быть зафиксирована как минимум одна ошибка"
     assert (
         report.pages_published >= 1
-    ), "Other pages must still be published despite the partial failure"
+    ), "Остальные страницы всё равно должны быть опубликованы, несмотря на частичный сбой"
 
 
 @pytest.mark.business_logic
@@ -566,8 +567,8 @@ def test_report_pages_published_count_equals_successful_pages(
     expected = sum(len(comp.releases) for comp in publisher_parsed_result.components)
     assert (
         report.pages_published == expected
-    ), f"pages_published must be {expected}, got {report.pages_published}"
-    assert report.pages_failed == 0, "All pages must succeed with no errors"
+    ), f"pages_published должен быть равен {expected}, получено {report.pages_published}"
+    assert report.pages_failed == 0, "Все страницы должны быть опубликованы успешно, без ошибок"
 
 
 @pytest.mark.business_logic
@@ -618,9 +619,9 @@ def test_report_pages_failed_count_equals_failed_pages(
 
     assert report.pages_failed == len(
         report.failed_pages
-    ), "pages_failed must match len(failed_pages) — counter and list must be consistent"
-    assert report.pages_failed > 0, "With constant converter errors, pages_failed must be > 0"
-    assert report.pages_published == 0, "With constant errors, pages_published must be 0"
+    ), "pages_failed должен совпадать с len(failed_pages) — счётчик и список должны быть согласованы"
+    assert report.pages_failed > 0, "При постоянных ошибках конвертера pages_failed должен быть > 0"
+    assert report.pages_published == 0, "При постоянных ошибках pages_published должен быть равен 0"
 
 
 @pytest.mark.business_logic
@@ -699,15 +700,15 @@ def test_legacy_content_extracted_before_overwrite(
 
     assert (
         len(captured_view_models) > 0
-    ), "builder.build() must be called at least once (one passport page)"
+    ), "builder.build() должен быть вызван хотя бы один раз (одна страница паспорта)"
     for vm in captured_view_models:
         assert "legacy_contents" in vm, (
-            f"view_model passed to builder.build() must contain 'legacy_contents', "
-            f"got keys: {list(vm.keys())}"
+            f"view_model, переданный в builder.build(), должен содержать 'legacy_contents', "
+            f"получены ключи: {list(vm.keys())}"
         )
         assert isinstance(
             vm["legacy_contents"], dict
-        ), "legacy_contents must be a dict (empty or populated)"
+        ), "legacy_contents должен быть словарём (пустым или заполненным)"
 
 
 @pytest.mark.business_logic
@@ -771,8 +772,8 @@ def test_hierarchy_created_for_each_component(
     }
     actual_pairs = {(c["component_name"], c["release_version"]) for c in hierarchy_calls}
     assert actual_pairs == expected_pairs, (
-        f"ensure_hierarchy_exists must be called for all (comp, version) pairs.\n"
-        f"Expected: {expected_pairs}\nGot:      {actual_pairs}"
+        f"ensure_hierarchy_exists должен вызываться для всех пар (компонент, версия).\n"
+        f"Ожидалось: {expected_pairs}\nПолучено: {actual_pairs}"
     )
 
 
@@ -842,25 +843,26 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
         for comp in publisher_multi_channel_result.components
         for rel in comp.releases
     }
-    assert work_item_count == 3, "Sanity check on the fixture: 2 alpha channels + 1 beta channel"
-    assert len(distinct_pages) == 2, "Sanity check: alpha's 2 channels collapse to 1 distinct version"
+    assert work_item_count == 3, "Проверка корректности фикстуры: 2 канала alpha + 1 канал beta"
+    assert len(distinct_pages) == 2, "Проверка корректности: 2 канала alpha схлопываются в 1 уникальную версию"
 
     assert report.pages_published == work_item_count, (
-        "Current behavior republishes once per channel work item, not once per "
-        f"distinct page: expected {work_item_count} publish calls, "
-        f"report says {report.pages_published}"
+        "Текущее поведение: republish происходит по одному разу на каждый рабочий "
+        f"элемент канала, а не на уникальную страницу: ожидалось {work_item_count} "
+        f"вызовов publish, отчёт сообщает {report.pages_published}"
     )
     assert len(client.published_pages) == work_item_count
 
     alpha_title = PassportsStrategy._make_page_title("alpha", "2.0.0")
     alpha_calls = [p for p in client.published_pages if p["title"] == alpha_title]
     assert len(alpha_calls) == 2, (
-        "alpha's single distinct page must be published/updated twice "
-        "(once per channel work item) under the current (non-deduplicating) behavior"
+        "единственная уникальная страница alpha должна публиковаться/обновляться "
+        "дважды (по разу на рабочий элемент канала) при текущем "
+        "(без дедупликации) поведении"
     )
 
     # Ни один из вызовов publish_page (даже republish одной и той же страницы) не
     # сталкивается по page_id: счётчик RecordingConfluenceClient должен выдавать
     # уникальные ID.
     page_ids = [d["page_id"] for d in report.details if d and d.get("page_id")]
-    assert len(page_ids) == len(set(page_ids)), "Every publish must receive a unique page_id"
+    assert len(page_ids) == len(set(page_ids)), "Каждая публикация должна получать уникальный page_id"

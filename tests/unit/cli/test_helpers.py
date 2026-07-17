@@ -9,7 +9,6 @@
 import json
 from pathlib import Path
 
-import click
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
@@ -90,7 +89,7 @@ def test_load_parsed_data_empty_file_raises_validation_error_mentioning_interrup
     with pytest.raises(ValidationError) as exc_info:
         load_parsed_data(tmp_path)
 
-    assert "прерв" in str(exc_info.value).lower() or "interrupt" in str(exc_info.value).lower()
+    assert "прерв" in str(exc_info.value).lower()
 
 
 @pytest.mark.business_logic

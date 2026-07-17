@@ -1,8 +1,10 @@
 """Юнит-тесты для ProfileCentricConverter."""
 import pytest
 
+from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
-from autodoc.models.parsed_result import ParsedResult
+from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
+from autodoc.models.release import Release
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 
 CHANNEL_TECH: str = "tech"
@@ -122,11 +124,6 @@ def test_profile_centric_convert_include_links_flag_in_result(
 @pytest.mark.business_logic
 def test_profile_centric_converter_profile_with_no_components_does_not_raise() -> None:
     """ProfileDefinition без совпадающих ProfileBuild не приводит к падению."""
-    from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
-    from autodoc.models.component import Component
-    from autodoc.models.release import Release
-    from autodoc.models.conan_variant import ProfileBuild
-
     # Профиль присутствует в definitions, но не упомянут ни в одном ProfileBuild компонентов
     orphan_profile = ProfileDefinition(profile_name="hw-linux-riscv64-gcc12")
 
@@ -246,18 +243,35 @@ def test_channels_within_profile_sorted_consistently(
     порядок, чтобы обеспечить идентичный HTML-вывод при повторной публикации.
 
     Предусловия:
-        - publisher_multi_channel_result имеет каналы "fast" и "stable"
-          для профиля "hw-linux-x86_64-gcc10".
+        - publisher_multi_channel_result имеет каналы "fast" и "stable" для
+          профиля "hw-linux-x86_64-gcc10". Релизы comp_alpha патчатся так,
+          чтобы канал "stable" физически шёл в данных раньше канала "fast" —
+          иначе тест не отличает настоящую сортировку от порядка вставки,
+          случайно совпадающего с алфавитным в исходной фикстуре.
 
     Шаги:
-        1. Создать ProfileCentricConverter и вызвать convert().
-        2. Для каждого профиля извлечь упорядоченные имена каналов из словаря.
+        1. Поменять местами релизы comp_alpha, чтобы "stable" оказался
+           раньше "fast" в списке releases.
+        2. Создать ProfileCentricConverter и вызвать convert().
+        3. Для каждого профиля извлечь упорядоченные имена каналов из словаря.
 
     Ожидаемый результат:
-        list(channels.keys()) == sorted(list(channels.keys()))
+        list(channels.keys()) == sorted(list(channels.keys())), несмотря на
+        то, что в исходных данных канал "stable" идёт раньше "fast".
     """
+    comp_alpha = publisher_multi_channel_result.components[0]
+    reversed_comp_alpha = comp_alpha.model_copy(
+        update={"releases": list(reversed(comp_alpha.releases))}
+    )
+    patched_result = publisher_multi_channel_result.model_copy(
+        update={
+            "components": [reversed_comp_alpha]
+            + list(publisher_multi_channel_result.components[1:])
+        }
+    )
+
     converter = ProfileCentricConverter(include_passport_links=False)
-    view = converter.convert(publisher_multi_channel_result)
+    view = converter.convert(patched_result)
 
     for profile in view["profiles"]:
         channel_names = list(profile["channels"].keys())

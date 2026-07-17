@@ -675,22 +675,73 @@ def test_result_parser_extract_patches_guards_against_malformed_conandata(
 
 
 @pytest.mark.business_logic
-def test_result_parser_build_artifactory_url_empty_on_missing_inputs(
-    conan_task: ConanTask,
+def test_result_parser_build_url_empty_when_artifactory_base_url_missing(
+    success_json: dict[str, Any],
 ) -> None:
-    """_build_artifactory_url возвращает пустую строку, если artifactory_base_url или rrev отсутствуют."""
-    parser = Conan2ResultParser()
+    """parse() возвращает пустой build_url, если artifactory_base_url задачи пуст."""
+    release = Release(version="0.18.0", platform="2.0", channel="tech")
+    pb = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja")
+    task = ConanTask(
+        cmd=["conan", "graph", "info"],
+        comp_name="patchelf",
+        version="0.18.0",
+        channel="tech",
+        profile_name="crypto_alpine_gcc_x86_64.jinja",
+        option_id="1",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="",
+        release=release,
+        pb=pb,
+    )
+    result = Conan2ResultParser().parse(success_json, task)
 
-    object.__setattr__(conan_task, "artifactory_base_url", "")
-    assert parser._build_artifactory_url(conan_task, "0.18.0", "abc123", "deadbeef") == ""
-
-    object.__setattr__(conan_task, "artifactory_base_url", "https://art.example.com")
-    assert parser._build_artifactory_url(conan_task, "0.18.0", "", "deadbeef") == ""
+    assert result is not None
+    assert result.build_url == ""
 
 
 @pytest.mark.business_logic
-def test_result_parser_extract_build_date_returns_empty_on_malformed_timestamp() -> None:
-    """_extract_build_date возвращает пустую строку при нечисловом prev_timestamp вместо исключения."""
-    parser = Conan2ResultParser()
+def test_result_parser_build_url_empty_when_rrev_missing(conan_task: ConanTask) -> None:
+    """parse() возвращает пустой build_url, если у целевого узла нет rrev."""
+    graph_json: dict[str, Any] = {
+        "graph": {
+            "nodes": {
+                "1": {
+                    "name": "patchelf",
+                    "binary": "Download",
+                    "ref": "patchelf/0.18.0@platform-2.0/tech",  # без "#rrev"
+                    "rrev": "",
+                    "package_id": "deadbeef",
+                    "info": {"settings": {}, "options": {}},
+                },
+            }
+        }
+    }
+    result = Conan2ResultParser().parse(graph_json, conan_task)
 
-    assert parser._extract_build_date({"prev_timestamp": "not-a-number"}) == ""
+    assert result is not None
+    assert result.build_url == ""
+
+
+@pytest.mark.business_logic
+def test_result_parser_build_date_empty_on_malformed_timestamp(conan_task: ConanTask) -> None:
+    """parse() возвращает пустой build_date при нечисловом prev_timestamp вместо исключения."""
+    graph_json: dict[str, Any] = {
+        "graph": {
+            "nodes": {
+                "1": {
+                    "name": "patchelf",
+                    "binary": "Download",
+                    "ref": "patchelf/0.18.0@platform-2.0/tech#abc123",
+                    "rrev": "abc123",
+                    "package_id": "deadbeef",
+                    "info": {"settings": {}, "options": {}},
+                    "prev_timestamp": "not-a-number",
+                },
+            }
+        }
+    }
+    result = Conan2ResultParser().parse(graph_json, conan_task)
+
+    assert result is not None
+    assert result.build_date == ""

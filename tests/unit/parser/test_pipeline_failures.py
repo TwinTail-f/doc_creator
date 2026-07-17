@@ -4,15 +4,21 @@
 выводить их все вместе, а не останавливаться на первом сбое.
 """
 
+import logging
 from pathlib import Path
 
 import pytest
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import DocGeneratorError, ParsingError
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.parsed_result import ParsedResult
+from autodoc.models.release import Release
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
+from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 # Сообщения об ошибках, встроенные в отказывающие шаги — используются для утверждения, что оба сообщаются.
 _ERROR_MSG_FIRST: str = "first non-critical failure"
@@ -30,7 +36,7 @@ class _FailingNonCriticalStep(BaseParseStep):
         self._error_message = error_message
 
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Raise DocGeneratorError unconditionally."""
+        """Вызывает DocGeneratorError без условий."""
         raise DocGeneratorError(self._error_message)
 
 
@@ -53,8 +59,6 @@ class _FinalizeOnlyStep(BaseParseStep):
 
     def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
         """Заполнить ctx.result, чтобы ComponentParser.parse() не вызывал исключение на отсутствие результата."""
-        from autodoc.models.parsed_result import ParsedResult
-
         ctx.result = ParsedResult(
             generated_at="2024-01-01T00:00:00",
             platform_version="2.0",
@@ -74,15 +78,11 @@ def test_two_non_critical_failures_both_reported(
     """
     warning_messages: list[str] = []
 
-    import logging
-
     class _CapturingHandler(logging.Handler):
         def emit(self, record: logging.LogRecord) -> None:
             warning_messages.append(self.format(record))
 
-    import logging as _logging
-
-    logger = _logging.getLogger("doc_parser")
+    logger = logging.getLogger("doc_parser")
     handler = _CapturingHandler()
     logger.addHandler(handler)
 
@@ -98,8 +98,8 @@ def test_two_non_critical_failures_both_reported(
             steps=steps,
         )
         result = parser.parse()
-        # Пайплайн завершен: result заполнен FinalizeOnlyStep
-        assert result is not None
+        # Пайплайн завершён: result заполнен FinalizeOnlyStep
+        assert isinstance(result, ParsedResult)
     finally:
         logger.removeHandler(handler)
 
@@ -107,10 +107,10 @@ def test_two_non_critical_failures_both_reported(
     all_messages: str = "\n".join(warning_messages)
     assert (
         _ERROR_MSG_FIRST in all_messages
-    ), f"Expected '{_ERROR_MSG_FIRST}' in warning log but got: {all_messages}"
+    ), f"Ожидалось сообщение '{_ERROR_MSG_FIRST}' в логе предупреждений, получено: {all_messages}"
     assert (
         _ERROR_MSG_SECOND in all_messages
-    ), f"Expected '{_ERROR_MSG_SECOND}' in warning log but got: {all_messages}"
+    ), f"Ожидалось сообщение '{_ERROR_MSG_SECOND}' в логе предупреждений, получено: {all_messages}"
 
 
 @pytest.mark.business_logic
@@ -204,10 +204,6 @@ class _FakeManifestStep(BaseParseStep):
 
     def execute(self, ctx: PipelineContext) -> None:
         """Заполнить ctx.components одним минимальным компонентом."""
-        from autodoc.models.component import Component
-        from autodoc.models.conan_variant import ProfileBuild
-        from autodoc.models.release import Release
-
         pb = ProfileBuild(profile_name="hw-linux-x86_64")
         release = Release(
             version="1.0",
@@ -239,7 +235,8 @@ def test_context_components_empty_before_manifest_step(
     Бизнес-правило:
         Начальный ``PipelineContext`` должен начинаться с пустого списка компонентов.
         Только ManifestStep (или его заменитель) может добавлять к нему.
-        Это защищает от остаточного состояния из предыдущего запуска.
+        Пустой список в начале исключает влияние остаточного состояния из
+        предыдущего запуска пайплайна.
 
     Предусловия:
         - Пайплайн: [_ObservingStep (критичный), _FinalizeOnlyStep].
@@ -317,7 +314,7 @@ def test_context_result_none_before_finalize_step(
     ), f"ctx.result должен быть None перед FinalizeStep, получено {observed_results[0]}"
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_with_steps_excluded_removes_class_not_instance(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -340,8 +337,6 @@ def test_with_steps_excluded_removes_class_not_instance(
         - Нет экземпляра ``ConanEnrichStep`` в ``_steps``.
         - Общее количество шагов на один меньше, чем пайплайн по умолчанию.
     """
-    from autodoc.parser.steps.conan_step import ConanEnrichStep
-
     default_parser = ComponentParser(config=parser_config, data_dir=tmp_path)
     default_count = len(default_parser._steps)
 

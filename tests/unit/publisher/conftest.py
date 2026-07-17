@@ -7,6 +7,11 @@ from typing import Any
 
 import pytest
 
+from autodoc.models.component import Component
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.options import ConanInputOptions, TotalOptionsSet
+from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
+from autodoc.models.release import Release
 from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
 
@@ -17,8 +22,9 @@ class FakeConfluenceClient:
     """
     Тестовая заглушка ConfluenceClient с предсказуемым поведением.
 
-    Все методы записи фиксируют вызовы в self.calls для последующей проверки.
-    Возвращаемые значения publish_page/create_page — экземпляры PageResult
+    Вызовы publish_page, resolve_existing_page_id, create_page и get_page_body
+    фиксируются в self.calls для последующей проверки (find_page и get_page —
+    нет). Возвращаемые значения publish_page/create_page — экземпляры PageResult
     (соответствуют контракту настоящего ConfluenceClient), настраиваются
     через self.publish_responses / self.create_responses.
     find_page/resolve_existing_page_id работают через self._pages
@@ -152,13 +158,6 @@ class FakeDocumentBuilder:
         if self.build_responses:
             return self.build_responses.pop(0)
         return f"<html>{template_name}</html>"
-
-
-from autodoc.models.component import Component
-from autodoc.models.conan_variant import ConanVariant, ProfileBuild
-from autodoc.models.options import ConanInputOptions, TotalOptionsSet
-from autodoc.models.release import Release
-from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 
 
 @pytest.fixture
@@ -443,12 +442,14 @@ def publisher_multi_channel_result(
 
 class RecordingConfluenceClient:
     """
-    Расширенный FakeConfluenceClient, фиксирующий порядок вызовов publish_page/create_page.
+    Самостоятельная заглушка ConfluenceClient (не наследует FakeConfluenceClient),
+    фиксирующая порядок и содержимое вызовов publish_page в published_pages.
 
     Используется для проверки количества и порядка публикации страниц в тестах
-    стратегий Part-3. Каждый вызов publish_page/create_page добавляется в
+    стратегий Part-3. Каждый вызов publish_page добавляется в
     ``published_pages`` и получает монотонно возрастающий целочисленный
-    ``page_id``, начиная с 1000.
+    ``page_id``, начиная с 1000; вызовы create_page получают такой же
+    уникальный ``page_id``, но в published_pages не попадают.
 
     Счётчик защищён блокировкой: PassportsStrategy публикует страницы
     параллельно через ParallelExecutor/ThreadPoolExecutor, поэтому наивное
@@ -507,7 +508,7 @@ class RecordingConfluenceClient:
         title: str,
         body_html: str,
     ) -> PageResult:
-        """Записывает вызов (НЕ добавляет в published_pages) и возвращает уникальный инкрементный page_id."""
+        """Не фиксирует вызов в published_pages (там отражается только publish_page) и возвращает PageResult с уникальным инкрементным page_id."""
         page_id = self._next_page_id()
         return PageResult(id=page_id, version=1, status="created", message="")
 

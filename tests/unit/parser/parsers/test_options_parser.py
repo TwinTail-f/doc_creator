@@ -53,7 +53,7 @@ def test_select_ci_prefix(paths: list[str], expected: str) -> None:
     assert OptionsParser.select_ci_prefix(paths) == expected
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 @pytest.mark.parametrize(
     "filename, opt_path, ci_prefix, expected_channel, expected_cleaned",
     [
@@ -326,7 +326,7 @@ def test_pick_options_apr_global_returned_for_any_channel() -> None:
     }
     for channel in ("fast", "slow", "tech", ""):
         result = OptionsParser.pick_options(repo_data, channel)
-        assert result == {"1": "apr:shared=True"}, f"failed for channel={channel!r}"
+        assert result == {"1": "apr:shared=True"}, f"не совпало для channel={channel!r}"
 
 
 @pytest.mark.business_logic

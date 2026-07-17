@@ -1,7 +1,8 @@
 """
-Юнит-тесты для autodoc/parser/fetchers/base.py.
+Юнит-тесты для autodoc/parser/fetchers/base_fetcher.py.
 
-Охватывает датакласс FetchResult и двухфазный инвариант BaseTFSFetcher.
+Охватывает двухфазный инвариант ``configure()`` → ``fetch()`` на примере
+конкретного подкласса BaseTFSFetcher.
 """
 
 from typing import Any

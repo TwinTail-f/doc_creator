@@ -35,10 +35,10 @@ def _write_yaml(directory: Path, filename: str, data: dict) -> Path:
 @pytest.mark.parametrize(
     ("filename", "writer"),
     [
-        # .yaml — защита от падения команды validate на корректных входных данных
+        # .yaml — validate принимает конфиг в формате YAML
         pytest.param("parser_config.yaml", _write_yaml, id="yaml"),
-        # .json — обратная совместимость: проекты с существующими .json конфигами
-        # не должны ломаться
+        # .json — validate принимает конфиг в формате JSON (обратная совместимость
+        # с проектами, у которых конфиги уже в этом формате)
         pytest.param("parser_config.json", _write_json, id="json-backward-compat"),
     ],
 )
@@ -78,7 +78,7 @@ def test_cli_config_validate_exits_nonzero_on_invalid_config(
     )
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_cli_config_validate_error_is_human_readable(
     configs_dir: Path,
 ) -> None:

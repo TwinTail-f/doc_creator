@@ -33,7 +33,7 @@ def _dump(fmt: str, data: dict) -> str:
     return yaml.dump(data)
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 @pytest.mark.parametrize(
     "filename, fmt",
     [
@@ -162,8 +162,8 @@ def test_config_manager_load_confluence_config_returns_correct_type(
     независимо от расширения файла (.json, .yaml, .yml) — симметрично
     test_config_manager_loads_valid_config_by_extension для парсер-конфига.
 
-    Защищает от случая, когда загрузчик вернёт обычный dict или схему не того
-    класса, что сломает весь код, обращающийся к конфигу через атрибуты.
+    Если загрузчик вернёт обычный dict или схему не того класса, весь код,
+    обращающийся к конфигу через атрибуты, сломается.
     """
     config_file: Path = tmp_path / filename
     config_file.write_text(_dump(fmt, valid_confluence_config), encoding="utf-8")

@@ -191,20 +191,22 @@ def test_parser_filter_mode_exclude(
 
 
 @pytest.mark.business_logic
-def test_parser_invalid_properties_skipped_with_warning(
+def test_parser_file_without_recognizable_properties_is_silently_skipped(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """Файл мусора рядом с корректными всё ещё даёт корректные компоненты из хороших файлов."""
+    """Файл без пары ключ-значение (нет поля 'name') не создаёт компонент и не
+    добавляет предупреждение; корректные файлы рядом обрабатываются как обычно."""
     bad_file = write_props(tmp_path, "garbage.properties", "not valid properties!!!")
     good_file = real_manifests_dir / "apr.properties"
-    components, _ = parser_20.parse(
+    components, warnings = parser_20.parse(
         [good_file, bad_file], component_names=[], filter_mode="exclude"
     )
     names = [c.name for c in components]
     assert "apr" in names
-    assert len(components) >= 1
+    assert len(components) == 1
+    assert warnings == []
 
 
 _MANIFEST_WITHOUT_NAME = "description= test\n"
@@ -552,7 +554,7 @@ def test_git_url_set_on_component_not_release(tmp_path: Path) -> None:
     components, _ = parser.parse([f], component_names=[], filter_mode="include")
 
     comp = components[0]
-    assert hasattr(comp, "git_url"), "git_url must be a Component field after migration"
+    assert hasattr(comp, "git_url"), "git_url должен быть полем Component"
     assert "mylib-repo" in comp.git_url
     assert len(comp.releases) == 2
 

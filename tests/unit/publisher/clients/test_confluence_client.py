@@ -80,7 +80,7 @@ def test_find_page_returns_page_dict_when_found(confluence_client: ConfluenceCli
     assert result.title == PAGE_TITLE
 
 
-@pytest.mark.infrastructure
+@pytest.mark.contract
 def test_get_page_returns_raw_page_dict(confluence_client: ConfluenceClient) -> None:
     """get_page возвращает ConfluencePage, построенный из ответа транспорта по ID страницы."""
     page_data = {"id": PAGE_ID, "title": PAGE_TITLE, "version": {"number": 3}}
@@ -185,7 +185,7 @@ class TestPublishPage:
         assert result.version == 1
         assert result.status == "created"
 
-    @pytest.mark.infrastructure
+    @pytest.mark.contract
     def test_publish_page_raises_publish_error_on_http_error(
         self, confluence_client: ConfluenceClient
     ) -> None:

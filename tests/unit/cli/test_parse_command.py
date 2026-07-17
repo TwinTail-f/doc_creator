@@ -14,6 +14,8 @@ from autodoc.cli.app import cli
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import NetworkError, ParsingError
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.parser.steps.conan_step import ConanEnrichStep
+from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from tests.unit.cli.conftest import (
     VALID_PARSER_CONFIG,
     make_parsed_result,
@@ -52,7 +54,7 @@ def test_parse_happy_path_writes_parsed_data_and_constructs_parser(
     assert called_data_dir == tmp_path / "data"
 
 
-@pytest.mark.contract
+@pytest.mark.infrastructure
 def test_parse_config_load_failure_exits_nonzero_with_clean_message(
     tmp_path: Path, configs_dir: Path
 ) -> None:
@@ -92,7 +94,7 @@ def test_parse_skip_conan_excludes_conan_enrich_step(
     mock_parser_cls.assert_not_called()
     mock_parser_cls.with_steps_excluded.assert_called_once()
     _, _, exclude = mock_parser_cls.with_steps_excluded.call_args.args
-    assert exclude == [mocker.ANY]
+    assert exclude == [ConanEnrichStep]
     assert "ConanEnrichStep" in result.output
 
 
@@ -118,6 +120,8 @@ def test_parse_skip_validation_excludes_artifactory_validation_step(
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     mock_parser_cls.assert_not_called()
     mock_parser_cls.with_steps_excluded.assert_called_once()
+    _, _, exclude = mock_parser_cls.with_steps_excluded.call_args.args
+    assert exclude == [ArtifactoryValidationStep]
     assert "ArtifactoryValidationStep" in result.output
 
 
@@ -126,9 +130,6 @@ def test_parse_both_skip_flags_exclude_both_step_classes(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
     """Совместное указание --skip-conan и --skip-validation исключает оба соответствующих шага сразу."""
-    from autodoc.parser.steps.conan_step import ConanEnrichStep
-    from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-
     write_parser_config(configs_dir)
     parsed_result = make_parsed_result()
     mock_parser_cls = mocker.patch("autodoc.cli.commands.parse.ComponentParser")
@@ -169,13 +170,22 @@ def test_parse_neither_skip_flag_uses_plain_constructor(
 
 
 @pytest.mark.business_logic
-def test_parse_network_error_during_parse_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker
+@pytest.mark.parametrize(
+    ("exc_cls", "message"),
+    [
+        # NetworkError — сбой сети/TFS/Artifactory/Conan во время пайплайна
+        pytest.param(NetworkError, "connection refused", id="network-error"),
+        # ParsingError — ошибка разбора манифеста/JSON/YAML во время пайплайна
+        pytest.param(ParsingError, "bad manifest", id="parsing-error"),
+    ],
+)
+def test_parse_domain_error_during_parse_exits_nonzero_cleanly(
+    tmp_path: Path, configs_dir: Path, mocker, exc_cls: type, message: str
 ) -> None:
-    """NetworkError, возникающая во время parser.parse(), завершает команду с кодом 1 и понятным сообщением."""
+    """NetworkError/ParsingError, возникающая во время parser.parse(), завершает команду с кодом 1 и понятным сообщением."""
     write_parser_config(configs_dir)
     mock_parser_cls = mocker.patch("autodoc.cli.commands.parse.ComponentParser")
-    mock_parser_cls.return_value.parse.side_effect = NetworkError("connection refused")
+    mock_parser_cls.return_value.parse.side_effect = exc_cls(message)
 
     result = CliRunner().invoke(
         cli,
@@ -184,26 +194,7 @@ def test_parse_network_error_during_parse_exits_nonzero_cleanly(
 
     assert result.exit_code == _EXIT_FAILURE
     assert "Traceback" not in result.output
-    assert "connection refused" in result.output
-
-
-@pytest.mark.business_logic
-def test_parse_parsing_error_during_parse_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
-    """ParsingError, возникающая во время parser.parse(), завершает команду с кодом 1 и понятным сообщением."""
-    write_parser_config(configs_dir)
-    mock_parser_cls = mocker.patch("autodoc.cli.commands.parse.ComponentParser")
-    mock_parser_cls.return_value.parse.side_effect = ParsingError("bad manifest")
-
-    result = CliRunner().invoke(
-        cli,
-        ["--base-dir", str(tmp_path), "--configs-dir", str(configs_dir), "parse"],
-    )
-
-    assert result.exit_code == _EXIT_FAILURE
-    assert "Traceback" not in result.output
-    assert "bad manifest" in result.output
+    assert message in result.output
 
 
 @pytest.mark.parametrize(

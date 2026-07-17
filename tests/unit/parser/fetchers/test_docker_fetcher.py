@@ -6,12 +6,10 @@
 цепочка DockerFetcher → DockerParser.
 """
 
-import pytest
-
 from pathlib import Path
 
+import pytest
 import requests
-import yaml
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.parser.fetchers.docker_fetcher import DockerFetcher
@@ -136,30 +134,29 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
     assert result.value == {}
 
 
-@pytest.mark.integration
-def test_docker_fetcher_failed_url_produces_warning(
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "make_client",
+    [
+        # get_file_content выбрасывает сетевое исключение
+        lambda: _RaisingFakeTFSClient(),
+        # тело ответа — некорректный YAML
+        lambda: _ContentFakeTFSClient(content=b"[unclosed: mapping: {"),
+        # get_file_content вернул не-200 статус без исключения
+        lambda: _ContentFakeTFSClient(content=YAML_CONTENT.encode(), status_code=404),
+    ],
+    ids=["network-error", "invalid-yaml", "http-404"],
+)
+def test_docker_fetcher_skips_url_on_fetch_failure(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
+    make_client,
 ) -> None:
-    """DockerFetcher пропускает URL, когда get_file_content вызывает исключение сети."""
-    ctx = _make_context(parser_config, _RaisingFakeTFSClient(), tmp_path)
-    fetcher = DockerFetcher()
-    fetcher.configure(ctx)
-
-    result = fetcher.fetch(urls=[_PROFILE_URL], target_platform="2.0")
-
-    assert result.value == {}
-
-
-@pytest.mark.integration
-def test_docker_fetcher_invalid_yaml_produces_warning(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """DockerFetcher пропускает URL, когда тело ответа не является корректным YAML."""
-    invalid_yaml: bytes = b"[unclosed: mapping: {"
-    tfs_client = _ContentFakeTFSClient(content=invalid_yaml)
-    ctx = _make_context(parser_config, tfs_client, tmp_path)
+    """DockerFetcher пропускает URL при сетевой ошибке, некорректном YAML или не-200
+    статусе ответа; в этих сценариях DockerParser не вызывается (ошибка перехватывается
+    раньше), поэтому это не путь двух коллабораторов, а собственное правило DockerFetcher.
+    Ошибка только логируется — FetchResult.warnings при этом не заполняется."""
+    ctx = _make_context(parser_config, make_client(), tmp_path)
     fetcher = DockerFetcher()
     fetcher.configure(ctx)
 
@@ -184,22 +181,6 @@ def test_docker_fetcher_skips_url_without_git_segment(
 
     assert result.value == {}
     assert tfs_client.received_branches == []
-
-
-@pytest.mark.business_logic
-def test_docker_fetcher_non_200_response_is_skipped(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """DockerFetcher пропускает URL, для которого get_file_content вернул не-200 статус без исключения."""
-    tfs_client = _ContentFakeTFSClient(content=YAML_CONTENT.encode(), status_code=404)
-    ctx = _make_context(parser_config, tfs_client, tmp_path)
-    fetcher = DockerFetcher()
-    fetcher.configure(ctx)
-
-    result = fetcher.fetch(urls=[_PROFILE_URL], target_platform="2.0")
-
-    assert result.value == {}
 
 
 @pytest.mark.business_logic

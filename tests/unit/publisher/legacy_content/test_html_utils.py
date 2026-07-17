@@ -75,19 +75,6 @@ def test_find_h1_sections_accepts_beautifulsoup_instance_directly() -> None:
     assert sections[0].get_text() == "Platform 2.0"
 
 
-@pytest.mark.infrastructure
-def test_find_h1_sections_unclosed_tag_is_auto_closed_by_parser() -> None:
-    """Закреплённое допущение о поведении html.parser (через bs4): незакрытый
-    тег <h1> автоматически закрывается на парсинге, поэтому find_h1_sections
-    всё равно находит заголовок. Это не бизнес-правило autodoc, а фиксация
-    факта о сторонней библиотеке, на который код полагается.
-    """
-    result = find_h1_sections("<h1>Unclosed heading")
-
-    assert len(result) == 1
-    assert result[0].get_text() == "Unclosed heading"
-
-
 # extract_platform_h1_sections
 @pytest.mark.business_logic
 def test_extract_platform_h1_sections_returns_content_by_platform_version() -> None:

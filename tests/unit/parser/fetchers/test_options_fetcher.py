@@ -5,10 +5,9 @@
 реальным содержимым options JSON из resources/options/.
 Реальные сетевые вызовы не выполняются.
 """
-import pytest
-
 from pathlib import Path
 
+import pytest
 import requests
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema

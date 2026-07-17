@@ -133,7 +133,7 @@ class FakeTFSClient:
         """Ничего не делает по умолчанию (файлы не записываются)."""
 
 
-#: SHA-1 of the empty string — Conan's sentinel package_id for header-only packages.
+#: SHA-1 пустой строки — сигнальный package_id Conan для header-only пакетов.
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
@@ -145,24 +145,24 @@ def make_component(
     git_url: str = "",
     is_header_only: bool = False,
 ) -> Component:
-    """Component factory that produces one Release with the requested profiles.
+    """Фабрика Component, создающая один Release с запрошенными профилями.
 
-    Reflects the migration of ``git_url`` and ``is_header_only`` from
-    ``Release`` to ``Component`` introduced in the DE/FS refactoring.
+    Отражает перенос полей ``git_url`` и ``is_header_only`` из ``Release``
+    в ``Component``, произведённый в рамках рефакторинга DE/FS.
 
     Args:
-        name: Component name used as both the Conan package name and the
-            ``Component.name`` field.
-        version: Release version string (e.g. ``"1.0"``).
-        channel: Conan channel name (e.g. ``"fast"``).
-        profiles: List of profile names to attach to the release.  Defaults
-            to ``["hw-linux-x86_64"]``.
-        git_url: Git repository URL — now lives on ``Component``, not ``Release``.
-        is_header_only: Header-only sentinel flag — now lives on ``Component``.
+        name: Имя компонента, используется и как имя пакета Conan, и как
+            поле ``Component.name``.
+        version: Строка версии релиза (например, ``"1.0"``).
+        channel: Имя канала Conan (например, ``"fast"``).
+        profiles: Список имён профилей, привязываемых к релизу. По умолчанию
+            ``["hw-linux-x86_64"]``.
+        git_url: URL git-репозитория — теперь хранится на ``Component``, а не на ``Release``.
+        is_header_only: Флаг header-only — теперь хранится на ``Component``.
 
     Returns:
-        A fully-constructed ``Component`` with one ``Release`` and one
-        ``ProfileBuild`` per entry in ``profiles``.
+        Полностью собранный ``Component`` с одним ``Release`` и одним
+        ``ProfileBuild`` на каждый элемент ``profiles``.
     """
     profile_names = profiles or ["hw-linux-x86_64"]
     pbs = [ProfileBuild(profile_name=p) for p in profile_names]
@@ -189,15 +189,15 @@ def make_conan_variant(
     package_id: str = "abc123",
     options_ref: str = "1",
 ) -> ConanVariant:
-    """Minimal ``ConanVariant`` factory with sensible defaults.
+    """Минимальная фабрика ``ConanVariant`` с разумными значениями по умолчанию.
 
     Args:
-        package_id: Conan package hash (use ``NULL_PACKAGE_ID`` for
-            header-only scenarios).
-        options_ref: Identifier string referencing a ``TotalOptionsSet``.
+        package_id: Хеш пакета Conan (используйте ``NULL_PACKAGE_ID`` для
+            сценариев header-only).
+        options_ref: Строка-идентификатор, ссылающаяся на ``TotalOptionsSet``.
 
     Returns:
-        A ``ConanVariant`` instance ready for use in enrichment tests.
+        Экземпляр ``ConanVariant``, готовый к использованию в тестах обогащения.
     """
     return ConanVariant(
         package_id=package_id,
@@ -208,12 +208,12 @@ def make_conan_variant(
 
 
 class CopyingAllFakeTFSClient(FakeTFSClient):
-    """Copies every .properties file from a source directory into output_dir on download_properties."""
+    """Копирует все .properties-файлы из исходной директории в output_dir при вызове download_properties."""
 
     def __init__(self, source_dir: Path) -> None:
         """
         Args:
-            source_dir: Directory containing .properties files to copy.
+            source_dir: Директория с .properties-файлами для копирования.
         """
         self._source_dir = source_dir
 
@@ -225,7 +225,7 @@ class CopyingAllFakeTFSClient(FakeTFSClient):
         output_dir: str,
         version_type=None,
     ) -> None:
-        """Copies all .properties files from source_dir into output_dir."""
+        """Копирует все .properties-файлы из source_dir в output_dir."""
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
         for f in self._source_dir.glob("*.properties"):

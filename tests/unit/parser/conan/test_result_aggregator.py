@@ -11,11 +11,11 @@ import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
-from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
-from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
-from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
+from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
+from autodoc.parser.conan.models.conan_task import ConanTask
+from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 
 
 def _make_task(
@@ -465,31 +465,59 @@ def test_build_final_result_deduplicates_by_profile_build_identity() -> None:
     assert id(pb) in result.profile_data
 
 
-@pytest.mark.business_logic
-def test_apply_enrich_keeps_first_enrich_with_base_ref() -> None:
-    """_ProfileBuildAggregator.apply_enrich фиксирует first_enrich по первому вызову
-    с непустым base_ref и не перезаписывает его последующими вызовами."""
-    from autodoc.parser.conan.result_aggregator import _ProfileBuildAggregator
+def _make_repeated_task(release: Release, pb: ProfileBuild, option_id: str = "1") -> ConanTask:
+    """Возвращает ConanTask, разделяющий один и тот же Release/ProfileBuild с другими
+    задачами того же релиза (для сценариев с несколькими результатами на один ProfileBuild)."""
+    return ConanTask(
+        cmd=["conan", "graph", "info"],
+        comp_name="openssl",
+        version="3.0.0",
+        channel="tech",
+        profile_name=pb.profile_name,
+        option_id=option_id,
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="",
+        release=release,
+        pb=pb,
+    )
 
-    agg = _ProfileBuildAggregator()
+
+@pytest.mark.business_logic
+def test_aggregator_keeps_first_release_data_rrev_for_repeated_profile_build() -> None:
+    """release_data сохраняет base_ref/rrev первого успешного результата ProfileBuild
+    и не перезаписывает их последующими результатами того же релиза."""
+    release = Release(version="3.0.0", platform="2.0", channel="tech")
+    pb = ProfileBuild(profile_name="hw-linux-x86_64")
+    task1 = _make_repeated_task(release, pb, option_id="1")
+    task2 = _make_repeated_task(release, pb, option_id="2")
+
     first = _make_enrich(comp_name="openssl", version="3.0.0")
+    first.rrev = "first-rrev"
     second = _make_enrich(comp_name="openssl", version="3.0.0")
     second.rrev = "different-rrev"
 
-    agg.apply_enrich(first)
-    agg.apply_enrich(second)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
+    mock_parser.parse.side_effect = [first, second]
+    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
 
-    assert agg.first_enrich is first
-    assert agg.first_enrich.rrev != second.rrev
+    result = ConanResultAggregator(result_parser=mock_parser).aggregate(
+        [task1, task2], [raw, raw], art_base="", target_platform="2.0"
+    )
+
+    key = ("openssl", "3.0.0", "tech")
+    assert result.release_data[key].rrev == "first-rrev"
 
 
 @pytest.mark.business_logic
-def test_apply_enrich_does_not_duplicate_resolved_options_by_id() -> None:
-    """Повторное apply_enrich с уже встречавшимся option_id не создаёт дубликат
-    в resolved_options_by_id — сохраняются опции только первого вызова с этим id."""
-    from autodoc.parser.conan.result_aggregator import _ProfileBuildAggregator
+def test_aggregator_total_options_keeps_first_resolved_options_for_repeated_option_id() -> None:
+    """total_options в release_data хранит resolved-опции только первого результата
+    для повторяющегося option_id — второй результат с тем же option_id их не переопределяет."""
+    release = Release(version="3.0.0", platform="2.0", channel="tech")
+    pb = ProfileBuild(profile_name="hw-linux-x86_64")
+    task1 = _make_repeated_task(release, pb, option_id="1")
+    task2 = _make_repeated_task(release, pb, option_id="2")
 
-    agg = _ProfileBuildAggregator()
     first = _make_enrich()
     first.option_id = "opt-1"
     first.conan_options = {"shared": "True"}
@@ -497,26 +525,41 @@ def test_apply_enrich_does_not_duplicate_resolved_options_by_id() -> None:
     second.option_id = "opt-1"
     second.conan_options = {"shared": "False"}
 
-    agg.apply_enrich(first)
-    agg.apply_enrich(second)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
+    mock_parser.parse.side_effect = [first, second]
+    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
 
-    assert len(agg.resolved_options_by_id) == 1
-    assert agg.resolved_options_by_id["opt-1"] == {"shared": "True"}
+    result = ConanResultAggregator(result_parser=mock_parser).aggregate(
+        [task1, task2], [raw, raw], art_base="", target_platform="2.0"
+    )
+
+    key = ("openssl", "3.0.0", "tech")
+    total_options = result.release_data[key].total_options
+    assert len(total_options) == 1
+    assert total_options[0].id == "opt-1"
+    assert total_options[0].options == {"shared": "True"}
 
 
 @pytest.mark.business_logic
-def test_apply_enrich_does_not_duplicate_unique_variants() -> None:
-    """Повторное apply_enrich с уже встречавшимся package_id не создаёт дубликат
-    варианта сборки в unique_variants."""
-    from autodoc.parser.conan.result_aggregator import _ProfileBuildAggregator
+def test_aggregator_profile_data_does_not_duplicate_variant_for_repeated_package_id() -> None:
+    """profile_data.variants не задваивает вариант сборки, когда два результата
+    одного ProfileBuild возвращают один и тот же package_id."""
+    release = Release(version="3.0.0", platform="2.0", channel="tech")
+    pb = ProfileBuild(profile_name="hw-linux-x86_64")
+    task1 = _make_repeated_task(release, pb, option_id="1")
+    task2 = _make_repeated_task(release, pb, option_id="2")
 
-    agg = _ProfileBuildAggregator()
     first = _make_enrich()
     first.package_id = "deadbeef" * 5
     second = _make_enrich()
     second.package_id = "deadbeef" * 5
 
-    agg.apply_enrich(first)
-    agg.apply_enrich(second)
+    mock_parser = MagicMock(spec=Conan2ResultParser)
+    mock_parser.parse.side_effect = [first, second]
+    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
 
-    assert len(agg.unique_variants) == 1
+    result = ConanResultAggregator(result_parser=mock_parser).aggregate(
+        [task1, task2], [raw, raw], art_base="", target_platform="2.0"
+    )
+
+    assert len(result.profile_data[id(pb)].variants) == 1

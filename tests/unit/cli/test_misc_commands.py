@@ -1,8 +1,7 @@
 """Тесты для autodoc/cli/commands/info.py и autodoc/cli/commands/logs.py.
 
-Обзор тестового покрытия отдельно отмечает, что команды `info` и `logs`
-"ни разу не вызываются через CliRunner ни в одном тесте". Это лёгкий
-smoke-набор, не претендующий на исчерпывающий перечень сценариев.
+Обе команды проверяются целиком через CliRunner. Это лёгкий smoke-набор,
+не претендующий на исчерпывающий перечень сценариев.
 """
 
 from pathlib import Path
@@ -34,7 +33,7 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_info_exits_zero_and_shows_version(tmp_path: Path, configs_dir: Path) -> None:
     """info завершается с кодом 0 и выводит версию / список возможностей."""
     result = _invoke(tmp_path, configs_dir, "info")
@@ -43,7 +42,7 @@ def test_info_exits_zero_and_shows_version(tmp_path: Path, configs_dir: Path) ->
     assert VERSION in result.output
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_logs_clear_yes_with_deleted_files_shows_count(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
@@ -57,7 +56,7 @@ def test_logs_clear_yes_with_deleted_files_shows_count(
     assert "2" in result.output
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_logs_clear_yes_with_nothing_to_delete_shows_message(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
@@ -67,10 +66,10 @@ def test_logs_clear_yes_with_nothing_to_delete_shows_message(
     result = _invoke(tmp_path, configs_dir, "logs", "clear", "--yes")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    assert "нет файлов" in result.output.lower() or "nothing" in result.output.lower()
+    assert "нет файлов" in result.output.lower()
 
 
-@pytest.mark.contract
+@pytest.mark.infrastructure
 def test_logs_clear_without_yes_aborts_on_declined_confirmation(
     tmp_path: Path, configs_dir: Path
 ) -> None:

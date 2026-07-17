@@ -2,8 +2,8 @@
 from pathlib import Path
 from typing import Any
 
-import pytest
 from jinja2 import TemplateError, TemplateNotFound
+import pytest
 
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 

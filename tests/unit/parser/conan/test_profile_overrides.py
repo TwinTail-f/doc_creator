@@ -7,6 +7,7 @@ empty() и поведение слияния нескольких записей
 
 import json
 from pathlib import Path
+from typing import Callable
 
 import pytest
 import yaml
@@ -57,23 +58,20 @@ def _write_yaml(tmp_path: Path, content: dict) -> Path:
 
 
 @pytest.mark.business_logic
-def test_profile_overrides_from_file_loads_correctly(tmp_path: Path) -> None:
-    """from_file() с корректным JSON-файлом правильно разрешает точное имя профиля."""
-    path = _write_json(tmp_path, _SINGLE_OVERRIDE)
-    overrides = ProfileSettingsOverrides.from_file(path)
-
-    assert overrides.resolve("crypto_default.jinja") == {"os": "Linux"}
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_from_file_loads_yaml(tmp_path: Path) -> None:
-    """from_file() с файлом .yaml правильно разрешает точное имя профиля.
-
-    YAML — основной документированный формат конфига переопределений, но
-    все остальные тесты в этом файле проверяют только .json; этот тест
-    закрывает реальный пробел в покрытии.
-    """
-    path = _write_yaml(tmp_path, _SINGLE_OVERRIDE)
+@pytest.mark.parametrize(
+    "write_fixture",
+    [
+        pytest.param(_write_json, id="json"),
+        # YAML — основной документированный формат конфига переопределений, но
+        # без этого кейса все остальные тесты в этом файле проверяли бы только .json.
+        pytest.param(_write_yaml, id="yaml"),
+    ],
+)
+def test_profile_overrides_from_file_loads_correctly(
+    tmp_path: Path, write_fixture: Callable[[Path, dict], Path],
+) -> None:
+    """from_file() с корректным JSON- или YAML-файлом правильно разрешает точное имя профиля."""
+    path = write_fixture(tmp_path, _SINGLE_OVERRIDE)
     overrides = ProfileSettingsOverrides.from_file(path)
 
     assert overrides.resolve("crypto_default.jinja") == {"os": "Linux"}
@@ -268,6 +266,34 @@ def test_profile_overrides_multiple_entries_merged(tmp_path: Path) -> None:
             {"compiler": "gcc"},
             id="empty-settings-dict",
         ),
+        # не-строковое имя профиля внутри списка 'profiles'
+        pytest.param(
+            {
+                "overrides": [
+                    {
+                        "profiles": [123, "good-profile.jinja", None],
+                        "settings": {"os": "Linux"},
+                    },
+                ]
+            },
+            None,
+            {"os": "Linux"},
+            id="non-string-profile-in-list",
+        ),
+        # пустое/состоящее из пробелов имя профиля внутри списка 'profiles'
+        pytest.param(
+            {
+                "overrides": [
+                    {
+                        "profiles": ["   ", "good-profile.jinja"],
+                        "settings": {"os": "Linux"},
+                    },
+                ]
+            },
+            None,
+            {"os": "Linux"},
+            id="blank-profile-in-list",
+        ),
     ],
 )
 def test_profile_overrides_malformed_entry_skipped_others_resolved(
@@ -276,50 +302,17 @@ def test_profile_overrides_malformed_entry_skipped_others_resolved(
     bad_profile_name: str | None,
     expected_good_settings: dict,
 ) -> None:
-    """При различных дефектах отдельной записи overrides (не-объект, опечатка
-    в ключе, 'profiles' не список, пустой список профилей, отсутствующий или
-    пустой 'settings') эта запись пропускается, а остальные записи
-    по-прежнему разрешаются корректно."""
+    """При различных дефектах отдельной записи overrides или отдельного имени
+    профиля внутри неё (не-объект, опечатка в ключе, 'profiles' не список,
+    пустой список профилей, отсутствующий или пустой 'settings', не-строковое
+    или пустое/пробельное имя профиля в списке) дефектная часть пропускается,
+    а остальные записи по-прежнему разрешаются корректно."""
     path = _write_json(tmp_path, data)
     overrides = ProfileSettingsOverrides.from_file(path)
 
     if bad_profile_name is not None:
         assert overrides.resolve(bad_profile_name) == {}
     assert overrides.resolve("good-profile.jinja") == expected_good_settings
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_non_string_profile_name_skipped_siblings_resolved(tmp_path: Path) -> None:
-    """Не-строковое имя профиля внутри списка пропускается — соседние валидные имена той же записи разрешаются."""
-    data = {
-        "overrides": [
-            {
-                "profiles": [123, "good-profile.jinja", None],
-                "settings": {"os": "Linux"},
-            },
-        ]
-    }
-    path = _write_json(tmp_path, data)
-    overrides = ProfileSettingsOverrides.from_file(path)
-
-    assert overrides.resolve("good-profile.jinja") == {"os": "Linux"}
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_blank_profile_name_skipped_siblings_resolved(tmp_path: Path) -> None:
-    """Пустое/состоящее из пробелов имя профиля пропускается — соседние валидные имена той же записи разрешаются."""
-    data = {
-        "overrides": [
-            {
-                "profiles": ["   ", "good-profile.jinja"],
-                "settings": {"os": "Linux"},
-            },
-        ]
-    }
-    path = _write_json(tmp_path, data)
-    overrides = ProfileSettingsOverrides.from_file(path)
-
-    assert overrides.resolve("good-profile.jinja") == {"os": "Linux"}
 
 
 @pytest.mark.business_logic

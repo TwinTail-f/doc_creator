@@ -10,16 +10,22 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
+from autodoc.exceptions import ParsingError
+from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.parser.conan.models.conan_enrichment_result import (
+    ConanEnrichmentResult,
+    ProfileConanData,
+)
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
+from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.manifest_step import ManifestStep
-from autodoc.parser.steps.finalize_step import FinalizeStep
-
-from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
-from autodoc.parser.fetchers.models.fetch_result import FetchResult
+from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient
 
 _MIN_COMPONENTS: int = 1
 
@@ -37,8 +43,6 @@ def _make_parser_with_real_steps(
     Artifactory всегда возвращает HTTP 200; ConanFetcher залатан для возврата
     результата без операций, чтобы подпроцесс не был запущен.
     """
-    from tests.unit.parser.conftest import CopyingAllFakeTFSClient
-
     tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     artifactory_client = _AlwaysOkArtifactoryClient()
 
@@ -69,7 +73,6 @@ def test_full_pipeline_runs_without_raising(
     ):
         result: ParsedResult = parser.parse()
 
-    assert result is not None
     assert isinstance(result, ParsedResult)
 
 
@@ -81,11 +84,10 @@ def test_manifest_step_populates_ctx_components(
 ) -> None:
     """ManifestStep заполняет ctx.components непустым списком.
 
-    Защита от переименований ключей контекста, которые могли бы незаметно
-    очистить список компонентов до того, как они будут обработаны нисходящими шагами.
+    Регрессия здесь означала бы, что переименование ключа контекста в
+    ManifestStep незаметно очистило список компонентов до того, как
+    они будут обработаны нисходящими шагами.
     """
-    from tests.unit.parser.conftest import CopyingAllFakeTFSClient
-
     tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     ctx = PipelineContext(
         config=parser_config,
@@ -95,8 +97,8 @@ def test_manifest_step_populates_ctx_components(
     )
     ManifestStep().execute(ctx)
     assert len(ctx.components) >= _MIN_COMPONENTS, (
-        f"ManifestStep must populate at least {_MIN_COMPONENTS} component(s); "
-        f"got {len(ctx.components)}"
+        f"ManifestStep должен заполнить хотя бы {_MIN_COMPONENTS} компонент(ов); "
+        f"получено {len(ctx.components)}"
     )
 
 
@@ -120,11 +122,11 @@ def test_finalize_step_output_length_matches_input(
         result: ParsedResult = parser.parse()
 
     assert result is not None
-    # Count components seen before finalization via the manifest resources.
+    # Число компонентов, видимых до финализации, оценивается по ресурсам манифестов.
     n_manifest_files: int = len(list(real_manifests_dir.glob("*.properties")))
     assert (
         len(result.components) <= n_manifest_files
-    ), "FinalizeStep must not create more components than ManifestStep parsed"
+    ), "FinalizeStep не должен создавать больше компонентов, чем распарсил ManifestStep"
 
 _HTTP_OK_E2E: int = 200
 
@@ -132,11 +134,9 @@ _HTTP_OK_E2E: int = 200
 class _AlwaysOkArtifactoryClient:
     """Заглушка Artifactory клиента: каждый HEAD запрос возвращает HTTP 200 OK."""
 
-    def head(self, url: str) -> "requests.Response":
+    def head(self, url: str) -> requests.Response:
         """Возвращает HTTP 200 без выполнения реального сетевого запроса."""
-        import requests as _req
-
-        resp = _req.Response()
+        resp = requests.Response()
         resp.status_code = _HTTP_OK_E2E
         return resp
 
@@ -152,8 +152,6 @@ def _make_real_pipeline(
     - Artifactory: всегда возвращает HTTP 200.
     - Conan: должен быть залатан каждым тестом на уровне fetcher.
     """
-    from tests.unit.parser.conftest import CopyingAllFakeTFSClient
-
     tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     artifactory_client = _AlwaysOkArtifactoryClient()
 
@@ -201,10 +199,10 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
     result: ParsedResult = parser.parse()
 
     patchelf_components = [c for c in result.components if c.name == "patchelf"]
-    assert len(patchelf_components) == 1, "Exactly one patchelf component must exist"
+    assert len(patchelf_components) == 1, "Должен существовать ровно один компонент patchelf"
     assert (
         len(patchelf_components[0].releases) == 2
-    ), f"patchelf should have 2 releases, got: {len(patchelf_components[0].releases)}"
+    ), f"У patchelf должно быть 2 релиза, получено: {len(patchelf_components[0].releases)}"
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
@@ -241,12 +239,6 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
         - nlohmann_json присутствует (у него есть варианты, поэтому FinalizeStep оставляет его).
         - ``nlohmann.is_header_only`` равна ``True``.
     """
-    from autodoc.parser.conan.models.conan_enrichment_result import (
-        ConanEnrichmentResult as _EnrichResult,
-        ProfileConanData as _ProfileConanData,
-    )
-    from autodoc.models.conan_variant import ConanVariant as _ConanVariant
-
     _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
     def _build_nlohmann_enrich(components):
@@ -256,17 +248,17 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
         ManifestStep) доступны и id(pb) может быть использован как ключ словаря,
         ожидаемый DataEnricher.apply_conan_results().
         """
-        result = _EnrichResult()
+        result = ConanEnrichmentResult()
         for comp in components:
             if "nlohmann" not in comp.name.lower():
                 continue
             for release in comp.releases:
                 for pb in release.profile_builds:
-                    result.profile_data[id(pb)] = _ProfileConanData(
+                    result.profile_data[id(pb)] = ProfileConanData(
                         conan_settings={},
                         exists=True,
                         variants=[
-                            _ConanVariant(
+                            ConanVariant(
                                 package_id=_NULL_PACKAGE_ID,
                                 build_url="",
                                 build_date="2024-01-01",
@@ -284,12 +276,12 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
     nlohmann = next((c for c in result.components if "nlohmann" in c.name.lower()), None)
 
     assert nlohmann is not None, (
-        "nlohmann_json must be present in the result when enriched with "
-        "NULL_PACKAGE_ID variants (FinalizeStep must not prune it)"
+        "nlohmann_json должен присутствовать в результате при обогащении "
+        "вариантами NULL_PACKAGE_ID (FinalizeStep не должен его отсеивать)"
     )
     assert nlohmann.is_header_only is True, (
-        f"nlohmann_json must be marked is_header_only=True after enrichment with "
-        f"NULL_PACKAGE_ID variants; got {nlohmann.is_header_only}"
+        f"nlohmann_json должен быть помечен is_header_only=True после обогащения "
+        f"вариантами NULL_PACKAGE_ID; получено {nlohmann.is_header_only}"
     )
 
 
@@ -321,9 +313,6 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
         - По крайней мере одно наблюдение записано.
         - Каждый наблюдаемый ProfileBuild имеет ``exists=False`` и ``len(variants)==0``.
     """
-    from autodoc.parser.steps.base_parse_step import BaseParseStep
-    from autodoc.parser.pipeline.context import PipelineContext
-
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
 
     observed_states: list[tuple[str, bool, int]] = []
@@ -345,13 +334,14 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
 
     assert (
         len(observed_states) > 0
-    ), "ManifestStep must create ProfileBuild skeletons before the observer runs"
+    ), "ManifestStep должен создать скелеты ProfileBuild до запуска наблюдателя"
     for comp_name, exists, variant_count in observed_states:
         assert exists is False, (
-            f"After ManifestStep pb.exists must be False; " f"got True for {comp_name}"
+            f"После ManifestStep pb.exists должен быть False; получено True для {comp_name}"
         )
         assert variant_count == 0, (
-            f"After ManifestStep pb.variants must be []; " f"got {variant_count} for {comp_name}"
+            f"После ManifestStep pb.variants должен быть []; "
+            f"получено {variant_count} для {comp_name}"
         )
 
 
@@ -388,9 +378,6 @@ def test_pipeline_options_applied_after_options_step(
         Тест утверждает, что наблюдатель выполнился (проводка шагов корректна),
         даже если фейк TFS не применил опции.
     """
-    from autodoc.parser.steps.base_parse_step import BaseParseStep
-    from autodoc.parser.pipeline.context import PipelineContext
-
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
 
     options_by_release: dict[tuple, int] = {}
@@ -515,9 +502,6 @@ def test_full_pipeline_raises_parsing_error_when_no_manifests_found(
     отсутствии манифестов, и это исключение должно дойти до вызывающей стороны
     непосредственно через ``ManifestStep`` → ``ComponentParser.parse()``.
     """
-    from tests.unit.parser.conftest import FakeTFSClient
-    from autodoc.exceptions import ParsingError
-
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
@@ -574,27 +558,21 @@ def test_full_pipeline_removes_dead_variant_on_404(
     после ``ArtifactoryValidationStep`` вариант должен исчезнуть из
     ``pb.variants``, хотя сам ``ProfileBuild`` остаётся (``exists=True``).
     """
-    from autodoc.parser.conan.models.conan_enrichment_result import (
-        ConanEnrichmentResult as _EnrichResult,
-        ProfileConanData as _ProfileConanData,
-    )
-    from autodoc.models.conan_variant import ConanVariant as _ConanVariant
-
     _DEAD_URL: str = "https://art.example.com/ui/repos/tree/General/patchelf/dead"
 
     def _build_patchelf_enrich(components):
         """Дать одному профилю patchelf вариант с build_url, ведущим к 404."""
-        result = _EnrichResult()
+        result = ConanEnrichmentResult()
         for comp in components:
             if comp.name != "patchelf":
                 continue
             for release in comp.releases:
                 for pb in release.profile_builds:
-                    result.profile_data[id(pb)] = _ProfileConanData(
+                    result.profile_data[id(pb)] = ProfileConanData(
                         conan_settings={},
                         exists=True,
                         variants=[
-                            _ConanVariant(
+                            ConanVariant(
                                 package_id="abc123",
                                 build_url=_DEAD_URL,
                                 build_date="2024-01-01",
@@ -607,14 +585,10 @@ def test_full_pipeline_removes_dead_variant_on_404(
     class _NotFoundForDeadUrlArtifactoryClient:
         """Заглушка: HTTP 404 для _DEAD_URL (после преобразования в API-путь), иначе 200."""
 
-        def head(self, url: str):
-            import requests as _req
-
-            resp = _req.Response()
+        def head(self, url: str) -> requests.Response:
+            resp = requests.Response()
             resp.status_code = 404 if "patchelf/dead" in url else 200
             return resp
-
-    from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 
     mock_conan_fetch.side_effect = _build_patchelf_enrich
 

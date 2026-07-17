@@ -19,6 +19,7 @@ from autodoc.parser.conan.models.conan_enrichment_result import (
     ReleaseConanData,
 )
 from autodoc.parser.enrichment.data_enricher import DataEnricher
+from tests.unit.parser.conftest import make_component, make_conan_variant
 
 
 def _release(
@@ -97,7 +98,7 @@ def test_apply_options_ignores_missing_key(
 @pytest.mark.business_logic
 def test_apply_docker_links_creates_profile_definition() -> None:
     """apply_docker_links() добавляет новый ProfileDefinition, если его ещё нет."""
-    comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
+    comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
     docker_links = {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"}
     profile_definitions: list[ProfileDefinition] = []
 
@@ -110,7 +111,7 @@ def test_apply_docker_links_creates_profile_definition() -> None:
 @pytest.mark.business_logic
 def test_apply_docker_links_updates_existing_definition() -> None:
     """apply_docker_links() обновляет docker_image в существующем ProfileDefinition."""
-    comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
+    comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
     existing = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2", docker_image="old")
     profile_definitions: list[ProfileDefinition] = [existing]
     docker_links = {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"}
@@ -125,7 +126,7 @@ def test_apply_docker_links_updates_existing_definition() -> None:
 def test_apply_docker_links_profile_not_in_links_unchanged() -> None:
     """apply_docker_links() с пустым docker_links создаёт ProfileDefinition
     с пустым docker_image — профиль регистрируется, но URL не задан."""
-    comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
+    comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
     profile_definitions: list[ProfileDefinition] = []
 
     DataEnricher.apply_docker_links([comp], {}, profile_definitions)
@@ -183,22 +184,12 @@ def test_apply_conan_results_does_not_overwrite_with_empty_settings() -> None:
 @pytest.mark.business_logic
 def test_apply_conan_results_missing_release_key_unchanged() -> None:
     """apply_conan_results() оставляет conan_reference пустым, если release_data не содержит совпадений."""
-    comp, rel, pb = _release()
+    comp, rel, _ = _release()
     empty_result = ConanEnrichmentResult()
 
     DataEnricher.apply_conan_results([comp], empty_result)
 
     assert rel.conan_reference == ""
-
-
-# make_component / make_conan_variant — фабрики, определённые в
-# tests/unit/parser/conftest.py.
-# Импортируем их явно, чтобы тесты оставались самодостаточными и
-# читались без неявной магии pytest-фикстур.
-from tests.unit.parser.conftest import (  # noqa: E402
-    make_component,
-    make_conan_variant,
-)
 
 
 def _make_enrich_result(
@@ -561,7 +552,6 @@ def test_apply_docker_links_empty_docker_image_preserved_when_no_match() -> None
     DataEnricher.apply_docker_links([comp], docker_links, [pd])
 
     assert pd.docker_image == ""
-    assert pd.docker_image is not None
 
 
 @pytest.mark.business_logic

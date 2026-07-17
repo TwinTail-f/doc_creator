@@ -1,7 +1,7 @@
 """Юнит-тесты для PassportConverter."""
 import pytest
 
-from autodoc.models.conan_variant import ProfileBuild
+from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
@@ -98,10 +98,6 @@ def test_passport_convert_returns_release_channel(
     assert result["releases"][0]["channel"] == CHANNEL_TECH
 
 
-from autodoc.models.conan_variant import ConanVariant
-from autodoc.models.options import TotalOptionsSet
-
-
 @pytest.mark.business_logic
 def test_variant_options_linked_by_options_ref_id(
     publisher_parsed_result: ParsedResult,
@@ -188,31 +184,42 @@ def test_install_options_built_from_build_option_sets_not_total(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    Бизнес-правило: строка install_options строится из build_option_sets
-    (то, что передал пользователь), а не из total_option_sets.
+    Бизнес-правило: строка install_options варианта строится из
+    build_option_sets (то, что реально передал пользователь через конфиг),
+    а не из total_option_sets (resolved-опций, используемых только для
+    conan_options/бейджей).
 
     Предусловия:
-        - publisher_parsed_result с build_option_sets[0].options ==
-          "openssl/*:shared=True, openssl/*:fPIC=True"
+        - publisher_parsed_result с total_option_sets[0].options ==
+          {"shared": "True", "fPIC": "True"} (не патчится).
+        - build_option_sets[0].options патчится на "openssl/*:shared=False" —
+          значение намеренно отличается от total_option_sets, иначе оба
+          источника дают дословно одинаковую строку и тест не может
+          отличить правильную реализацию от бага, перепутавшего источники.
 
     Шаги:
-        1. Создать PassportConverter и вызвать convert()
-        2. Проверить variants[0].install_options
+        1. Патчить build_option_sets релиза значением, отличным от total_option_sets.
+        2. Создать PassportConverter и вызвать convert()
+        3. Проверить variants[0].install_options
 
     Ожидаемый результат:
-        install_options содержит "-o", "shared" и "openssl"
+        install_options == "-o openssl/*:shared=False" — значение взято из
+        build_option_sets, а не "True" из total_option_sets.
     """
+    original_comp = publisher_parsed_result.components[0]
+    original_rel = original_comp.releases[0]
+    patched_bos = original_rel.build_option_sets[0].model_copy(
+        update={"options": "openssl/*:shared=False"}
+    )
+    patched_rel = original_rel.model_copy(update={"build_option_sets": [patched_bos]})
+    patched_comp = original_comp.model_copy(update={"releases": [patched_rel]})
+    patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
+
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
-    view = converter.convert(publisher_parsed_result)
+    view = converter.convert(patched_result)
 
     variant_view = view["releases"][0]["profile_builds"][0]["variants"][0]
-    install_opts = variant_view.install_options
-
-    assert "-o" in install_opts, "install_options must contain the -o flag"
-    assert "shared" in install_opts, "install_options must contain the key 'shared'"
-    assert (
-        "openssl" in install_opts
-    ), "install_options must use the component name from build_option_sets"
+    assert variant_view.install_options == "-o openssl/*:shared=False"
 
 
 @pytest.mark.contract
@@ -220,7 +227,7 @@ def test_variants_are_conan_variant_view_dataclasses(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """
-    Бизнес-правило: каждый вариант в view-model — это ConanVariantView
+    Контракт: каждый вариант в view-model — это ConanVariantView
     (dataclass), а не исходный ConanVariant.
 
     Предусловия:

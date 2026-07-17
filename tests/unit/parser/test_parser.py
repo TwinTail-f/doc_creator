@@ -11,6 +11,12 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.conan_step import ConanEnrichStep
+from autodoc.parser.steps.docker_step import DockerResolveStep
+from autodoc.parser.steps.finalize_step import FinalizeStep
+from autodoc.parser.steps.manifest_step import ManifestStep
+from autodoc.parser.steps.options_step import OptionsResolveStep
+from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
+from tests.unit.parser.conftest import FakeTFSClient
 
 # Фейковые шаги пайплайна
 class FakeStep(BaseParseStep):
@@ -175,8 +181,6 @@ def test_component_parser_uses_injected_tfs_client(
     tmp_path,
 ) -> None:
     """Когда tfs_client передаётся через конструктор, TFSClient.__init__ никогда не вызывается."""
-    from tests.unit.parser.conftest import FakeTFSClient
-
     mock_tfs_init = mocker.patch(
         "autodoc.parser.parser.TFSClient.__init__",
         return_value=None,
@@ -229,18 +233,12 @@ def test_component_parser_save_intermediate_oserror_logged_not_raised(
     mock_write_text.assert_called()
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_component_parser_default_pipeline_step_order(
     parser_config,
     tmp_path,
 ) -> None:
     """_default_pipeline() возвращает шаги в задокументированном порядке: Manifest→Options→Conan→Docker→Validation→Finalize."""
-    from autodoc.parser.steps.docker_step import DockerResolveStep
-    from autodoc.parser.steps.finalize_step import FinalizeStep
-    from autodoc.parser.steps.manifest_step import ManifestStep
-    from autodoc.parser.steps.options_step import OptionsResolveStep
-    from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-
     parser = ComponentParser(config=parser_config, data_dir=tmp_path)
     expected_order = [
         ManifestStep,

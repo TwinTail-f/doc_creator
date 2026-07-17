@@ -11,8 +11,8 @@ from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.options import ConanInputOptions
 from autodoc.models.release import Release
-from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
+from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
 
@@ -231,9 +231,20 @@ def test_task_builder_exact_range_components_forces_exact_range_for_numeric_vers
 
 
 @pytest.mark.business_logic
-def test_task_builder_calc_upper_bound_multi_segment() -> None:
-    """_calc_upper_bound увеличивает только последний числовой сегмент многосегментной версии."""
-    assert ConanTaskBuilder._calc_upper_bound("20.11.10") == "20.11.11"
+def test_task_builder_exact_range_increments_only_last_segment_of_multi_segment_version() -> None:
+    """Для многосегментной версии ('20.11.10') точный диапазон увеличивает
+    только последний числовой сегмент: верхняя граница — '20.11.11', а не,
+    например, '21.11.10' или '20.12.10'."""
+    release = make_release(version="20.11.10")
+    comp = make_component(name="mylib", releases=[release])
+
+    tasks = ConanTaskBuilder().build(
+        [comp], PLATFORM, ART_URL, exact_range_components=["mylib"]
+    )
+
+    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
+    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
+    assert "[>=20.11.10 <20.11.11]" in requires_flags[0]
 
 
 @pytest.mark.business_logic

@@ -70,45 +70,33 @@ def test_profile_centric_strategy_execute_returns_success_report(
 
 
 @pytest.mark.business_logic
-def test_profile_centric_strategy_loads_registry_when_include_links_true(
+@pytest.mark.parametrize(
+    "include_passport_links, expected_load_calls",
+    [
+        pytest.param(True, 1, id="include-links-true-loads-registry"),
+        pytest.param(False, 0, id="include-links-false-skips-registry"),
+    ],
+)
+def test_profile_centric_strategy_loads_registry_iff_include_links_true(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    include_passport_links: bool,
+    expected_load_calls: int,
 ) -> None:
-    """Когда include_passport_links=True, PassportPageRegistry.load() вызывается один раз."""
+    """PassportPageRegistry.load() вызывается ровно тогда, когда include_passport_links=True."""
     mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
     strategy = make_profile_strategy(
         publisher_confluence_client,
         publisher_document_builder,
         publisher_parsed_result,
         tmp_path,
-        include_passport_links=True,
+        include_passport_links=include_passport_links,
     )
     strategy.execute()
-    mock_load.assert_called_once()
-
-
-@pytest.mark.business_logic
-def test_profile_centric_strategy_skips_registry_when_include_links_false(
-    publisher_confluence_client: FakeConfluenceClient,
-    publisher_document_builder: FakeDocumentBuilder,
-    publisher_parsed_result: ParsedResult,
-    tmp_path: Path,
-    mocker: Any,
-) -> None:
-    """Когда include_passport_links=False, PassportPageRegistry.load() никогда не вызывается."""
-    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
-    strategy = make_profile_strategy(
-        publisher_confluence_client,
-        publisher_document_builder,
-        publisher_parsed_result,
-        tmp_path,
-        include_passport_links=False,
-    )
-    strategy.execute()
-    mock_load.assert_not_called()
+    assert mock_load.call_count == expected_load_calls
 
 
 @pytest.mark.infrastructure

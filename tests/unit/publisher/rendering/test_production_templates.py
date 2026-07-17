@@ -1,8 +1,12 @@
-"""Дымовые тесты для production Jinja2-шаблонов в autodoc/publisher/rendering/.
+"""Тесты для production Jinja2-шаблонов в autodoc/publisher/rendering/.
 
-Каждый тест рендерит один шаблон с минимально валидным контекстом и проверяет,
-что вывод непуст и рендеринг не бросает исключение.
-Реальное подключение к Confluence не выполняется.
+Каждый тест рендерит шаблон и проверяет, что рендеринг не бросает исключение,
+а вывод непуст. Часть тестов дополнительно проверяет конкретное содержимое
+вывода (имя компонента, conan-референс, маркеры макросов os_style/docker_note,
+CSS-классы из _styles_base.jinja2/_styles_passport.jinja2) — как на
+минимальном самодельном контексте, так и на реальном выводе
+FullReleaseConverter/ProfileCentricConverter. Реальное подключение к
+Confluence не выполняется.
 """
 
 from pathlib import Path
@@ -13,6 +17,7 @@ import pytest
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.models.release import Release
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
@@ -49,14 +54,7 @@ def builder() -> DocumentBuilder:
     return DocumentBuilder(_RENDERING_DIR)
 
 
-@pytest.fixture()
-def minimal_view_model() -> dict[str, Any]:
-    """Минимальная view-model, принимаемая всеми основными шаблонами."""
-    parsed = _make_parsed_result()
-    return parsed.model_dump()
-
-
-@pytest.mark.infrastructure
+@pytest.mark.integration
 def test_macros_template_renders_without_error(
     builder: DocumentBuilder, publisher_parsed_result: ParsedResult
 ) -> None:
@@ -75,9 +73,9 @@ def test_macros_template_renders_without_error(
     )
     output: str = builder.build("release_doc.jinja2", view_model)
 
-    assert output.strip(), "Rendered output from release_doc.jinja2 is empty"
-    assert "autodoc-os-badge" in output, "os_style() macro output not found in rendered output"
-    assert "autodoc-italic-note" in output, "docker_note() macro output not found in rendered output"
+    assert output.strip(), "Отрендеренный вывод release_doc.jinja2 пуст"
+    assert "autodoc-os-badge" in output, "В выводе не найден результат работы макроса os_style()"
+    assert "autodoc-italic-note" in output, "В выводе не найден результат работы макроса docker_note()"
 
 
 @pytest.mark.infrastructure
@@ -87,10 +85,10 @@ def test_styles_base_template_renders_without_error(
     """_styles_base.jinja2 подключается через release_doc.jinja2 и должен рендериться без ошибок."""
     view_model: dict[str, Any] = _make_parsed_result().model_dump()
     output: str = builder.build("release_doc.jinja2", view_model)
-    assert output.strip(), "Rendered output is empty"
+    assert output.strip(), "Отрендеренный вывод пуст"
     assert (
         _STYLES_BASE_MARKER in output
-    ), f"Expected '{_STYLES_BASE_MARKER}' in rendered output (from _styles_base.jinja2)"
+    ), f"Ожидался маркер '{_STYLES_BASE_MARKER}' в выводе (из _styles_base.jinja2)"
 
 
 @pytest.mark.infrastructure
@@ -98,8 +96,6 @@ def test_styles_passport_template_renders_without_error(
     builder: DocumentBuilder,
 ) -> None:
     """_styles_passport.jinja2 подключается через component_passport.jinja2 и должен рендериться без ошибок."""
-    from autodoc.models.release import Release
-
     GIT_URL = "https://tfs.example.com/_git/testlib"
     component = Component(
         name="testlib",
@@ -127,13 +123,13 @@ def test_styles_passport_template_renders_without_error(
         "legacy_contents": {},
     }
     output: str = builder.build("component_passport.jinja2", view_model)
-    assert output.strip(), "Rendered output from component_passport.jinja2 is empty"
+    assert output.strip(), "Отрендеренный вывод component_passport.jinja2 пуст"
     assert (
         _STYLES_PP_MARKER in output
-    ), f"Expected '{_STYLES_PP_MARKER}' in rendered output (from _styles_passport.jinja2)"
+    ), f"Ожидался маркер '{_STYLES_PP_MARKER}' в выводе (из _styles_passport.jinja2)"
 
 
-@pytest.mark.contract
+@pytest.mark.infrastructure
 def test_main_component_template_contains_component_name(
     builder: DocumentBuilder,
 ) -> None:
@@ -143,7 +139,7 @@ def test_main_component_template_contains_component_name(
     output: str = builder.build("release_doc.jinja2", view_model)
     assert (
         _COMPONENT_NAME in output
-    ), f"Component name '{_COMPONENT_NAME}' not found in rendered release_doc output"
+    ), f"Имя компонента '{_COMPONENT_NAME}' не найдено в отрендеренном выводе release_doc"
 
 
 @pytest.mark.integration
@@ -159,13 +155,13 @@ def test_release_doc_template_renders_full_release_converter_output_with_real_re
 
     comp = publisher_parsed_result.components[0]
     release = comp.releases[0]
-    assert output.strip(), "Rendered output from release_doc.jinja2 is empty"
-    assert comp.name in output, "Component name from real release data not found in output"
-    assert release.conan_reference in output, "Conan reference from real release data not found in output"
-    assert "autodoc-os-badge" in output, "Per-profile rendering path (os_style) was not exercised"
+    assert output.strip(), "Отрендеренный вывод release_doc.jinja2 пуст"
+    assert comp.name in output, "Имя компонента из реальных данных релиза не найдено в выводе"
+    assert release.conan_reference in output, "Conan-референс из реальных данных релиза не найден в выводе"
+    assert "autodoc-os-badge" in output, "Путь пер-профильного рендеринга (os_style) не был задействован"
 
 
-@pytest.mark.infrastructure
+@pytest.mark.integration
 def test_profile_centric_template_renders_without_error(
     builder: DocumentBuilder, publisher_multi_channel_result: ParsedResult
 ) -> None:
@@ -176,4 +172,4 @@ def test_profile_centric_template_renders_without_error(
 
     output: str = builder.build("profile_centric.jinja2", view_model)
 
-    assert output.strip(), "Rendered output from profile_centric.jinja2 is empty"
+    assert output.strip(), "Отрендеренный вывод profile_centric.jinja2 пуст"

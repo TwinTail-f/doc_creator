@@ -31,9 +31,6 @@ def multi_result_with_unknown_profile(
     return publisher_multi_component_result.model_copy(update={"components": components})
 
 
-from autodoc.models.parsed_result import ParsedResult as _ParsedResult
-
-
 @pytest.mark.contract
 def test_full_release_convert_returns_platform_version(
     publisher_multi_component_result: ParsedResult,
@@ -159,9 +156,7 @@ def test_header_only_component_has_no_profile_builds_in_view(
     Ожидаемый результат:
         Каждый release_view["profile_builds"] == [].
     """
-    from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-
-    parsed = _ParsedResult(
+    parsed = ParsedResult(
         generated_at="2024-01-15T12:00:00",
         platform_version="2.0",
         profile_definitions=[publisher_profile_definition],
@@ -198,8 +193,6 @@ def test_non_header_only_component_has_profile_builds(
     Ожидаемый результат:
         len(release_view["profile_builds"]) > 0.
     """
-    from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-
     comp = publisher_parsed_result.components[0]
     assert comp.is_header_only is False, "Fixture must have is_header_only=False"
     assert len(comp.releases[0].profile_builds) > 0, "Fixture must have non-empty profile_builds"
@@ -222,19 +215,25 @@ def test_components_sorted_alphabetically_in_view(
     Бизнес-правило: компоненты в view-model отсортированы по имени в алфавитном порядке.
 
     Предусловия:
-        - publisher_multi_component_result содержит компоненты openssl и zlib.
+        - publisher_multi_component_result содержит компоненты openssl и zlib;
+          порядок в components патчится на обратный (zlib раньше openssl) —
+          иначе тест не отличает настоящую сортировку от порядка вставки,
+          случайно совпадающего с алфавитным в исходной фикстуре.
 
     Шаги:
-        1. Создать FullReleaseConverter и вызвать convert().
-        2. Извлечь имена компонентов из view["components"].
+        1. Поменять местами компоненты во входных данных (zlib, openssl).
+        2. Создать FullReleaseConverter и вызвать convert().
+        3. Извлечь имена компонентов из view["components"].
 
     Ожидаемый результат:
-        names == sorted(names).
+        names == sorted(names), несмотря на то, что во входных данных
+        zlib идёт раньше openssl.
     """
-    from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-
+    reversed_result = publisher_multi_component_result.model_copy(
+        update={"components": list(reversed(publisher_multi_component_result.components))}
+    )
     converter = FullReleaseConverter(include_passport_links=False)
-    view = converter.convert(publisher_multi_component_result)
+    view = converter.convert(reversed_result)
 
     names = [c["name"] for c in view["components"]]
     assert names == sorted(
@@ -261,8 +260,6 @@ def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, fl
     Ожидаемый результат:
         view["include_passport_links"] is flag (True или False в зависимости от параметра).
     """
-    from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-
     converter = FullReleaseConverter(include_passport_links=flag)
     view = converter.convert(publisher_parsed_result)
 
@@ -297,8 +294,6 @@ def test_no_passport_link_field_added_by_converter_itself(
     Ожидаемый результат:
         Ни один из ключей не присутствует нигде в исходном выводе convert().
     """
-    from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-
     converter = FullReleaseConverter(include_passport_links=True)
     view = converter.convert(publisher_parsed_result)
 

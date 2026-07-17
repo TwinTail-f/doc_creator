@@ -97,7 +97,7 @@ def test_conan_fetcher_overrides_loaded_when_file_configured(
     mock_from_file.assert_called_once_with(_OVERRIDES_FILE_PATH)
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_conan_fetcher_parallel_executor_receives_task_list(
     mocker: MockerFixture,
 ) -> None:
@@ -156,7 +156,7 @@ def test_conan_fetcher_aggregation_errors_in_result(
     assert result.value.errors == expected_errors
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_conan_fetcher_forwards_exact_range_components_to_task_builder(
     mocker: MockerFixture,
 ) -> None:
@@ -180,7 +180,7 @@ def test_conan_fetcher_forwards_exact_range_components_to_task_builder(
     assert build_call.kwargs["exact_range_components"] == ["stunnel", "openssh"]
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_conan_fetcher_forwards_loaded_overrides_to_task_builder(
     mocker: MockerFixture,
 ) -> None:

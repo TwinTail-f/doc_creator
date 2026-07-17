@@ -9,14 +9,9 @@
 - load() возвращает словарь при валидном файле.
 - load() возвращает {} при некорректном JSON.
 - load() возвращает {} при OSError из read_text.
-- inject_links() добавляет passport_versions по ключу версии.
-- inject_links() включает только версии, присутствующие среди релизов компонента.
-- inject_links() ничего не делает, если у view_model отсутствует ключ 'components'.
-- inject_links() ничего не делает, если passport_pages пуст.
-- inject_links_for_profiles() выставляет passport_link найденным записям компонентов.
-- inject_links_for_profiles() оставляет passport_link равным None для неизвестных компонентов.
-- inject_links_for_profiles() ничего не делает, если у view_model отсутствует ключ 'profiles'.
-- inject_links_for_profiles() ничего не делает, если passport_pages пуст.
+
+Тесты inject_links()/inject_links_for_profiles() (модуль passport_link_injector)
+находятся в tests/unit/publisher/page_manager/test_passport_link_injector.py.
 """
 import json
 from pathlib import Path
@@ -24,10 +19,6 @@ from typing import Any
 
 import pytest
 
-from autodoc.publisher.page_manager.passport_link_injector import (
-    inject_links,
-    inject_links_for_profiles,
-)
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 
 _PAGES_MAP: dict[str, Any] = {
@@ -35,9 +26,6 @@ _PAGES_MAP: dict[str, Any] = {
 }
 
 _REGISTRY_FILE: str = "passport_pages.json"
-
-SPACE: str = "TEST"
-PAGE_ID: str = "p-001"
 
 
 def _make_registry(data_dir: Path) -> PassportPageRegistry:
@@ -154,136 +142,3 @@ def test_save_then_load_roundtrip(tmp_path: Path) -> None:
 
     assert loaded == pages_map
 
-
-@pytest.mark.business_logic
-def test_inject_links_adds_passport_versions_to_component(tmp_path: Path) -> None:
-    """inject_links() выставляет passport_versions найденному компоненту."""
-    view_model: dict[str, Any] = {
-        "components": [{"name": "openssl", "releases": [{"version": "1.0.0"}]}]
-    }
-    passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
-
-    inject_links(view_model, passport_pages)
-
-    assert view_model["components"][0]["passport_versions"]["1.0.0"]["page_id"] == PAGE_ID
-
-
-@pytest.mark.business_logic
-def test_inject_links_skips_versions_not_in_releases(tmp_path: Path) -> None:
-    """inject_links() включает только версии, присутствующие среди релизов компонента."""
-    view_model: dict[str, Any] = {
-        "components": [{"name": "openssl", "releases": [{"version": "1.0.0"}]}]
-    }
-    passport_pages: dict[str, Any] = {
-        "openssl": {
-            "1.0.0": {"page_id": "p1"},
-            "2.0.0": {"page_id": "p2"},
-        }
-    }
-
-    inject_links(view_model, passport_pages)
-
-    passport_versions = view_model["components"][0]["passport_versions"]
-    assert "1.0.0" in passport_versions
-    assert "2.0.0" not in passport_versions
-
-
-@pytest.mark.contract
-def test_inject_links_noop_if_no_components_key() -> None:
-    """inject_links() ничего не делает и не бросает исключение при отсутствии ключа 'components'."""
-    view_model: dict[str, Any] = {"other_key": "value"}
-    passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
-
-    inject_links(view_model, passport_pages)
-
-    assert "components" not in view_model
-
-
-@pytest.mark.contract
-def test_inject_links_noop_if_passport_pages_empty() -> None:
-    """inject_links() ничего не делает, если passport_pages пуст."""
-    view_model: dict[str, Any] = {
-        "components": [{"name": "openssl", "releases": [{"version": "1.0.0"}]}]
-    }
-
-    inject_links(view_model, {})
-
-    assert "passport_versions" not in view_model["components"][0]
-
-
-def _make_profile_view_model(comp_name: str, version: str, space: str = SPACE) -> dict[str, Any]:
-    """Строит минимальную профиль-центричную view-model для тестов inject_links_for_profiles.
-
-    Args:
-        comp_name: Имя компонента в единственном канале 'tech'.
-        version: Версия компонента.
-        space: Ключ Space в Confluence.
-
-    Returns:
-        Словарь view-model с одним профилем и одним компонентом в канале 'tech'.
-    """
-    return {
-        "space": space,
-        "profiles": [
-            {"channels": {"tech": [{"name": comp_name, "version": version, "passport_link": None}]}}
-        ],
-    }
-
-
-@pytest.mark.business_logic
-def test_inject_links_for_profiles_sets_passport_link() -> None:
-    """inject_links_for_profiles() выставляет passport_link на ожидаемый путь в Confluence."""
-    view_model = _make_profile_view_model("openssl", "1.0.0")
-    passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
-
-    inject_links_for_profiles(view_model, passport_pages)
-
-    comp = view_model["profiles"][0]["channels"]["tech"][0]
-    assert comp["passport_link"] == f"/spaces/{SPACE}/pages/{PAGE_ID}"
-
-
-@pytest.mark.business_logic
-def test_inject_links_for_profiles_sets_none_if_comp_missing() -> None:
-    """inject_links_for_profiles() выставляет passport_link=None, если компонент не найден в реестре."""
-    view_model = _make_profile_view_model("unknown_lib", "1.0.0")
-    passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
-
-    inject_links_for_profiles(view_model, passport_pages)
-
-    comp = view_model["profiles"][0]["channels"]["tech"][0]
-    assert comp["passport_link"] is None
-
-
-@pytest.mark.business_logic
-def test_inject_links_for_profiles_sets_none_if_page_id_missing() -> None:
-    """inject_links_for_profiles() выставляет passport_link=None, если найденная запись реестра лишена page_id."""
-    view_model = _make_profile_view_model("openssl", "1.0.0")
-    passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": None}}}
-
-    inject_links_for_profiles(view_model, passport_pages)
-
-    comp = view_model["profiles"][0]["channels"]["tech"][0]
-    assert comp["passport_link"] is None
-
-
-@pytest.mark.contract
-def test_inject_links_for_profiles_noop_if_no_profiles_key() -> None:
-    """inject_links_for_profiles() не бросает исключение при отсутствии ключа 'profiles'."""
-    view_model: dict[str, Any] = {"space": SPACE, "components": []}
-    passport_pages: dict[str, Any] = {"openssl": {"1.0.0": {"page_id": PAGE_ID}}}
-
-    inject_links_for_profiles(view_model, passport_pages)
-
-    assert "profiles" not in view_model
-
-
-@pytest.mark.contract
-def test_inject_links_for_profiles_noop_if_empty_passport_pages() -> None:
-    """inject_links_for_profiles() ничего не делает, если passport_pages пуст."""
-    view_model = _make_profile_view_model("openssl", "1.0.0")
-    original_link = view_model["profiles"][0]["channels"]["tech"][0]["passport_link"]
-
-    inject_links_for_profiles(view_model, {})
-
-    comp = view_model["profiles"][0]["channels"]["tech"][0]
-    assert comp["passport_link"] == original_link

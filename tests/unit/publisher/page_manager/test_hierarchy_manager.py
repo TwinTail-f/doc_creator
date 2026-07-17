@@ -155,7 +155,7 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     )
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_ensure_hierarchy_propagates_confluence_error_from_create(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:

@@ -13,10 +13,10 @@ import pytest
 
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
+from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.registry import create_strategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
-from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from tests.unit.publisher.conftest import (
     FakeConfluenceClient,
     FakeDocumentBuilder,
@@ -96,45 +96,33 @@ def test_release_strategy_execute_returns_success_report(
 
 
 @pytest.mark.business_logic
-def test_release_strategy_loads_registry_when_include_links_true(
+@pytest.mark.parametrize(
+    "include_passport_links, expected_load_calls",
+    [
+        pytest.param(True, 1, id="include-links-true-loads-registry"),
+        pytest.param(False, 0, id="include-links-false-skips-registry"),
+    ],
+)
+def test_release_strategy_loads_registry_iff_include_links_true(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    include_passport_links: bool,
+    expected_load_calls: int,
 ) -> None:
-    """Когда include_passport_links=True, PassportPageRegistry.load() вызывается один раз."""
+    """PassportPageRegistry.load() вызывается ровно тогда, когда include_passport_links=True."""
     mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
     strategy = make_release_strategy(
         publisher_confluence_client,
         publisher_document_builder,
         publisher_parsed_result,
         tmp_path,
-        include_passport_links=True,
+        include_passport_links=include_passport_links,
     )
     strategy.execute()
-    mock_load.assert_called_once()
-
-
-@pytest.mark.business_logic
-def test_release_strategy_skips_registry_load_when_include_links_false(
-    publisher_confluence_client: FakeConfluenceClient,
-    publisher_document_builder: FakeDocumentBuilder,
-    publisher_parsed_result: ParsedResult,
-    tmp_path: Path,
-    mocker: Any,
-) -> None:
-    """Когда include_passport_links=False, PassportPageRegistry.load() никогда не вызывается."""
-    mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
-    strategy = make_release_strategy(
-        publisher_confluence_client,
-        publisher_document_builder,
-        publisher_parsed_result,
-        tmp_path,
-        include_passport_links=False,
-    )
-    strategy.execute()
-    mock_load.assert_not_called()
+    assert mock_load.call_count == expected_load_calls
 
 
 @pytest.mark.business_logic
@@ -184,7 +172,8 @@ def test_release_make_converter_creates_full_release_converter(
         include_passport_links=False,
     )
     assert isinstance(strategy._converter, FullReleaseConverter)
-    assert strategy._converter._include_passport_links is False
+    view_model = strategy._converter.convert(publisher_parsed_result)
+    assert view_model["include_passport_links"] is False
 
 
 @pytest.mark.business_logic

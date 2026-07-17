@@ -18,14 +18,14 @@ _SPACE: str = "TEST"
 _ROOT_PAGE_ID: str = "root-001"
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_create_strategy_unknown_type_raises_value_error() -> None:
     """create_strategy() с нераспознанным strategy_type выбрасывает ValueError."""
     with pytest.raises(ValueError):
         create_strategy("not_a_real_strategy")
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_create_strategy_passports_returns_passports_strategy_instance(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
