@@ -84,78 +84,54 @@ def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path)
 
 
 @pytest.mark.integration
-def test_options_fetcher_apr_single_option(
+@pytest.mark.parametrize(
+    "comp_name, repo, version, channel, tfs_path, options_file",
+    [
+        pytest.param(
+            "apr", "contrib_apr", "1.7.6", "fast",
+            "/conan/ci-1.6/options.json", "apr_options.json", id="apr",
+        ),
+        pytest.param(
+            "sqlite3", "contrib_sqlite3", "3.51.2", "fast",
+            "/conan/ci-2.0/fast/options.json", "sqlite3_fast_options.json", id="sqlite3",
+        ),
+        pytest.param(
+            "nlohmann_json", "contrib_nlohmann_json", "3.9.1", "slow",
+            "/conan/ci-2.0/options.json", "nlohmann_json_options.json", id="nlohmann_json",
+        ),
+        pytest.param(
+            "icu", "contrib_icu", "78.2", "fast",
+            "/conan/ci-1.6/fast/options.json", "icu_fast_options.json", id="icu",
+        ),
+    ],
+)
+def test_options_fetcher_maps_release_to_real_options_file(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
     resources_dir: Path,
+    comp_name: str,
+    repo: str,
+    version: str,
+    channel: str,
+    tfs_path: str,
+    options_file: str,
 ) -> None:
-    """OptionsFetcher сопоставляет (apr,1.7.6,fast) с записью опций из реального apr_options.json.
+    """OptionsFetcher сопоставляет релиз с записью опций из реального файла options.json.
 
     Конкретные значения опций покрыты test_options_parser.py.
     """
-    apr_bytes = _load_options_bytes(resources_dir, "apr_options.json")
-    path = "/conan/ci-1.6/options.json"
+    content = _load_options_bytes(resources_dir, options_file)
     client = _OptionsFileFakeTFSClient(
-        items=_make_items_response([path]),
-        content_bytes=apr_bytes,
+        items=_make_items_response([tfs_path]),
+        content_bytes=content,
     )
-    comp = _make_component("apr", "contrib_apr", "1.7.6", "fast")
+    comp = _make_component(comp_name, repo, version, channel)
     ctx = _make_context(parser_config, client, tmp_path)
     fetcher = OptionsFetcher()
     fetcher.configure(ctx)
     result = fetcher.fetch([comp])
 
-    assert ("apr", "1.7.6", "fast") in result.value
-
-
-@pytest.mark.integration
-def test_options_fetcher_sqlite3_fast_five_options(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-    resources_dir: Path,
-) -> None:
-    """OptionsFetcher сопоставляет релиз sqlite3 fast с записью из реального sqlite3_fast_options.json.
-
-    Конкретные количества и значения опций покрыты test_options_parser.py.
-    """
-    sqlite_bytes = _load_options_bytes(resources_dir, "sqlite3_fast_options.json")
-    path = "/conan/ci-2.0/fast/options.json"
-    client = _OptionsFileFakeTFSClient(
-        items=_make_items_response([path]),
-        content_bytes=sqlite_bytes,
-    )
-    comp = _make_component("sqlite3", "contrib_sqlite3", "3.51.2", "fast")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert ("sqlite3", "3.51.2", "fast") in result.value
-
-
-@pytest.mark.integration
-def test_options_fetcher_nlohmann_single_empty(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-    resources_dir: Path,
-) -> None:
-    """OptionsFetcher сопоставляет релиз nlohmann_json slow с записью из реального файла опций.
-
-    Конкретные значения опций покрыты test_options_parser.py.
-    """
-    nlohmann_bytes = _load_options_bytes(resources_dir, "nlohmann_json_options.json")
-    path = "/conan/ci-2.0/options.json"
-    client = _OptionsFileFakeTFSClient(
-        items=_make_items_response([path]),
-        content_bytes=nlohmann_bytes,
-    )
-    comp = _make_component("nlohmann_json", "contrib_nlohmann_json", "3.9.1", "slow")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert ("nlohmann_json", "3.9.1", "slow") in result.value
+    assert (comp_name, version, channel) in result.value
 
 
 @pytest.mark.integration
@@ -200,31 +176,6 @@ def test_options_fetcher_patchelf_two_versions_share_options(
 
     assert ("patchelf", "0.16.1", "tech") in result.value
     assert ("patchelf", "0.18.0", "tech") in result.value
-
-
-@pytest.mark.integration
-def test_options_fetcher_icu_fast_two_options(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-    resources_dir: Path,
-) -> None:
-    """OptionsFetcher сопоставляет icu 78.2/fast с записью из реального icu_fast_options.json.
-
-    Конкретные количества и значения опций покрыты test_options_parser.py.
-    """
-    icu_bytes = _load_options_bytes(resources_dir, "icu_fast_options.json")
-    path = "/conan/ci-1.6/fast/options.json"
-    client = _OptionsFileFakeTFSClient(
-        items=_make_items_response([path]),
-        content_bytes=icu_bytes,
-    )
-    comp = _make_component("icu", "contrib_icu", "78.2", "fast")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert ("icu", "78.2", "fast") in result.value
 
 
 @pytest.mark.integration
@@ -398,7 +349,7 @@ class _RaisingOnGetItemsFakeTFSClient(FakeTFSClient):
 class _RaisingOnGetFileContentFakeTFSClient(FakeTFSClient):
     """FakeTFSClient, чей get_items отдаёт один путь, а get_file_content выбрасывает NetworkError."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str = "/conan/ci-2.0/options.json") -> None:
         """
         Args:
             path: Путь к options.json, возвращаемый из get_items.
@@ -414,57 +365,41 @@ class _RaisingOnGetFileContentFakeTFSClient(FakeTFSClient):
         raise NetworkError("simulated network failure on get_file_content")
 
 
-@pytest.mark.business_logic
-def test_options_fetcher_network_error_on_get_items_returns_default(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """NetworkError из get_items перехватывается; релиз получает опции-плейсхолдер по умолчанию."""
-    client = _RaisingOnGetItemsFakeTFSClient()
-    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
+class _NotFoundFakeTFSClient(FakeTFSClient):
+    """FakeTFSClient, чей get_file_content отвечает 404 на единственный путь options.json."""
 
-    assert result.value[("somelib", "1.0.0", "fast")] == {"1": ""}
+    def __init__(self, path: str = "/conan/ci-2.0/options.json") -> None:
+        """
+        Args:
+            path: Путь к options.json, возвращаемый из get_items.
+        """
+        self._path = path
 
+    def get_items(self, items_url, branch, recursion=None, version_type=None):
+        """Возвращает единственный элемент options.json."""
+        return [{"path": self._path, "isFolder": False}]
 
-@pytest.mark.business_logic
-def test_options_fetcher_network_error_on_get_file_content_returns_default(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """NetworkError из get_file_content перехватывается; релиз получает опции-плейсхолдер."""
-    client = _RaisingOnGetFileContentFakeTFSClient(path="/conan/ci-2.0/options.json")
-    comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert result.value[("somelib", "1.0.0", "fast")] == {"1": ""}
+    def get_file_content(self, items_url, path, branch, version_type=None):
+        """Возвращает ответ 404 с пустым JSON-телом."""
+        resp = requests.Response()
+        resp.status_code = 404
+        resp._content = b"{}"
+        return resp
 
 
 @pytest.mark.business_logic
-def test_options_fetcher_non_200_get_file_content_returns_default(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    "make_client",
+    [_RaisingOnGetItemsFakeTFSClient, _RaisingOnGetFileContentFakeTFSClient, _NotFoundFakeTFSClient],
+    ids=["get_items-network-error", "get_file_content-network-error", "get_file_content-404"],
+)
+def test_options_fetcher_failure_modes_return_placeholder(
+    make_client, parser_config: ParserConfigSchema, tmp_path: Path,
 ) -> None:
-    """Не-200 ответ от get_file_content приводит к пропуску файла и опциям-плейсхолдеру."""
-    path = "/conan/ci-2.0/options.json"
-
-    class _NotFoundFakeTFSClient(FakeTFSClient):
-        def get_items(self, items_url, branch, recursion=None, version_type=None):
-            return [{"path": path, "isFolder": False}]
-
-        def get_file_content(self, items_url, path, branch, version_type=None):
-            resp = requests.Response()
-            resp.status_code = 404
-            resp._content = b"{}"
-            return resp
-
-    client = _NotFoundFakeTFSClient()
+    """При любой ошибке доступа к TFS (сеть на get_items, сеть на
+    get_file_content, 404 на get_file_content) OptionsFetcher возвращает
+    плейсхолдер вместо падения."""
+    client = make_client()
     comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
     ctx = _make_context(parser_config, client, tmp_path)
     fetcher = OptionsFetcher()

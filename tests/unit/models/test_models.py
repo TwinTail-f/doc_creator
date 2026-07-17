@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from autodoc.models.component import Component
@@ -112,16 +114,6 @@ def test_component_defaults_is_header_only_false() -> None:
     assert instance.git_url == ""
 
 
-# Component: сериализация туда и обратно через model_dump / model_validate
-@pytest.mark.contract
-def test_component_roundtrip_serialization() -> None:
-    """Component корректно проходит сериализацию и десериализацию через model_dump и model_validate."""
-    original = Component(name="openssl", description="TLS library")
-    data = original.model_dump()
-    restored = Component.model_validate(data)
-    assert restored.name == original.name
-
-
 _PROFILE_NAME: str = "linux_x64_gcc12"
 _DOCKER_IMAGE: str = "registry.example.com/builder:v1"
 _GENERATED_AT: str = "2024-01-01T00:00:00"
@@ -129,23 +121,32 @@ _PLATFORM_VERSION: str = "2.0"
 
 
 @pytest.mark.contract
-def test_profile_definition_minimal_construction() -> None:
-    """ProfileDefinition можно построить только с profile_name; применяются значения по умолчанию."""
-    pd = ProfileDefinition(profile_name=_PROFILE_NAME)
+@pytest.mark.parametrize(
+    "extra_kwargs, expected_docker_image, expected_conan_settings",
+    [
+        # только обязательное поле -> применяются дефолты
+        pytest.param({}, "", {}, id="minimal-uses-defaults"),
+        # все дополнительные поля переданы явно -> сохраняются как есть
+        pytest.param(
+            {"docker_image": _DOCKER_IMAGE, "conan_settings": {"os": "Linux"}},
+            _DOCKER_IMAGE,
+            {"os": "Linux"},
+            id="full-construction",
+        ),
+    ],
+)
+def test_profile_definition_construction(
+    extra_kwargs: dict[str, Any],
+    expected_docker_image: str,
+    expected_conan_settings: dict[str, str],
+) -> None:
+    """ProfileDefinition строится как с одними обязательными полями (тогда docker_image/
+    conan_settings берут значения по умолчанию), так и с полным набором полей (тогда
+    переданные значения сохраняются без изменений)."""
+    pd = ProfileDefinition(profile_name=_PROFILE_NAME, **extra_kwargs)
     assert pd.profile_name == _PROFILE_NAME
-    assert pd.docker_image == ""
-    assert pd.conan_settings == {}
-
-
-@pytest.mark.contract
-def test_profile_definition_full_construction() -> None:
-    """ProfileDefinition принимает все дополнительные поля."""
-    pd = ProfileDefinition(
-        profile_name=_PROFILE_NAME,
-        docker_image=_DOCKER_IMAGE,
-        conan_settings={"os": "Linux"},
-    )
-    assert pd.docker_image == _DOCKER_IMAGE
+    assert pd.docker_image == expected_docker_image
+    assert pd.conan_settings == expected_conan_settings
 
 
 @pytest.mark.contract

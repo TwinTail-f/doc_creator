@@ -30,6 +30,7 @@ H2_VERSION_HTML = _html("h2_version.html")
 TAB_HTML_CUSTOM_OS = _html("tab_custom_os.html")
 TAB_HTML_MULTI = _html("tab_multi.html")
 TAB_HTML_SINGLE = _html("tab_single.html")
+TAB_HTML_SHARED_SUFFIX = _html("tab_shared_suffix.html")
 
 
 @pytest.mark.business_logic
@@ -79,18 +80,7 @@ def test_extract_for_platform_returns_empty_if_only_current() -> None:
 @pytest.mark.business_logic
 def test_extract_for_platform_does_not_exclude_version_with_shared_suffix() -> None:
     """Фильтрация по '2.0' должна сохранить 'Platform 12.0' и исключить только 'Platform 2.0'."""
-    html = (
-        '<ac:structured-macro ac:name="tab">'
-        '<ac:parameter ac:name="name">Platform 2.0</ac:parameter>'
-        "<ac:rich-text-body><p>Content 2.0</p></ac:rich-text-body>"
-        "</ac:structured-macro>"
-        '<ac:structured-macro ac:name="tab">'
-        '<ac:parameter ac:name="name">Platform 12.0</ac:parameter>'
-        "<ac:rich-text-body><p>Content 12.0</p></ac:rich-text-body>"
-        "</ac:structured-macro>"
-    )
-
-    result = extract_for_platform(html, "2.0")
+    result = extract_for_platform(TAB_HTML_SHARED_SUFFIX, "2.0")
 
     assert "Platform 2.0" not in result
     assert "Platform 12.0" in result

@@ -1,0 +1,25 @@
+{
+    "graph": {
+        "nodes": {
+            "1": {
+                "name": "patchelf",
+                "binary": "Download",
+                "ref": "patchelf/0.18.0@platform-2.0/tech#abc123",
+                "rrev": "abc123",
+                "package_id": "deadbeef",
+                "info": {"settings": {"os": "Linux"}, "options": {}},
+                "conandata": {
+                    "patches": {
+                        "0.18.0": [
+                            {"patch_file": "patches/0001-fix.patch"},
+                            {"patch_file": "patches/0002-extra.patch"}
+                        ],
+                        "all": [
+                            {"patch_file": "patches/0001-fix.patch"}
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

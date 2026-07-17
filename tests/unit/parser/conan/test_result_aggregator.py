@@ -12,7 +12,7 @@ import pytest
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
-from autodoc.parser.conan.result_aggregator import ConanResultAggregator, _ProfileBuildAggregator
+from autodoc.parser.conan.result_aggregator import ConanResultAggregator
 from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.conan_enrich_data import ConanEnrichData
@@ -190,143 +190,6 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
     assert result.release_data[key].dependencies == ["depA", "depB"]
 
 
-@pytest.mark.business_logic
-@pytest.mark.parametrize(
-    "raw, expected_status",
-    [
-        # raw is None -> внутренняя ошибка параллельного исполнения -> FAILED
-        pytest.param(None, "FAILED", id="none-raw-result-failed"),
-        # success=True, узел с binary=Missing в графе -> BINARY_MISSING
-        pytest.param(
-            ConanRawResult(
-                success=True,
-                data={
-                    "graph": {
-                        "nodes": {
-                            "0": {"name": "openssl", "binary": "Missing"},
-                        }
-                    }
-                },
-            ),
-            "BINARY_MISSING",
-            id="binary-missing",
-        ),
-        # success=True, бинарник найден (не Missing) -> SUCCESS
-        pytest.param(
-            ConanRawResult(
-                success=True,
-                data={
-                    "graph": {
-                        "nodes": {
-                            "0": {"name": "openssl", "binary": "Cache"},
-                        }
-                    }
-                },
-            ),
-            "SUCCESS",
-            id="success",
-        ),
-    ],
-)
-def test_build_execution_report_maps_status_by_branch(
-    raw: ConanRawResult | None, expected_status: str
-) -> None:
-    """build_execution_report сопоставляет каждому сырому результату один из
-    трёх статусов: FAILED при отсутствующем результате, BINARY_MISSING при
-    отсутствующем бинарнике в графе, SUCCESS в остальных успешных случаях."""
-    task = _make_task()
-
-    report = ConanResultAggregator().build_execution_report([task], [raw])
-
-    assert len(report) == 1
-    profile_report = report[0].profiles[task.profile_name]
-    assert len(profile_report.commands) == 1
-    assert profile_report.commands[0].status == expected_status
-
-
-@pytest.mark.business_logic
-def test_build_final_result_deduplicates_by_shared_profile_build() -> None:
-    """Две задачи, ссылающиеся на один и тот же объект ProfileBuild (``id(task.pb)``
-    совпадает), формируют только одну запись в ``profile_data`` — вторая задача
-    попадает в ``continue``-ветку цикла по уже посещённым ProfileBuild."""
-    pb = ProfileBuild(profile_name="hw-linux-x86_64")
-    release = Release(version="3.0.0", platform="2.0", channel="tech", profile_builds=[pb])
-
-    def _task_for_shared_pb(comp_name: str) -> ConanTask:
-        return ConanTask(
-            cmd=[],
-            comp_name=comp_name,
-            version="3.0.0",
-            channel="tech",
-            profile_name="hw-linux-x86_64",
-            option_id="1",
-            option_str="",
-            target_platform="2.0",
-            artifactory_base_url="",
-            release=release,
-            pb=pb,
-        )
-
-    task1 = _task_for_shared_pb("openssl")
-    task2 = _task_for_shared_pb("openssl")
-
-    mock_parser = MagicMock(spec=Conan2ResultParser)
-    mock_parser.parse.return_value = _make_enrich()
-    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
-
-    result = ConanResultAggregator(result_parser=mock_parser).aggregate(
-        [task1, task2], [raw, raw], art_base="", target_platform="2.0"
-    )
-
-    assert len(result.profile_data) == 1
-    assert id(pb) in result.profile_data
-
-
-@pytest.mark.business_logic
-def test_apply_enrich_first_enrich_keeps_earliest_call() -> None:
-    """``first_enrich`` фиксируется на первом успешном ``ConanEnrichData`` с
-    непустым ``base_ref`` и не перезаписывается последующими вызовами."""
-    agg = _ProfileBuildAggregator()
-    first = _make_enrich(comp_name="openssl", version="3.0.0")
-    second = _make_enrich(comp_name="openssl", version="3.0.1")
-
-    agg.apply_enrich(first)
-    agg.apply_enrich(second)
-
-    assert agg.first_enrich is first
-    assert agg.first_enrich.full_version == "3.0.0"
-
-
-@pytest.mark.business_logic
-def test_apply_enrich_does_not_duplicate_resolved_options_for_same_option_id() -> None:
-    """Повторный вызов ``apply_enrich`` с уже встречавшимся ``option_id`` не
-    перезаписывает и не дублирует запись в ``resolved_options_by_id``."""
-    agg = _ProfileBuildAggregator()
-    first = _make_enrich()
-    first.conan_options = {"shared": "True"}
-    second = _make_enrich()
-    second.conan_options = {"shared": "False"}
-
-    agg.apply_enrich(first)
-    agg.apply_enrich(second)
-
-    assert len(agg.resolved_options_by_id) == 1
-    assert agg.resolved_options_by_id["1"] == {"shared": "True"}
-
-
-@pytest.mark.business_logic
-def test_apply_enrich_does_not_duplicate_variants_for_same_package_id() -> None:
-    """Повторный вызов ``apply_enrich`` с уже встречавшимся ``package_id`` не
-    создаёт вторую запись в ``unique_variants``."""
-    agg = _ProfileBuildAggregator()
-    enrich = _make_enrich()
-
-    agg.apply_enrich(enrich)
-    agg.apply_enrich(enrich)
-
-    assert len(agg.unique_variants) == 1
-
-
 # SHA1 пустой строки — используется для header-only компонентов
 NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
@@ -496,3 +359,164 @@ def test_aggregator_records_version_range_error_message() -> None:
     assert any(
         "not resolved" in str(e) or "Version range" in str(e) for e in profile_errors
     ), f"Error message not found in profile_errors: {profile_errors}"
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "raw, expected_status",
+    [
+        # raw is None -> задача не вернула результат (worker упал/отменён)
+        pytest.param(None, "FAILED", id="raw-none-failed"),
+        # успешный разбор без binary=Missing -> SUCCESS
+        pytest.param(
+            ConanRawResult(success=True, data={"graph": {"nodes": {}}}),
+            "SUCCESS",
+            id="success",
+        ),
+        # binary=Missing в узле графа -> BINARY_MISSING, несмотря на success=True
+        pytest.param(
+            ConanRawResult(
+                success=True,
+                data={
+                    "graph": {
+                        "nodes": {
+                            "0": {"name": "openssl", "binary": "Missing"},
+                        }
+                    }
+                },
+            ),
+            "BINARY_MISSING",
+            id="binary-missing",
+        ),
+    ],
+)
+def test_build_execution_report_maps_raw_result_to_status(
+    raw: ConanRawResult | None, expected_status: str
+) -> None:
+    """build_execution_report сопоставляет сырой результат одному из трёх статусов:
+    отсутствующий результат -> FAILED, успешный разбор без Missing -> SUCCESS,
+    узел с binary=Missing в графе -> BINARY_MISSING."""
+    task = _make_task()
+    report = ConanResultAggregator().build_execution_report([task], [raw])
+
+    assert len(report) == 1
+    profile_report = report[0].profiles[task.profile_name]
+    assert len(profile_report.commands) == 1
+    assert profile_report.commands[0].status == expected_status
+
+
+@pytest.mark.business_logic
+def test_build_execution_report_failed_raw_result_has_error_message() -> None:
+    """build_execution_report сохраняет текст ошибки исполнения (success=False) в записи FAILED."""
+    task = _make_task()
+    raw = ConanRawResult(success=False, data=None, error="conan: command not found")
+
+    report = ConanResultAggregator().build_execution_report([task], [raw])
+
+    record = report[0].profiles[task.profile_name].commands[0]
+    assert record.status == "FAILED"
+    assert record.error == "conan: command not found"
+
+
+@pytest.mark.business_logic
+def test_build_final_result_deduplicates_by_profile_build_identity() -> None:
+    """Две задачи с одним и тем же объектом ProfileBuild (task.pb) учитываются в
+    result.profile_data один раз: вторая задача с тем же id(task.pb) пропускается
+    через continue-ветку _build_final_result, чтобы не задваивать профиль в отчёте."""
+    pb = ProfileBuild(profile_name="hw-linux-x86_64")
+    release = Release(version="3.0.0", platform="2.0", channel="tech", profile_builds=[pb])
+    task1 = ConanTask(
+        cmd=["conan", "graph", "info"],
+        comp_name="openssl",
+        version="3.0.0",
+        channel="tech",
+        profile_name="hw-linux-x86_64",
+        option_id="1",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="",
+        release=release,
+        pb=pb,
+    )
+    task2 = ConanTask(
+        cmd=["conan", "graph", "info"],
+        comp_name="openssl",
+        version="3.0.0",
+        channel="tech",
+        profile_name="hw-linux-x86_64",
+        option_id="2",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="",
+        release=release,
+        pb=pb,
+    )
+
+    mock_parser = MagicMock(spec=Conan2ResultParser)
+    mock_parser.parse.return_value = _make_enrich()
+    raw = ConanRawResult(success=True, data={"graph": {"nodes": {}}})
+
+    result = ConanResultAggregator(result_parser=mock_parser).aggregate(
+        [task1, task2], [raw, raw], art_base="", target_platform="2.0"
+    )
+
+    # Один и тот же ProfileBuild -> одна запись profile_data, а не две.
+    assert len(result.profile_data) == 1
+    assert id(pb) in result.profile_data
+
+
+@pytest.mark.business_logic
+def test_apply_enrich_keeps_first_enrich_with_base_ref() -> None:
+    """_ProfileBuildAggregator.apply_enrich фиксирует first_enrich по первому вызову
+    с непустым base_ref и не перезаписывает его последующими вызовами."""
+    from autodoc.parser.conan.result_aggregator import _ProfileBuildAggregator
+
+    agg = _ProfileBuildAggregator()
+    first = _make_enrich(comp_name="openssl", version="3.0.0")
+    second = _make_enrich(comp_name="openssl", version="3.0.0")
+    second.rrev = "different-rrev"
+
+    agg.apply_enrich(first)
+    agg.apply_enrich(second)
+
+    assert agg.first_enrich is first
+    assert agg.first_enrich.rrev != second.rrev
+
+
+@pytest.mark.business_logic
+def test_apply_enrich_does_not_duplicate_resolved_options_by_id() -> None:
+    """Повторное apply_enrich с уже встречавшимся option_id не создаёт дубликат
+    в resolved_options_by_id — сохраняются опции только первого вызова с этим id."""
+    from autodoc.parser.conan.result_aggregator import _ProfileBuildAggregator
+
+    agg = _ProfileBuildAggregator()
+    first = _make_enrich()
+    first.option_id = "opt-1"
+    first.conan_options = {"shared": "True"}
+    second = _make_enrich()
+    second.option_id = "opt-1"
+    second.conan_options = {"shared": "False"}
+
+    agg.apply_enrich(first)
+    agg.apply_enrich(second)
+
+    assert len(agg.resolved_options_by_id) == 1
+    assert agg.resolved_options_by_id["opt-1"] == {"shared": "True"}
+
+
+@pytest.mark.business_logic
+def test_apply_enrich_does_not_duplicate_unique_variants() -> None:
+    """Повторное apply_enrich с уже встречавшимся package_id не создаёт дубликат
+    варианта сборки в unique_variants."""
+    from autodoc.parser.conan.result_aggregator import _ProfileBuildAggregator
+
+    agg = _ProfileBuildAggregator()
+    first = _make_enrich()
+    first.package_id = "deadbeef" * 5
+    second = _make_enrich()
+    second.package_id = "deadbeef" * 5
+
+    agg.apply_enrich(first)
+    agg.apply_enrich(second)
+
+    assert len(agg.unique_variants) == 1

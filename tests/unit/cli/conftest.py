@@ -14,22 +14,16 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
-VALID_PARSER_CONFIG: dict[str, Any] = {
-    "platform_version": "2.0",
-    "platform_branch_name": "develop",
-    "username": "testuser",
-    "tfs_token": "test-tfs-pat-token",
-    "tfs_collection_url": "https://tfs.example.com",
-    "manifests_remotes_path": "/platform/manifests",
-    "conan_config_url": "https://art.example.com/conan-config.zip",
-}
+_CONFIG_RESOURCES_DIR: Path = Path(__file__).parents[1] / "config" / "resources"
+
+VALID_PARSER_CONFIG: dict[str, Any] = json.loads(
+    (_CONFIG_RESOURCES_DIR / "valid_parser_config.json").read_text()
+)
 """Минимальный набор полей, удовлетворяющий обязательным полям ParserConfigSchema."""
 
-VALID_CONFLUENCE_CONFIG: dict[str, Any] = {
-    "url": "https://confluence.example.com",
-    "token": "test-confluence-token",
-    "space": "DOCS",
-}
+VALID_CONFLUENCE_CONFIG: dict[str, Any] = json.loads(
+    (_CONFIG_RESOURCES_DIR / "valid_confluence_config.json").read_text()
+)
 """Минимальный набор полей, удовлетворяющий обязательным полям ConfluenceConfigSchema."""
 
 

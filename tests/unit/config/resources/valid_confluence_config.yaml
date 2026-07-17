@@ -1,0 +1,8 @@
+url: https://confluence.example.com
+token: test-token-abc123
+space: TEST
+verify_ssl: false
+confluence_request_timeout: 30
+publish_batch_size: 10
+publish_batch_delay_seconds: 0.0
+target_release_version: Platform 2.0

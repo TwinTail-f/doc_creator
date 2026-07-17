@@ -6,13 +6,14 @@
 from __future__ import annotations
 
 import threading
-from pathlib import Path
 from typing import Any
 
 import pytest
 
 from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
+
+CI_BUILD_URL: str = "https://ci.example.com/build/42"
 
 
 class FakeConfluenceClient:
@@ -162,28 +163,11 @@ from autodoc.models.options import ConanInputOptions, TotalOptionsSet
 from autodoc.models.release import Release
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 
-PUBLISHER_RESOURCES_DIR: Path = Path(__file__).parent.parent.parent / "resources" / "parsed_data"
-
 
 @pytest.fixture
-def publisher_resources_dir() -> Path:
-    """Путь к ресурсам паблишера (parsed_data/)."""
-    return PUBLISHER_RESOURCES_DIR
-
-
-@pytest.fixture
-def minimal_confluence_config() -> dict:
+def minimal_confluence_config(valid_confluence_config: dict) -> dict:
     """Минимальный валидный словарь, совместимый со схемой ConfluenceConfigSchema."""
-    return {
-        "url": "https://confluence.example.com",
-        "token": "test-token-abc123",
-        "space": "TEST",
-        "verify_ssl": False,
-        "confluence_request_timeout": 30,
-        "publish_batch_size": 10,
-        "publish_batch_delay_seconds": 0.0,
-        "target_release_version": "Platform 2.0",
-    }
+    return valid_confluence_config
 
 
 @pytest.fixture
@@ -203,7 +187,7 @@ def publisher_conan_variant() -> ConanVariant:
     """Один ConanVariant с заполненными полями."""
     return ConanVariant(
         package_id="abc123",
-        build_url="https://ci.example.com/build/42",
+        build_url=CI_BUILD_URL,
         build_date="2024-01-15",
         options_ref="opt-set-1",
     )

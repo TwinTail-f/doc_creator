@@ -71,197 +71,198 @@ def _make_transport(mocker: Any, minimal_confluence_config: dict, **overrides: A
     return ConfluenceTransport(config)
 
 
-class TestHappyPath:
-    """Успешные сценарии всех четырёх публичных методов транспорта."""
 
-    @pytest.mark.infrastructure
-    def test_search_content_returns_results(self, mocker: Any, minimal_confluence_config: dict) -> None:
-        """search_content возвращает список results и делает GET-запрос с правильными параметрами."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        response = _make_response(200, {"results": [{"id": "1"}, {"id": "2"}]})
-        mock_request = mocker.patch.object(transport._session, "request", return_value=response)
+@pytest.mark.infrastructure
+def test_happy_path_search_content_returns_results(mocker: Any, minimal_confluence_config: dict) -> None:
+    """search_content возвращает список results и делает GET-запрос с правильными параметрами."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    response = _make_response(200, {"results": [{"id": "1"}, {"id": "2"}]})
+    mock_request = mocker.patch.object(transport._session, "request", return_value=response)
 
-        result = transport.search_content({"spaceKey": "TEST", "title": "Foo"})
+    result = transport.search_content({"spaceKey": "TEST", "title": "Foo"})
 
-        assert result == [{"id": "1"}, {"id": "2"}]
-        mock_request.assert_called_once_with(
-            "GET",
-            f"{transport._base_url}/rest/api/content",
-            params={"spaceKey": "TEST", "title": "Foo"},
-        )
-
-    @pytest.mark.infrastructure
-    def test_get_content_returns_raw_page(self, mocker: Any, minimal_confluence_config: dict) -> None:
-        """get_content возвращает сырой JSON страницы и подставляет её id в URL и expand в параметры."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        page_json = {"id": PAGE_ID, "title": "Some Page"}
-        response = _make_response(200, page_json)
-        mock_request = mocker.patch.object(transport._session, "request", return_value=response)
-
-        result = transport.get_content(PAGE_ID, expand="body.storage")
-
-        assert result == page_json
-        mock_request.assert_called_once_with(
-            "GET",
-            f"{transport._base_url}/rest/api/content/{PAGE_ID}",
-            params={"expand": "body.storage"},
-        )
-
-    @pytest.mark.infrastructure
-    def test_create_content_posts_payload(self, mocker: Any, minimal_confluence_config: dict) -> None:
-        """create_content отправляет POST с переданным payload и возвращает JSON созданной страницы."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        created_page = {"id": PAGE_ID, "title": "New Page"}
-        response = _make_response(201, created_page)
-        mock_request = mocker.patch.object(transport._session, "request", return_value=response)
-        payload = {"title": "New Page", "type": "page"}
-
-        result = transport.create_content(payload, title="New Page")
-
-        assert result == created_page
-        mock_request.assert_called_once_with(
-            "POST",
-            f"{transport._base_url}/rest/api/content",
-            json=payload,
-        )
-
-    @pytest.mark.infrastructure
-    def test_update_content_puts_payload(self, mocker: Any, minimal_confluence_config: dict) -> None:
-        """update_content отправляет PUT по URL страницы и возвращает JSON обновлённой страницы."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        updated_page = {"id": PAGE_ID, "title": "Updated Page"}
-        response = _make_response(200, updated_page)
-        mock_request = mocker.patch.object(transport._session, "request", return_value=response)
-        payload = {"title": "Updated Page", "version": {"number": 2}}
-
-        result = transport.update_content(PAGE_ID, payload, title="Updated Page")
-
-        assert result == updated_page
-        mock_request.assert_called_once_with(
-            "PUT",
-            f"{transport._base_url}/rest/api/content/{PAGE_ID}",
-            json=payload,
-        )
+    assert result == [{"id": "1"}, {"id": "2"}]
+    mock_request.assert_called_once_with(
+        "GET",
+        f"{transport._base_url}/rest/api/content",
+        params={"spaceKey": "TEST", "title": "Foo"},
+    )
 
 
-class TestHttpErrors:
-    """Поведение при HTTP-ошибках со стороны Confluence."""
+@pytest.mark.infrastructure
+def test_happy_path_get_content_returns_raw_page(mocker: Any, minimal_confluence_config: dict) -> None:
+    """get_content возвращает сырой JSON страницы и подставляет её id в URL и expand в параметры."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    page_json = {"id": PAGE_ID, "title": "Some Page"}
+    response = _make_response(200, page_json)
+    mock_request = mocker.patch.object(transport._session, "request", return_value=response)
 
-    @pytest.mark.infrastructure
-    def test_http_error_with_json_body_extracts_message(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """При HTTP-ошибке с JSON-телом текст из поля message попадает в итоговую ConfluenceError."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        response = _make_response(403, {"message": "Permission denied"})
-        mocker.patch.object(transport._session, "request", return_value=response)
+    result = transport.get_content(PAGE_ID, expand="body.storage")
 
-        with pytest.raises(ConfluenceError) as exc_info:
-            transport.search_content({"spaceKey": "TEST"})
-
-        message = str(exc_info.value)
-        assert "HTTP-ошибка при поиске страницы" in message
-        assert "Permission denied" in message
-
-    @pytest.mark.infrastructure
-    def test_http_error_with_non_json_body_omits_detail(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """При HTTP-ошибке с не-JSON телом ConfluenceError всё равно поднимается, без падения на разборе тела."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        response = _make_response(500, raw_content=b"not json at all")
-        mocker.patch.object(transport._session, "request", return_value=response)
-
-        with pytest.raises(ConfluenceError) as exc_info:
-            transport.search_content({"spaceKey": "TEST"})
-
-        message = str(exc_info.value)
-        assert "HTTP-ошибка при поиске страницы" in message
-        assert "Traceback" not in message
-        assert "JSONDecodeError" not in message
-
-    @pytest.mark.infrastructure
-    def test_extract_error_detail_with_none_response_returns_empty_string(self) -> None:
-        """_extract_error_detail не падает и возвращает пустую строку, если ответа не было вовсе."""
-        assert ConfluenceTransport._extract_error_detail(None) == ""
-
-    @pytest.mark.infrastructure
-    def test_network_failure_wrapped_in_confluence_error(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """Сетевой сбой (без HTTP-ответа) оборачивается в ConfluenceError с сохранением исходной причины."""
-        transport = _make_transport(mocker, minimal_confluence_config)
-        original_error = requests.exceptions.ConnectionError("VPN моргнул")
-        mocker.patch.object(transport._session, "request", side_effect=original_error)
-
-        with pytest.raises(ConfluenceError) as exc_info:
-            transport.search_content({"spaceKey": "TEST"})
-
-        assert "Сетевая ошибка при поиске страницы" in str(exc_info.value)
-        assert exc_info.value.__cause__ is original_error
+    assert result == page_json
+    mock_request.assert_called_once_with(
+        "GET",
+        f"{transport._base_url}/rest/api/content/{PAGE_ID}",
+        params={"expand": "body.storage"},
+    )
 
 
-class TestCreateSession:
-    """Настройка HTTP-сессии в _create_session: аутентификация, SSL, ретраи."""
+@pytest.mark.infrastructure
+def test_happy_path_create_content_posts_payload(mocker: Any, minimal_confluence_config: dict) -> None:
+    """create_content отправляет POST с переданным payload и возвращает JSON созданной страницы."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    created_page = {"id": PAGE_ID, "title": "New Page"}
+    response = _make_response(201, created_page)
+    mock_request = mocker.patch.object(transport._session, "request", return_value=response)
+    payload = {"title": "New Page", "type": "page"}
 
-    @pytest.mark.infrastructure
-    def test_create_session_sets_bearer_auth_header(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """_create_session прописывает Bearer-токен из конфигурации в заголовок Authorization."""
-        token = "super-secret-token"
-        transport = _make_transport(mocker, minimal_confluence_config, token=token)
+    result = transport.create_content(payload, title="New Page")
 
-        assert transport._session.headers["Authorization"] == f"Bearer {token}"
+    assert result == created_page
+    mock_request.assert_called_once_with(
+        "POST",
+        f"{transport._base_url}/rest/api/content",
+        json=payload,
+    )
 
-    @pytest.mark.infrastructure
-    def test_create_session_respects_verify_ssl_true_and_timeout(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """При verify_ssl=True сессия проверяет сертификаты и получает настроенный таймаут."""
-        transport = _make_transport(
-            mocker, minimal_confluence_config, verify_ssl=True, confluence_request_timeout=45
-        )
 
-        assert transport._session.verify is True
-        assert transport._session._timeout == 45
+@pytest.mark.infrastructure
+def test_happy_path_update_content_puts_payload(mocker: Any, minimal_confluence_config: dict) -> None:
+    """update_content отправляет PUT по URL страницы и возвращает JSON обновлённой страницы."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    updated_page = {"id": PAGE_ID, "title": "Updated Page"}
+    response = _make_response(200, updated_page)
+    mock_request = mocker.patch.object(transport._session, "request", return_value=response)
+    payload = {"title": "Updated Page", "version": {"number": 2}}
 
-    @pytest.mark.infrastructure
-    def test_create_session_logs_warning_when_verify_ssl_false(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """При verify_ssl=False отключение проверки SSL — намеренное поведение, о котором предупреждает лог."""
-        mock_warning = mocker.patch("autodoc.publisher.clients.confluence_transport.logger.warning")
+    result = transport.update_content(PAGE_ID, payload, title="Updated Page")
 
-        transport = _make_transport(mocker, minimal_confluence_config, verify_ssl=False)
+    assert result == updated_page
+    mock_request.assert_called_once_with(
+        "PUT",
+        f"{transport._base_url}/rest/api/content/{PAGE_ID}",
+        json=payload,
+    )
 
-        assert transport._session.verify is False
-        mock_warning.assert_called_once()
-        warning_text = mock_warning.call_args[0][0]
-        assert "SSL" in warning_text
-        assert "MITM" in warning_text
 
-    @pytest.mark.infrastructure
-    def test_create_session_configures_retry_parameters(
-        self, mocker: Any, minimal_confluence_config: dict
-    ) -> None:
-        """_create_session передаёт в create_bearer_session параметры ретраев и таймаута из конфигурации.
+@pytest.mark.infrastructure
+def test_http_errors_with_json_body_extracts_message(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """При HTTP-ошибке с JSON-телом текст из поля message попадает в итоговую ConfluenceError."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    response = _make_response(403, {"message": "Permission denied"})
+    mocker.patch.object(transport._session, "request", return_value=response)
 
-        Примечание: в отличие от остальных тестов этого файла (мокающих
-        request сессии), здесь мокается уровнем выше — сама
-        create_bearer_session — поскольку проверяется другой аспект
-        (передача параметров ретраев), а не обработка запроса/ответа.
-        """
-        mock_create_bearer_session = mocker.patch(
-            "autodoc.publisher.clients.confluence_transport.create_bearer_session",
-            wraps=None,
-        )
-        mock_create_bearer_session.return_value.headers = {}
+    with pytest.raises(ConfluenceError) as exc_info:
+        transport.search_content({"spaceKey": "TEST"})
 
-        _make_transport(mocker, minimal_confluence_config, confluence_request_timeout=60)
+    message = str(exc_info.value)
+    assert "HTTP-ошибка при поиске страницы" in message
+    assert "Permission denied" in message
 
-        mock_create_bearer_session.assert_called_once()
-        _, kwargs = mock_create_bearer_session.call_args
-        assert kwargs["max_retries"] == 3
-        assert kwargs["backoff_factor"] == 1.0
-        assert kwargs["timeout"] == 60
+
+@pytest.mark.infrastructure
+def test_http_errors_with_non_json_body_omits_detail(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """При HTTP-ошибке с не-JSON телом ConfluenceError всё равно поднимается, без падения на разборе тела."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    response = _make_response(500, raw_content=b"not json at all")
+    mocker.patch.object(transport._session, "request", return_value=response)
+
+    with pytest.raises(ConfluenceError) as exc_info:
+        transport.search_content({"spaceKey": "TEST"})
+
+    message = str(exc_info.value)
+    assert "HTTP-ошибка при поиске страницы" in message
+    assert "Traceback" not in message
+    assert "JSONDecodeError" not in message
+
+
+@pytest.mark.infrastructure
+def test_http_errors_extract_error_detail_with_none_response_returns_empty_string() -> None:
+    """_extract_error_detail не падает и возвращает пустую строку, если ответа не было вовсе."""
+    assert ConfluenceTransport._extract_error_detail(None) == ""
+
+
+@pytest.mark.infrastructure
+def test_http_errors_network_failure_wrapped_in_confluence_error(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """Сетевой сбой (без HTTP-ответа) оборачивается в ConfluenceError с сохранением исходной причины."""
+    transport = _make_transport(mocker, minimal_confluence_config)
+    original_error = requests.exceptions.ConnectionError("VPN моргнул")
+    mocker.patch.object(transport._session, "request", side_effect=original_error)
+
+    with pytest.raises(ConfluenceError) as exc_info:
+        transport.search_content({"spaceKey": "TEST"})
+
+    assert "Сетевая ошибка при поиске страницы" in str(exc_info.value)
+    assert exc_info.value.__cause__ is original_error
+
+
+@pytest.mark.infrastructure
+def test_create_session_sets_bearer_auth_header(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """_create_session прописывает Bearer-токен из конфигурации в заголовок Authorization."""
+    token = "super-secret-token"
+    transport = _make_transport(mocker, minimal_confluence_config, token=token)
+
+    assert transport._session.headers["Authorization"] == f"Bearer {token}"
+
+
+@pytest.mark.infrastructure
+def test_create_session_respects_verify_ssl_true_and_timeout(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """При verify_ssl=True сессия проверяет сертификаты и получает настроенный таймаут."""
+    transport = _make_transport(
+        mocker, minimal_confluence_config, verify_ssl=True, confluence_request_timeout=45
+    )
+
+    assert transport._session.verify is True
+    assert transport._session._timeout == 45
+
+
+@pytest.mark.infrastructure
+def test_create_session_logs_warning_when_verify_ssl_false(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """При verify_ssl=False отключение проверки SSL — намеренное поведение, о котором предупреждает лог."""
+    mock_warning = mocker.patch("autodoc.publisher.clients.confluence_transport.logger.warning")
+
+    transport = _make_transport(mocker, minimal_confluence_config, verify_ssl=False)
+
+    assert transport._session.verify is False
+    mock_warning.assert_called_once()
+    warning_text = mock_warning.call_args[0][0]
+    assert "SSL" in warning_text
+    assert "MITM" in warning_text
+
+
+@pytest.mark.infrastructure
+def test_create_session_configures_retry_parameters(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
+    """_create_session передаёт в create_bearer_session параметры ретраев и таймаута из конфигурации.
+
+    Примечание: в отличие от остальных тестов этого файла (мокающих
+    request сессии), здесь мокается уровнем выше — сама
+    create_bearer_session — поскольку проверяется другой аспект
+    (передача параметров ретраев), а не обработка запроса/ответа.
+    """
+    mock_create_bearer_session = mocker.patch(
+        "autodoc.publisher.clients.confluence_transport.create_bearer_session",
+        wraps=None,
+    )
+    mock_create_bearer_session.return_value.headers = {}
+
+    _make_transport(mocker, minimal_confluence_config, confluence_request_timeout=60)
+
+    mock_create_bearer_session.assert_called_once()
+    _, kwargs = mock_create_bearer_session.call_args
+    assert kwargs["max_retries"] == 3
+    assert kwargs["backoff_factor"] == 1.0
+    assert kwargs["timeout"] == 60

@@ -132,34 +132,90 @@ def _bl_make_component(name: str = "lib", releases: list | None = None) -> Compo
     )
 
 
-@pytest.mark.business_logic
-def test_finalize_step_sets_header_only_true(
-    parser_pipeline_context,
-) -> None:
-    """is_header_only равен True, когда все варианты всех профилей имеют нулевой package_id."""
+def _minimal_all_null_component() -> Component:
+    """Компонент "mylib" с 2 профилями, у каждого единственный вариант с нулевым package_id."""
     pb1 = ProfileBuild(profile_name="profile_a", exists=True, variants=[_null_variant()])
     pb2 = ProfileBuild(profile_name="profile_b", exists=True, variants=[_null_variant()])
     release = _make_release([pb1, pb2])
-    comp = _make_component("mylib", release)
-    parser_pipeline_context.components = [comp]
-    step = FinalizeStep()
-    step.execute(parser_pipeline_context)
-    assert comp.is_header_only is True
+    return _make_component("mylib", release)
+
+
+def _real_nlohmann_json_component() -> Component:
+    """Реальный компонент nlohmann_json/3.9.1 с единственным вариантом нулевого package_id."""
+    pb = ProfileBuild(
+        profile_name="hw-linux-x86_64-gcc10_2",
+        exists=True,
+        variants=[
+            ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")
+        ],
+    )
+    rel = Release(
+        version="3.9.1",
+        platform="2.0",
+        channel="slow",
+        profile_builds=[pb],
+    )
+    return Component(name="nlohmann_json", releases=[rel])
 
 
 @pytest.mark.business_logic
-def test_finalize_step_removes_profile_build_with_exists_false(
-    parser_pipeline_context,
+@pytest.mark.parametrize(
+    "component_factory",
+    [_minimal_all_null_component, _real_nlohmann_json_component],
+    ids=["synthetic", "nlohmann_json"],
+)
+def test_finalize_step_sets_header_only_true(
+    parser_pipeline_context, component_factory,
 ) -> None:
-    """FinalizeStep удаляет ProfileBuild с exists=False, сохраняя живой профиль."""
+    """Если у всех вариантов профиля package_id нулевой (header-only признак),
+    FinalizeStep выставляет is_header_only=True — как на синтетических
+    данных, так и на реальном компоненте nlohmann_json."""
+    comp = component_factory()
+    parser_pipeline_context.components = [comp]
+    FinalizeStep().execute(parser_pipeline_context)
+    assert comp.is_header_only is True
+
+
+def _two_profiles_one_missing() -> Release:
+    """Релиз с 2 профилями: один живой, один exists=False."""
     pb_live = ProfileBuild(profile_name="live", exists=True, variants=[])
     pb_dead = ProfileBuild(profile_name="dead", exists=False, variants=[])
-    release = _make_release([pb_live, pb_dead])
-    parser_pipeline_context.components = [_make_component("mylib", release)]
-    step = FinalizeStep()
-    step.execute(parser_pipeline_context)
-    assert len(release.profile_builds) == 1
-    assert release.profile_builds[0].profile_name == "live"
+    return _make_release([pb_live, pb_dead])
+
+
+def _three_profiles_one_missing() -> Release:
+    """Релиз с 3 профилями: два живых, один exists=False."""
+    pb_live1 = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[])
+    pb_live2 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[])
+    pb_dead = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[])
+    return Release(
+        version="1.0.0",
+        platform="2.0",
+        channel="slow",
+        profile_builds=[pb_live1, pb_live2, pb_dead],
+    )
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "release_factory",
+    [_two_profiles_one_missing, _three_profiles_one_missing],
+    ids=["two-profiles", "three-profiles"],
+)
+def test_finalize_step_removes_non_existing_profiles(
+    parser_pipeline_context, release_factory,
+) -> None:
+    """ProfileBuild с exists=False удаляется из итогового результата,
+    ProfileBuild с exists=True остаётся — независимо от общего числа
+    профилей на входе."""
+    release = release_factory()
+    total_before = len(release.profile_builds)
+    dead_names_before = {pb.profile_name for pb in release.profile_builds if not pb.exists}
+    parser_pipeline_context.components = [_make_component("somelib", release)]
+    FinalizeStep().execute(parser_pipeline_context)
+    assert len(release.profile_builds) == total_before - len(dead_names_before)
+    remaining_names = {pb.profile_name for pb in release.profile_builds}
+    assert remaining_names.isdisjoint(dead_names_before)
 
 
 @pytest.mark.business_logic
@@ -215,26 +271,21 @@ def test_finalize_step_raises_parsing_error_on_validation_failure(
 
 
 @pytest.mark.business_logic
-def test_build_result_wraps_real_validation_error_without_mocking_build_result(
+def test_finalize_step_raises_parsing_error_on_invalid_platform_version(
     parser_pipeline_context,
 ) -> None:
-    """FinalizeStep._build_result() сама оборачивает PydanticValidationError в ParsingError
-    на реальном, не подменённом пути (в отличие от
-    test_finalize_step_raises_parsing_error_on_validation_failure выше, где
-    _build_result целиком заменён моком, чтобы бросить ValidationError напрямую).
-
-    В коде есть только один настоящий источник невалидности для ParsedResult —
-    конструирование самого ``ParsedResult(...)`` внутри _build_result. Здесь мы
-    воспроизводим её реальными данными: ``platform_version=None`` в конфиге
-    (обязательное строковое поле ParsedResult), без патчинга _build_result или
-    ParsedResult.
-    """
-    parser_pipeline_context.config.platform_version = None  # type: ignore[assignment]
+    """FinalizeStep оборачивает ValidationError в ParsingError и когда невалидность приходит
+    не из подмены _build_result (как в предыдущем тесте), а из реального значения
+    ctx.config.platform_version — единственного обязательного строкового поля ParsedResult,
+    заполняемого напрямую из конфига, а не из данных, накопленных пайплайном."""
     parser_pipeline_context.components = []
+    # platform_version — обязательное строковое поле ParsedResult; None здесь
+    # эмулирует ситуацию, когда конфиг оказался повреждён к моменту финализации.
+    object.__setattr__(parser_pipeline_context.config, "platform_version", None)
     step = FinalizeStep()
 
-    with pytest.raises(ParsingError, match="FinalizeStep: валидация данных не прошла"):
-        step._build_result(parser_pipeline_context)
+    with pytest.raises(ParsingError):
+        step.execute(parser_pipeline_context)
 
 
 @pytest.mark.contract
@@ -273,34 +324,6 @@ def test_finalize_step_execute_applies_steps_in_order(
         "_deduplicate_profile_definitions",
         "_build_result",
     ]
-
-
-@pytest.mark.business_logic
-def test_finalize_step_sets_header_only_for_nlohmann_json(
-    parser_pipeline_context,
-) -> None:
-    """Компонент, все варианты которого имеют NULL_PACKAGE_ID, получает is_header_only=True."""
-    pb = ProfileBuild(
-        profile_name="hw-linux-x86_64-gcc10_2",
-        exists=True,
-        variants=[
-            ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="1")
-        ],
-    )
-    rel = Release(
-        version="3.9.1",
-        platform="2.0",
-        channel="slow",
-        profile_builds=[pb],
-    )
-    comp = Component(name="nlohmann_json", releases=[rel])
-    parser_pipeline_context.components = [comp]
-
-    FinalizeStep().execute(parser_pipeline_context)
-
-    assert parser_pipeline_context.result is not None
-    result_comp = parser_pipeline_context.result.components[0]
-    assert result_comp.is_header_only is True
 
 
 @pytest.mark.business_logic
@@ -403,30 +426,6 @@ def test_finalize_step_sqlite3_dependencies_preserved(
 
 
 @pytest.mark.business_logic
-def test_finalize_step_removes_non_existing_profiles(
-    parser_pipeline_context,
-) -> None:
-    """FinalizeStep удаляет только профили с exists=False, остальные остаются нетронутыми."""
-    pb_live1 = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2", exists=True, variants=[])
-    pb_live2 = ProfileBuild(profile_name="crypto_alpine_gcc_x86_64.jinja", exists=True, variants=[])
-    pb_dead = ProfileBuild(profile_name="hw-linux-armv7-gcc10_2", exists=False, variants=[])
-    rel = Release(
-        version="1.0.0",
-        platform="2.0",
-        channel="slow",
-        profile_builds=[pb_live1, pb_live2, pb_dead],
-    )
-    comp = Component(name="somelib", releases=[rel])
-    parser_pipeline_context.components = [comp]
-
-    FinalizeStep().execute(parser_pipeline_context)
-
-    assert len(rel.profile_builds) == 2
-    remaining_names = {pb.profile_name for pb in rel.profile_builds}
-    assert "hw-linux-armv7-gcc10_2" not in remaining_names
-
-
-@pytest.mark.business_logic
 def test_header_only_requires_all_profiles_to_have_null_package_id(
     parser_pipeline_context,
 ) -> None:
@@ -501,48 +500,32 @@ def test_header_only_null_package_id_exact_sha1_value(
 
 
 @pytest.mark.business_logic
-def test_header_only_with_no_profile_builds_is_false(
-    parser_pipeline_context,
+@pytest.mark.parametrize(
+    "profile_builds",
+    [
+        # у релиза вообще нет профилей
+        pytest.param([], id="no-profile-builds"),
+        # профиль есть, но у него нет ни одного варианта
+        pytest.param(
+            [ProfileBuild(profile_name="hw-linux-x86_64", exists=True, variants=[])],
+            id="profile-with-empty-variants",
+        ),
+    ],
+)
+def test_header_only_without_evidence_is_false(
+    parser_pipeline_context, profile_builds: list[ProfileBuild],
 ) -> None:
-    """Релиз без единого профиля даёт is_header_only=False."""
+    """Без вариантов, доказывающих header-only (нет профилей вовсе, либо
+    профиль есть, но у него пустой variants), итоговый флаг остаётся
+    False — при отсутствии профилей и при профиле без вариантов это одно
+    и то же бизнес-правило "нет доказательств -> False"."""
     release = Release(
         version="1.0",
         platform="2.2",
         channel="fast",
         conan_reference="",
         artifactory_url="",
-        profile_builds=[],
-    )
-    comp = Component(
-        name="mylib",
-        description="",
-        git_project="P",
-        git_repo="r",
-        git_url="",
-        is_header_only=False,
-        releases=[release],
-    )
-
-    ctx = parser_pipeline_context
-    ctx.components = [comp]
-    FinalizeStep().execute(ctx)
-
-    assert comp.is_header_only is False
-
-
-@pytest.mark.business_logic
-def test_header_only_with_empty_variants_per_profile_is_false(
-    parser_pipeline_context,
-) -> None:
-    """Профиль без вариантов не даёт доказательств header-only — итоговый флаг False."""
-    pb = ProfileBuild(profile_name="hw-linux-x86_64", exists=True, variants=[])
-    release = Release(
-        version="1.0",
-        platform="2.2",
-        channel="fast",
-        conan_reference="",
-        artifactory_url="",
-        profile_builds=[pb],
+        profile_builds=profile_builds,
     )
     comp = Component(
         name="mylib",

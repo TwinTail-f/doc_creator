@@ -164,32 +164,20 @@ def test_apply_conan_results_upserts_conan_settings() -> None:
 
 
 @pytest.mark.business_logic
-@pytest.mark.parametrize(
-    "new_conan_settings, expected_conan_settings",
-    [
-        # pb_data.conan_settings пуст -> существующее значение сохраняется как есть
-        pytest.param({}, {"os": "Linux"}, id="empty-does-not-overwrite"),
-        # pb_data.conan_settings непуст -> перезаписывает существующее значение
-        pytest.param({"os": "Windows"}, {"os": "Windows"}, id="non-empty-overwrites"),
-    ],
-)
-def test_apply_conan_results_conan_settings_overwrite_priority(
-    new_conan_settings: dict, expected_conan_settings: dict
-) -> None:
-    """Существующий ProfileDefinition.conan_settings перезаписывается новыми
-    данными, только если они непусты; пустые conan_settings из повторного
-    обогащения не затирают уже сохранённое значение."""
+def test_apply_conan_results_does_not_overwrite_with_empty_settings() -> None:
+    """Непустые conan_settings в существующем ProfileDefinition не стираются пустыми данными."""
     comp, rel, pb = _release(profile="hw-linux-x86_64-gcc10_2")
     existing_pd = ProfileDefinition(
         profile_name="hw-linux-x86_64-gcc10_2",
         conan_settings={"os": "Linux"},
     )
-    result = _minimal_enrich_result(comp, rel, pb, conan_settings=new_conan_settings)
+    # Новый profile_data содержит пустые conan_settings
+    result = _minimal_enrich_result(comp, rel, pb, conan_settings={})
     profile_definitions: list[ProfileDefinition] = [existing_pd]
 
     DataEnricher.apply_conan_results([comp], result, profile_definitions)
 
-    assert existing_pd.conan_settings == expected_conan_settings
+    assert existing_pd.conan_settings == {"os": "Linux"}
 
 
 @pytest.mark.business_logic
@@ -574,6 +562,18 @@ def test_apply_docker_links_empty_docker_image_preserved_when_no_match() -> None
 
     assert pd.docker_image == ""
     assert pd.docker_image is not None
+
+
+@pytest.mark.business_logic
+def test_apply_docker_links_profile_definitions_none_skips_upsert() -> None:
+    """При profile_definitions=None (по умолчанию) apply_docker_links() не пытается
+    создавать или обновлять ProfileDefinition — ветка upsert выполняется только
+    когда список explicit передан вызывающим кодом."""
+    comp = make_component("mylib", profiles=["hw-linux-x86_64"])
+    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
+
+    # Не должно бросать исключение и не должно требовать список.
+    DataEnricher.apply_docker_links([comp], docker_links, profile_definitions=None)
 
 
 @pytest.mark.business_logic

@@ -95,7 +95,10 @@ def test_build_raises_template_not_found(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_build_xmlattr_filter_escapes_special_chars(tmp_path: Path) -> None:
-    """Фильтр xmlattr экранирует '&' и '"', не удваивая экранирование."""
+    """DocumentBuilder настроен так (autoescape без двойного экранирования),
+    что итоговый XML-атрибут содержит корректно экранированные '&' и '"'
+    ровно один раз — это проверка конфигурации проекта, а не поведения
+    фильтра Jinja2 самого по себе."""
     rendering_dir = make_rendering_dir(tmp_path, {XMLATTR_TEMPLATE_NAME: XMLATTR_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
 

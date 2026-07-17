@@ -26,7 +26,12 @@ import urllib3
 from pytest_mock import MockerFixture
 from urllib3.connectionpool import HTTPConnectionPool
 
-from autodoc.common.retryable_session import RetryableSession, create_retryable_session
+from autodoc.common.retryable_session import (
+    RetryableSession,
+    create_bearer_session,
+    create_pat_session,
+    create_retryable_session,
+)
 
 _TIMEOUT_SEC: int = 10
 _HTTP_TOO_MANY: int = 429
@@ -175,31 +180,69 @@ def test_retryable_session_timeout_forwarded_to_request(
 
 @pytest.mark.business_logic
 @responses.activate
-def test_create_retryable_session_bearer_true_sends_bearer_authorization_header() -> None:
-    """create_retryable_session(bearer=True, token=...) делегирует в create_bearer_session
-    и в итоге реально отправляет заголовок 'Authorization: Bearer <token>' в запросе —
-    проверяется через фактический перехваченный HTTP-запрос (``responses``), а не
-    через чтение внутреннего атрибута session.headers."""
-    responses.add(responses.GET, _TEST_URL, status=_HTTP_OK, json={"ok": True})
+def test_create_bearer_session_sends_bearer_authorization_header() -> None:
+    """create_bearer_session(token=...) фактически отправляет заголовок
+    'Authorization: Bearer <token>' в исходящем запросе — это единственный
+    наблюдаемый эффект настройки Bearer-аутентификации."""
+    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
+    session = create_bearer_session(token="my-pat-token")
 
-    session = create_retryable_session(bearer=True, token="secret-token-abc")
     session.get(_TEST_URL)
 
-    assert len(responses.calls) == 1
-    assert responses.calls[0].request.headers["Authorization"] == "Bearer secret-token-abc"
+    assert responses.calls[0].request.headers["Authorization"] == "Bearer my-pat-token"
 
 
 @pytest.mark.business_logic
 @responses.activate
-def test_create_retryable_session_bearer_false_uses_basic_auth_not_bearer_header() -> None:
-    """create_retryable_session(bearer=False, token=...) делегирует в create_pat_session:
-    учётные данные передаются через HTTP Basic Auth, заголовок Authorization не
-    содержит 'Bearer'."""
-    responses.add(responses.GET, _TEST_URL, status=_HTTP_OK, json={"ok": True})
+def test_create_bearer_session_no_token_sends_no_authorization_header() -> None:
+    """create_bearer_session(token=None) не добавляет заголовок Authorization."""
+    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
+    session = create_bearer_session(token=None)
 
-    session = create_retryable_session(bearer=False, token="secret-token-abc")
     session.get(_TEST_URL)
 
-    assert len(responses.calls) == 1
+    assert "Authorization" not in responses.calls[0].request.headers
+
+
+@pytest.mark.business_logic
+@responses.activate
+def test_create_retryable_session_bearer_true_delegates_to_bearer_auth() -> None:
+    """create_retryable_session(bearer=True, token=...) на практике ведёт себя как
+    create_bearer_session(): исходящий запрос несёт Bearer-заголовок, а не Basic-auth."""
+    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
+    session = create_retryable_session(token="my-pat-token", bearer=True)
+
+    session.get(_TEST_URL)
+
+    assert responses.calls[0].request.headers["Authorization"] == "Bearer my-pat-token"
+
+
+@pytest.mark.business_logic
+@responses.activate
+def test_create_retryable_session_bearer_false_delegates_to_pat_auth() -> None:
+    """create_retryable_session(bearer=False, token=...) ведёт себя как create_pat_session():
+    исходящий запрос несёт Basic-auth заголовок, а не 'Bearer'."""
+    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
+    session = create_retryable_session(token="my-pat-token", bearer=False)
+
+    session.get(_TEST_URL)
+
     auth_header = responses.calls[0].request.headers["Authorization"]
-    assert not auth_header.startswith("Bearer")
+    assert auth_header.startswith("Basic ")
+
+
+@pytest.mark.business_logic
+@responses.activate
+def test_create_pat_session_sends_basic_auth_with_empty_username() -> None:
+    """create_pat_session(token=...) настраивает Basic-аутентификацию с пустым
+    именем пользователя и токеном в качестве пароля (PAT-паттерн)."""
+    import base64
+
+    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
+    session = create_pat_session(token="my-pat-token")
+
+    session.get(_TEST_URL)
+
+    auth_header = responses.calls[0].request.headers["Authorization"]
+    decoded = base64.b64decode(auth_header.removeprefix("Basic ")).decode()
+    assert decoded == ":my-pat-token"

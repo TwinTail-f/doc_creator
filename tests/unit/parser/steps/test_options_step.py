@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -114,24 +115,14 @@ def test_options_step_component_not_in_options_map_left_untouched(
 def test_options_step_sqlite3_twelve_options_applied(
     parser_config,
     tmp_path: Path,
+    resources_dir: Path,
     make_fake_fetcher,
 ) -> None:
     """FakeFetcher с 12 опциями для sqlite3/slow применяет все 12 к build_option_sets."""
     sqlite3_opts: OptionsMap = {
-        ("sqlite3", "3.34.1", "slow"): {
-            "1": "",
-            "2": "sqlite3:shared=True",
-            "3": "sqlite3:enable_json1=True",
-            "4": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True",
-            "5": "sqlite3:enable_json1=True, sqlite3:shared=True",
-            "6": "sqlite3:shared=True, sqlite3:RTree_patch_enable=True",
-            "7": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True, sqlite3:shared=True",
-            "8": "sqlite3:shared=True, sqlite3:strip_binary=True",
-            "9": "sqlite3:enable_json1=True, sqlite3:shared=True, sqlite3:strip_binary=True",
-            "10": "sqlite3:shared=True, sqlite3:RTree_patch_enable=True, sqlite3:strip_binary=True",
-            "11": "sqlite3:enable_json1=True, sqlite3:RTree_patch_enable=True, sqlite3:shared=True, sqlite3:strip_binary=True",
-            "12": "sqlite3:with_icu=True",
-        }
+        ("sqlite3", "3.34.1", "slow"): json.loads(
+            (resources_dir / "options" / "sqlite3_slow_options.json").read_text()
+        )
     }
     comp = _make_component("sqlite3", [_make_release("3.34.1", "slow")])
     ctx = _make_ctx_with_components(parser_config, tmp_path, [comp])

@@ -4,6 +4,7 @@
 Все вызовы subprocess.run и shutil замокированы — бинарный файл conan не требуется.
 """
 
+import json
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -118,29 +119,56 @@ def test_conan2_runner_clean_cache_success(tmp_path: Path, mocker) -> None:  # t
 
 
 @pytest.mark.infrastructure
-def test_conan2_runner_clean_cache_non_critical_failure(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
-    """clean_cache() не бросает исключений, если conan вернул ненулевой код (некритичная ошибка)."""
+@pytest.mark.parametrize(
+    "run_kwargs",
+    [
+        # conan вернул ненулевой код возврата (некритичная ошибка)
+        pytest.param(
+            {"return_value": MagicMock(returncode=1, stderr="cache empty", stdout="")},
+            id="non-critical-failure",
+        ),
+        # subprocess.run истёк по таймауту
+        pytest.param(
+            {
+                "side_effect": subprocess.TimeoutExpired(
+                    cmd="conan", timeout=Conan2Runner._CLEAN_CACHE_TIMEOUT
+                )
+            },
+            id="timeout",
+        ),
+    ],
+)
+def test_conan2_runner_clean_cache_swallows_failures(
+    tmp_path: Path, mocker, run_kwargs: dict,  # type: ignore[no-untyped-def]
+) -> None:
+    """clean_cache() не бросает исключений ни при ненулевом коде возврата
+    conan, ни при истечении времени ожидания subprocess."""
     runner = _make_runner(tmp_path)
-    mocker.patch(
-        "subprocess.run",
-        return_value=MagicMock(returncode=1, stderr="cache empty", stdout=""),
-    )
+    mocker.patch("subprocess.run", **run_kwargs)
 
-    # Не должно бросать исключение
     runner.clean_cache()
 
 
 @pytest.mark.infrastructure
-def test_conan2_runner_clean_cache_timeout(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
-    """clean_cache() не бросает исключений при истечении времени ожидания subprocess."""
+def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
+    tmp_path: Path, mocker
+) -> None:  # type: ignore[no-untyped-def]
+    """run() при returncode=0 и валидном JSON на stdout возвращает
+    ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
+    в проде путь (returncode=0), но ранее покрывались только failure-ветки."""
     runner = _make_runner(tmp_path)
+    parsed_payload = {"graph": {"nodes": {"0": {"name": "zlib"}}}}
+    mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mocker.patch(
         "subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd="conan", timeout=Conan2Runner._CLEAN_CACHE_TIMEOUT),
+        return_value=MagicMock(returncode=0, stdout=json.dumps(parsed_payload), stderr=""),
     )
 
-    # Не должно бросать исключение
-    runner.clean_cache()
+    result: ConanRawResult = runner.run(_make_task())
+
+    assert result.success is True
+    assert result.data == parsed_payload
+    assert result.error == ""
 
 
 @pytest.mark.infrastructure
@@ -359,9 +387,9 @@ def test_conan_environment_manager_install_config_raises_on_invalid_url(mocker) 
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_raises_when_conan_missing_from_path(mocker) -> None:
-    """setup() поднимает RuntimeError, если утилита conan не найдена в PATH,
-    ещё до создания временной директории и обращения к conan CLI."""
+def test_conan_environment_manager_setup_raises_when_conan_not_in_path(mocker) -> None:
+    """setup() пробрасывает RuntimeError, если утилита 'conan' не найдена в PATH,
+    и не пытается создавать временную директорию или обращаться к conan CLI."""
     mocker.patch("shutil.which", return_value=None)
     mock_mkdtemp = mocker.patch("tempfile.mkdtemp")
     mock_run = mocker.patch("subprocess.run")
@@ -376,47 +404,29 @@ def test_conan_environment_manager_setup_raises_when_conan_missing_from_path(moc
 
 
 @pytest.mark.infrastructure
-def test_install_config_calls_cleanup_before_raising_on_subprocess_failure(
+def test_conan_environment_manager_install_config_cleans_up_before_raising_on_subprocess_failure(
     tmp_path: Path, mocker
 ) -> None:
     """Если сама команда 'conan config install' завершилась ненулевым кодом,
-    _install_config обязан вызвать cleanup() ДО того, как исключение
-    покинет метод — иначе временный каталог CONAN_HOME останется висеть на
-    диске (агенты CI годами накапливали бы такие директории при регулярных
-    сбоях установки конфигурации).
-
-    Порядок проверяется явно: список call_order фиксирует момент вызова
-    rmtree() (внутри настоящего cleanup()) и момент перехвата исключения в
-    этом тесте — а не полагается на то, что в синхронном коде это и так
-    гарантировано.
-    """
-    setup_dir = tmp_path / "setup_dir"
+    _install_config вызывает self.cleanup() (удаляет временный CONAN_HOME) перед
+    тем, как пробросить RuntimeError — иначе временная директория осталась бы
+    на диске навсегда, так как вызывающий код (setup()) выполнить cleanup()
+    в этом случае уже не успевает."""
+    mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    setup_dir: Path = tmp_path / "setup_dir"
     setup_dir.mkdir()
-
-    call_order: list[str] = []
-
-    def _record_rmtree(path, ignore_errors=False):
-        call_order.append("cleanup")
-
-    mocker.patch("shutil.rmtree", side_effect=_record_rmtree)
+    mocker.patch("tempfile.mkdtemp", return_value=str(setup_dir))
+    mock_rmtree = mocker.patch("shutil.rmtree")
     mocker.patch(
         "subprocess.run",
         return_value=MagicMock(returncode=1, stdout="", stderr="config install failed"),
     )
 
     manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
-    manager._setup_dir = setup_dir
 
-    try:
-        manager._install_config(env={})
-    except RuntimeError:
-        call_order.append("raise")
-    else:
-        pytest.fail("_install_config must raise RuntimeError on subprocess failure")
+    with pytest.raises(RuntimeError, match="conan config install"):
+        manager.setup()
 
-    assert call_order == ["cleanup", "raise"], (
-        "cleanup() должен быть вызван строго до того, как исключение покинет "
-        f"_install_config; фактический порядок: {call_order}"
-    )
-    # Реальный эффект cleanup() — _setup_dir сброшен в None — а не просто вызов мока.
-    assert manager._setup_dir is None
+    mock_rmtree.assert_called_once()
+    called_path = Path(mock_rmtree.call_args[0][0])
+    assert called_path == setup_dir

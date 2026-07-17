@@ -35,6 +35,8 @@ TAB_HTML_MULTI = _html("tab_multi.html")
 TAB_HTML_NESTED = _html("tab_nested.html")
 TAB_HTML_NO_BODY = _html("tab_no_body.html")
 TAB_HTML_SINGLE = _html("tab_single.html")
+TAB_HTML_TITLE_ATTRIBUTE = _html("tab_title_attribute.html")
+TAB_HTML_BLANK_NAME = _html("tab_blank_name.html")
 TABS_GROUP_HTML = _html("tabs_group.html")
 
 
@@ -78,10 +80,10 @@ def test_find_h1_sections_accepts_beautifulsoup_instance_directly() -> None:
 
 @pytest.mark.infrastructure
 def test_find_h1_sections_unclosed_tag_is_auto_closed_by_parser() -> None:
-    """html.parser автоматически закрывает незакрытый <h1>, тег всё равно находится.
-
-    В отличие от старого ручного парсера строк, bs4 нормализует некорректную
-    разметку вместо того, чтобы пропускать такие заголовки.
+    """Закреплённое допущение о поведении html.parser (через bs4): незакрытый
+    тег <h1> автоматически закрывается на парсинге, поэтому find_h1_sections
+    всё равно находит заголовок. Это не бизнес-правило autodoc, а фиксация
+    факта о сторонней библиотеке, на который код полагается.
     """
     result = find_h1_sections("<h1>Unclosed heading")
 
@@ -169,13 +171,7 @@ def test_extract_tab_sections_ignores_title_attribute() -> None:
     fallback-разборе секций, поэтому имя вкладки ищется строго через
     <ac:parameter ac:name="name">.
     """
-    html = (
-        '<ac:structured-macro ac:name="tab">'
-        '<ac:parameter ac:name="title">My Tab</ac:parameter>'
-        "<ac:rich-text-body><p>title content</p></ac:rich-text-body>"
-        "</ac:structured-macro>"
-    )
-    result = extract_tab_sections(html)
+    result = extract_tab_sections(TAB_HTML_TITLE_ATTRIBUTE)
 
     assert "My Tab" not in result
 
@@ -213,13 +209,7 @@ def test_extract_tab_sections_preserves_nested_rich_text_body() -> None:
 @pytest.mark.business_logic
 def test_extract_tab_sections_skips_pane_with_blank_name() -> None:
     """Вкладка с пустым (после strip) именем не включается в результат."""
-    html = (
-        '<ac:structured-macro ac:name="tab">'
-        '<ac:parameter ac:name="name">   </ac:parameter>'
-        "<ac:rich-text-body><p>content</p></ac:rich-text-body>"
-        "</ac:structured-macro>"
-    )
-    result = extract_tab_sections(html)
+    result = extract_tab_sections(TAB_HTML_BLANK_NAME)
 
     assert result == {}
 

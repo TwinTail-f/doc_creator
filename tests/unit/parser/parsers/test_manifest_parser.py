@@ -45,22 +45,41 @@ def test_parser_returns_correct_component_count(
 
 
 @pytest.mark.integration
-def test_parser_patchelf_two_versions_same_channel(
+@pytest.mark.parametrize(
+    "manifest_filename, expected_pairs",
+    [
+        # patchelf — 2 релиза в одном канале tech
+        pytest.param(
+            "patchelf.properties", {("0.16.1", "tech"), ("0.18.0", "tech")}, id="patchelf"
+        ),
+        # apr — 1 релиз, канал fast
+        pytest.param("apr.properties", {("1.7.6", "fast")}, id="apr"),
+        # sqlite3 — 2 релиза, разные каналы fast/slow
+        pytest.param(
+            "sqlite3.properties", {("3.51.2", "fast"), ("3.34.1", "slow")}, id="sqlite3"
+        ),
+        # libnetfilter_queue — 1 релиз для платформы 2.0, канал slow
+        pytest.param(
+            "libnetfilter_queue.properties", {("1.0.5", "slow")}, id="libnetfilter_queue"
+        ),
+    ],
+)
+def test_parser_release_version_channel_pairs(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
+    manifest_filename: str,
+    expected_pairs: set[tuple[str, str]],
 ) -> None:
-    """patchelf имеет ровно 2 релиза, оба channel=='tech', версии 0.16.1 и 0.18.0."""
+    """Для каждого реального манифеста parse() возвращает ожидаемый набор
+    пар (version, channel) среди releases компонента."""
     components, _ = parser_20.parse(
-        [real_manifests_dir / "patchelf.properties"],
+        [real_manifests_dir / manifest_filename],
         component_names=[],
         filter_mode="exclude",
     )
     assert len(components) == 1
-    comp = components[0]
-    assert comp.name == "patchelf"
-    assert len(comp.releases) == 2
-    assert {r.channel for r in comp.releases} == {"tech"}
-    assert {r.version for r in comp.releases} == {"0.16.1", "0.18.0"}
+    pairs = {(r.version, r.channel) for r in components[0].releases}
+    assert pairs == expected_pairs
 
 
 @pytest.mark.integration
@@ -80,25 +99,6 @@ def test_parser_nlohmann_json_multiple_releases(
     channels = {r.channel for r in releases}
     assert "slow" in channels
     assert "fast" in channels
-
-
-@pytest.mark.integration
-def test_parser_apr_single_release_fast_channel(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """apr имеет ровно 1 релиз с version=='1.7.6' и channel=='fast'."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "apr.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    assert len(components) == 1
-    assert components[0].name == "apr"
-    assert len(components[0].releases) == 1
-    rel = components[0].releases[0]
-    assert rel.version == "1.7.6"
-    assert rel.channel == "fast"
 
 
 @pytest.mark.integration
@@ -207,55 +207,46 @@ def test_parser_invalid_properties_skipped_with_warning(
     assert len(components) >= 1
 
 
-@pytest.mark.business_logic
-def test_manifest_parser_skips_file_without_name(tmp_path: Path) -> None:
-    """ManifestParser молча пропускает файл .properties без ключа 'name'."""
-    path = write_props(tmp_path, "noname.properties", "description= test\n")
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 0
-    assert len(warnings) == 0
+_MANIFEST_WITHOUT_NAME = "description= test\n"
 
+_MANIFEST_PLATFORM_MISMATCH = (
+    "name= libfoo\n"
+    "versions.component= 1.0\n"
+    "versions.platform= 1.0-tech\n"
+    "profiles-1.0-1.0-tech= hw-linux-x86_64-gcc10_2\n"
+)
 
-@pytest.mark.infrastructure
-def test_manifest_parser_missing_file_produces_warning() -> None:
-    """ManifestParser записывает предупреждение и не возвращает компоненты для несуществующего файла."""
-    missing = Path("nonexistent.properties")
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
-        [missing], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 0
-    assert len(warnings) == 1
+_MANIFEST_NO_PROFILES_KEY = "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
 
 
 @pytest.mark.business_logic
-def test_manifest_parser_platform_mismatch_no_release(tmp_path: Path) -> None:
-    """ManifestParser не возвращает компоненты, когда все версии платформы не совпадают с целевой."""
-    content = (
-        "name= libfoo\n"
-        "versions.component= 1.0\n"
-        "versions.platform= 1.0-tech\n"
-        "profiles-1.0-1.0-tech= hw-linux-x86_64-gcc10_2\n"
-    )
-    path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
-        [path], component_names=[], filter_mode="exclude"
-    )
-    assert len(components) == 0
-
-
-@pytest.mark.business_logic
-def test_manifest_parser_missing_profiles_key_skips_version_pair(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    "content, expected_warnings_count",
+    [
+        # без поля name файл целиком пропускается, молча
+        pytest.param(_MANIFEST_WITHOUT_NAME, 0, id="missing-name"),
+        # файл манифеста не найден на диске
+        pytest.param(None, 1, id="missing-file"),
+        # platform в манифесте не совпадает с platform парсера -> релиз не создаётся
+        pytest.param(_MANIFEST_PLATFORM_MISMATCH, 0, id="platform-mismatch"),
+        # ключ profiles отсутствует -> пара версия/канал пропускается
+        pytest.param(_MANIFEST_NO_PROFILES_KEY, 0, id="missing-profiles-key"),
+    ],
+)
+def test_manifest_parser_invalid_input_yields_no_components(
+    tmp_path: Path, content: str | None, expected_warnings_count: int,
 ) -> None:
-    """ManifestParser пропускает пару версий для которой не существует соответствующего ключа profiles."""
-    content = "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
-    path = write_props(tmp_path, "libfoo.properties", content)
-    components, _ = ManifestParser(TARGET_PLATFORM).parse(
+    """При некорректном, неполном или отсутствующем манифесте parse() не
+    создаёт компонент; причина неполноты варьируется по кейсам."""
+    if content is None:
+        path = tmp_path / "nonexistent.properties"
+    else:
+        path = write_props(tmp_path, "libfoo.properties", content)
+    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
         [path], component_names=[], filter_mode="exclude"
     )
     assert len(components) == 0
+    assert len(warnings) == expected_warnings_count
 
 
 @pytest.mark.integration
@@ -327,23 +318,6 @@ def test_parser_patchelf_both_versions_have_same_profiles(
 
 
 @pytest.mark.integration
-def test_parser_sqlite3_has_both_fast_and_slow_releases(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """sqlite3 даёт ровно 2 релиза для платформы 2.0: один fast, один slow."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "sqlite3.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    assert len(components) == 1
-    channels = {r.channel for r in components[0].releases}
-    assert channels == {"fast", "slow"}
-    assert len(components[0].releases) == 2
-
-
-@pytest.mark.integration
 def test_parser_sqlite3_slow_release_version_and_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -388,22 +362,6 @@ def test_parser_libnetfilter_queue_git_url_points_to_prg_quant(
         filter_mode="exclude",
     )
     assert "PRG_Quant" in components[0].git_url
-
-
-@pytest.mark.integration
-def test_parser_libnetfilter_queue_single_slow_release_for_platform_20(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """libnetfilter_queue имеет ровно 1 релиз для платформы 2.0 (канал slow)."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "libnetfilter_queue.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    assert len(components[0].releases) == 1
-    assert components[0].releases[0].channel == "slow"
-    assert components[0].releases[0].version == "1.0.5"
 
 
 @pytest.mark.integration
@@ -568,10 +526,8 @@ def test_profile_build_names_match_manifest_profile_list_exactly(
     tmp_path: Path,
 ) -> None:
     """Проверить, что значения ProfileBuild.profile_name точно равны записям манифеста."""
-    content = (
-        "name=mylib\ndescription=Test\ntfs_git_project=P\ngit_repo_name=r\n"
-        "versions.component=1.0\nversions.platform=2.2-fast\n"
-        "profiles-1.0-2.2-fast=hw-linux-x86_64-gcc12_3, hw-win-msvc2022\n"
+    content = _minimal_manifest(
+        git_project="P", git_repo="r", profiles="hw-linux-x86_64-gcc12_3, hw-win-msvc2022"
     )
     f = _write_manifest(tmp_path, "mylib", content)
     parser = ManifestParser(target_platform="2.2")
@@ -604,12 +560,7 @@ def test_git_url_set_on_component_not_release(tmp_path: Path) -> None:
 @pytest.mark.business_logic
 def test_git_url_format_is_tfs_git_format(tmp_path: Path) -> None:
     """Проверить, что Component.git_url отформатирован как хорошо сформированный TFS Git URL."""
-    content = (
-        "name=mylib\ndescription=Test\n"
-        "tfs_git_project=PlatformTeam\ngit_repo_name=mylib\n"
-        "versions.component=1.0\nversions.platform=2.2-fast\n"
-        "profiles-1.0-2.2-fast=hw-linux-x86_64\n"
-    )
+    content = _minimal_manifest(git_project="PlatformTeam", git_repo="mylib")
     f = _write_manifest(tmp_path, "mylib", content)
     parser = ManifestParser(
         target_platform="2.2",
@@ -692,34 +643,26 @@ def test_manifest_parser_include_nonmatching_list_returns_empty(tmp_path: Path) 
     assert components == []
 
 
-@pytest.mark.infrastructure
-def test_manifest_parser_skips_none_result_from_executor(
+@pytest.mark.business_logic
+def test_manifest_parser_skips_none_results_from_executor(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Если ParallelExecutor подменяет результат одного файла на None (перехватив
-    непредвиденную ошибку внутри задачи), этот файл молча пропускается через
-    ``continue``, а остальные файлы обрабатываются как обычно — падения быть не должно."""
-    import autodoc.parser.parsers.manifest_parser as manifest_parser_module
-
-    good_file = _write_manifest(tmp_path, "goodlib", _minimal_manifest(comp_name="goodlib"))
-    bad_file = _write_manifest(tmp_path, "badlib", _minimal_manifest(comp_name="badlib"))
-
-    original_read_properties = manifest_parser_module.read_properties
-
-    def _raise_value_error_for_bad_file(path: Path):
-        # ValueError не перехватывается внутри _parse_single_file — долетает
-        # до ParallelExecutor, который заменяет результат этой задачи на None.
-        if path == bad_file:
-            raise ValueError("непредвиденная ошибка разбора")
-        return original_read_properties(path)
-
-    monkeypatch.setattr(manifest_parser_module, "read_properties", _raise_value_error_for_bad_file)
-
+    """parse() пропускает файлы, для которых ParallelExecutor вернул None (задача
+    завершилась ожидаемой ошибкой, например ComponentParsingError) через ветку
+    continue, не прерывая обработку остальных файлов и не падая на None."""
+    f1 = _write_manifest(tmp_path, "broken", _minimal_manifest(comp_name="broken"))
+    f2 = _write_manifest(tmp_path, "mylib", _minimal_manifest(comp_name="mylib"))
     parser = ManifestParser(target_platform="2.2")
-    components, warnings = parser.parse(
-        [good_file, bad_file], component_names=[], filter_mode="include"
+
+    # Первый файл эмулирует задачу, завершившуюся ожидаемой ошибкой в ParallelExecutor
+    # (результат для неё — None), второй файл разбирается нормально.
+    monkeypatch.setattr(
+        parser._executor,
+        "execute",
+        lambda fn, items, task_label="": [None, fn(f2)],
     )
 
-    names = {c.name for c in components}
-    assert names == {"goodlib"}
-    assert "badlib" not in names
+    components, _ = parser.parse([f1, f2], component_names=[], filter_mode="include")
+
+    assert len(components) == 1
+    assert components[0].name == "mylib"

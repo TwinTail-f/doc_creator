@@ -198,6 +198,23 @@ def test_task_builder_lettered_version_uses_exact_range() -> None:
 
 
 @pytest.mark.business_logic
+def test_task_builder_version_without_numeric_prefix_used_as_is() -> None:
+    """Версия без числового префикса (например 'latest') подставляется в --requires
+    как есть, без диапазона версий '~' или '[>=X <Y]', так как _format_reference
+    не может вычислить upper_bound из нечислового значения."""
+    release = make_release(version="latest")
+    comp = make_component(name="mylib", releases=[release])
+
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
+
+    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
+    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
+    assert "mylib/latest@platform-2.0/tech" in requires_flags[0]
+    assert "~" not in requires_flags[0]
+    assert "[" not in requires_flags[0]
+
+
+@pytest.mark.business_logic
 def test_task_builder_exact_range_components_forces_exact_range_for_numeric_version() -> None:
     """exact_range_components заставляет использовать точный диапазон даже для чисто числовой версии."""
     release = make_release(version="3.34.1")

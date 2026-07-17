@@ -8,6 +8,7 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
+from tests.unit.publisher.conftest import CI_BUILD_URL
 
 COMP_NAME: str = "openssl"
 RELEASE_VERSION: str = "1.0.0"
@@ -163,7 +164,7 @@ def test_variant_with_unknown_options_ref_has_empty_options(
     """
     variant_unknown = ConanVariant(
         package_id="abc123",
-        build_url="https://ci.example.com/build/42",
+        build_url=CI_BUILD_URL,
         build_date="2024-01-15",
         options_ref="NONEXISTENT_REF",
     )
@@ -233,8 +234,9 @@ def test_variants_are_conan_variant_view_dataclasses(
         2. Проверить тип каждого варианта в profile_builds
 
     Ожидаемый результат:
-        isinstance(variant, ConanVariantView) is True;
-        у варианта есть поля: package_id, build_url, conan_options, install_options.
+        isinstance(variant, ConanVariantView) is True (гарантирует и наличие
+        полей package_id, build_url, conan_options, install_options — они
+        часть самого dataclass).
     """
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.convert(publisher_parsed_result)
@@ -244,10 +246,6 @@ def test_variants_are_conan_variant_view_dataclasses(
             assert isinstance(
                 variant, ConanVariantView
             ), f"Expected ConanVariantView, got {type(variant).__name__}"
-            assert hasattr(variant, "package_id")
-            assert hasattr(variant, "build_url")
-            assert hasattr(variant, "conan_options")
-            assert hasattr(variant, "install_options")
 
 
 @pytest.mark.business_logic

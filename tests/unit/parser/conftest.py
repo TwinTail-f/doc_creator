@@ -22,19 +22,9 @@ from autodoc.parser.pipeline.context import PipelineContext
 
 # Фикстуры конфигурации / путей
 @pytest.fixture
-def parser_config() -> ParserConfigSchema:
+def parser_config(valid_parser_config: dict) -> ParserConfigSchema:
     """Минимальная корректная ParserConfigSchema для юнит-тестов (без реальных сетевых вызовов)."""
-    return ParserConfigSchema(
-        platform_version="2.0",
-        platform_branch_name="develop",
-        platform_ref_type="branch",
-        username="testuser",
-        tfs_token="test-tfs-pat-token",
-        artifactory_token="test-art-token",
-        tfs_collection_url="https://tfs.example.com",
-        manifests_remotes_path="/platform/manifests",
-        conan_config_url="https://art.example.com/conan-config.zip",
-    )
+    return ParserConfigSchema(**valid_parser_config)
 
 
 @pytest.fixture

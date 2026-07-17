@@ -159,15 +159,37 @@ def poco_missing_graph(resources_dir: Path) -> dict[str, Any]:
 
 
 @pytest.mark.business_logic
-def test_result_parser_patchelf_returns_enrich_data(
-    success_json: dict[str, Any],
-    conan_task: ConanTask,
+@pytest.mark.parametrize(
+    "graph_fixture, task_fixture, expected_package_id",
+    [
+        pytest.param(
+            "success_json", "conan_task", "461534fe50686ce31d073dc24f005bd12e08c9fd", id="patchelf"
+        ),
+        pytest.param(
+            "libnetfilter_queue_graph",
+            "libnetfilter_queue_task",
+            "46bf0ba807876c7591c702abfa2ba19d3133f1af",
+            id="libnetfilter_queue",
+        ),
+        pytest.param(
+            "apr_graph", "apr_task", "7741115342fe6159bd16463d6d349e4c02e33237", id="apr"
+        ),
+    ],
+)
+def test_result_parser_returns_enrich_data_with_package_id(
+    request: pytest.FixtureRequest,
+    graph_fixture: str,
+    task_fixture: str,
+    expected_package_id: str,
 ) -> None:
-    """parse() возвращает ConanEnrichData с корректным package_id patchelf при успехе."""
-    result = Conan2ResultParser().parse(success_json, conan_task)
+    """parse() для разных компонентов (patchelf, libnetfilter_queue, apr)
+    возвращает ConanEnrichData с ожидаемым package_id."""
+    graph = request.getfixturevalue(graph_fixture)
+    task = request.getfixturevalue(task_fixture)
+    result = Conan2ResultParser().parse(graph, task)
 
     assert result is not None
-    assert result.package_id == "461534fe50686ce31d073dc24f005bd12e08c9fd"
+    assert result.package_id == expected_package_id
 
 
 @pytest.mark.business_logic
@@ -286,18 +308,6 @@ def test_result_parser_sqlite3_dependency_nodes_not_matched(
 
 
 @pytest.mark.business_logic
-def test_result_parser_libnetfilter_queue_returns_result(
-    libnetfilter_queue_graph: dict[str, Any],
-    libnetfilter_queue_task: ConanTask,
-) -> None:
-    """parse() для libnetfilter_queue возвращает результат с корректным package_id."""
-    result = Conan2ResultParser().parse(libnetfilter_queue_graph, libnetfilter_queue_task)
-
-    assert result is not None
-    assert result.package_id == "46bf0ba807876c7591c702abfa2ba19d3133f1af"
-
-
-@pytest.mark.business_logic
 def test_result_parser_libnetfilter_queue_two_deps(
     libnetfilter_queue_graph: dict[str, Any],
     libnetfilter_queue_task: ConanTask,
@@ -343,6 +353,71 @@ def test_result_parser_returns_none_on_missing_binary(
     result = Conan2ResultParser().parse(missing_json, conan_task)
 
     assert result is None
+
+
+@pytest.mark.business_logic
+def test_result_parser_malformed_target_ref_returns_empty_base_ref(
+    conan_task: ConanTask,
+) -> None:
+    """parse() перехватывает ConanException при разборе кривого поля 'ref' целевого узла
+    (RecipeReference.loads не распознаёт формат) и возвращает base_ref='', не падая."""
+    minimal_json: dict[str, Any] = {
+        "graph": {
+            "nodes": {
+                "0": {"ref": "conanfile", "name": None, "binary": None},
+                "1": {
+                    "ref": "name@only",  # заведомо некорректный формат ref
+                    "name": "patchelf",
+                    "binary": "Download",
+                    "package_id": "abc123",
+                    "rrev": "",
+                    "info": {},
+                },
+            }
+        }
+    }
+    result = Conan2ResultParser().parse(minimal_json, conan_task)
+
+    assert result is not None
+    assert result.base_ref == ""
+
+
+@pytest.mark.business_logic
+def test_result_parser_malformed_dependency_ref_is_skipped(
+    conan_task: ConanTask,
+) -> None:
+    """_extract_dependencies перехватывает ConanException для кривого 'ref' узла-зависимости
+    и пропускает эту зависимость, не прерывая сбор остальных."""
+    minimal_json: dict[str, Any] = {
+        "graph": {
+            "nodes": {
+                "0": {"ref": "conanfile", "name": None, "binary": None},
+                "1": {
+                    "ref": "patchelf/0.18.0@platform-2.0/tech",
+                    "name": "patchelf",
+                    "binary": "Download",
+                    "package_id": "abc123",
+                    "rrev": "r1",
+                    "info": {},
+                },
+                "2": {
+                    "ref": "name@only",  # кривой ref зависимости — должен быть пропущен
+                    "name": "broken-dep",
+                    "binary": "Download",
+                },
+                "3": {
+                    "ref": "goodlib/1.0@platform-2.0/tech",
+                    "name": "goodlib",
+                    "binary": "Download",
+                },
+            }
+        }
+    }
+    result = Conan2ResultParser().parse(minimal_json, conan_task)
+
+    assert result is not None
+    assert "goodlib" in result.dependencies
+    assert "broken-dep" not in result.dependencies
 
 
 @pytest.mark.business_logic
@@ -462,17 +537,6 @@ def apr_graph(resources_dir: Path) -> dict[str, Any]:
 
 
 @pytest.mark.business_logic
-def test_result_parser_apr_returns_enrich_data(
-    apr_graph: dict[str, Any],
-    apr_task: ConanTask,
-) -> None:
-    """parse() для apr/1.7.6 (fast, без deps) возвращает ConanEnrichData с корректным package_id."""
-    result = Conan2ResultParser().parse(apr_graph, apr_task)
-    assert result is not None
-    assert result.package_id == "7741115342fe6159bd16463d6d349e4c02e33237"
-
-
-@pytest.mark.business_logic
 def test_result_parser_apr_no_dependencies(
     apr_graph: dict[str, Any],
     apr_task: ConanTask,
@@ -556,9 +620,39 @@ def test_result_parser_stunnel_error_graph_returns_none(
     assert result is None
 
 
+@pytest.fixture
+def patch_files_graph(resources_dir: Path) -> dict[str, Any]:
+    """Содержимое graph_info_patch_files.json (patchelf с несколькими патчами в conandata)."""
+    return json.loads((resources_dir / "conan" / "graph_info_patch_files.json").read_text())
+
+
 @pytest.mark.business_logic
-def test_result_parser_extracts_patch_file_names(conan_task: ConanTask) -> None:
+def test_result_parser_extracts_patch_file_names(
+    patch_files_graph: dict[str, Any], conan_task: ConanTask
+) -> None:
     """_extract_patches собирает уникальные имена патч-файлов из всех ключей conandata.patches."""
+    result = Conan2ResultParser().parse(patch_files_graph, conan_task)
+
+    assert result is not None
+    assert result.patches == ["0001-fix.patch", "0002-extra.patch"]
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "conandata",
+    [
+        # patches — не словарь (например список) -> защитный guard возвращает []
+        pytest.param({"patches": ["not-a-dict"]}, id="patches-not-a-dict"),
+        # значение под ключом версии — не список (например строка) -> элемент пропускается
+        pytest.param({"patches": {"0.18.0": "not-a-list"}}, id="patch-entry-not-a-list"),
+    ],
+)
+def test_result_parser_extract_patches_guards_against_malformed_conandata(
+    conan_task: ConanTask, conandata: dict[str, Any]
+) -> None:
+    """_extract_patches защищается от неожиданной формы conandata.patches (не dict/не list
+    там, где Conan обычно кладёт словарь/списки) и возвращает пустой список патчей,
+    вместо того чтобы упасть с AttributeError/TypeError на кривых данных из реального ответа."""
     graph_json: dict[str, Any] = {
         "graph": {
             "nodes": {
@@ -569,17 +663,7 @@ def test_result_parser_extracts_patch_file_names(conan_task: ConanTask) -> None:
                     "rrev": "abc123",
                     "package_id": "deadbeef",
                     "info": {"settings": {"os": "Linux"}, "options": {}},
-                    "conandata": {
-                        "patches": {
-                            "0.18.0": [
-                                {"patch_file": "patches/0001-fix.patch"},
-                                {"patch_file": "patches/0002-extra.patch"},
-                            ],
-                            "all": [
-                                {"patch_file": "patches/0001-fix.patch"},
-                            ],
-                        }
-                    },
+                    "conandata": conandata,
                 },
             }
         }
@@ -587,7 +671,7 @@ def test_result_parser_extracts_patch_file_names(conan_task: ConanTask) -> None:
     result = Conan2ResultParser().parse(graph_json, conan_task)
 
     assert result is not None
-    assert result.patches == ["0001-fix.patch", "0002-extra.patch"]
+    assert result.patches == []
 
 
 @pytest.mark.business_logic
@@ -610,36 +694,3 @@ def test_result_parser_extract_build_date_returns_empty_on_malformed_timestamp()
     parser = Conan2ResultParser()
 
     assert parser._extract_build_date({"prev_timestamp": "not-a-number"}) == ""
-
-
-@pytest.mark.infrastructure
-def test_extract_ref_info_returns_empty_base_ref_on_malformed_conan_reference() -> None:
-    """_extract_ref_info перехватывает ConanException при разборе некорректного ref
-    (Conan graph info в принципе может отдать невалидную ссылку для повреждённого узла
-    графа) и возвращает пустой base_ref вместо падения, сохраняя fallback-версию."""
-    parser = Conan2ResultParser()
-    node = {"ref": "not a valid ref!!!", "rrev": "someref"}
-
-    base_ref, rrev, full_version = parser._extract_ref_info(node, fallback_version="1.2.3")
-
-    assert base_ref == ""
-    assert rrev == "someref"
-    assert full_version == "1.2.3"
-
-
-@pytest.mark.infrastructure
-def test_extract_dependencies_skips_node_with_malformed_ref() -> None:
-    """_extract_dependencies перехватывает ConanException для узла с некорректным ref
-    и пропускает его, не прерывая сбор остальных зависимостей."""
-    parser = Conan2ResultParser()
-    nodes = {
-        "0": {"name": "mylib", "ref": "mylib/1.0@user/channel"},
-        "1": {"name": "broken-dep", "ref": "not a valid ref!!!"},
-        "2": {"name": "good-dep", "ref": "good-dep/2.0@user/channel"},
-    }
-
-    deps = parser._extract_dependencies(nodes, comp_name="mylib")
-
-    assert deps == ["good-dep"]
-    assert "broken-dep" not in deps
-

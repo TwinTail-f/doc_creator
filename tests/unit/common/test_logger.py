@@ -8,10 +8,11 @@
 """
 
 import logging
+from pathlib import Path
 
 import pytest
 
-from autodoc.common.logger import logger, setup_logging
+from autodoc.common.logger import clear_logs_dir, logger, setup_logging
 
 _DEFAULT_NAME: str = "doc_parser"
 
@@ -74,4 +75,35 @@ def test_setup_logging_is_idempotent_for_same_name(_cleanup_logger) -> None:
 
     assert first_call is second_call
     assert len(second_call.handlers) == 1
+
+
+@pytest.mark.infrastructure
+def test_clear_logs_dir_deletes_log_files_and_returns_their_paths(tmp_path: Path) -> None:
+    """clear_logs_dir() удаляет все *.log файлы из существующей директории
+    и возвращает список фактически удалённых путей."""
+    log1 = tmp_path / "a.log"
+    log2 = tmp_path / "b.log"
+    other = tmp_path / "keep.txt"
+    log1.write_text("log a", encoding="utf-8")
+    log2.write_text("log b", encoding="utf-8")
+    other.write_text("not a log", encoding="utf-8")
+
+    deleted = clear_logs_dir(tmp_path)
+
+    assert set(deleted) == {log1, log2}
+    assert not log1.exists()
+    assert not log2.exists()
+    assert other.exists()  # файлы, не подпадающие под *.log, не трогаются
+
+
+@pytest.mark.infrastructure
+def test_clear_logs_dir_missing_directory_returns_empty_list(tmp_path: Path) -> None:
+    """clear_logs_dir() для несуществующей директории возвращает пустой список,
+    а не бросает исключение — вызывающий код может передавать директорию логов,
+    ещё не созданную setup_logging() при первом запуске."""
+    missing_dir = tmp_path / "does_not_exist"
+
+    deleted = clear_logs_dir(missing_dir)
+
+    assert deleted == []
 

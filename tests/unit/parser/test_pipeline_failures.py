@@ -19,21 +19,6 @@ _ERROR_MSG_FIRST: str = "first non-critical failure"
 _ERROR_MSG_SECOND: str = "second non-critical failure"
 
 
-@pytest.fixture()
-def parser_config() -> ParserConfigSchema:
-    """Минимально допустимая ParserConfigSchema для тестов сбоев пайплайна."""
-    return ParserConfigSchema(
-        platform_version="2.0",
-        platform_branch_name="develop",
-        platform_ref_type="branch",
-        username="testuser",
-        tfs_token="test-tfs-pat-token",
-        tfs_collection_url="https://tfs.example.com",
-        manifests_remotes_path="/platform/manifests",
-        conan_config_url="https://art.example.com/conan-config.zip",
-    )
-
-
 class _FailingNonCriticalStep(BaseParseStep):
     """Тестовый двойник: некритичный шаг, который всегда вызывает DocGeneratorError."""
 

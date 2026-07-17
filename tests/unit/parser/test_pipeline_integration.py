@@ -26,42 +26,20 @@ _MIN_COMPONENTS: int = 1
 _EMPTY_CONAN_RESULT = FetchResult(value=ConanEnrichmentResult(), warnings=[])
 
 
-@pytest.fixture()
-def parser_config() -> ParserConfigSchema:
-    """Минимально допустимая ParserConfigSchema для интеграционных тестов."""
-    return ParserConfigSchema(
-        platform_version="2.0",
-        platform_branch_name="develop",
-        platform_ref_type="branch",
-        username="testuser",
-        tfs_token="test-tfs-pat-token",
-        artifactory_token="test-art-token",
-        tfs_collection_url="https://tfs.example.com",
-        manifests_remotes_path="/platform/manifests",
-        conan_config_url="https://art.example.com/conan-config.zip",
-    )
-
-
-@pytest.fixture()
-def resources_dir() -> Path:
-    """Путь к реальным .properties фиксчурам манифестов, общим для модульных тестов."""
-    return Path(__file__).parent / "resources" / "manifests"
-
-
 def _make_parser_with_real_steps(
     config: ParserConfigSchema,
     data_dir: Path,
-    resources_dir: Path,
+    real_manifests_dir: Path,
 ) -> ComponentParser:
     """Построить ComponentParser, который использует реальные экземпляры шагов с заглушками ввода-вывода.
 
-    TFS клиент копирует реальные .properties файлы из resources_dir;
+    TFS клиент копирует реальные .properties файлы из real_manifests_dir;
     Artifactory всегда возвращает HTTP 200; ConanFetcher залатан для возврата
     результата без операций, чтобы подпроцесс не был запущен.
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 
-    tfs_client = CopyingAllFakeTFSClient(resources_dir)
+    tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     artifactory_client = _AlwaysOkArtifactoryClient()
 
     return ComponentParser(
@@ -75,7 +53,7 @@ def _make_parser_with_real_steps(
 @pytest.mark.integration
 def test_full_pipeline_runs_without_raising(
     parser_config: ParserConfigSchema,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
     """Полный пайплайн завершается без вызова исключений и выдаёт ParsedResult.
@@ -83,7 +61,7 @@ def test_full_pipeline_runs_without_raising(
     Подключает все реальные экземпляры шагов с заглушками внешнего ввода-вывода. Сбой здесь
     указывает на регрессию в проводке шагов, использовании ключей контекста или интерфейсе шага.
     """
-    parser = _make_parser_with_real_steps(parser_config, tmp_path, resources_dir)
+    parser = _make_parser_with_real_steps(parser_config, tmp_path, real_manifests_dir)
 
     with patch(
         "autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch",
@@ -98,7 +76,7 @@ def test_full_pipeline_runs_without_raising(
 @pytest.mark.integration
 def test_manifest_step_populates_ctx_components(
     parser_config: ParserConfigSchema,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
     """ManifestStep заполняет ctx.components непустым списком.
@@ -108,7 +86,7 @@ def test_manifest_step_populates_ctx_components(
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 
-    tfs_client = CopyingAllFakeTFSClient(resources_dir)
+    tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     ctx = PipelineContext(
         config=parser_config,
         tmp_dir=tmp_path / "tmp",
@@ -125,7 +103,7 @@ def test_manifest_step_populates_ctx_components(
 @pytest.mark.integration
 def test_finalize_step_output_length_matches_input(
     parser_config: ParserConfigSchema,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
     """Количество компонентов в ctx.result.components не превышает число входных компонентов.
@@ -133,7 +111,7 @@ def test_finalize_step_output_length_matches_input(
     Передаёт полный пайплайн с N компонентами. После завершения пайплайна
     компоненты могут быть отфильтрованы ValidationStep, но никогда искусственно добавлены.
     """
-    parser = _make_parser_with_real_steps(parser_config, tmp_path, resources_dir)
+    parser = _make_parser_with_real_steps(parser_config, tmp_path, real_manifests_dir)
 
     with patch(
         "autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch",
@@ -143,7 +121,7 @@ def test_finalize_step_output_length_matches_input(
 
     assert result is not None
     # Count components seen before finalization via the manifest resources.
-    n_manifest_files: int = len(list(resources_dir.glob("*.properties")))
+    n_manifest_files: int = len(list(real_manifests_dir.glob("*.properties")))
     assert (
         len(result.components) <= n_manifest_files
     ), "FinalizeStep must not create more components than ManifestStep parsed"
@@ -164,7 +142,7 @@ class _AlwaysOkArtifactoryClient:
 
 
 def _make_real_pipeline(
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> ComponentParser:
@@ -176,7 +154,7 @@ def _make_real_pipeline(
     """
     from tests.unit.parser.conftest import CopyingAllFakeTFSClient
 
-    tfs_client = CopyingAllFakeTFSClient(resources_dir)
+    tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     artifactory_client = _AlwaysOkArtifactoryClient()
 
     return ComponentParser(
@@ -191,7 +169,7 @@ def _make_real_pipeline(
 @pytest.mark.integration
 def test_pipeline_patchelf_has_two_releases_after_full_run(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -218,7 +196,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
         - Он имеет ровно 2 релиза.
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     result: ParsedResult = parser.parse()
 
@@ -233,7 +211,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
 @pytest.mark.integration
 def test_pipeline_header_only_component_marked_after_conan_enrich(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -299,7 +277,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
         return FetchResult(value=result, warnings=[])
 
     mock_conan_fetch.side_effect = _build_nlohmann_enrich
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     result: ParsedResult = parser.parse()
 
@@ -319,7 +297,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
 @pytest.mark.integration
 def test_pipeline_profile_builds_populated_after_manifest_step(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -360,7 +338,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
                     for pb in release.profile_builds:
                         observed_states.append((comp.name, pb.exists, len(pb.variants)))
 
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
     parser._steps.insert(1, _ObserveAfterManifest())
 
     parser.parse()
@@ -381,7 +359,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
 @pytest.mark.integration
 def test_pipeline_options_applied_after_options_step(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -427,7 +405,7 @@ def test_pipeline_options_applied_after_options_step(
                     key = (comp.name, release.version, release.channel)
                     options_by_release[key] = len(release.build_option_sets)
 
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
     # Вставить observer сразу после OptionsResolveStep (индекс 2 в стандартном пайплайне)
     parser._steps.insert(2, _ObserveAfterOptions())
 
@@ -443,7 +421,7 @@ def test_pipeline_options_applied_after_options_step(
 @pytest.mark.integration
 def test_pipeline_result_components_sorted_alphabetically(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -466,7 +444,7 @@ def test_pipeline_result_components_sorted_alphabetically(
         - ``names`` равна ``sorted(names, key=str.lower)``.
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     result: ParsedResult = parser.parse()
 
@@ -483,7 +461,7 @@ def test_pipeline_result_components_sorted_alphabetically(
 @pytest.mark.integration
 def test_pipeline_non_existing_profiles_removed_after_finalize(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -509,7 +487,7 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
         или ноль релизов — это также валидно.)
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     result: ParsedResult = parser.parse()
 
@@ -555,7 +533,7 @@ def test_full_pipeline_raises_parsing_error_when_no_manifests_found(
 @pytest.mark.integration
 def test_full_pipeline_save_intermediate_writes_real_files(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -567,7 +545,7 @@ def test_full_pipeline_save_intermediate_writes_real_files(
     состоит из настоящих production-шагов.
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
-    parser = _make_real_pipeline(resources_dir, tmp_path, parser_config)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     parser.parse(save_intermediate=True)
 
@@ -583,7 +561,7 @@ def test_full_pipeline_save_intermediate_writes_real_files(
 @pytest.mark.integration
 def test_full_pipeline_removes_dead_variant_on_404(
     mock_conan_fetch,
-    resources_dir: Path,
+    real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
@@ -643,7 +621,7 @@ def test_full_pipeline_removes_dead_variant_on_404(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        tfs_client=CopyingAllFakeTFSClient(resources_dir),
+        tfs_client=CopyingAllFakeTFSClient(real_manifests_dir),
         artifactory_client=_NotFoundForDeadUrlArtifactoryClient(),
     )
 

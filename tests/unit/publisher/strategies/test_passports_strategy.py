@@ -132,7 +132,14 @@ def test_passports_strategy_execute_saves_registry_after_publish(
     tmp_path: Path,
     mocker: Any,
 ) -> None:
-    """После execute() файл passport_pages.json существует в data_dir."""
+    """После execute() файл passport_pages.json существует в data_dir.
+
+    Более строгая проверка семантики save() (вызван ровно один раз, после
+    публикации всех страниц) — в test_registry_saved_after_all_pages_published
+    (BL-PS-02). Этот тест не является его дубликатом: он собирает стратегию
+    через хелпер make_passports_strategy, тогда как BL-PS-02 — через прямой
+    конструктор PassportsStrategy(...), поэтому оба сохранены.
+    """
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
@@ -660,11 +667,7 @@ def test_legacy_content_extracted_before_overwrite(
     mocker.patch.object(
         PassportConverter,
         "convert",
-        return_value={
-            "platform_version": "2.0",
-            "component": {"name": "openssl"},
-            "release": {"version": "1.0.0"},
-        },
+        return_value={k: v for k, v in _STUB_TRANSFORM_RESULT.items() if k != "legacy_contents"},
     )
 
     captured_view_models: list[dict] = []
