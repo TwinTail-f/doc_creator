@@ -1,18 +1,20 @@
 """Модульные тесты для autodoc/common/logger.py.
 
-Тестируем только собственный код модуля (выбор имени логгера по умолчанию,
-поддержку кастомного имени, очистку директории логов) — не поведение самого
-``logging``, которое уже протестировано в стандартной библиотеке.
+Тестируем только собственный код модуля: единственную условную логику
+setup_logging (``if not log.handlers: ...`` — настройка происходит один раз
+и не дублируется при повторном вызове) и отдельную функцию clear_logs_dir.
+Явно НЕ тестируем то, что переданное имя логгера долетает до
+``logging.Logger.name`` — это поведение самого ``logging.getLogger``,
+а не код проекта.
 """
 
-import logging
 from pathlib import Path
+
+import logging
 
 import pytest
 
-from autodoc.common.logger import clear_logs_dir, logger, setup_logging
-
-_DEFAULT_NAME: str = "doc_parser"
+from autodoc.common.logger import clear_logs_dir, setup_logging
 
 
 @pytest.fixture
@@ -30,30 +32,26 @@ def _isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.infrastructure
-def test_module_level_logger_uses_default_name() -> None:
-    """Модуль экспортирует готовый синглтон ``logger`` с именем 'doc_parser' —
-    именно этот логгер импортируется во всех остальных модулях проекта."""
-    assert logger.name == _DEFAULT_NAME
-
-
-@pytest.mark.infrastructure
-def test_setup_logging_without_argument_defaults_to_doc_parser(
+def test_setup_logging_configures_console_handler_only_once(
     _isolated_logger_registry: None,
 ) -> None:
-    """Вызов setup_logging() без аргумента настраивает логгер с именем 'doc_parser'."""
-    log = setup_logging()
+    """setup_logging() навешивает ровно один консольный обработчик уровня
+    INFO на логгер уровня DEBUG при первом вызове; повторный вызов для того
+    же имени не добавляет второй обработчик.
 
-    assert log.name == _DEFAULT_NAME
+    Это единственная содержательная ветка в модуле (``if not log.handlers``),
+    которую стоит тестировать: без неё каждая запись лога дублировалась бы в
+    выводе при повторной настройке того же логгера.
+    """
+    log = setup_logging("autodoc.handler-guard.test")
 
+    assert log.level == logging.DEBUG
+    assert len(log.handlers) == 1
+    assert log.handlers[0].level == logging.INFO
 
-@pytest.mark.infrastructure
-def test_setup_logging_honors_custom_logger_name(_isolated_logger_registry: None) -> None:
-    """setup_logging(logger_name=...) — официальный способ получить именованный
-    логгер под другим именем (например, для отдельного подпроцесса или инструмента);
-    имя результата должно совпадать с переданным, а не с именем по умолчанию."""
-    log = setup_logging("autodoc.custom.tool")
+    setup_logging("autodoc.handler-guard.test")
 
-    assert log.name == "autodoc.custom.tool"
+    assert len(log.handlers) == 1
 
 
 @pytest.mark.infrastructure
