@@ -13,12 +13,6 @@ from pydantic import ValidationError
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 
-# valid_confluence_config / valid_parser_config — фикстуры из корневого
-# tests/conftest.py, читающие tests/unit/config/resources/*.json. Локальные
-# копии этих словарей здесь не заводим, чтобы не разъезжаться с каноническим
-# источником при изменении обязательных полей схем.
-
-
 @pytest.mark.contract
 @pytest.mark.parametrize(
     "empty_url",

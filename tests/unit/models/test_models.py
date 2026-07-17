@@ -2,9 +2,6 @@
 
 Охватывает: _parse_option_str, ConanInputOptions, ProfileBuild, Release, Component.
 """
-
-from __future__ import annotations
-
 from typing import Any
 
 import pytest

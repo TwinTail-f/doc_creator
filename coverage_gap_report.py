@@ -23,7 +23,7 @@
        ничего дополнительно искать по репозиторию.
 """
 
-from __future__ import annotations
+
 
 import argparse
 import ast

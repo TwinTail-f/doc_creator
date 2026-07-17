@@ -8,9 +8,6 @@
 - Возвращаемое значение — это ID из второго вызова.
 - Оба вызова получают корректный ключ space.
 """
-
-from __future__ import annotations
-
 import pytest
 
 from autodoc.exceptions import ConfluenceError

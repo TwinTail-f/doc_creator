@@ -18,9 +18,6 @@
 - inject_links_for_profiles() ничего не делает, если у view_model отсутствует ключ 'profiles'.
 - inject_links_for_profiles() ничего не делает, если passport_pages пуст.
 """
-
-from __future__ import annotations
-
 import json
 from pathlib import Path
 from typing import Any

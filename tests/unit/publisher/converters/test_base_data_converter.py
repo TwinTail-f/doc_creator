@@ -1,7 +1,4 @@
 """Тесты для статических методов BaseDataConverter и PassportLinkMixin."""
-
-from __future__ import annotations
-
 import pytest
 
 from autodoc.models.conan_variant import ConanVariant

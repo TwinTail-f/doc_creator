@@ -1,7 +1,4 @@
 """Юнит-тесты для FullReleaseConverter."""
-
-from __future__ import annotations
-
 import pytest
 
 from autodoc.models.conan_variant import ProfileBuild

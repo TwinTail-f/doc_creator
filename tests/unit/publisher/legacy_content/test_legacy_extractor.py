@@ -7,9 +7,6 @@
 - extract_platform_versions() пропускает вкладки без извлекаемого содержимого.
 - extract_platform_versions() убирает дубликаты вкладок с одинаковыми именами.
 """
-
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest

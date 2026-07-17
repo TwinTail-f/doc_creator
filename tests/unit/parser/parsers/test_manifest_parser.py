@@ -1,6 +1,6 @@
 """Юнит-тесты для autodoc.parser.parsers.manifest_parser.ManifestParser."""
 
-from __future__ import annotations
+
 
 from pathlib import Path
 

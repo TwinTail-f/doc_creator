@@ -4,7 +4,7 @@
 Все тесты работают с in-memory словарями — ввод/вывод не требуется.
 """
 
-from __future__ import annotations
+
 import pytest
 
 from autodoc.parser.parsers.docker_parser import DockerParser, DockerLinksMap

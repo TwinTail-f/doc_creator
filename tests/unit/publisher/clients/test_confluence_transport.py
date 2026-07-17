@@ -9,9 +9,6 @@
   ConfluenceTransport выполнялась по-настоящему и была объектом тестирования.
 - Фикстура minimal_confluence_config приходит из tests/unit/publisher/conftest.py.
 """
-
-from __future__ import annotations
-
 import json
 from typing import Any
 

@@ -2,9 +2,6 @@
 Специфичные для паблишера фикстуры и заглушки.
 Не трогать агенту Parser.
 """
-
-from __future__ import annotations
-
 import threading
 from typing import Any
 

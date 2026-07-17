@@ -6,9 +6,6 @@
 - PassportPageRegistry.load() мокается, когда include_passport_links=True.
 - FakeConfluenceClient / FakeDocumentBuilder обеспечивают детерминированный ввод-вывод.
 """
-
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 

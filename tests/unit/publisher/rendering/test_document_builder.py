@@ -1,7 +1,4 @@
 """Юнит-тесты для autodoc.publisher.rendering.document_builder.DocumentBuilder."""
-
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 

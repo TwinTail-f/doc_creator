@@ -5,8 +5,6 @@
 реальным содержимым options JSON из resources/options/.
 Реальные сетевые вызовы не выполняются.
 """
-
-from __future__ import annotations
 import pytest
 
 from pathlib import Path

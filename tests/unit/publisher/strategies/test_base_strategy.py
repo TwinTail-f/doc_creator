@@ -8,9 +8,6 @@
 кодовая база с тех пор перешла на явный реестр на основе словаря
 (autodoc.publisher.strategies.registry.STRATEGIES / create_strategy()).
 """
-
-from __future__ import annotations
-
 from typing import Any
 
 import pytest

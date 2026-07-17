@@ -7,9 +7,6 @@
 - Возвращает {} если присутствует только секция текущей платформы.
 - Корректно работает с legacy-форматом заголовков h1.
 """
-
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest

@@ -4,7 +4,7 @@
 Реальные JSON файлы опций загружаются из директории фиксчур resources/options/.
 """
 
-from __future__ import annotations
+
 
 from pathlib import Path
 

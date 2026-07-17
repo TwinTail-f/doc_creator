@@ -3,9 +3,6 @@
 Приоритет источников и name/id внутри источника — в _resolve_root_parent;
 таблица сценариев — TestNameIdPriorityMatrix, кросс-source кейсы — TestResolveRequiredParent.
 """
-
-from __future__ import annotations
-
 import logging
 from typing import Any
 

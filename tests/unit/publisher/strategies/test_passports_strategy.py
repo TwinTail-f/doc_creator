@@ -8,9 +8,6 @@
 - execute() — единственная публичная точка входа, покрываемая тестами
   (без _try_publish_item/_publish_one напрямую).
 """
-
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 
