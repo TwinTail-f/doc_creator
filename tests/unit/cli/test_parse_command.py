@@ -1,5 +1,4 @@
-"""Тесты для autodoc/cli/commands/parse.py.
-"""
+"""Тесты для autodoc/cli/commands/parse.py."""
 
 from pathlib import Path
 
@@ -80,9 +79,12 @@ def test_parse_skip_conan_excludes_conan_enrich_step(
     result = CliRunner().invoke(
         cli,
         [
-            "--base-dir", str(tmp_path),
-            "--configs-dir", str(configs_dir),
-            "parse", "--skip-conan",
+            "--base-dir",
+            str(tmp_path),
+            "--configs-dir",
+            str(configs_dir),
+            "parse",
+            "--skip-conan",
         ],
     )
 
@@ -107,9 +109,12 @@ def test_parse_skip_validation_excludes_artifactory_validation_step(
     result = CliRunner().invoke(
         cli,
         [
-            "--base-dir", str(tmp_path),
-            "--configs-dir", str(configs_dir),
-            "parse", "--skip-validation",
+            "--base-dir",
+            str(tmp_path),
+            "--configs-dir",
+            str(configs_dir),
+            "parse",
+            "--skip-validation",
         ],
     )
 
@@ -134,9 +139,13 @@ def test_parse_both_skip_flags_exclude_both_step_classes(
     result = CliRunner().invoke(
         cli,
         [
-            "--base-dir", str(tmp_path),
-            "--configs-dir", str(configs_dir),
-            "parse", "--skip-conan", "--skip-validation",
+            "--base-dir",
+            str(tmp_path),
+            "--configs-dir",
+            str(configs_dir),
+            "parse",
+            "--skip-conan",
+            "--skip-validation",
         ],
     )
 
@@ -220,9 +229,7 @@ def test_parse_save_intermediate_is_forwarded_to_parser(
 
 
 @pytest.mark.business_logic
-def test_parse_creates_data_dir_when_missing(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
+def test_parse_creates_data_dir_when_missing(tmp_path: Path, configs_dir: Path, mocker) -> None:
     """Директория data/ создаётся автоматически, даже если её не было до запуска команды."""
     write_parser_config(configs_dir)
     parsed_result = make_parsed_result()

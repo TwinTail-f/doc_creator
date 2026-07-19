@@ -14,7 +14,6 @@ import yaml
 
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
-
 _SINGLE_OVERRIDE: dict = {
     "overrides": [
         {
@@ -66,7 +65,8 @@ def _write_yaml(tmp_path: Path, content: dict) -> Path:
     ],
 )
 def test_profile_overrides_from_file_loads_correctly(
-    tmp_path: Path, write_fixture: Callable[[Path, dict], Path],
+    tmp_path: Path,
+    write_fixture: Callable[[Path, dict], Path],
 ) -> None:
     """from_file() с корректным JSON- или YAML-файлом правильно разрешает точное имя профиля."""
     path = write_fixture(tmp_path, _SINGLE_OVERRIDE)

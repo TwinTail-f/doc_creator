@@ -36,7 +36,9 @@ class ConfluenceClient:
         self._space: str = config.space
         self._title_conflict_policy: Literal["error", "move"] = config.title_conflict_policy
         self._transport: ConfluenceTransport = ConfluenceTransport(config)
-        logger.debug(f"Инициализирован (space={self._space}, title_conflict_policy={self._title_conflict_policy})")
+        logger.debug(
+            f"Инициализирован (space={self._space}, title_conflict_policy={self._title_conflict_policy})"
+        )
 
     def find_page(
         self,
@@ -265,7 +267,9 @@ class ConfluenceClient:
             ConfluenceError: Если ``title_conflict_policy == "error"``, либо перенос не удался.
         """
         if self._title_conflict_policy == "error":
-            parent_hint = existing_elsewhere.ancestor_ids[-1] if existing_elsewhere.ancestor_ids else "?"
+            parent_hint = (
+                existing_elsewhere.ancestor_ids[-1] if existing_elsewhere.ancestor_ids else "?"
+            )
             raise ConfluenceError(
                 f"Страница {title!r} уже существует в Space {self._space!r} "
                 f"(ID={existing_elsewhere.id}, текущий родитель={parent_hint}), "
@@ -274,7 +278,9 @@ class ConfluenceClient:
             )
 
         if body_html is None:
-            existing_elsewhere = self.get_page(existing_elsewhere.id, expand=EXPAND_VERSION_BODY_ANCESTORS)
+            existing_elsewhere = self.get_page(
+                existing_elsewhere.id, expand=EXPAND_VERSION_BODY_ANCESTORS
+            )
             body_html = existing_elsewhere.body_html
 
         logger.warning(

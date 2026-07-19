@@ -220,9 +220,7 @@ def test_task_builder_exact_range_components_forces_exact_range_for_numeric_vers
     release = make_release(version="3.34.1")
     comp = make_component(name="mylib", releases=[release])
 
-    tasks = ConanTaskBuilder().build(
-        [comp], PLATFORM, ART_URL, exact_range_components=["mylib"]
-    )
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL, exact_range_components=["mylib"])
 
     requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
     assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
@@ -238,9 +236,7 @@ def test_task_builder_exact_range_increments_only_last_segment_of_multi_segment_
     release = make_release(version="20.11.10")
     comp = make_component(name="mylib", releases=[release])
 
-    tasks = ConanTaskBuilder().build(
-        [comp], PLATFORM, ART_URL, exact_range_components=["mylib"]
-    )
+    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL, exact_range_components=["mylib"])
 
     requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
     assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"

@@ -1,6 +1,7 @@
 """
 Специфичные для паблишера фикстуры и заглушки.
 """
+
 import threading
 from typing import Any
 

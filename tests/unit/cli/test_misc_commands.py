@@ -1,5 +1,4 @@
-"""Тесты для autodoc/cli/commands/info.py и autodoc/cli/commands/logs.py.
-"""
+"""Тесты для autodoc/cli/commands/info.py и autodoc/cli/commands/logs.py."""
 
 from pathlib import Path
 

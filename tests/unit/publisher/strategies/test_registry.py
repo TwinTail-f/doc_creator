@@ -5,6 +5,7 @@
 - create_strategy()/available_strategies() проверяются напрямую, без моков —
   реестр представляет собой чистое сопоставление строк классам стратегий.
 """
+
 from pathlib import Path
 
 import pytest

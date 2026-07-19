@@ -75,7 +75,9 @@ def test_macros_template_renders_without_error(
 
     assert output.strip(), "Отрендеренный вывод release_doc.jinja2 пуст"
     assert "autodoc-os-badge" in output, "В выводе не найден результат работы макроса os_style()"
-    assert "autodoc-italic-note" in output, "В выводе не найден результат работы макроса docker_note()"
+    assert (
+        "autodoc-italic-note" in output
+    ), "В выводе не найден результат работы макроса docker_note()"
 
 
 @pytest.mark.infrastructure
@@ -157,8 +159,12 @@ def test_release_doc_template_renders_full_release_converter_output_with_real_re
     release = comp.releases[0]
     assert output.strip(), "Отрендеренный вывод release_doc.jinja2 пуст"
     assert comp.name in output, "Имя компонента из реальных данных релиза не найдено в выводе"
-    assert release.conan_reference in output, "Conan-референс из реальных данных релиза не найден в выводе"
-    assert "autodoc-os-badge" in output, "Путь пер-профильного рендеринга (os_style) не был задействован"
+    assert (
+        release.conan_reference in output
+    ), "Conan-референс из реальных данных релиза не найден в выводе"
+    assert (
+        "autodoc-os-badge" in output
+    ), "Путь пер-профильного рендеринга (os_style) не был задействован"
 
 
 @pytest.mark.integration

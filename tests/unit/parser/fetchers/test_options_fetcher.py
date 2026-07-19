@@ -1,6 +1,7 @@
 """
 Юнит-тесты для autodoc/parser/fetchers/options_fetcher.py.
 """
+
 from pathlib import Path
 
 import pytest
@@ -81,20 +82,40 @@ def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path)
     "comp_name, repo, version, channel, tfs_path, options_file",
     [
         pytest.param(
-            "apr", "contrib_apr", "1.7.6", "fast",
-            "/conan/ci-1.6/options.json", "apr_options.json", id="apr",
+            "apr",
+            "contrib_apr",
+            "1.7.6",
+            "fast",
+            "/conan/ci-1.6/options.json",
+            "apr_options.json",
+            id="apr",
         ),
         pytest.param(
-            "sqlite3", "contrib_sqlite3", "3.51.2", "fast",
-            "/conan/ci-2.0/fast/options.json", "sqlite3_fast_options.json", id="sqlite3",
+            "sqlite3",
+            "contrib_sqlite3",
+            "3.51.2",
+            "fast",
+            "/conan/ci-2.0/fast/options.json",
+            "sqlite3_fast_options.json",
+            id="sqlite3",
         ),
         pytest.param(
-            "nlohmann_json", "contrib_nlohmann_json", "3.9.1", "slow",
-            "/conan/ci-2.0/options.json", "nlohmann_json_options.json", id="nlohmann_json",
+            "nlohmann_json",
+            "contrib_nlohmann_json",
+            "3.9.1",
+            "slow",
+            "/conan/ci-2.0/options.json",
+            "nlohmann_json_options.json",
+            id="nlohmann_json",
         ),
         pytest.param(
-            "icu", "contrib_icu", "78.2", "fast",
-            "/conan/ci-1.6/fast/options.json", "icu_fast_options.json", id="icu",
+            "icu",
+            "contrib_icu",
+            "78.2",
+            "fast",
+            "/conan/ci-1.6/fast/options.json",
+            "icu_fast_options.json",
+            id="icu",
         ),
     ],
 )
@@ -383,11 +404,17 @@ class _NotFoundFakeTFSClient(FakeTFSClient):
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
     "make_client",
-    [_RaisingOnGetItemsFakeTFSClient, _RaisingOnGetFileContentFakeTFSClient, _NotFoundFakeTFSClient],
+    [
+        _RaisingOnGetItemsFakeTFSClient,
+        _RaisingOnGetFileContentFakeTFSClient,
+        _NotFoundFakeTFSClient,
+    ],
     ids=["get_items-network-error", "get_file_content-network-error", "get_file_content-404"],
 )
 def test_options_fetcher_failure_modes_return_placeholder(
-    make_client, parser_config: ParserConfigSchema, tmp_path: Path,
+    make_client,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """При любой ошибке доступа к TFS (сеть на get_items, сеть на
     get_file_content, 404 на get_file_content) OptionsFetcher возвращает

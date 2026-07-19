@@ -114,8 +114,7 @@ def test_parallel_executor_max_workers_one_is_sequential() -> None:
 def test_parallel_executor_empty_task_list_returns_empty_without_spawning_threads(
     mocker: MockerFixture,
 ) -> None:
-    """execute([]) возвращает [] немедленно, не создавая ThreadPoolExecutor.
-    """
+    """execute([]) возвращает [] немедленно, не создавая ThreadPoolExecutor."""
     pool_spy = mocker.patch("autodoc.common.parallel_executor.ThreadPoolExecutor")
     executor = ParallelExecutor(max_workers=_MAX_WORKERS_PARALLEL)
 
@@ -133,7 +132,9 @@ def test_parallel_executor_empty_task_list_returns_empty_without_spawning_thread
         pytest.param({"batch_size": -1}, 0, 0.0, "batch_size", id="negative-batch-size"),
         # отрицательный batch_delay откатывается на дефолт 0.0 (пауза между пакетами отключена);
         # batch_size задан отдельно, чтобы задержка вообще была применима
-        pytest.param({"batch_size": 1, "batch_delay": -0.5}, 1, 0.0, "batch_delay", id="negative-batch-delay"),
+        pytest.param(
+            {"batch_size": 1, "batch_delay": -0.5}, 1, 0.0, "batch_delay", id="negative-batch-delay"
+        ),
     ],
 )
 def test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_default(
@@ -160,13 +161,12 @@ def test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_defa
     assert results == list(range(_TASK_COUNT))
 
 
-
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
     "batch_size, expect_batches_called, expected_sleep_calls",
     [
-        # batch_size=0 (граница, а не отрицательное значение, должен полностью 
-        # обходить пакетную ветку: _execute_in_batches не вызывается, пауз 
+        # batch_size=0 (граница, а не отрицательное значение, должен полностью
+        # обходить пакетную ветку: _execute_in_batches не вызывается, пауз
         # между "пакетами" нет.
         pytest.param(0, False, 0, id="batch-size-0-skips-batching-entirely"),
         # batch_size=1 - не то же самое, что отключённый батчинг. задачи всё

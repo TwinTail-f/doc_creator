@@ -1,6 +1,7 @@
 """
 Тесты для autodoc.publisher.clients.confluence_client.ConfluenceClient.
 """
+
 from typing import Any
 
 import pytest
@@ -34,8 +35,8 @@ def confluence_client(minimal_confluence_config: dict, mocker: Any) -> Confluenc
 def confluence_client_move_policy(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
     """ConfluenceClient, настроенный с title_conflict_policy='move' через публичный конфиг.
 
-    Собирает его через ConfluenceConfigSchema, а не прямой подменой приватного 
-    атрибута _title_conflict_policy, чтобы тест проверял реальный путь, управляемый 
+    Собирает его через ConfluenceConfigSchema, а не прямой подменой приватного
+    атрибута _title_conflict_policy, чтобы тест проверял реальный путь, управляемый
     конфигурацией.
     """
     cfg = dict(minimal_confluence_config)
@@ -180,9 +181,7 @@ class TestPublishPage:
         self, confluence_client: ConfluenceClient
     ) -> None:
         """publish_page поднимает PublishError, если транспорт сообщил об HTTP-ошибке."""
-        confluence_client._mock_transport.search_content.side_effect = ConfluenceError(
-            "HTTP 403"
-        )
+        confluence_client._mock_transport.search_content.side_effect = ConfluenceError("HTTP 403")
         with pytest.raises(PublishError):
             confluence_client.publish_page(
                 space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY

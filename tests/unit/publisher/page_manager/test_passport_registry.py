@@ -10,6 +10,7 @@
 - load() возвращает {} при некорректном JSON.
 - load() возвращает {} при OSError из read_text.
 """
+
 import json
 from pathlib import Path
 from typing import Any
@@ -138,4 +139,3 @@ def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     loaded = registry.load()
 
     assert loaded == pages_map
-

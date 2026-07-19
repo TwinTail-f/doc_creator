@@ -165,7 +165,8 @@ def _real_nlohmann_json_component() -> Component:
     ids=["synthetic", "nlohmann_json"],
 )
 def test_finalize_step_sets_header_only_true(
-    parser_pipeline_context, component_factory,
+    parser_pipeline_context,
+    component_factory,
 ) -> None:
     """Если у всех вариантов профиля package_id нулевой (header-only признак),
     FinalizeStep выставляет is_header_only=True — как на синтетических
@@ -203,7 +204,8 @@ def _three_profiles_one_missing() -> Release:
     ids=["two-profiles", "three-profiles"],
 )
 def test_finalize_step_removes_non_existing_profiles(
-    parser_pipeline_context, release_factory,
+    parser_pipeline_context,
+    release_factory,
 ) -> None:
     """ProfileBuild с exists=False удаляется из итогового результата,
     ProfileBuild с exists=True остаётся — независимо от общего числа
@@ -513,7 +515,8 @@ def test_header_only_null_package_id_exact_sha1_value(
     ],
 )
 def test_header_only_without_evidence_is_false(
-    parser_pipeline_context, profile_builds: list[ProfileBuild],
+    parser_pipeline_context,
+    profile_builds: list[ProfileBuild],
 ) -> None:
     """Без вариантов, доказывающих header-only (нет профилей вовсе, либо
     профиль есть, но у него пустой variants), итоговый флаг остаётся

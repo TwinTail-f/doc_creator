@@ -8,6 +8,7 @@
 - Возвращаемое значение — это ID из второго вызова.
 - Оба вызова получают корректный ключ space.
 """
+
 import pytest
 
 from autodoc.exceptions import ConfluenceError
@@ -150,9 +151,9 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     result = manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
 
     assert result == VERSION_PAGE_ID, "Должен быть возвращён ID уже существующей страницы версии"
-    assert _create_calls(publisher_confluence_client) == [], (
-        "create_page не должен вызываться, если страница уже разрешена через resolve_existing_page_id"
-    )
+    assert (
+        _create_calls(publisher_confluence_client) == []
+    ), "create_page не должен вызываться, если страница уже разрешена через resolve_existing_page_id"
 
 
 @pytest.mark.business_logic

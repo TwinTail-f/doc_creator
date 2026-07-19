@@ -128,6 +128,7 @@ def test_finalize_step_output_length_matches_input(
         len(result.components) <= n_manifest_files
     ), "FinalizeStep не должен создавать больше компонентов, чем распарсил ManifestStep"
 
+
 _HTTP_OK_E2E: int = 200
 
 
@@ -336,9 +337,9 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
         len(observed_states) > 0
     ), "ManifestStep должен создать скелеты ProfileBuild до запуска наблюдателя"
     for comp_name, exists, variant_count in observed_states:
-        assert exists is False, (
-            f"После ManifestStep pb.exists должен быть False; получено True для {comp_name}"
-        )
+        assert (
+            exists is False
+        ), f"После ManifestStep pb.exists должен быть False; получено True для {comp_name}"
         assert variant_count == 0, (
             f"После ManifestStep pb.variants должен быть []; "
             f"получено {variant_count} для {comp_name}"
@@ -605,12 +606,8 @@ def test_full_pipeline_removes_dead_variant_on_404(
     assert patchelf is not None, "patchelf должен пережить финализацию"
 
     all_variants = [
-        v
-        for release in patchelf.releases
-        for pb in release.profile_builds
-        for v in pb.variants
+        v for release in patchelf.releases for pb in release.profile_builds for v in pb.variants
     ]
     assert all(v.build_url != _DEAD_URL for v in all_variants), (
-        "Вариант с build_url, вернувшим HTTP 404, должен быть удалён "
-        "ArtifactoryValidationStep"
+        "Вариант с build_url, вернувшим HTTP 404, должен быть удалён " "ArtifactoryValidationStep"
     )

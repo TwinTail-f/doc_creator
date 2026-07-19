@@ -167,7 +167,9 @@ def test_docker_fetcher_skips_url_without_git_segment(
     tmp_path: Path,
 ) -> None:
     """DockerFetcher молча пропускает URL, не содержащий сегмент /_git/."""
-    url_without_git: str = "https://tfs.example.com/DEP_Components/profiles.yaml?path=/profiles.yaml"
+    url_without_git: str = (
+        "https://tfs.example.com/DEP_Components/profiles.yaml?path=/profiles.yaml"
+    )
     tfs_client = _TrackingFakeTFSClient(content=YAML_CONTENT.encode())
     ctx = _make_context(parser_config, tfs_client, tmp_path)
     fetcher = DockerFetcher()

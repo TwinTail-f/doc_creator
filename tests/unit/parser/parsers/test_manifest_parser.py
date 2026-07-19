@@ -1,7 +1,5 @@
 """Юнит-тесты для autodoc.parser.parsers.manifest_parser.ManifestParser."""
 
-
-
 from pathlib import Path
 
 import pytest
@@ -55,13 +53,9 @@ def test_parser_returns_correct_component_count(
         # apr — 1 релиз, канал fast
         pytest.param("apr.properties", {("1.7.6", "fast")}, id="apr"),
         # sqlite3 — 2 релиза, разные каналы fast/slow
-        pytest.param(
-            "sqlite3.properties", {("3.51.2", "fast"), ("3.34.1", "slow")}, id="sqlite3"
-        ),
+        pytest.param("sqlite3.properties", {("3.51.2", "fast"), ("3.34.1", "slow")}, id="sqlite3"),
         # libnetfilter_queue — 1 релиз для платформы 2.0, канал slow
-        pytest.param(
-            "libnetfilter_queue.properties", {("1.0.5", "slow")}, id="libnetfilter_queue"
-        ),
+        pytest.param("libnetfilter_queue.properties", {("1.0.5", "slow")}, id="libnetfilter_queue"),
     ],
 )
 def test_parser_release_version_channel_pairs(
@@ -218,7 +212,9 @@ _MANIFEST_PLATFORM_MISMATCH = (
     "profiles-1.0-1.0-tech= hw-linux-x86_64-gcc10_2\n"
 )
 
-_MANIFEST_NO_PROFILES_KEY = "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
+_MANIFEST_NO_PROFILES_KEY = (
+    "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
+)
 
 
 @pytest.mark.business_logic
@@ -236,7 +232,9 @@ _MANIFEST_NO_PROFILES_KEY = "name= libfoo\n" "versions.component= 1.0\n" "versio
     ],
 )
 def test_manifest_parser_invalid_input_yields_no_components(
-    tmp_path: Path, content: str | None, expected_warnings_count: int,
+    tmp_path: Path,
+    content: str | None,
+    expected_warnings_count: int,
 ) -> None:
     """При некорректном, неполном или отсутствующем манифесте parse() не
     создаёт компонент; причина неполноты варьируется по кейсам."""

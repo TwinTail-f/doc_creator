@@ -3,6 +3,7 @@
 - autodoc.publisher.strategies.base.BasePublishStrategy (_minify_html, _publish_single_page)
 - autodoc.publisher.strategies.base.PublishReport
 """
+
 from typing import Any
 
 import pytest
@@ -65,7 +66,9 @@ def test_minify_html_empty_string_returns_empty() -> None:
 @pytest.mark.infrastructure
 def test_minify_html_preserves_cdata_content_untouched() -> None:
     """Содержимое блоков CDATA (например, тела макросов Confluence) не изменяется минификацией."""
-    html = '<ac:parameter><![CDATA[  raw   <b>markup</b>  <!-- not a comment -->  ]]></ac:parameter>'
+    html = (
+        "<ac:parameter><![CDATA[  raw   <b>markup</b>  <!-- not a comment -->  ]]></ac:parameter>"
+    )
     result = BasePublishStrategy._minify_html(html)
     assert "<![CDATA[  raw   <b>markup</b>  <!-- not a comment -->  ]]>" in result
 
@@ -204,9 +207,7 @@ def test_publish_single_page_calls_client_publish_page(
         transform_fn=lambda: {"key": "val"},
         parent_id=_PARENT_ID,
     )
-    publish_calls = [
-        c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
-    ]
+    publish_calls = [c for c in publisher_confluence_client.calls if c["method"] == "publish_page"]
     assert len(publish_calls) == 1
     assert publish_calls[0]["title"] == _PAGE_TITLE
 

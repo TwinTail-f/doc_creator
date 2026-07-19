@@ -70,7 +70,9 @@ class DockerFetcher(BaseTFSFetcher[DockerLinksMap]):
             query = parse_qs(parsed.query)
             yaml_path = query.get("path", [""])[0]
             branch_raw = query.get("version", [""])[0]
-            branch = branch_raw.removeprefix(_TFS_BRANCH_REF_PREFIX) if branch_raw else target_platform
+            branch = (
+                branch_raw.removeprefix(_TFS_BRANCH_REF_PREFIX) if branch_raw else target_platform
+            )
 
             items_url = f"{base_api_url}/_apis/git/repositories/{repo}/items"
 

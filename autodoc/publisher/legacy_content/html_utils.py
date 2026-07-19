@@ -134,7 +134,9 @@ def _parse_h2_version_sections(html: HtmlOrSoup) -> dict[str, str]:
         sections[_UNKNOWN_SECTION_KEY] = preamble
 
     # Находим контент между заголовками версий
-    for (header, version), (next_header, _) in zip_longest(headers, headers[1:], fillvalue=(None, None)):
+    for (header, version), (next_header, _) in zip_longest(
+        headers, headers[1:], fillvalue=(None, None)
+    ):
         if content := _html_until(chain([header], header.next_siblings), next_header):
             sections[version] = content
 

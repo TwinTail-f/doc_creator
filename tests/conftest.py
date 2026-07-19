@@ -31,6 +31,8 @@ def valid_parser_config() -> dict[str, Any]:
 def valid_confluence_config() -> dict[str, Any]:
     """Минимальный словарь, удовлетворяющий обязательным полям ConfluenceConfigSchema."""
     return json.loads((_CONFIG_RESOURCES_DIR / "valid_confluence_config.json").read_text())
+
+
 """
 Корневые фикстуры, общие для всего тестового набора autodoc.
 

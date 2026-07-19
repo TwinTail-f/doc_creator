@@ -1,6 +1,7 @@
 """
 Тесты для autodoc.publisher.clients.confluence_transport.ConfluenceTransport.
 """
+
 import json
 from typing import Any
 
@@ -14,7 +15,9 @@ from autodoc.publisher.clients.confluence_transport import ConfluenceTransport
 PAGE_ID: str = "123456"
 
 
-def _make_response(status_code: int, body: Any = None, raw_content: bytes | None = None) -> requests.Response:
+def _make_response(
+    status_code: int, body: Any = None, raw_content: bytes | None = None
+) -> requests.Response:
     """
     Создаёт настоящий объект ``requests.Response`` с заданным статусом и телом.
 
@@ -41,7 +44,9 @@ def _make_response(status_code: int, body: Any = None, raw_content: bytes | None
     return response
 
 
-def _make_transport(mocker: Any, minimal_confluence_config: dict, **overrides: Any) -> ConfluenceTransport:
+def _make_transport(
+    mocker: Any, minimal_confluence_config: dict, **overrides: Any
+) -> ConfluenceTransport:
     """
     Создаёт ``ConfluenceTransport`` поверх переданного (при необходимости —
     переопределённого) минимального конфига Confluence.
@@ -60,9 +65,10 @@ def _make_transport(mocker: Any, minimal_confluence_config: dict, **overrides: A
     return ConfluenceTransport(config)
 
 
-
 @pytest.mark.infrastructure
-def test_happy_path_search_content_returns_results(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_happy_path_search_content_returns_results(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
     """search_content возвращает список results и делает GET-запрос с правильными параметрами."""
     transport = _make_transport(mocker, minimal_confluence_config)
     response = _make_response(200, {"results": [{"id": "1"}, {"id": "2"}]})
@@ -79,7 +85,9 @@ def test_happy_path_search_content_returns_results(mocker: Any, minimal_confluen
 
 
 @pytest.mark.infrastructure
-def test_happy_path_get_content_returns_raw_page(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_happy_path_get_content_returns_raw_page(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
     """get_content возвращает сырой JSON страницы и подставляет её id в URL и expand в параметры."""
     transport = _make_transport(mocker, minimal_confluence_config)
     page_json = {"id": PAGE_ID, "title": "Some Page"}
@@ -97,7 +105,9 @@ def test_happy_path_get_content_returns_raw_page(mocker: Any, minimal_confluence
 
 
 @pytest.mark.infrastructure
-def test_happy_path_create_content_posts_payload(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_happy_path_create_content_posts_payload(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
     """create_content отправляет POST с переданным payload и возвращает JSON созданной страницы."""
     transport = _make_transport(mocker, minimal_confluence_config)
     created_page = {"id": PAGE_ID, "title": "New Page"}
@@ -116,7 +126,9 @@ def test_happy_path_create_content_posts_payload(mocker: Any, minimal_confluence
 
 
 @pytest.mark.infrastructure
-def test_happy_path_update_content_puts_payload(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_happy_path_update_content_puts_payload(
+    mocker: Any, minimal_confluence_config: dict
+) -> None:
     """update_content отправляет PUT по URL страницы и возвращает JSON обновлённой страницы."""
     transport = _make_transport(mocker, minimal_confluence_config)
     updated_page = {"id": PAGE_ID, "title": "Updated Page"}

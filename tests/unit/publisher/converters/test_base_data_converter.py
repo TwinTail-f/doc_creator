@@ -1,4 +1,5 @@
 """Тесты для статических методов BaseDataConverter и PassportLinkMixin."""
+
 import dataclasses
 from typing import Any
 
@@ -19,6 +20,7 @@ class _MinimalParsedResult:
     """Минимальная замена ParsedResult, экспонирующая только то, что читает _base_view_model."""
 
     platform_version: str = "2.0"
+
 
 VARIANT_PKG_ID: str = "abc"
 VARIANT_BUILD_URL: str = "https://ci/1"
@@ -132,8 +134,7 @@ def test_variant_opts_is_frozen_dataclass() -> None:
 
 @pytest.mark.contract
 def test_variant_opts_default_options_default_is_not_shared_between_instances() -> None:
-    """default_options по умолчанию — независимый dict на каждый экземпляр, а не общий объект.
-    """
+    """default_options по умолчанию — независимый dict на каждый экземпляр, а не общий объект."""
     opts_a = _VariantOpts(conan_options={})
     opts_b = _VariantOpts(conan_options={})
 
@@ -256,5 +257,3 @@ def test_conan_variant_view_defaults() -> None:
     assert view.options_ref == ""
     assert view.conan_options == {}
     assert view.install_options == ""
-
-

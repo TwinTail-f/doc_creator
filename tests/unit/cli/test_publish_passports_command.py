@@ -1,5 +1,4 @@
-"""Тесты для autodoc/cli/commands/publish/passports.py.
-"""
+"""Тесты для autodoc/cli/commands/publish/passports.py."""
 
 from pathlib import Path
 
@@ -30,9 +29,12 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     return CliRunner().invoke(
         cli,
         [
-            "--base-dir", str(tmp_path),
-            "--configs-dir", str(configs_dir),
-            "publish", "passports",
+            "--base-dir",
+            str(tmp_path),
+            "--configs-dir",
+            str(configs_dir),
+            "publish",
+            "passports",
             *args,
         ],
     )
@@ -103,9 +105,12 @@ def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(
-        tmp_path, configs_dir,
-        "--passports-root-parent-name", "Foo",
-        "--passports-root-parent-id", "123",
+        tmp_path,
+        configs_dir,
+        "--passports-root-parent-name",
+        "Foo",
+        "--passports-root-parent-id",
+        "123",
     )
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"

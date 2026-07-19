@@ -40,9 +40,12 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
     return CliRunner().invoke(
         cli,
         [
-            "--base-dir", str(tmp_path),
-            "--configs-dir", str(configs_dir),
-            "publish", command,
+            "--base-dir",
+            str(tmp_path),
+            "--configs-dir",
+            str(configs_dir),
+            "publish",
+            command,
             *args,
         ],
     )
@@ -117,8 +120,13 @@ def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
 
     result = _invoke(
-        tmp_path, configs_dir, "release",
-        "--root-page-id", "123", "--root-page-name", "Foo",
+        tmp_path,
+        configs_dir,
+        "release",
+        "--root-page-id",
+        "123",
+        "--root-page-name",
+        "Foo",
     )
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"

@@ -2,6 +2,7 @@
 Тесты RootPageResolver. Приоритет источников и name/id внутри источника — в _resolve_root_parent;
 таблица сценариев — TestNameIdPriorityMatrix, кросс-source кейсы — TestResolveRequiredParent.
 """
+
 import logging
 from typing import Any
 
@@ -24,7 +25,6 @@ _RELEASE_CONFIG_NAME_FIELD: str = "release_docs_root_parent_name"
 _RELEASE_CONFIG_ID_FIELD: str = "release_docs_root_parent_id"
 _PROFILE_CONFIG_NAME_FIELD: str = "profile_docs_root_parent_name"
 _PROFILE_CONFIG_ID_FIELD: str = "profile_docs_root_parent_id"
-
 
 
 def _make_mock_client(
@@ -83,9 +83,7 @@ def test_find_page_id_found(mocker: Any, minimal_confluence_config: dict) -> Non
 
 
 @pytest.mark.business_logic
-def test_find_page_id_not_found_returns_none(
-    mocker: Any, minimal_confluence_config: dict
-) -> None:
+def test_find_page_id_not_found_returns_none(mocker: Any, minimal_confluence_config: dict) -> None:
     """Страница не найдена по имени — возвращается None."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_pages={})
 
@@ -93,21 +91,15 @@ def test_find_page_id_not_found_returns_none(
 
 
 @pytest.mark.business_logic
-def test_page_id_exists_true_for_known_id(
-    mocker: Any, minimal_confluence_config: dict
-) -> None:
+def test_page_id_exists_true_for_known_id(mocker: Any, minimal_confluence_config: dict) -> None:
     """Известный ID — страница считается существующей."""
-    resolver, _ = _make_resolver(
-        mocker, minimal_confluence_config, known_ids={"100002"}
-    )
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_ids={"100002"})
 
     assert resolver._page_id_exists("100002") is True
 
 
 @pytest.mark.business_logic
-def test_page_id_exists_false_for_unknown_id(
-    mocker: Any, minimal_confluence_config: dict
-) -> None:
+def test_page_id_exists_false_for_unknown_id(mocker: Any, minimal_confluence_config: dict) -> None:
     """Неизвестный ID — страница считается несуществующей."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_ids=set())
 
@@ -142,6 +134,7 @@ def test_nothing_set_anywhere_raises_config_error_with_field_label(
         resolver._resolve_root_parent(None, None, None, None, "release_docs_root_parent")
 
     assert "release_docs_root_parent" in str(exc_info.value)
+
 
 @pytest.mark.parametrize(
     "method_name,config_name_field,config_id_field",
@@ -240,8 +233,10 @@ def _build_resolver_for_source(
     name/id_value, для Config — они "вшиваются" в конфиг, а вызов идёт с (None, None)."""
     if source == "CLI":
         resolver, mock_client = _make_resolver(
-            mocker, minimal_confluence_config,
-            known_pages=known_pages, known_ids=known_ids,
+            mocker,
+            minimal_confluence_config,
+            known_pages=known_pages,
+            known_ids=known_ids,
         )
         return resolver, mock_client, name, id_value
 
@@ -251,8 +246,11 @@ def _build_resolver_for_source(
     if id_value is not None:
         overrides[config_id_field] = id_value
     resolver, mock_client = _make_resolver(
-        mocker, minimal_confluence_config,
-        known_pages=known_pages, known_ids=known_ids, **overrides,
+        mocker,
+        minimal_confluence_config,
+        known_pages=known_pages,
+        known_ids=known_ids,
+        **overrides,
     )
     return resolver, mock_client, None, None
 
@@ -261,39 +259,93 @@ def _build_resolver_for_source(
 # known_pages, known_ids, expects_error, expected_result, expect_warning).
 _NAME_ID_PRIORITY_CASES = [
     pytest.param(
-        "Parent", None, {"Parent": "300001"}, None, False, "300001", False,
+        "Parent",
+        None,
+        {"Parent": "300001"},
+        None,
+        False,
+        "300001",
+        False,
         id="name_resolves_no_id",
     ),
     pytest.param(
-        "Parent", "300001", {"Parent": "300001"}, None, False, "300001", False,
+        "Parent",
+        "300001",
+        {"Parent": "300001"},
+        None,
+        False,
+        "300001",
+        False,
         id="name_resolves_id_matches_no_warning",
     ),
     pytest.param(
-        "Parent", "300002", {"Parent": "300001"}, None, False, "300001", True,
+        "Parent",
+        "300002",
+        {"Parent": "300001"},
+        None,
+        False,
+        "300001",
+        True,
         id="name_resolves_id_mismatches_warns_name_wins",
     ),
     pytest.param(
-        "Parent", "300002", {}, {"300002"}, False, "300002", True,
+        "Parent",
+        "300002",
+        {},
+        {"300002"},
+        False,
+        "300002",
+        True,
         id="name_unresolved_valid_id_fallback_warns",
     ),
     pytest.param(
-        "Parent", "300002", {}, set(), True, None, False,
+        "Parent",
+        "300002",
+        {},
+        set(),
+        True,
+        None,
+        False,
         id="name_unresolved_id_also_invalid_raises",
     ),
     pytest.param(
-        "Parent", None, {}, set(), True, None, False,
+        "Parent",
+        None,
+        {},
+        set(),
+        True,
+        None,
+        False,
         id="name_unresolved_no_id_at_all_raises",
     ),
     pytest.param(
-        None, "300001", {}, {"300001"}, False, "300001", False,
+        None,
+        "300001",
+        {},
+        {"300001"},
+        False,
+        "300001",
+        False,
         id="only_id_valid",
     ),
     pytest.param(
-        None, "300001", {}, set(), True, None, False,
+        None,
+        "300001",
+        {},
+        set(),
+        True,
+        None,
+        False,
         id="only_id_invalid_raises",
     ),
     pytest.param(
-        None, None, {}, set(), True, None, False,
+        None,
+        None,
+        {},
+        set(),
+        True,
+        None,
+        False,
         id="nothing_set_raises",
     ),
 ]
@@ -336,8 +388,15 @@ class TestNameIdPriorityMatrix:
         expect_warning: bool,
     ) -> None:
         resolver, mock_client, call_name, call_id = _build_resolver_for_source(
-            mocker, minimal_confluence_config, source, name, id_value,
-            config_name_field, config_id_field, known_pages, known_ids,
+            mocker,
+            minimal_confluence_config,
+            source,
+            name,
+            id_value,
+            config_name_field,
+            config_id_field,
+            known_pages,
+            known_ids,
         )
 
         if expects_error:

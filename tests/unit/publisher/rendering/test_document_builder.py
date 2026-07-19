@@ -1,4 +1,5 @@
 """Юнит-тесты для autodoc.publisher.rendering.document_builder.DocumentBuilder."""
+
 from pathlib import Path
 from typing import Any
 
@@ -52,17 +53,26 @@ def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
     [
         # build() подставляет поле view_model в шаблон через 'data.<поле>'
         pytest.param(
-            TITLE_TEMPLATE_NAME, TITLE_TEMPLATE_CONTENT, {"title": "Hello"}, "Hello",
+            TITLE_TEMPLATE_NAME,
+            TITLE_TEMPLATE_CONTENT,
+            {"title": "Hello"},
+            "Hello",
             id="substitutes-field-from-view-model",
         ),
         # переменная шаблона 'data' — это именно тот словарь, что передан в build()
         pytest.param(
-            KEY_TEMPLATE_NAME, KEY_TEMPLATE_CONTENT, {"key": "expected_value"}, "expected_value",
+            KEY_TEMPLATE_NAME,
+            KEY_TEMPLATE_CONTENT,
+            {"key": "expected_value"},
+            "expected_value",
             id="data-variable-is-passed-view-model",
         ),
         # пустой view_model не ломает рендеринг шаблона, не обращающегося к data
         pytest.param(
-            STATIC_TEMPLATE_NAME, STATIC_TEMPLATE_CONTENT, {}, "static",
+            STATIC_TEMPLATE_NAME,
+            STATIC_TEMPLATE_CONTENT,
+            {},
+            "static",
             id="empty-view-model",
         ),
     ],

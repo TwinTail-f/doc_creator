@@ -1,4 +1,5 @@
 """Юнит-тесты для PassportConverter."""
+
 import pytest
 
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild

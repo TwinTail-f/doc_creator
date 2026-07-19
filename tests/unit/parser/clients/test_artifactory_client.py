@@ -38,4 +38,3 @@ def test_artifactory_client_head_returns_response(mocker, parser_config) -> None
     response = client.head(_EXAMPLE_URL)
 
     assert response.status_code == 200
-

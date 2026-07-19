@@ -83,4 +83,3 @@ def test_clear_logs_dir_missing_directory_returns_empty_list(tmp_path: Path) -> 
     deleted = clear_logs_dir(missing_dir)
 
     assert deleted == []
-

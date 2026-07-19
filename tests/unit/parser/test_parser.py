@@ -18,6 +18,7 @@ from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from tests.unit.parser.conftest import FakeTFSClient
 
+
 # Фейковые шаги пайплайна
 class FakeStep(BaseParseStep):
     """Фейковый шаг пайплайна, записывающий порядок выполнения и опционально вызывающий исключение."""

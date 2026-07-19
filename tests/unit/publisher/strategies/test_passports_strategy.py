@@ -8,6 +8,7 @@
 - execute() — единственная публичная точка входа, покрываемая тестами
   (без _try_publish_item/_publish_one напрямую).
 """
+
 from pathlib import Path
 from typing import Any
 
@@ -245,17 +246,12 @@ def test_page_title_is_unique_for_different_component_release_pairs() -> None:
 def test_page_title_exact_format() -> None:
     """_make_page_title возвращает 'Документация <name> <version>' — точный формат."""
     # openssl/1.0.0 — базовый случай
-    assert (
-        PassportsStrategy._make_page_title("openssl", "1.0.0") == "Документация openssl 1.0.0"
-    )
+    assert PassportsStrategy._make_page_title("openssl", "1.0.0") == "Документация openssl 1.0.0"
     # sqlite3/3.51.2 из sqlite3.properties (версии: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
-    assert (
-        PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
-    )
+    assert PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
     # patchelf/0.18.0 из patchelf.properties
     assert (
-        PassportsStrategy._make_page_title("patchelf", "0.18.0")
-        == "Документация patchelf 0.18.0"
+        PassportsStrategy._make_page_title("patchelf", "0.18.0") == "Документация patchelf 0.18.0"
     )
 
 
@@ -512,7 +508,9 @@ def test_one_passport_publish_failure_isolated_from_others(
     )
     report = strategy.execute()
 
-    assert report.pages_failed >= 1, "ошибка publish_page для одной страницы должна быть зафиксирована"
+    assert (
+        report.pages_failed >= 1
+    ), "ошибка publish_page для одной страницы должна быть зафиксирована"
     assert (
         report.pages_published >= 1
     ), "остальные паспорта должны быть опубликованы, несмотря на сбой одной страницы"
@@ -835,16 +833,16 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
     )
     report = strategy.execute()
 
-    work_item_count = sum(
-        len(comp.releases) for comp in publisher_multi_channel_result.components
-    )
+    work_item_count = sum(len(comp.releases) for comp in publisher_multi_channel_result.components)
     distinct_pages = {
         (comp.name, rel.version)
         for comp in publisher_multi_channel_result.components
         for rel in comp.releases
     }
     assert work_item_count == 3, "Проверка корректности фикстуры: 2 канала alpha + 1 канал beta"
-    assert len(distinct_pages) == 2, "Проверка корректности: 2 канала alpha схлопываются в 1 уникальную версию"
+    assert (
+        len(distinct_pages) == 2
+    ), "Проверка корректности: 2 канала alpha схлопываются в 1 уникальную версию"
 
     assert report.pages_published == work_item_count, (
         "Текущее поведение: republish происходит по одному разу на каждый рабочий "
@@ -865,4 +863,6 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
     # сталкивается по page_id: счётчик RecordingConfluenceClient должен выдавать
     # уникальные ID.
     page_ids = [d["page_id"] for d in report.details if d and d.get("page_id")]
-    assert len(page_ids) == len(set(page_ids)), "Каждая публикация должна получать уникальный page_id"
+    assert len(page_ids) == len(
+        set(page_ids)
+    ), "Каждая публикация должна получать уникальный page_id"

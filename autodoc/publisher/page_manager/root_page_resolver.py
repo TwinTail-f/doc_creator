@@ -35,7 +35,7 @@ class RootPageResolver:
 
         Returns:
             ID найденной страницы, либо ``None``, если страница с таким
-            названием не найдена. 
+            названием не найдена.
         """
         page = self._client.find_page(name, space=self._config.space)
         return page.id if page else None

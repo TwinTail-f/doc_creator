@@ -1,5 +1,4 @@
-"""Тесты для autodoc/cli/commands/publish/all.py.
-"""
+"""Тесты для autodoc/cli/commands/publish/all.py."""
 
 from pathlib import Path
 
@@ -39,9 +38,12 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     return CliRunner().invoke(
         cli,
         [
-            "--base-dir", str(tmp_path),
-            "--configs-dir", str(configs_dir),
-            "publish", "all",
+            "--base-dir",
+            str(tmp_path),
+            "--configs-dir",
+            str(configs_dir),
+            "publish",
+            "all",
             *args,
         ],
     )
@@ -251,9 +253,7 @@ def test_publish_all_partial_failure_exits_nonzero_with_error_text(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
     """Неуспешный PublishReport (success=False) завершает команду с кодом 1 и печатает каждое сообщение об ошибке."""
-    report = make_publish_report(
-        success=False, pages_published=0, errors=["some page failed"]
-    )
+    report = make_publish_report(success=False, pages_published=0, errors=["some page failed"])
     mock_publisher = _mock_collaborators(mocker, publish_report=report)
 
     result = _invoke(tmp_path, configs_dir)

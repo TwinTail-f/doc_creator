@@ -1,7 +1,5 @@
 """Юнит-тесты для autodoc/parser/steps/options_step.py."""
 
-
-
 import json
 from pathlib import Path
 

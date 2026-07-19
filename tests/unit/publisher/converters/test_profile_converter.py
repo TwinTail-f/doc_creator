@@ -1,4 +1,5 @@
 """Юнит-тесты для ProfileCentricConverter."""
+
 import pytest
 
 from autodoc.models.component import Component

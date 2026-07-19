@@ -3,7 +3,6 @@
 Охватывает: extract_from_yaml, extract_docker_image, add_aliases.
 """
 
-
 import pytest
 
 from autodoc.parser.parsers.docker_parser import DockerParser, DockerLinksMap

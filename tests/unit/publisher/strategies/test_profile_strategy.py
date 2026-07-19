@@ -6,6 +6,7 @@
 - PassportPageRegistry.load() мокается, когда include_passport_links=True.
 - FakeConfluenceClient / FakeDocumentBuilder обеспечивают детерминированный ввод-вывод.
 """
+
 from pathlib import Path
 from typing import Any
 
@@ -116,9 +117,7 @@ def test_profile_centric_strategy_execute_calls_publish_page(
         tmp_path,
     )
     strategy.execute()
-    publish_calls = [
-        c for c in publisher_confluence_client.calls if c["method"] == "publish_page"
-    ]
+    publish_calls = [c for c in publisher_confluence_client.calls if c["method"] == "publish_page"]
     assert len(publish_calls) == 1
     assert publish_calls[0]["title"] == _PAGE_TITLE
 

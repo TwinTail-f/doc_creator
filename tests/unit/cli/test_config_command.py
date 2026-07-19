@@ -1,6 +1,6 @@
 """Тесты для autodoc/cli/commands/config.py.
 
-Тесты вызывают команду ``config`` через CliRunner, 
+Тесты вызывают команду ``config`` через CliRunner,
 конфиги пишутся во временную директорию.
 """
 
@@ -73,9 +73,9 @@ def test_cli_config_validate_exits_nonzero_on_invalid_config(
         cli,
         ["--configs-dir", str(configs_dir), "config", "validate", "bad.json"],
     )
-    assert result.exit_code != _EXIT_SUCCESS, (
-        f"Ожидался ненулевой код выхода для невалидного JSON, получено {result.exit_code}"
-    )
+    assert (
+        result.exit_code != _EXIT_SUCCESS
+    ), f"Ожидался ненулевой код выхода для невалидного JSON, получено {result.exit_code}"
 
 
 @pytest.mark.infrastructure
@@ -110,7 +110,9 @@ def test_cli_config_validate_error_is_human_readable(
     [
         # Несколько JSON-файлов — команда list должна найти и показать все сразу
         pytest.param(
-            ["config_a.json", "config_b.json"], _write_json, id="json-multiple",
+            ["config_a.json", "config_b.json"],
+            _write_json,
+            id="json-multiple",
         ),
         # .yaml файл также должен отображаться в выводе list
         pytest.param(["parser_config.yaml"], _write_yaml, id="yaml"),

@@ -105,7 +105,9 @@ def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
 def test_conan2_runner_clean_cache_success(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
     """clean_cache() не бросает исключений при успешном завершении и использует шаблонный CONAN_HOME напрямую."""
     runner = _make_runner(tmp_path)
-    mock_run = mocker.patch("subprocess.run", return_value=MagicMock(returncode=0, stderr="", stdout=""))
+    mock_run = mocker.patch(
+        "subprocess.run", return_value=MagicMock(returncode=0, stderr="", stdout="")
+    )
 
     runner.clean_cache()
 
@@ -138,7 +140,9 @@ def test_conan2_runner_clean_cache_success(tmp_path: Path, mocker) -> None:  # t
     ],
 )
 def test_conan2_runner_clean_cache_swallows_failures(
-    tmp_path: Path, mocker, run_kwargs: dict,  # type: ignore[no-untyped-def]
+    tmp_path: Path,
+    mocker,
+    run_kwargs: dict,  # type: ignore[no-untyped-def]
 ) -> None:
     """clean_cache() не бросает исключений ни при ненулевом коде возврата
     conan, ни при истечении времени ожидания subprocess."""
@@ -226,7 +230,9 @@ def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type:
     manager.setup()
 
     install_calls = [
-        call for call in mock_run.call_args_list if call.args[0][:3] == ["conan", "config", "install"]
+        call
+        for call in mock_run.call_args_list
+        if call.args[0][:3] == ["conan", "config", "install"]
     ]
     assert len(install_calls) == 1
 
@@ -271,7 +277,9 @@ def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_is_idempotent_on_double_call(tmp_path: Path, mocker) -> None:
+def test_conan_environment_manager_setup_is_idempotent_on_double_call(
+    tmp_path: Path, mocker
+) -> None:
     """Повторный вызов setup() на одном и том же ConanEnvironmentManager завершается без ошибок.
 
     ConanEnvironmentManager не вызывает исключение при повторном setup — он просто
@@ -301,7 +309,9 @@ def test_conan_environment_manager_setup_is_idempotent_on_double_call(tmp_path: 
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_raises_when_remote_list_fails(tmp_path: Path, mocker) -> None:
+def test_conan_environment_manager_setup_raises_when_remote_list_fails(
+    tmp_path: Path, mocker
+) -> None:
     """Если получение списка remotes завершилось ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
     Установка конфигурации к этому моменту уже прошла успешно, поэтому setup()
@@ -329,7 +339,9 @@ def test_conan_environment_manager_setup_raises_when_remote_list_fails(tmp_path:
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_raises_when_remote_login_fails(tmp_path: Path, mocker) -> None:
+def test_conan_environment_manager_setup_raises_when_remote_login_fails(
+    tmp_path: Path, mocker
+) -> None:
     """Если логин в один из remotes завершился ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
     Установка конфигурации и получение списка remotes к этому моменту уже прошли

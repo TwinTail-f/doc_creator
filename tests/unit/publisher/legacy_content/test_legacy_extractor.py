@@ -5,6 +5,7 @@
 - extract_platform_versions() возвращает все имена вкладок в качестве ключей словаря
   (подтверждение делегирования в parse_page_sections()).
 """
+
 from pathlib import Path
 
 import pytest

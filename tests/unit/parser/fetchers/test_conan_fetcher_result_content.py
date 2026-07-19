@@ -57,8 +57,7 @@ def _build_fake_result_cases() -> list:
             ConanEnrichmentResult(release_data={release_key: release_entry}),
             lambda value: (
                 release_key in value.release_data
-                and value.release_data[release_key].base_ref
-                == "patchelf/0.18.0@platform-2.0/tech"
+                and value.release_data[release_key].base_ref == "patchelf/0.18.0@platform-2.0/tech"
             ),
             id="release_data-key-and-base_ref",
         ),

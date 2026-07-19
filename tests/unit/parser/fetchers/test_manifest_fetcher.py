@@ -1,5 +1,4 @@
-"""Юнит-тесты для autodoc/parser/fetchers/manifest_fetcher.py.
-"""
+"""Юнит-тесты для autodoc/parser/fetchers/manifest_fetcher.py."""
 
 import shutil
 from pathlib import Path

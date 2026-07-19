@@ -171,9 +171,7 @@ def poco_missing_graph(resources_dir: Path) -> dict[str, Any]:
             "46bf0ba807876c7591c702abfa2ba19d3133f1af",
             id="libnetfilter_queue",
         ),
-        pytest.param(
-            "apr_graph", "apr_task", "7741115342fe6159bd16463d6d349e4c02e33237", id="apr"
-        ),
+        pytest.param("apr_graph", "apr_task", "7741115342fe6159bd16463d6d349e4c02e33237", id="apr"),
     ],
 )
 def test_result_parser_returns_enrich_data_with_package_id(

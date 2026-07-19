@@ -87,4 +87,3 @@ def test_base_parse_step_requires_name_attribute() -> None:
 
             def execute(self, ctx: PipelineContext) -> None:
                 """Пустой execute для некорректного шага."""
-

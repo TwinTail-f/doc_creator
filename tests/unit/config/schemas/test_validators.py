@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 
+
 @pytest.mark.contract
 @pytest.mark.parametrize(
     "empty_url",
@@ -17,7 +18,8 @@ from autodoc.config.schemas.parser_config import ParserConfigSchema
     ],
 )
 def test_confluence_config_rejects_empty_url(
-    valid_confluence_config: dict, empty_url: str,
+    valid_confluence_config: dict,
+    empty_url: str,
 ) -> None:
     """ConfluenceConfigSchema._normalize_url поднимает ValidationError, если url пуст
     или состоит только из пробелов"""
@@ -36,7 +38,7 @@ def test_confluence_config_strips_trailing_slash_from_url(valid_confluence_confi
 
 @pytest.mark.contract
 def test_parser_config_rejects_empty_tfs_token(valid_parser_config: dict) -> None:
-    """ParserConfigSchema.tfs_token_not_empty поднимает ValidationError на пустой tfs_token 
+    """ParserConfigSchema.tfs_token_not_empty поднимает ValidationError на пустой tfs_token
     (PAT для TFS не может быть пустой строкой)."""
     payload = {**valid_parser_config, "tfs_token": ""}
     with pytest.raises(ValidationError, match="tfs_token не может быть пустой строкой"):
@@ -53,11 +55,10 @@ def test_parser_config_rejects_empty_tfs_token(valid_parser_config: dict) -> Non
     ],
 )
 def test_parser_config_normalize_url_strips_whitespace_and_trailing_slash(
-    valid_parser_config: dict, field_name: str,
+    valid_parser_config: dict,
+    field_name: str,
 ) -> None:
-    """ParserConfigSchema.normalize_url убирает пробелы по краям и завершающий слэш.
-    """
+    """ParserConfigSchema.normalize_url убирает пробелы по краям и завершающий слэш."""
     payload = {**valid_parser_config, field_name: "  https://example.com/path/  "}
     config = ParserConfigSchema(**payload)
     assert getattr(config, field_name) == "https://example.com/path"
-

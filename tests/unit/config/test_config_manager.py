@@ -18,6 +18,7 @@ from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
 
+
 def _dump(fmt: str, data: dict) -> str:
     """Сериализует *data* в текст указанного формата (``json``/``yaml``/``yml``)."""
     if fmt == "json":
@@ -56,7 +57,10 @@ def test_config_manager_loads_valid_config_by_extension(
     [
         pytest.param("load_parser_config", ParserConfigSchema, "valid_parser_config", id="parser"),
         pytest.param(
-            "load_confluence_config", ConfluenceConfigSchema, "valid_confluence_config", id="confluence"
+            "load_confluence_config",
+            ConfluenceConfigSchema,
+            "valid_confluence_config",
+            id="confluence",
         ),
     ],
 )
@@ -74,17 +78,16 @@ def test_config_manager_loads_real_resource_files_json_and_yaml_agree(
 
     assert isinstance(json_result, schema_class)
     assert isinstance(yaml_result, schema_class)
-    assert json_result == yaml_result, (
-        f"{stem}.json и {stem}.yaml должны описывать один и тот же конфиг в двух форматах."
-    )
+    assert (
+        json_result == yaml_result
+    ), f"{stem}.json и {stem}.yaml должны описывать один и тот же конфиг в двух форматах."
 
 
 @pytest.mark.business_logic
 def test_config_manager_raises_config_error_on_invalid_schema(
     tmp_path: Path,
 ) -> None:
-    """_validate() оборачивает pydantic.ValidationError в ConfigError для невалидных данных.
-    """
+    """_validate() оборачивает pydantic.ValidationError в ConfigError для невалидных данных."""
     manager = ConfigManager(configs_dir=tmp_path)
     incomplete_data: dict[str, Any] = {"platform_version": "2.0"}
 
@@ -112,9 +115,7 @@ def _make_file_instead_of_dir(tmp_path: Path) -> Path:
         pytest.param(_make_file_instead_of_dir, id="file-instead-of-dir"),
     ],
 )
-def test_config_manager_raises_on_invalid_configs_dir(
-    tmp_path: Path, make_bad_configs_dir
-) -> None:
+def test_config_manager_raises_on_invalid_configs_dir(tmp_path: Path, make_bad_configs_dir) -> None:
     """load_raw() поднимает ConfigError, если configs_dir не указывает на существующую
     директорию — будь то отсутствующий путь или путь, указывающий на файл.
     """
@@ -135,7 +136,10 @@ def test_config_manager_raises_on_invalid_configs_dir(
     ],
 )
 def test_config_manager_load_confluence_config_returns_correct_type(
-    tmp_path: Path, filename: str, fmt: str, valid_confluence_config: dict,
+    tmp_path: Path,
+    filename: str,
+    fmt: str,
+    valid_confluence_config: dict,
 ) -> None:
     """load_confluence_config() при успехе возвращает экземпляр ConfluenceConfigSchema
     независимо от расширения файла (.json, .yaml, .yml) — симметрично
@@ -250,7 +254,10 @@ def test_list_example_configs_reflects_examples_subdir_presence(
     [
         # синтаксически невалидный YAML -> сообщение об ошибке содержит имя файла
         pytest.param(
-            "parser_config.yaml", "key: [unbalanced", "parser_config.yaml", id="malformed-yaml-syntax"
+            "parser_config.yaml",
+            "key: [unbalanced",
+            "parser_config.yaml",
+            id="malformed-yaml-syntax",
         ),
         # синтаксически валидный JSON, но верхний уровень — не dict (список)
         pytest.param("parser_config.json", json.dumps([1, 2, 3]), "dict", id="non-dict-top-level"),
@@ -274,7 +281,9 @@ def test_config_manager_wraps_malformed_content_in_config_error(
 
 @pytest.mark.infrastructure
 def test_config_manager_wraps_oserror_in_config_error(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, valid_parser_config: dict,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    valid_parser_config: dict,
 ) -> None:
     """_parse_file() оборачивает OSError при чтении файла в ConfigError."""
     config_file = tmp_path / "parser_config.json"

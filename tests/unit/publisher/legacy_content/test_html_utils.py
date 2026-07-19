@@ -4,6 +4,7 @@
 и parse_page_sections — публичный API модуля, построенного поверх bs4
 (BeautifulSoup).
 """
+
 from pathlib import Path
 
 import pytest

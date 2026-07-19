@@ -74,7 +74,7 @@ def test_retryable_session_retries_on_every_configured_status(
     автоматически повторяет запрос и возвращает результат второй, успешной
     попытки.
 
-    Параметризовано по самому ``_RETRY_STATUS_CODES``, чтобы тест реально покрывал 
+    Параметризовано по самому ``_RETRY_STATUS_CODES``, чтобы тест реально покрывал
     все коды, которые модуль считает временными и ДОСТОЙНЫМИ повтора — 408/429/500/502/503/504.
     """
     mock_transport = _fake_transport(mocker, iter([retryable_status, _HTTP_OK]))
@@ -104,8 +104,7 @@ def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture
 
 @pytest.mark.infrastructure
 def test_retryable_session_backs_off_between_retries(mocker: MockerFixture) -> None:
-    """Пауза между повторными попытками растёт от повтора к повтору.
-    """
+    """Пауза между повторными попытками растёт от повтора к повтору."""
     mock_sleep = mocker.patch("time.sleep")
     # urllib3 не спит перед самым первым повтором (backoff=0 при одном подряд
     # сбое), поэтому нужны три неудачи подряд, чтобы получить два ненулевых,
@@ -125,8 +124,7 @@ def test_retryable_session_backs_off_between_retries(mocker: MockerFixture) -> N
 def test_retryable_session_timeout_forwarded_to_request(
     mocker: MockerFixture,
 ) -> None:
-    """RetryableSession.request() внедряет свой _timeout в каждый вызов super().request().
-    """
+    """RetryableSession.request() внедряет свой _timeout в каждый вызов super().request()."""
     mock_super_request: MagicMock = mocker.patch.object(
         requests.Session, "request", return_value=MagicMock(status_code=_HTTP_OK)
     )

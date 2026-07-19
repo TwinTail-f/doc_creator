@@ -24,8 +24,7 @@ class BadgeClass(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class _VariantOpts:
-    """Опции сборки для одного варианта Conan во view-model.
-    """
+    """Опции сборки для одного варианта Conan во view-model."""
 
     conan_options: dict[str, Any]
     install_options_override: str | None = None
@@ -123,7 +122,9 @@ class BaseDataConverter(ABC):
         return {pd.profile_name: pd for pd in data.profile_definitions}
 
     @staticmethod
-    def _resolve_profile_meta(pd_map: dict[str, Any], profile_name: str) -> tuple[dict[str, Any], str]:
+    def _resolve_profile_meta(
+        pd_map: dict[str, Any], profile_name: str
+    ) -> tuple[dict[str, Any], str]:
         """
         Резолвит настройки и docker-образ профиля по его имени.
 

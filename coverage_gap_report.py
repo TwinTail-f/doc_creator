@@ -23,8 +23,6 @@
        ничего дополнительно искать по репозиторию.
 """
 
-
-
 import argparse
 import ast
 import json
@@ -140,7 +138,9 @@ def build_file_report(
     header = f"строки: {stmt_pct}%"
     if branch_pct is not None:
         header += f", ветки: {branch_pct}%"
-    out.append(f"_{header}, непокрытых строк: {len(missing_lines)}, непокрытых веток: {len(missing_branches)}_")
+    out.append(
+        f"_{header}, непокрытых строк: {len(missing_lines)}, непокрытых веток: {len(missing_branches)}_"
+    )
 
     test_file = find_test_file(src_path, tests_root) if tests_root else None
     if test_file:

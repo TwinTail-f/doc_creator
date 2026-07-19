@@ -1,5 +1,4 @@
-"""Тесты для autodoc/cli/helpers.py.
-"""
+"""Тесты для autodoc/cli/helpers.py."""
 
 import json
 from pathlib import Path
@@ -199,7 +198,9 @@ def test_make_publisher_forwards_config_file_argument(tmp_path: Path, mocker) ->
 
 
 @pytest.mark.business_logic
-def test_print_publish_result_success_with_pages_does_not_exit(capsys: pytest.CaptureFixture) -> None:
+def test_print_publish_result_success_with_pages_does_not_exit(
+    capsys: pytest.CaptureFixture,
+) -> None:
     """При success=True и pages_published>0 SystemExit не возникает, в вывод попадает маркер успеха."""
     report = make_publish_report(success=True, pages_published=5)
 

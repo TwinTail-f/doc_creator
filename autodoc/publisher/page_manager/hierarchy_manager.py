@@ -146,7 +146,9 @@ class PageHierarchyManager:
                 space=space, parent_id=parent_id, title=title
             )
         except ConfluenceError:
-            logger.error(f"Не удалось найти существующую страницу {title!r} (parent_id={parent_id})")
+            logger.error(
+                f"Не удалось найти существующую страницу {title!r} (parent_id={parent_id})"
+            )
             raise
 
     def _create_page(self, *, space: str, parent_id: str, title: str, body_html: str) -> str:

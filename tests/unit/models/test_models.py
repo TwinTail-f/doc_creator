@@ -1,5 +1,4 @@
-"""Юнит-тесты для autodoc.models.
-"""
+"""Юнит-тесты для autodoc.models."""
 
 import pytest
 
@@ -66,4 +65,3 @@ def test_conan_input_options_parsed_options_priority(
         kwargs["parsed_options"] = explicit_parsed
     instance = ConanInputOptions(**kwargs)
     assert instance.parsed_options == expected
-

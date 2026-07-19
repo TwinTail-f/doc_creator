@@ -14,4 +14,3 @@ import pytest
 def resources_dir() -> Path:
     """Путь к общим тестовым ресурсам в tests/unit/config/resources/."""
     return Path(__file__).parent / "resources"
-

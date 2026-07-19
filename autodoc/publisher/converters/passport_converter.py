@@ -3,7 +3,11 @@
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.base_data_converter import BadgeClass, BaseDataConverter, _VariantOpts
+from autodoc.publisher.converters.base_data_converter import (
+    BadgeClass,
+    BaseDataConverter,
+    _VariantOpts,
+)
 
 _TFS_BRANCH_PREFIX: str = "GBrelease_"
 """Префикс ветки TFS для релизных бранчей по соглашению об именовании."""

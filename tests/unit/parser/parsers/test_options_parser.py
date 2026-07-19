@@ -4,8 +4,6 @@
 Реальные JSON файлы опций загружаются из директории фиксчур resources/options/.
 """
 
-
-
 from pathlib import Path
 
 import pytest
