@@ -1,9 +1,5 @@
 """
 Юнит-тесты для autodoc/parser/fetchers/docker_fetcher.py.
-
-Стратегия: предоставляется фейковый TFS-клиент, чей get_file_content возвращает
-управляемое содержимое YAML. DockerParser НЕ мокируется — тестируется вся
-цепочка DockerFetcher → DockerParser.
 """
 
 from pathlib import Path

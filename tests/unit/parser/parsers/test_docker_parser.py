@@ -1,7 +1,6 @@
 """Юнит-тесты для autodoc.parser.parsers.docker_parser.DockerParser.
 
 Охватывает: extract_from_yaml, extract_docker_image, add_aliases.
-Все тесты работают с in-memory словарями — ввод/вывод не требуется.
 """
 
 

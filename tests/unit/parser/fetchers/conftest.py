@@ -1,8 +1,7 @@
 """Общие фикстуры и вспомогательные функции для юнит-тестов autodoc/parser/fetchers/.
 
 Содержит хелперы, используемые более чем одним тестовым модулем в этом
-пакете (сейчас — test_conan_fetcher.py и test_conan_fetcher_result_content.py),
-чтобы не дублировать построение mock-контекста и патчинг конвейера ConanFetcher.
+пакете ( test_conan_fetcher.py и test_conan_fetcher_result_content.py).
 """
 
 from pathlib import Path

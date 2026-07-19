@@ -1,15 +1,5 @@
 """
 Тесты для autodoc.publisher.clients.confluence_client.ConfluenceClient.
-
-Стратегия тестирования:
-- ConfluenceClient делегирует все HTTP-вызовы экземпляру ConfluenceTransport
-  (self._transport). Сам ConfluenceTransport полностью мокается через
-  mocker.patch на импорт класса ConfluenceTransport в confluence_client,
-  поэтому реальная HTTP-сессия и сетевые вызовы не используются.
-- Объект mock_transport предоставляет управляемые ответы search_content /
-  get_content / create_content / update_content (сырые JSON-словари,
-  соответствующие публичному контракту ConfluenceTransport).
-- Фикстура minimal_confluence_config приходит из tests/unit/publisher/conftest.py.
 """
 from typing import Any
 

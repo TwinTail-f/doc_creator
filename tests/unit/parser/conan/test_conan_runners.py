@@ -1,7 +1,6 @@
 """Юнит-тесты для классов Conan runner.
 
 Охватывает: Conan2Runner, ConanEnvironmentManager.
-Все вызовы subprocess.run и shutil замокированы — бинарный файл conan не требуется.
 """
 
 import json
@@ -155,7 +154,7 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
 ) -> None:  # type: ignore[no-untyped-def]
     """run() при returncode=0 и валидном JSON на stdout возвращает
     ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
-    в проде путь (returncode=0), но ранее покрывались только failure-ветки."""
+    в проде путь (returncode=0)."""
     runner = _make_runner(tmp_path)
     parsed_payload = {"graph": {"nodes": {"0": {"name": "zlib"}}}}
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
@@ -215,11 +214,7 @@ def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type: ignore[no-untyped-def]
     """Успешный setup() выполняет установку конфигурации Conan через 'conan config install'.
-
-    Ранее тест ошибочно описывался как проверка вызова shutil.copytree —
-    копирование через shutil.copytree на самом деле происходит внутри
-    Conan2Runner.run(), а не в ConanEnvironmentManager.setup(). Здесь
-    проверяется реальное поведение setup(): установка конфигурации через CLI-команду
+    Здесь проверяется реальное поведение setup(): установка конфигурации через CLI-команду
     'conan config install' (в дополнение к последующему логину в remotes).
     """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
@@ -242,7 +237,7 @@ def test_conan_environment_manager_cleanup_removes_directory(
 ) -> None:  # type: ignore[no-untyped-def]
     """cleanup() удаляет каталог настройки, созданный setup().
 
-    Гарантирует, что временный домашний каталог Conan удаляется после использования,
+    Проверяет, что временный домашний каталог Conan удаляется после использования,
     что важно для предотвращения накопления больших каталогов на агентах CI.
     """
     mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
@@ -280,9 +275,7 @@ def test_conan_environment_manager_setup_is_idempotent_on_double_call(tmp_path: 
     """Повторный вызов setup() на одном и том же ConanEnvironmentManager завершается без ошибок.
 
     ConanEnvironmentManager не вызывает исключение при повторном setup — он просто
-    перезаписывает _setup_dir новым временным каталогом. Этот тест документирует
-    данное поведение, чтобы любое будущее изменение, добавляющее исключение при
-    повторном вызове setup, было сразу заметно.
+    перезаписывает _setup_dir новым временным каталогом.
     """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mock_run = mocker.patch("subprocess.run")
@@ -312,8 +305,7 @@ def test_conan_environment_manager_setup_raises_when_remote_list_fails(tmp_path:
     """Если получение списка remotes завершилось ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
     Установка конфигурации к этому моменту уже прошла успешно, поэтому setup()
-    обязан удалить созданный временный каталог перед тем, как пробросить ошибку,
-    чтобы не оставлять после себя недоиспользуемые директории на агентах CI.
+    обязан удалить созданный временный каталог перед тем, как пробросить ошибку.
     """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     setup_dir: Path = tmp_path / "setup_dir"
@@ -342,8 +334,7 @@ def test_conan_environment_manager_setup_raises_when_remote_login_fails(tmp_path
 
     Установка конфигурации и получение списка remotes к этому моменту уже прошли
     успешно, поэтому setup() обязан удалить созданный временный каталог перед тем,
-    как пробросить ошибку, чтобы не оставлять после себя недоиспользуемые
-    директории на агентах CI.
+    как пробросить ошибку.
     """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     setup_dir: Path = tmp_path / "setup_dir"

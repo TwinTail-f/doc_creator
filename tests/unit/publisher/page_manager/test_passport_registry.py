@@ -9,9 +9,6 @@
 - load() возвращает словарь при валидном файле.
 - load() возвращает {} при некорректном JSON.
 - load() возвращает {} при OSError из read_text.
-
-Тесты inject_links()/inject_links_for_profiles() (модуль passport_link_injector)
-находятся в tests/unit/publisher/page_manager/test_passport_link_injector.py.
 """
 import json
 from pathlib import Path

@@ -1,17 +1,4 @@
 """Юнит-тесты для autodoc.models.
-
-По итогам ревью файл сведён к двум функциям, где есть собственная логика
-проекта (парсинг/приоритет значений): ``_parse_option_str`` и
-``ConanInputOptions.parsed_options``. Остальные тесты, ранее лежавшие в этом
-модуле (проверки дефолтов ProfileBuild/Release/Component/ProfileDefinition/
-ParsedResult, roundtrip через model_dump/model_validate), удалены — они
-проверяли только то, что pydantic корректно хранит переданные значения и
-применяет дефолты, т.е. поведение самой библиотеки, а не код проекта.
-
-Константы уровня модуля здесь не заведены намеренно: каждое значение опций
-использовалось ровно в одном месте (см. комментарий ревью о константах ради
-единственного использования), поэтому строки перенесены прямо в
-``pytest.param``.
 """
 
 import pytest
@@ -73,16 +60,10 @@ def test_conan_input_options_parsed_options_priority(
     """ConanInputOptions.parsed_options: явное значение имеет приоритет над
     автозаполнением из options; без явного значения parsed_options
     вычисляется из строки options (а пустая options даёт пустой словарь).
-
-    В кейсах ``explicit-*`` ``options_str`` и ``explicit_parsed`` намеренно не
-    согласованы друг с другом: если бы валидатор безусловно перепарсивал
-    ``options`` и подменял ``parsed_options``, итоговое значение отличалось бы
-    от ``explicit_parsed`` и тест бы упал. Так проверяется именно условность
-    автозаполнения, а не факт, что pydantic хранит переданное в конструктор
-    значение.
     """
     kwargs: dict[str, object] = {"id": "1", "options": options_str}
     if explicit_parsed is not None:
         kwargs["parsed_options"] = explicit_parsed
     instance = ConanInputOptions(**kwargs)
     assert instance.parsed_options == expected
+

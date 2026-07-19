@@ -1,8 +1,4 @@
 """Тесты для autodoc/cli/commands/publish/all.py.
-
-Команда `publish all` проверяется целиком через CliRunner. make_publisher
-и load_parsed_data подменяются на уровне команды, поэтому реальный клиент
-Confluence и файл parsed_data.json не требуются.
 """
 
 from pathlib import Path

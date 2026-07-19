@@ -1,6 +1,5 @@
 """
-Тесты RootPageResolver. ConfluenceClient полностью замокан (find_page/get_page).
-Приоритет источников и name/id внутри источника — в _resolve_root_parent;
+Тесты RootPageResolver. Приоритет источников и name/id внутри источника — в _resolve_root_parent;
 таблица сценариев — TestNameIdPriorityMatrix, кросс-source кейсы — TestResolveRequiredParent.
 """
 import logging

@@ -1,18 +1,7 @@
 """Модульные тесты для autodoc/common/retryable_session.py.
 
 RetryableSession оборачивает сеанс HTTP с автоматической логикой повторных попыток
-для временных ошибок сервера (429, 503) с экспоненциальной задержкой.
-
-Поведение повторных попыток обеспечивается адаптером Retry от urllib3 на уровне транспорта.
-Тесты, которые проверяют срабатывание повторных попыток, подменяют самый нижний уровень —
-``HTTPConnectionPool._make_request`` — фальшивым транспортом, возвращающим заданную
-последовательность ответов. Благодаря этому настоящий цикл повторных попыток urllib3
-(проверка status_forcelist, инкремент счётчика, рекурсивный вызов urlopen) отрабатывает
-по-настоящему, а не подменяется моком целиком: тест проверяет фактическое количество
-попыток и итоговый результат запроса, а не только то, что конфигурация выглядит правильно.
-
-Тест пересылки тайм-аута использует переопределение request() в RetryableSession,
-которое является единственной логикой, которая живёт в коде приложения, а не в urllib3.
+для временных ошибок сервера с экспоненциальной задержкой.
 """
 
 import io
@@ -45,24 +34,13 @@ _TEST_URL: str = "https://example.com/api"
 def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock:
     """Подменяет ``HTTPConnectionPool._make_request`` фальшивым транспортом.
 
-    На каждый вызов возвращает ``urllib3.HTTPResponse`` со следующим статусом
-    из ``statuses``. Это самый нижний уровень, на котором ещё можно
-    перехватить запрос без реального сокета, поэтому вся логика повторных
-    попыток urllib3 (чтение status_forcelist, инкремент Retry, рекурсия
-    urlopen) выполняется по-настоящему.
-
     Args:
         mocker: Фикстура pytest-mock для патчинга.
         statuses: Последовательность HTTP-статусов, отдаваемых по одному на вызов.
 
     Returns:
         Мок, по которому можно проверить фактическое количество попыток
-        (``call_count``). Это единственная причина оборачивать функцию через
-        ``side_effect``, а не подставлять её напрямую как ``new=`` в
-        ``patch.object``: если передать голую функцию как ``new``, атрибут
-        ``_make_request`` перестаёт быть Mock-объектом и теряет ``call_count`` —
-        а тестам ниже как раз нужно проверять фактическое число обращений
-        к транспорту, а не только итоговый результат запроса.
+        (``call_count``).
     """
 
     def _make_request(
@@ -96,10 +74,8 @@ def test_retryable_session_retries_on_every_configured_status(
     автоматически повторяет запрос и возвращает результат второй, успешной
     попытки.
 
-    Параметризовано по самому ``_RETRY_STATUS_CODES`` (а не по двум статусам
-    "навскидку"), чтобы тест реально покрывал все коды, которые модуль
-    считает временными и достойными повтора — 408/429/500/502/503/504 — а не
-    только пару произвольно выбранных.
+    Параметризовано по самому ``_RETRY_STATUS_CODES``, чтобы тест реально покрывал 
+    все коды, которые модуль считает временными и ДОСТОЙНЫМИ повтора — 408/429/500/502/503/504.
     """
     mock_transport = _fake_transport(mocker, iter([retryable_status, _HTTP_OK]))
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
@@ -129,13 +105,6 @@ def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture
 @pytest.mark.infrastructure
 def test_retryable_session_backs_off_between_retries(mocker: MockerFixture) -> None:
     """Пауза между повторными попытками растёт от повтора к повтору.
-
-    ``RetryableSession`` передаёт ``backoff_factor`` в конструктор urllib3
-    ``Retry``; единственный способ убедиться, что это значение действительно
-    влияет на поведение сессии — прогнать несколько неудачных попыток через
-    настоящий цикл повторов urllib3 и посмотреть на фактические паузы между
-    ними (``time.sleep``), а не лезть во внутренний объект ``Retry`` напрямую
-    или пересчитывать формулу backoff локальными константами теста.
     """
     mock_sleep = mocker.patch("time.sleep")
     # urllib3 не спит перед самым первым повтором (backoff=0 при одном подряд
@@ -157,10 +126,6 @@ def test_retryable_session_timeout_forwarded_to_request(
     mocker: MockerFixture,
 ) -> None:
     """RetryableSession.request() внедряет свой _timeout в каждый вызов super().request().
-
-    Переопределение в RetryableSession.request() — это единственная логика приложения
-    в этом классе; оно должно передавать effective_timeout=self._timeout в
-    super().request(), чтобы каждый вызов HTTP соблюдал настроенный timeout.
     """
     mock_super_request: MagicMock = mocker.patch.object(
         requests.Session, "request", return_value=MagicMock(status_code=_HTTP_OK)

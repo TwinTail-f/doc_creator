@@ -1,9 +1,5 @@
 """
 Юнит-тесты для autodoc/parser/fetchers/options_fetcher.py.
-
-Стратегия: наследники FakeTFSClient для каждого сценария, управляемые
-реальным содержимым options JSON из resources/options/.
-Реальные сетевые вызовы не выполняются.
 """
 from pathlib import Path
 

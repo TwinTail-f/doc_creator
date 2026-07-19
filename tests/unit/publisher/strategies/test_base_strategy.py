@@ -2,11 +2,6 @@
 Тесты для:
 - autodoc.publisher.strategies.base.BasePublishStrategy (_minify_html, _publish_single_page)
 - autodoc.publisher.strategies.base.PublishReport
-
-ПРИМЕЧАНИЕ: тесты, связанные с реестром (BasePublishStrategy.create(), .available_strategies(),
-и самрегистрирующийся kwarg __init_subclass__ `strategy_type=`), были удалены —
-кодовая база с тех пор перешла на явный реестр на основе словаря
-(autodoc.publisher.strategies.registry.STRATEGIES / create_strategy()).
 """
 from typing import Any
 

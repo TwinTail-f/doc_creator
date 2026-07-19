@@ -1,10 +1,5 @@
 """
 Тесты для autodoc.publisher.publisher.DocumentPublisher.
-
-Стратегия тестирования:
-- Конструкторы ConfluenceClient и DocumentBuilder мокаются, поэтому реальная
-  HTTP-сессия или файловая система не требуются.
-- create_strategy мокается, чтобы изолировать паблишер от стратегий.
 """
 from pathlib import Path
 from typing import Any

@@ -219,4 +219,3 @@ def test_tfs_client_download_properties_skips_folders(mocker, parser_config, tmp
     assert not (tmp_path / "subdir.properties").exists()
     assert (tmp_path / "real.properties").read_text(encoding="utf-8") == "name=real"
     mock_get_file_content.assert_called_once()
-

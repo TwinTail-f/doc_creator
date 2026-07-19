@@ -1,8 +1,4 @@
 """Юнит-тесты для autodoc/parser/fetchers/manifest_fetcher.py.
-
-Стратегия: фейковые TFS-клиенты копируют реальные .properties-файлы во
-временную директорию без сетевого ввода-вывода. ManifestParser НЕ мокируется —
-тестируется вся цепочка ManifestFetcher → ManifestParser.
 """
 
 import shutil

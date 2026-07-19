@@ -1,7 +1,4 @@
 """Тесты для autodoc/cli/commands/info.py и autodoc/cli/commands/logs.py.
-
-Обе команды проверяются целиком через CliRunner. Это лёгкий smoke-набор,
-не претендующий на исчерпывающий перечень сценариев.
 """
 
 from pathlib import Path

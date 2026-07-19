@@ -1,6 +1,6 @@
 """Юнит-тесты для autodoc/parser/fetchers/conan_fetcher.py — содержимое результата.
 
-Эти тесты проверяют, что release_data, profile_data, errors и счётчики задач
+Проверяется, что release_data, profile_data, errors и счётчики задач
 доходят до ConanEnrichmentResult без искажений через ConanFetcher.fetch() —
 сценарии, невидимые в чисто оркестрационных тестах test_conan_fetcher.py,
 которые мокируют результат целиком.

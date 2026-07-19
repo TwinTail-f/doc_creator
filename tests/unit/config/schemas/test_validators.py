@@ -1,10 +1,5 @@
 """
-Юнит-тесты для собственных pydantic-валидаторов autodoc в схемах конфигурации.
-
-Это тесты категории «собственный валидатор проекта» (не категория A из чек-листа
-антипаттернов): здесь проверяется, что именно autodoc поднимает контролируемую
-ошибку валидации на пустое значение конкретного поля, а не то, что pydantic вообще
-умеет валидировать данные.
+Юнит-тесты для собственных pydantic-валидаторов в схемах конфигурации.
 """
 
 import pytest
@@ -25,8 +20,7 @@ def test_confluence_config_rejects_empty_url(
     valid_confluence_config: dict, empty_url: str,
 ) -> None:
     """ConfluenceConfigSchema._normalize_url поднимает ValidationError, если url пуст
-    или состоит только из пробелов — собственная проверка autodoc
-    (``if not v or not v.strip()``), а не встроенная в pydantic валидация строк."""
+    или состоит только из пробелов"""
     payload = {**valid_confluence_config, "url": empty_url}
     with pytest.raises(ValidationError, match="url не может быть пустым"):
         ConfluenceConfigSchema(**payload)
@@ -42,8 +36,8 @@ def test_confluence_config_strips_trailing_slash_from_url(valid_confluence_confi
 
 @pytest.mark.contract
 def test_parser_config_rejects_empty_tfs_token(valid_parser_config: dict) -> None:
-    """ParserConfigSchema.tfs_token_not_empty поднимает ValidationError на пустой tfs_token —
-    собственная проверка autodoc (PAT для TFS не может быть пустой строкой)."""
+    """ParserConfigSchema.tfs_token_not_empty поднимает ValidationError на пустой tfs_token 
+    (PAT для TFS не может быть пустой строкой)."""
     payload = {**valid_parser_config, "tfs_token": ""}
     with pytest.raises(ValidationError, match="tfs_token не может быть пустой строкой"):
         ParserConfigSchema(**payload)
@@ -62,11 +56,8 @@ def test_parser_config_normalize_url_strips_whitespace_and_trailing_slash(
     valid_parser_config: dict, field_name: str,
 ) -> None:
     """ParserConfigSchema.normalize_url убирает пробелы по краям и завершающий слэш.
-
-    Один и тот же валидатор навешан сразу на три поля (tfs_collection_url,
-    artifactory_components_conan2_url, conan_config_url) — параметризуем по имени
-    поля вместо трёх копий одного и того же теста.
     """
     payload = {**valid_parser_config, field_name: "  https://example.com/path/  "}
     config = ParserConfigSchema(**payload)
     assert getattr(config, field_name) == "https://example.com/path"
+

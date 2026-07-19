@@ -1,13 +1,5 @@
 """
 Тесты для autodoc.publisher.clients.confluence_transport.ConfluenceTransport.
-
-Стратегия тестирования:
-- Собственный файл тестов ConfluenceClient полностью мокает ConfluenceTransport,
-  поэтому реальная обработка HTTP/сетевых сбоев в _request, _extract_error_detail
-  и _create_session там никогда не выполняется. Этот файл мокает на уровень
-  ниже — метод ``request`` нижележащей сессии, — чтобы собственная логика
-  ConfluenceTransport выполнялась по-настоящему и была объектом тестирования.
-- Фикстура minimal_confluence_config приходит из tests/unit/publisher/conftest.py.
 """
 import json
 from typing import Any
@@ -243,13 +235,7 @@ def test_create_session_logs_warning_when_verify_ssl_false(
 def test_create_session_configures_retry_parameters(
     mocker: Any, minimal_confluence_config: dict
 ) -> None:
-    """_create_session передаёт в create_bearer_session параметры ретраев и таймаута из конфигурации.
-
-    Примечание: в отличие от остальных тестов этого файла (мокающих
-    request сессии), здесь мокается уровнем выше — сама
-    create_bearer_session — поскольку проверяется другой аспект
-    (передача параметров ретраев), а не обработка запроса/ответа.
-    """
+    """_create_session передаёт в create_bearer_session параметры ретраев и таймаута из конфигурации."""
     mock_create_bearer_session = mocker.patch(
         "autodoc.publisher.clients.confluence_transport.create_bearer_session",
         wraps=None,

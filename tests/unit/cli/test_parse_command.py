@@ -1,8 +1,4 @@
 """Тесты для autodoc/cli/commands/parse.py.
-
-Команда `parse` проверяется целиком через CliRunner. ComponentParser
-подменяется на уровне CLI — поведение его внутреннего пайплайна покрыто
-в другом месте набора тестов.
 """
 
 from pathlib import Path

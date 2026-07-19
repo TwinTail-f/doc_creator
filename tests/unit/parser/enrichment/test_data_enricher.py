@@ -2,8 +2,7 @@
 Юнит-тесты для autodoc/parser/enrichment/data_enricher.py.
 
 Охватывает DataEnricher.apply_options(), apply_docker_links() и
-apply_conan_results(). Использует фикстуры из unit/parser/conftest.py там,
-где доступны; фикстуры уровня компонента строятся инлайн для ясности.
+apply_conan_results(). Использует фикстуры из unit/parser/conftest.py.
 """
 
 import pytest

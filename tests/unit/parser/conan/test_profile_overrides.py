@@ -62,8 +62,6 @@ def _write_yaml(tmp_path: Path, content: dict) -> Path:
     "write_fixture",
     [
         pytest.param(_write_json, id="json"),
-        # YAML — основной документированный формат конфига переопределений, но
-        # без этого кейса все остальные тесты в этом файле проверяли бы только .json.
         pytest.param(_write_yaml, id="yaml"),
     ],
 )

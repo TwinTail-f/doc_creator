@@ -1,6 +1,5 @@
 """
 Специфичные для паблишера фикстуры и заглушки.
-Не трогать агенту Parser.
 """
 import threading
 from typing import Any

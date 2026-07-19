@@ -1,10 +1,4 @@
 """Тесты для autodoc/cli/commands/publish/passports.py.
-
-Команда `publish passports` проверяется целиком через CliRunner. Приоритет
-между --passports-root-parent-name и --passports-root-parent-id — зона
-ответственности RootPageResolver (покрыта в части 2), а не этой команды,
-поэтому здесь проверяется только передача обоих значений без изменений,
-а не их приоритет.
 """
 
 from pathlib import Path

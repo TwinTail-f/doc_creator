@@ -1,11 +1,5 @@
 """Unit-тесты для функций legacy_extractor.
 
-extract_platform_versions() — тонкая обёртка над parse_page_sections()
-(html_utils): вся логика разбора вкладок/заголовков уже покрыта тестами
-tests/unit/publisher/legacy_content/test_html_utils.py. Здесь проверяется
-только собственная логика обёртки — ранний выход на пустом HTML — и один
-happy-path тест, фиксирующий факт делегирования в parse_page_sections().
-
 Покрывает:
 - extract_platform_versions() возвращает {} на пустом HTML.
 - extract_platform_versions() возвращает все имена вкладок в качестве ключей словаря
