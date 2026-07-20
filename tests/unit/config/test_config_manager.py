@@ -27,26 +27,16 @@ def _dump(fmt: str, data: dict) -> str:
 
 
 @pytest.mark.contract
-@pytest.mark.parametrize(
-    "filename, fmt",
-    [
-        pytest.param("parser_config.json", "json", id="json"),
-        pytest.param("parser_config.yaml", "yaml", id="yaml"),
-        pytest.param("parser_config.yml", "yaml", id="yml"),
-    ],
-)
-def test_config_manager_loads_valid_config_by_extension(
-    tmp_path: Path, filename: str, fmt: str, valid_parser_config: dict
-) -> None:
+def test_config_manager_loads_valid_config_by_extension(parser_config_file: Path) -> None:
     """ConfigManager успешно загружает и валидирует парсер-конфиг из любого
     поддерживаемого расширения (.json, .yaml, .yml), возвращая экземпляр
     ParserConfigSchema, а не «сырой» dict.
-    """
-    config_file: Path = tmp_path / filename
-    config_file.write_text(_dump(fmt, valid_parser_config), encoding="utf-8")
 
-    manager = ConfigManager(configs_dir=tmp_path)
-    result = manager.load_parser_config(filename)
+    Файл конфига берётся параметризованной фикстурой ``parser_config_file``
+    (копия канонического ресурса, без прохода dict -> строка -> файл).
+    """
+    manager = ConfigManager(configs_dir=parser_config_file.parent)
+    result = manager.load_parser_config(parser_config_file.name)
 
     assert isinstance(result, ParserConfigSchema)
 
@@ -65,12 +55,12 @@ def test_config_manager_loads_valid_config_by_extension(
     ],
 )
 def test_config_manager_loads_real_resource_files_json_and_yaml_agree(
-    resources_dir: Path, loader_name: str, schema_class: type, stem: str
+    config_resources_dir: Path, loader_name: str, schema_class: type, stem: str
 ) -> None:
     """ConfigManager грузит настоящие файлы из tests/unit/config/resources/ напрямую —
     и для парсер-, и для confluence-конфига одним и тем же способом.
     """
-    manager = ConfigManager(configs_dir=resources_dir)
+    manager = ConfigManager(configs_dir=config_resources_dir)
     loader = getattr(manager, loader_name)
 
     json_result = loader(f"{stem}.json")
@@ -95,31 +85,15 @@ def test_config_manager_raises_config_error_on_invalid_schema(
         manager._validate(incomplete_data, ParserConfigSchema)  # type: ignore[attr-defined]
 
 
-def _make_nonexistent_dir(tmp_path: Path) -> Path:
-    """Путь, который никогда не создавался на диске."""
-    return tmp_path / "nonexistent"
-
-
-def _make_file_instead_of_dir(tmp_path: Path) -> Path:
-    """Существующий файл — валидный Path, но не директория."""
-    not_a_dir = tmp_path / "not_a_dir.json"
-    not_a_dir.write_text("{}", encoding="utf-8")
-    return not_a_dir
-
-
 @pytest.mark.business_logic
-@pytest.mark.parametrize(
-    "make_bad_configs_dir",
-    [
-        pytest.param(_make_nonexistent_dir, id="nonexistent-dir"),
-        pytest.param(_make_file_instead_of_dir, id="file-instead-of-dir"),
-    ],
-)
-def test_config_manager_raises_on_invalid_configs_dir(tmp_path: Path, make_bad_configs_dir) -> None:
+def test_config_manager_raises_on_invalid_configs_dir(bad_configs_dir: Path) -> None:
     """load_raw() поднимает ConfigError, если configs_dir не указывает на существующую
     директорию — будь то отсутствующий путь или путь, указывающий на файл.
+
+    Оба варианта "плохого пути" параметризованы фикстурой ``bad_configs_dir``
+    (см. tests/unit/config/conftest.py) — pytest сам разворачивает по ней два
+    теста, без вспомогательных функций-фабрик, передаваемых через pytest.param.
     """
-    bad_configs_dir = make_bad_configs_dir(tmp_path)
     manager = ConfigManager(configs_dir=bad_configs_dir)
 
     with pytest.raises(ConfigError):
@@ -220,32 +194,47 @@ def test_list_available_configs_excludes_examples_subdir(
 
 
 @pytest.mark.contract
-@pytest.mark.parametrize("examples_dir_exists", [True, False], ids=["present", "missing"])
-def test_list_example_configs_reflects_examples_subdir_presence(
-    tmp_path: Path, valid_parser_config: dict, examples_dir_exists: bool
+def test_list_example_configs_returns_files_when_examples_dir_populated(
+    tmp_path: Path, valid_parser_config: dict
 ) -> None:
-    """list_example_configs() возвращает файлы из configs/examples/, если она есть
-    и заполнена, и пустые списки по каждому формату, если её нет вовсе."""
-    if examples_dir_exists:
-        examples_dir = tmp_path / "examples"
-        examples_dir.mkdir()
-        (examples_dir / "parser_config.yaml").write_text(
-            yaml.dump(valid_parser_config), encoding="utf-8"
-        )
-        (examples_dir / "parser_config.json").write_text(
-            json.dumps(valid_parser_config), encoding="utf-8"
-        )
+    """list_example_configs() возвращает файлы из configs/examples/, если она
+    существует и содержит конфиги."""
+    examples_dir = tmp_path / "examples"
+    examples_dir.mkdir()
+    (examples_dir / "parser_config.yaml").write_text(
+        yaml.dump(valid_parser_config), encoding="utf-8"
+    )
+    (examples_dir / "parser_config.json").write_text(
+        json.dumps(valid_parser_config), encoding="utf-8"
+    )
 
     manager = ConfigManager(configs_dir=tmp_path)
     result = manager.list_example_configs()
 
-    if examples_dir_exists:
-        assert "parser_config.yaml" in result["yaml"]
-        assert "parser_config.json" in result["json"]
-    else:
-        assert all(files == [] for files in result.values()), (
-            "Ожидались пустые списки при отсутствии examples/, " f"получено: {result}"
-        )
+    assert "parser_config.yaml" in result["yaml"]
+    assert "parser_config.json" in result["json"]
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "create_empty_examples_dir", [True, False], ids=["present-but-empty", "missing"]
+)
+def test_list_example_configs_returns_empty_lists_without_examples(
+    tmp_path: Path, create_empty_examples_dir: bool
+) -> None:
+    """list_example_configs() возвращает пустые списки по каждому формату и
+    когда examples/ вовсе нет, и когда она есть, но пуста — оба случая
+    означают "примеров нет" и должны давать одинаковый результат, поэтому
+    объединены в один параметризованный тест."""
+    if create_empty_examples_dir:
+        (tmp_path / "examples").mkdir()
+
+    manager = ConfigManager(configs_dir=tmp_path)
+    result = manager.list_example_configs()
+
+    assert all(
+        files == [] for files in result.values()
+    ), f"Ожидались пустые списки, получено: {result}"
 
 
 @pytest.mark.business_logic
@@ -260,7 +249,11 @@ def test_list_example_configs_reflects_examples_subdir_presence(
             id="malformed-yaml-syntax",
         ),
         # синтаксически валидный JSON, но верхний уровень — не dict (список)
-        pytest.param("parser_config.json", json.dumps([1, 2, 3]), "dict", id="non-dict-top-level"),
+        # Литерал вместо json.dumps([1, 2, 3]): контент теста должен быть
+        # виден прямо в pytest.param, а не требовать мысленного вычисления
+        # сериализации, к тому же так исключается зависимость теста от
+        # деталей форматирования json.dumps.
+        pytest.param("parser_config.json", "[1, 2, 3]", "dict", id="non-dict-top-level"),
     ],
 )
 def test_config_manager_wraps_malformed_content_in_config_error(
