@@ -227,7 +227,9 @@ def test_parse_page_sections_h2_fallback_keeps_preamble_under_unknown_key() -> N
 
 
 @pytest.mark.business_logic
-def test_parse_page_sections_wraps_whole_document_under_unknown_key_when_no_version_headers() -> None:
+def test_parse_page_sections_wraps_whole_document_under_unknown_key_when_no_version_headers() -> (
+    None
+):
     """Если нет ни вкладок, ни h1 Platform, ни версионных h2/h3, весь документ
     попадает под ключ 'unknown' — пустой результат возможен только когда сам
     HTML пуст (см. test_parse_page_sections_empty_html_returns_empty_dict).

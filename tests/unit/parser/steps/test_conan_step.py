@@ -11,7 +11,6 @@ from autodoc.parser.conan.models.conan_enrichment_result import (
     ProfileConanData,
     ReleaseConanData,
 )
-from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 
 EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(

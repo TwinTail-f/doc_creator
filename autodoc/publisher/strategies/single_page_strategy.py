@@ -113,12 +113,14 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         """
         logger.info(f"Публикация {self._page_title}")
 
-        inject_fn = None
+        inject_fn: Callable[[dict[str, Any]], None] | None = None
         if self._include_passport_links:
             passport_pages = self._passport_page_registry.load()
 
-            def inject_fn(vm: dict[str, Any]) -> None:
+            def _inject_passport_links_fn(vm: dict[str, Any]) -> None:
                 self._inject_passport_links(vm, passport_pages)
+
+            inject_fn = _inject_passport_links_fn
 
         return self._publish_single_page(
             page_title=self._page_title,

@@ -3,7 +3,6 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
-import click
 from pydantic import ValidationError as PydanticValidationError
 from rich.console import Console
 from rich.panel import Panel

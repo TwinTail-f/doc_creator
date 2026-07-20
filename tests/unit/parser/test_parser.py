@@ -1,7 +1,6 @@
 """Юнит-тесты для autodoc/parser/parser.py (ComponentParser)."""
 
 import datetime
-from pathlib import Path
 
 import pytest
 

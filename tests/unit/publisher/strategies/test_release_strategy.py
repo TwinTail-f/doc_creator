@@ -175,7 +175,9 @@ def test_release_make_converter_creates_full_release_converter(
 
     assert publisher_document_builder.last_call is not None
     view_model = publisher_document_builder.last_call["view_model"]
-    assert "components" in view_model, "форма view_model должна соответствовать FullReleaseConverter"
+    assert (
+        "components" in view_model
+    ), "форма view_model должна соответствовать FullReleaseConverter"
     assert view_model["include_passport_links"] is False
 
 

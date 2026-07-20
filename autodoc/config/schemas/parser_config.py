@@ -2,9 +2,9 @@
 Схема конфигурации парсера компонентов.
 """
 
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ParserConfigSchema(BaseModel):
