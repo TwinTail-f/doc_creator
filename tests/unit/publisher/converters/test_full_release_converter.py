@@ -42,7 +42,7 @@ def test_full_release_convert_returns_platform_version(
     assert result["platform_version"] == PLATFORM_VERSION
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_full_release_convert_contains_all_components(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
@@ -245,22 +245,7 @@ def test_components_sorted_alphabetically_in_view(
 @pytest.mark.parametrize("flag", [True, False])
 @pytest.mark.contract
 def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, flag: bool) -> None:
-    """
-    Бизнес-правило: значение include_passport_links, переданное в конструктор
-    FullReleaseConverter, появляется без изменений в
-    view_model["include_passport_links"].
-
-    Предусловия:
-        - доступен publisher_parsed_result.
-
-    Шаги:
-        1. Создать FullReleaseConverter(include_passport_links=flag).
-        2. Вызвать convert().
-        3. Проверить view["include_passport_links"].
-
-    Ожидаемый результат:
-        view["include_passport_links"] is flag (True или False в зависимости от параметра).
-    """
+    """view['include_passport_links'] равен значению include_passport_links, переданному в конструктор FullReleaseConverter."""
     converter = FullReleaseConverter(include_passport_links=flag)
     view = converter.convert(publisher_parsed_result)
 

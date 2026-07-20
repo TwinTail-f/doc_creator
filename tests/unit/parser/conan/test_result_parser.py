@@ -298,7 +298,9 @@ def test_result_parser_sqlite3_dependency_nodes_not_matched(
     sqlite3_deps_graph: dict[str, Any],
     sqlite3_task: ConanTask,
 ) -> None:
-    """parse() сопоставляет только узел '1' (sqlite3); узел '2' (tcl) пропускается как зависимость."""
+    """parse() находит целевой узел по имени компонента ('sqlite3'), поэтому package_id
+    в результате соответствует узлу '1' (sqlite3), а не узлу '2' (tcl), несмотря на то,
+    что оба присутствуют в графе."""
     result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
 
     assert result is not None
@@ -319,17 +321,6 @@ def test_result_parser_libnetfilter_queue_two_deps(
 
 
 @pytest.mark.business_logic
-def test_result_parser_poco_missing_binary_returns_none(
-    poco_missing_graph: dict[str, Any],
-    poco_task: ConanTask,
-) -> None:
-    """parse() возвращает None, когда целевой узел имеет binary='Missing' (случай poco)."""
-    result = Conan2ResultParser().parse(poco_missing_graph, poco_task)
-
-    assert result is None
-
-
-@pytest.mark.business_logic
 def test_result_parser_returns_none_when_node_not_found(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -342,13 +333,28 @@ def test_result_parser_returns_none_when_node_not_found(
 
 
 @pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "graph_fixture, task_fixture, comp_name_override",
+    [
+        # binary='Missing' на целевом узле графа (poco)
+        pytest.param("poco_missing_graph", "poco_task", None, id="poco"),
+        # binary='Missing' на целевом узле графа (libyang)
+        pytest.param("missing_json", "conan_task", "libyang", id="libyang"),
+    ],
+)
 def test_result_parser_returns_none_on_missing_binary(
-    missing_json: dict[str, Any],
-    conan_task: ConanTask,
+    request: pytest.FixtureRequest,
+    graph_fixture: str,
+    task_fixture: str,
+    comp_name_override: str | None,
 ) -> None:
-    """parse() возвращает None, когда целевой узел имеет binary='Missing' (случай libyang)."""
-    object.__setattr__(conan_task, "comp_name", "libyang")
-    result = Conan2ResultParser().parse(missing_json, conan_task)
+    """parse() возвращает None, когда целевой узел графа имеет binary='Missing'."""
+    graph = request.getfixturevalue(graph_fixture)
+    task = request.getfixturevalue(task_fixture)
+    if comp_name_override is not None:
+        object.__setattr__(task, "comp_name", comp_name_override)
+
+    result = Conan2ResultParser().parse(graph, task)
 
     assert result is None
 
@@ -639,7 +645,7 @@ def test_result_parser_extracts_patch_file_names(
 @pytest.mark.parametrize(
     "conandata",
     [
-        # patches — не словарь (например список) -> защитный guard возвращает []
+        # patches — не словарь (например список) -> возвращается пустой список патчей
         pytest.param({"patches": ["not-a-dict"]}, id="patches-not-a-dict"),
         # значение под ключом версии — не список (например строка) -> элемент пропускается
         pytest.param({"patches": {"0.18.0": "not-a-list"}}, id="patch-entry-not-a-list"),
@@ -648,9 +654,9 @@ def test_result_parser_extracts_patch_file_names(
 def test_result_parser_extract_patches_guards_against_malformed_conandata(
     conan_task: ConanTask, conandata: dict[str, Any]
 ) -> None:
-    """_extract_patches защищается от неожиданной формы conandata.patches (не dict/не list
-    там, где Conan обычно кладёт словарь/списки) и возвращает пустой список патчей,
-    вместо того чтобы упасть с AttributeError/TypeError на кривых данных из реального ответа."""
+    """_extract_patches возвращает пустой список патчей при неожиданной форме
+    conandata.patches (не dict/не list там, где Conan обычно кладёт словарь/списки),
+    не поднимая AttributeError/TypeError на кривых данных из реального ответа."""
     graph_json: dict[str, Any] = {
         "graph": {
             "nodes": {

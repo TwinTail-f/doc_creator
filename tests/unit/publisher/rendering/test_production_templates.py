@@ -25,9 +25,12 @@ from autodoc.publisher.rendering.document_builder import DocumentBuilder
 # Корень директории рендеринга (templates/, styles/, macros/).
 _RENDERING_DIR: Path = Path(__file__).parents[4] / "autodoc" / "publisher" / "rendering"
 
+_RELEASE_DOC_TEMPLATE: str = "release_doc.jinja2"
+
 # Устойчивые строковые маркеры для проверки в отрендеренном выводе.
 _STYLES_BASE_MARKER: str = "autodoc-badge"  # присутствует в _styles_base.jinja2
 _STYLES_PP_MARKER: str = "autodoc-page-header"  # присутствует в _styles_passport.jinja2
+_OS_BADGE_MARKER: str = "autodoc-os-badge"  # результат работы макроса os_style()
 
 
 def _make_parsed_result(component_name: str = "testlib") -> ParsedResult:
@@ -71,10 +74,10 @@ def test_macros_template_renders_without_error(
     view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).convert(
         patched_result
     )
-    output: str = builder.build("release_doc.jinja2", view_model)
+    output: str = builder.build(_RELEASE_DOC_TEMPLATE, view_model)
 
     assert output.strip(), "Отрендеренный вывод release_doc.jinja2 пуст"
-    assert "autodoc-os-badge" in output, "В выводе не найден результат работы макроса os_style()"
+    assert _OS_BADGE_MARKER in output, "В выводе не найден результат работы макроса os_style()"
     assert (
         "autodoc-italic-note" in output
     ), "В выводе не найден результат работы макроса docker_note()"
@@ -86,7 +89,7 @@ def test_styles_base_template_renders_without_error(
 ) -> None:
     """_styles_base.jinja2 подключается через release_doc.jinja2 и должен рендериться без ошибок."""
     view_model: dict[str, Any] = _make_parsed_result().model_dump()
-    output: str = builder.build("release_doc.jinja2", view_model)
+    output: str = builder.build(_RELEASE_DOC_TEMPLATE, view_model)
     assert output.strip(), "Отрендеренный вывод пуст"
     assert (
         _STYLES_BASE_MARKER in output
@@ -138,7 +141,7 @@ def test_main_component_template_contains_component_name(
     """release_doc.jinja2 должен содержать имя компонента в отрендеренном выводе."""
     _COMPONENT_NAME: str = "my_sentinel_component"
     view_model: dict[str, Any] = _make_parsed_result(_COMPONENT_NAME).model_dump()
-    output: str = builder.build("release_doc.jinja2", view_model)
+    output: str = builder.build(_RELEASE_DOC_TEMPLATE, view_model)
     assert (
         _COMPONENT_NAME in output
     ), f"Имя компонента '{_COMPONENT_NAME}' не найдено в отрендеренном выводе release_doc"
@@ -153,7 +156,7 @@ def test_release_doc_template_renders_full_release_converter_output_with_real_re
         publisher_parsed_result
     )
 
-    output: str = builder.build("release_doc.jinja2", view_model)
+    output: str = builder.build(_RELEASE_DOC_TEMPLATE, view_model)
 
     comp = publisher_parsed_result.components[0]
     release = comp.releases[0]
@@ -163,7 +166,7 @@ def test_release_doc_template_renders_full_release_converter_output_with_real_re
         release.conan_reference in output
     ), "Conan-референс из реальных данных релиза не найден в выводе"
     assert (
-        "autodoc-os-badge" in output
+        _OS_BADGE_MARKER in output
     ), "Путь пер-профильного рендеринга (os_style) не был задействован"
 
 

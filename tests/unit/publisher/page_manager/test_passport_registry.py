@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 
@@ -36,16 +37,6 @@ def _make_registry(data_dir: Path) -> PassportPageRegistry:
         Новый экземпляр PassportPageRegistry.
     """
     return PassportPageRegistry(data_dir=data_dir)
-
-
-@pytest.mark.infrastructure
-def test_save_creates_file_in_data_dir(tmp_path: Path) -> None:
-    """save() записывает passport_pages.json в data_dir."""
-    registry = _make_registry(tmp_path)
-
-    registry.save(_PAGES_MAP)
-
-    assert (tmp_path / _REGISTRY_FILE).exists()
 
 
 @pytest.mark.infrastructure
@@ -72,7 +63,7 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_save_on_os_error_does_not_raise(tmp_path: Path, mocker: pytest.MonkeyPatch) -> None:
+def test_save_on_os_error_does_not_raise(tmp_path: Path, mocker: MockerFixture) -> None:
     """save() поглощает OSError и не пробрасывает исключение наружу."""
     registry = _make_registry(tmp_path)
     mocker.patch("pathlib.Path.write_text", side_effect=OSError("disk full"))
@@ -116,7 +107,7 @@ def test_load_returns_empty_dict_on_invalid_json(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_load_returns_empty_dict_on_os_error(tmp_path: Path, mocker: pytest.MonkeyPatch) -> None:
+def test_load_returns_empty_dict_on_os_error(tmp_path: Path, mocker: MockerFixture) -> None:
     """load() возвращает {}, если read_text бросает OSError."""
     (tmp_path / _REGISTRY_FILE).write_text("{}", encoding="utf-8")
     registry = _make_registry(tmp_path)
@@ -130,12 +121,9 @@ def test_load_returns_empty_dict_on_os_error(tmp_path: Path, mocker: pytest.Monk
 @pytest.mark.infrastructure
 def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     """Значение, сохранённое через save(), корректно возвращается через load()."""
-    pages_map: dict[str, Any] = {
-        "openssl": {"1.0.0": {"page_id": "p1", "page_title": "T", "version": 1}}
-    }
     registry = _make_registry(tmp_path)
 
-    registry.save(pages_map)
+    registry.save(_PAGES_MAP)
     loaded = registry.load()
 
-    assert loaded == pages_map
+    assert loaded == _PAGES_MAP

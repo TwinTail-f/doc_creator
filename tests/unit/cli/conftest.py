@@ -1,6 +1,6 @@
 """Общие fixtures и фабрики для тестов пакета tests/unit/cli.
 
-Область видимости этих fixtures ограничена tests/unit/cli а.
+Область видимости этих fixtures ограничена пакетом tests/unit/cli.
 """
 
 import json

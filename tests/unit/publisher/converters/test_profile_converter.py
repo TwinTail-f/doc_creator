@@ -147,7 +147,6 @@ def test_profile_centric_converter_profile_with_no_components_does_not_raise() -
     converter = ProfileCentricConverter()
     view_model = converter.convert(parsed)  # не должно бросить исключение
 
-    assert view_model is not None
     # У осиротевшего профиля нет ProfileBuild от не-header-only компонентов,
     # поэтому он должен отсутствовать в списке profiles (не вызывать падение
     # и не создавать фиктивную запись)
@@ -335,7 +334,7 @@ def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> N
     view = converter.convert(publisher_multi_channel_result)
 
     for profile in view["profiles"]:
-        for channel_name, comp_entries in profile["channels"].items():
+        for _, comp_entries in profile["channels"].items():
             for comp_entry in comp_entries:
                 link = comp_entry.get("passport_link")
                 assert link is None or link == "", (
@@ -373,7 +372,7 @@ def test_passport_link_key_present_and_none_when_include_links_true(
 
     checked_any = False
     for profile in view["profiles"]:
-        for channel_name, comp_entries in profile["channels"].items():
+        for _, comp_entries in profile["channels"].items():
             for comp_entry in comp_entries:
                 assert (
                     "passport_link" in comp_entry

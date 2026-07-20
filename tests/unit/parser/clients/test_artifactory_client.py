@@ -11,8 +11,6 @@ import requests
 
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 
-_EXAMPLE_URL: str = "https://art.example.com/artifactory/conan2/openssl"
-
 
 def _make_artifactory_client(parser_config) -> ArtifactoryClient:
     """
@@ -29,12 +27,13 @@ def _make_artifactory_client(parser_config) -> ArtifactoryClient:
 
 @pytest.mark.infrastructure
 def test_artifactory_client_head_returns_response(mocker, parser_config) -> None:
-    """ArtifactoryClient.head возвращает HTTP-ответ при успешном HEAD-запросе."""
+    """ArtifactoryClient.head выполняет HEAD-запрос с allow_redirects=True и возвращает HTTP-ответ."""
     client = _make_artifactory_client(parser_config)
     mock_resp = MagicMock(spec=requests.Response)
-    mock_resp.status_code = 200
-    mocker.patch.object(client.session, "head", return_value=mock_resp)
+    mock_head = mocker.patch.object(client.session, "head", return_value=mock_resp)
 
-    response = client.head(_EXAMPLE_URL)
+    url = "https://art.example.com/artifactory/conan2/openssl"
+    response = client.head(url)
 
-    assert response.status_code == 200
+    assert response is mock_resp
+    mock_head.assert_called_once_with(url, allow_redirects=True)

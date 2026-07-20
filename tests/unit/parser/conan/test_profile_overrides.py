@@ -1,8 +1,8 @@
 """
 Юнит-тесты для autodoc/parser/conan/profile_overrides.py.
 
-Охватывает ProfileSettingsOverrides: from_file(), resolve(), is_empty(),
-empty() и поведение слияния нескольких записей.
+Охватывает ProfileSettingsOverrides: from_file(), resolve(), is_empty()
+и поведение слияния нескольких записей.
 """
 
 import json

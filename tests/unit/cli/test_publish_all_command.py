@@ -122,38 +122,33 @@ def test_publish_all_release_page_title_precedence(
 
 
 @pytest.mark.business_logic
-def test_publish_all_with_additional_page_profile_default_name(
-    tmp_path: Path, configs_dir: Path, mocker
+@pytest.mark.parametrize(
+    ("extra_args", "expected_profile_title"),
+    [
+        # без пользовательского имени — используется заголовок профиля по умолчанию
+        pytest.param([], DEFAULT_PROFILE_PAGE_TITLE, id="default-name"),
+        # --additional-page-profile-name переопределяет заголовок по умолчанию
+        pytest.param(["--additional-page-profile-name", "X"], "X", id="custom-name"),
+    ],
+)
+def test_publish_all_with_additional_page_profile_title(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    extra_args: list[str],
+    expected_profile_title: str,
 ) -> None:
-    """--with-additional-page-profile без пользовательского имени использует заголовок/шаблон профиля по умолчанию."""
+    """--with-additional-page-profile использует заголовок профиля по умолчанию, если
+    --additional-page-profile-name не задан, и переопределённое значение, если задан;
+    шаблон профиля в обоих случаях — PROFILE_TEMPLATE."""
     mock_publisher = _mock_collaborators(mocker)
 
-    result = _invoke(tmp_path, configs_dir, "--with-additional-page-profile")
+    result = _invoke(tmp_path, configs_dir, "--with-additional-page-profile", *extra_args)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["profile_title"] == DEFAULT_PROFILE_PAGE_TITLE
+    assert kwargs["profile_title"] == expected_profile_title
     assert kwargs["profile_template_name"] == PROFILE_TEMPLATE
-
-
-@pytest.mark.business_logic
-def test_publish_all_with_additional_page_profile_custom_name(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
-    """--additional-page-profile-name переопределяет заголовок страницы профиля по умолчанию."""
-    mock_publisher = _mock_collaborators(mocker)
-
-    result = _invoke(
-        tmp_path,
-        configs_dir,
-        "--with-additional-page-profile",
-        "--additional-page-profile-name",
-        "X",
-    )
-
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["profile_title"] == "X"
 
 
 @pytest.mark.contract
@@ -227,7 +222,7 @@ def test_publish_all_no_passport_links_disables_links(
     assert kwargs["include_passport_links"] is False
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_publish_all_domain_error_exits_nonzero_cleanly(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
@@ -254,7 +249,7 @@ def test_publish_all_partial_failure_exits_nonzero_with_error_text(
 ) -> None:
     """Неуспешный PublishReport (success=False) завершает команду с кодом 1 и печатает каждое сообщение об ошибке."""
     report = make_publish_report(success=False, pages_published=0, errors=["some page failed"])
-    mock_publisher = _mock_collaborators(mocker, publish_report=report)
+    _mock_collaborators(mocker, publish_report=report)
 
     result = _invoke(tmp_path, configs_dir)
 

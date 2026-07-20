@@ -5,6 +5,7 @@
 сбоев и структуру результата. Без subprocess и ввода/вывода.
 """
 
+import logging
 from unittest.mock import MagicMock
 
 import pytest
@@ -101,8 +102,6 @@ def test_aggregator_skips_parser_on_failed_raw_result() -> None:
 @pytest.mark.business_logic
 def test_aggregator_skips_none_raw_result_and_emits_warning(caplog) -> None:
     """Агрегатор пропускает None-результаты параллельных задач и пишет WARNING в лог."""
-    import logging
-
     task = _make_task()
 
     mock_parser = MagicMock(spec=Conan2ResultParser)
@@ -187,10 +186,6 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
     key = ("mylib", "2.0.0", "fast")
     assert key in result.release_data
     assert result.release_data[key].dependencies == ["depA", "depB"]
-
-
-# SHA1 пустой строки — используется для header-only компонентов
-NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
 @pytest.mark.business_logic
@@ -420,8 +415,8 @@ def test_build_execution_report_failed_raw_result_has_error_message() -> None:
 @pytest.mark.business_logic
 def test_build_final_result_deduplicates_by_profile_build_identity() -> None:
     """Две задачи с одним и тем же объектом ProfileBuild (task.pb) учитываются в
-    result.profile_data один раз: вторая задача с тем же id(task.pb) пропускается
-    через continue-ветку _build_final_result, чтобы не задваивать профиль в отчёте."""
+    result.profile_data только один раз — запись профиля не задваивается для
+    повторяющегося ProfileBuild, даже если у задач разные option_id."""
     pb = ProfileBuild(profile_name="hw-linux-x86_64")
     release = Release(version="3.0.0", platform="2.0", channel="tech", profile_builds=[pb])
     task1 = ConanTask(

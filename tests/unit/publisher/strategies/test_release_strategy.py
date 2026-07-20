@@ -14,7 +14,6 @@ import pytest
 
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.registry import create_strategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
@@ -51,7 +50,7 @@ def make_release_strategy(
 
 
 # ReleasePageStrategy.execute()
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_release_strategy_execute_calls_publish_single_page(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
@@ -157,8 +156,10 @@ def test_release_make_converter_creates_full_release_converter(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
+    mocker: Any,
 ) -> None:
     """create_strategy('release', ...) подключает FullReleaseConverter с переданным include_passport_links."""
+    mocker.patch.object(PassportPageRegistry, "load", return_value={})
     strategy = create_strategy(
         "release",
         confluence_client=publisher_confluence_client,
@@ -170,8 +171,11 @@ def test_release_make_converter_creates_full_release_converter(
         data_dir=tmp_path,
         include_passport_links=False,
     )
-    assert isinstance(strategy._converter, FullReleaseConverter)
-    view_model = strategy._converter.convert(publisher_parsed_result)
+    strategy.execute()
+
+    assert publisher_document_builder.last_call is not None
+    view_model = publisher_document_builder.last_call["view_model"]
+    assert "components" in view_model, "форма view_model должна соответствовать FullReleaseConverter"
     assert view_model["include_passport_links"] is False
 
 

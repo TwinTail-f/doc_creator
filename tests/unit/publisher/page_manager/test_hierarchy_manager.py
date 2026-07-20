@@ -60,7 +60,7 @@ def _create_calls(client: FakeConfluenceClient) -> list[dict]:
 
 
 @pytest.mark.business_logic
-def test_ensure_hierarchy_calls_publish_page_twice(
+def test_ensure_hierarchy_calls_create_page_twice(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
     """ensure_hierarchy_exists выполняет ровно два вызова create_page, если ни одна страница ещё не существует."""
@@ -141,7 +141,7 @@ def test_ensure_hierarchy_passes_space_to_both_calls(
 def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """если страницы уже существуют, create_page повторно не вызывается."""
+    """Если страницы уже существуют, create_page повторно не вызывается."""
     publisher_confluence_client.register_page(title=COMP_NAME, page_id=COMP_PAGE_ID)
     publisher_confluence_client.register_page(
         title=f"{COMP_NAME} {RELEASE_VERSION}", page_id=VERSION_PAGE_ID
@@ -156,7 +156,7 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     ), "create_page не должен вызываться, если страница уже разрешена через resolve_existing_page_id"
 
 
-@pytest.mark.business_logic
+@pytest.mark.contract
 def test_ensure_hierarchy_propagates_confluence_error_from_create(
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:

@@ -16,43 +16,52 @@ from autodoc.publisher.page_manager.passport_link_injector import (
 
 
 @pytest.mark.business_logic
-def test_inject_links_for_profiles_sets_link_for_known_component() -> None:
-    """inject_links_for_profiles проставляет passport_link для компонента,
-    найденного в реестре паспортов."""
+@pytest.mark.parametrize(
+    "component_name, passport_pages, expected_link",
+    [
+        pytest.param(
+            "mylib",
+            {"mylib": {"1.0": {"page_id": "42"}}},
+            "/spaces/TEST/pages/42",
+            id="known-component-with-page-id",
+        ),
+        pytest.param(
+            "unknown-lib",
+            {"other-lib": {"1.0": {"page_id": "1"}}},
+            None,
+            id="unknown-component",
+        ),
+        pytest.param(
+            "mylib",
+            {"mylib": {"1.0": {"page_id": None}}},
+            None,
+            id="known-component-missing-page-id",
+        ),
+    ],
+)
+def test_inject_links_for_profiles_sets_passport_link(
+    component_name: str,
+    passport_pages: dict[str, Any],
+    expected_link: str | None,
+) -> None:
+    """inject_links_for_profiles проставляет passport_link в зависимости от того,
+    найден ли компонент/версия в реестре паспортов и задан ли у записи page_id."""
     view_model: dict[str, Any] = {
         "space": "TEST",
         "profiles": [
-            {"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}},
+            {"channels": {"fast": [{"name": component_name, "version": "1.0"}]}},
         ],
     }
-    passport_pages = {"mylib": {"1.0": {"page_id": "42"}}}
 
     inject_links_for_profiles(view_model, passport_pages)
 
     comp = view_model["profiles"][0]["channels"]["fast"][0]
-    assert comp["passport_link"] == "/spaces/TEST/pages/42"
-
-
-@pytest.mark.business_logic
-def test_inject_links_for_profiles_sets_none_for_unknown_component() -> None:
-    """inject_links_for_profiles оставляет passport_link=None (и переходит к следующему
-    компоненту через continue) для компонента, отсутствующего в реестре паспортов."""
-    view_model: dict[str, Any] = {
-        "space": "TEST",
-        "profiles": [
-            {"channels": {"fast": [{"name": "unknown-lib", "version": "1.0"}]}},
-        ],
-    }
-
-    inject_links_for_profiles(view_model, {"other-lib": {"1.0": {"page_id": "1"}}})
-
-    comp = view_model["profiles"][0]["channels"]["fast"][0]
-    assert comp["passport_link"] is None
+    assert comp["passport_link"] == expected_link
 
 
 @pytest.mark.business_logic
 def test_inject_links_for_profiles_noop_when_registry_empty() -> None:
-    """inject_links_for_profiles ничего не делает (не мутирует view_model), если реестр пуст."""
+    """inject_links_for_profiles не мутирует view_model, если реестр паспортов пуст."""
     view_model: dict[str, Any] = {
         "space": "TEST",
         "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],
@@ -60,8 +69,10 @@ def test_inject_links_for_profiles_noop_when_registry_empty() -> None:
 
     inject_links_for_profiles(view_model, {})
 
-    comp = view_model["profiles"][0]["channels"]["fast"][0]
-    assert "passport_link" not in comp
+    assert view_model == {
+        "space": "TEST",
+        "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],
+    }
 
 
 @pytest.mark.business_logic
@@ -134,7 +145,7 @@ def test_inject_links_noop_when_components_key_absent() -> None:
 
 @pytest.mark.business_logic
 def test_inject_links_noop_when_passport_pages_empty() -> None:
-    """inject_links ничего не делает, если реестр паспортов пуст."""
+    """inject_links не мутирует view_model, если реестр паспортов пуст."""
     view_model: dict[str, Any] = {
         "space": "TEST",
         "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
@@ -142,25 +153,10 @@ def test_inject_links_noop_when_passport_pages_empty() -> None:
 
     inject_links(view_model, {})
 
-    assert "passport_versions" not in view_model["components"][0]
-
-
-@pytest.mark.business_logic
-def test_inject_links_for_profiles_sets_none_when_page_id_missing() -> None:
-    """inject_links_for_profiles оставляет passport_link=None, если найденная
-    запись реестра лишена page_id."""
-    view_model: dict[str, Any] = {
+    assert view_model == {
         "space": "TEST",
-        "profiles": [
-            {"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}},
-        ],
+        "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
     }
-    passport_pages = {"mylib": {"1.0": {"page_id": None}}}
-
-    inject_links_for_profiles(view_model, passport_pages)
-
-    comp = view_model["profiles"][0]["channels"]["fast"][0]
-    assert comp["passport_link"] is None
 
 
 @pytest.mark.business_logic

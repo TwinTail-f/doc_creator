@@ -80,20 +80,31 @@ def test_conan_fetcher_cleanup_called_on_setup_failure(
 
 
 @pytest.mark.business_logic
-def test_conan_fetcher_overrides_loaded_when_file_configured(
+@pytest.mark.parametrize(
+    "overrides_file",
+    [
+        pytest.param(_OVERRIDES_FILE_PATH, id="overrides-file-configured"),
+        pytest.param(None, id="overrides-file-absent"),
+    ],
+)
+def test_conan_fetcher_overrides_loaded_only_when_file_configured(
     mocker: MockerFixture,
+    overrides_file: str | None,
 ) -> None:
-    """ProfileSettingsOverrides.from_file() вызывается, когда задан файл переопределений."""
+    """ProfileSettingsOverrides.from_file() вызывается только когда задан файл переопределений."""
     mock_from_file = mocker.patch(
         f"{_MODULE}.ProfileSettingsOverrides.from_file",
         return_value=mocker.MagicMock(is_empty=lambda: True),
     )
 
-    ctx = _make_mock_ctx(mocker, overrides_file=_OVERRIDES_FILE_PATH)
+    ctx = _make_mock_ctx(mocker, overrides_file=overrides_file)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
 
-    mock_from_file.assert_called_once_with(_OVERRIDES_FILE_PATH)
+    if overrides_file:
+        mock_from_file.assert_called_once_with(overrides_file)
+    else:
+        mock_from_file.assert_not_called()
 
 
 @pytest.mark.business_logic

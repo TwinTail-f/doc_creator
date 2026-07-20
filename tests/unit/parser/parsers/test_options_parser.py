@@ -14,7 +14,6 @@ CI_PREFIX_V2: str = "/ci-2.0/"
 CI_PREFIX_V16: str = "/ci-1.6/"
 
 PATH_V2_TECH: str = "/repo/ci-2.0/tech/options.json"
-PATH_OTHER: str = "/repo/other/options.json"
 
 
 @pytest.fixture
@@ -32,7 +31,7 @@ def options_dir(resources_dir: Path) -> Path:
         # только ci-2.0 -> выбирается единственный присутствующий префикс
         pytest.param(["/conan/ci-2.0/options.json"], CI_PREFIX_V2, id="ci20-alone"),
         # ни одна из известных CI-директорий не найдена -> пустая строка
-        pytest.param([PATH_OTHER], "", id="no-match"),
+        pytest.param(["/repo/other/options.json"], "", id="no-match"),
         # пустой список путей -> пустая строка
         pytest.param([], "", id="empty-list"),
         # присутствуют оба префикса -> ci-2.0 приоритетнее ci-1.6 независимо от порядка путей
@@ -211,7 +210,7 @@ def test_parse_file_strips_whitespace_from_values() -> None:
         opt_path=PATH_V2_TECH,
         ci_prefix=CI_PREFIX_V2,
     )
-    assert cleaned["1"] == "shared=True"
+    assert cleaned == {"1": "shared=True"}
 
 
 @pytest.mark.business_logic
@@ -222,38 +221,26 @@ def test_parse_file_non_string_values_excluded() -> None:
         opt_path=PATH_V2_TECH,
         ci_prefix=CI_PREFIX_V2,
     )
-    assert "1" in cleaned
-    assert "count" not in cleaned
-
-
-@pytest.mark.business_logic
-def test_pick_options_selects_channel_specific_over_global() -> None:
-    """pick_options возвращает специфичную для канала запись, если она есть, игнорируя global."""
-    repo_data = {
-        "global": {"1": ""},
-        "channels": {"fast": {"1": "", "2": "x=True"}},
-    }
-    result = OptionsParser.pick_options(repo_data, "fast")
-    assert result == {"1": "", "2": "x=True"}
+    assert cleaned == {"1": "shared=True"}
 
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
     "repo_data, channel, expected",
     [
+        # канал присутствует среди channels -> используется channel-specific набор, а не global
+        pytest.param(
+            {"global": {"1": ""}, "channels": {"fast": {"1": "", "2": "x=True"}}},
+            "fast",
+            {"1": "", "2": "x=True"},
+            id="channel-found-overrides-global",
+        ),
         # запрошенный канал отсутствует среди channels -> используется global
         pytest.param(
             {"global": {"1": "apr:shared=True"}, "channels": {}},
             "tech",
             {"1": "apr:shared=True"},
             id="no-channel-match-uses-global",
-        ),
-        # тот же случай отсутствия канала, но с другим содержимым global (кейс patchelf)
-        pytest.param(
-            {"global": {"1": ""}, "channels": {}},
-            "tech",
-            {"1": ""},
-            id="no-channel-match-uses-global-patchelf",
         ),
         # channel — пустая строка, среди channels есть только непустые ключи -> используется global
         pytest.param(
@@ -264,10 +251,11 @@ def test_pick_options_selects_channel_specific_over_global() -> None:
         ),
     ],
 )
-def test_pick_options_falls_back_to_global(
+def test_pick_options_channel_selection_and_global_fallback(
     repo_data: dict, channel: str, expected: dict[str, str]
 ) -> None:
-    """pick_options возвращает global, если запрошенный канал отсутствует среди channels."""
+    """pick_options возвращает channel-specific набор, если запрошенный канал есть
+    среди channels, и падает обратно на global, если такого канала нет."""
     assert OptionsParser.pick_options(repo_data, channel) == expected
 
 
@@ -306,8 +294,7 @@ def test_pick_options_sqlite3_fast_selected_over_slow() -> None:
         },
     }
     result = OptionsParser.pick_options(repo_data, "fast")
-    assert "enable_json1" in result["2"]
-    assert "shared" not in result["2"]
+    assert result == {"1": "", "2": "sqlite3:enable_json1=True"}
 
 
 @pytest.mark.business_logic

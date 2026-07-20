@@ -7,7 +7,19 @@ import pytest
 from autodoc.parser.parsers.manifest_parser import ManifestParser
 
 TARGET_PLATFORM: str = "2.0"
-TFS_COLLECTION_URL: str = "https://tfs.example.com"
+
+_MANIFEST_WITHOUT_NAME = "description= test\n"
+
+_MANIFEST_PLATFORM_MISMATCH = (
+    "name= libfoo\n"
+    "versions.component= 1.0\n"
+    "versions.platform= 1.0-tech\n"
+    "profiles-1.0-1.0-tech= hw-linux-x86_64-gcc10_2\n"
+)
+
+_MANIFEST_NO_PROFILES_KEY = (
+    "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
+)
 
 
 def write_props(tmp_path: Path, filename: str, content: str) -> Path:
@@ -28,7 +40,7 @@ def parser_20() -> ManifestParser:
     """ManifestParser настроенный для платформы 2.0 с поддельным URL коллекции TFS."""
     return ManifestParser(
         target_platform=TARGET_PLATFORM,
-        tfs_collection_url=TFS_COLLECTION_URL,
+        tfs_collection_url="https://tfs.example.com",
     )
 
 
@@ -37,9 +49,19 @@ def test_parser_returns_correct_component_count(
     parser_20: ManifestParser,
     all_real_properties: list[Path],
 ) -> None:
-    """parse() со всеми реальными файлами возвращает по крайней мере 5 названий компонентов."""
+    """parse() со всеми реальными файлами возвращает по одному компоненту на каждый
+    из 7 файлов resources/manifests/ (у каждого есть релиз для платформы 2.0)."""
     components, _ = parser_20.parse(all_real_properties, component_names=[], filter_mode="exclude")
-    assert len(components) >= 5
+    assert len(components) == 7
+    assert {c.name for c in components} == {
+        "apr",
+        "libnetfilter_queue",
+        "nlohmann_json",
+        "nlohmann_json_fast_only",
+        "openssl",
+        "patchelf",
+        "sqlite3",
+    }
 
 
 @pytest.mark.integration
@@ -56,6 +78,12 @@ def test_parser_returns_correct_component_count(
         pytest.param("sqlite3.properties", {("3.51.2", "fast"), ("3.34.1", "slow")}, id="sqlite3"),
         # libnetfilter_queue — 1 релиз для платформы 2.0, канал slow
         pytest.param("libnetfilter_queue.properties", {("1.0.5", "slow")}, id="libnetfilter_queue"),
+        # nlohmann_json — 2 релиза, разные каналы slow/fast
+        pytest.param(
+            "nlohmann_json.properties", {("3.9.1", "slow"), ("3.12.0", "fast")}, id="nlohmann_json"
+        ),
+        # openssl — 1 релиз, канал tech
+        pytest.param("openssl.properties", {("3.0.9", "tech")}, id="openssl"),
     ],
 )
 def test_parser_release_version_channel_pairs(
@@ -74,40 +102,6 @@ def test_parser_release_version_channel_pairs(
     assert len(components) == 1
     pairs = {(r.version, r.channel) for r in components[0].releases}
     assert pairs == expected_pairs
-
-
-@pytest.mark.integration
-def test_parser_nlohmann_json_multiple_releases(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """nlohmann_json имеет по крайней мере 2 релиза; один channel=='slow', один channel=='fast'."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "nlohmann_json.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    assert len(components) == 1
-    releases = components[0].releases
-    assert len(releases) >= 2
-    channels = {r.channel for r in releases}
-    assert "slow" in channels
-    assert "fast" in channels
-
-
-@pytest.mark.integration
-def test_parser_libnetfilter_queue_prg_quant_project(
-    parser_20: ManifestParser,
-    real_manifests_dir: Path,
-) -> None:
-    """компонент libnetfilter_queue имеет git_project=='PRG_Quant' (нестандартный проект)."""
-    components, _ = parser_20.parse(
-        [real_manifests_dir / "libnetfilter_queue.properties"],
-        component_names=[],
-        filter_mode="exclude",
-    )
-    assert len(components) == 1
-    assert components[0].git_project == "PRG_Quant"
 
 
 @pytest.mark.integration
@@ -159,29 +153,38 @@ def test_parser_profile_builds_populated_as_skeletons(
 
 
 @pytest.mark.business_logic
-def test_parser_filter_mode_include(
+@pytest.mark.parametrize(
+    "filter_mode, expected_names",
+    [
+        # include с component_names=['apr'] -> в результате остаётся только apr
+        pytest.param("include", {"apr"}, id="include-only-apr"),
+        # exclude с component_names=['apr'] -> apr опускается, остаются остальные 6 компонентов
+        pytest.param(
+            "exclude",
+            {
+                "libnetfilter_queue",
+                "nlohmann_json",
+                "nlohmann_json_fast_only",
+                "openssl",
+                "patchelf",
+                "sqlite3",
+            },
+            id="exclude-all-but-apr",
+        ),
+    ],
+)
+def test_parser_filter_mode_include_exclude(
     parser_20: ManifestParser,
     all_real_properties: list[Path],
+    filter_mode: str,
+    expected_names: set[str],
 ) -> None:
-    """parse() с filter_mode='include' и component_names=['apr'] возвращает только apr."""
+    """parse() с component_names=['apr'] возвращает только apr при filter_mode='include'
+    и все компоненты, кроме apr, при filter_mode='exclude'."""
     components, _ = parser_20.parse(
-        all_real_properties, component_names=["apr"], filter_mode="include"
+        all_real_properties, component_names=["apr"], filter_mode=filter_mode
     )
-    assert len(components) == 1
-    assert components[0].name == "apr"
-
-
-@pytest.mark.business_logic
-def test_parser_filter_mode_exclude(
-    parser_20: ManifestParser,
-    all_real_properties: list[Path],
-) -> None:
-    """parse() с filter_mode='exclude' и component_names=['apr'] опускает apr из результатов."""
-    components, _ = parser_20.parse(
-        all_real_properties, component_names=["apr"], filter_mode="exclude"
-    )
-    names = [c.name for c in components]
-    assert "apr" not in names
+    assert {c.name for c in components} == expected_names
 
 
 @pytest.mark.business_logic
@@ -201,20 +204,6 @@ def test_parser_file_without_recognizable_properties_is_silently_skipped(
     assert "apr" in names
     assert len(components) == 1
     assert warnings == []
-
-
-_MANIFEST_WITHOUT_NAME = "description= test\n"
-
-_MANIFEST_PLATFORM_MISMATCH = (
-    "name= libfoo\n"
-    "versions.component= 1.0\n"
-    "versions.platform= 1.0-tech\n"
-    "profiles-1.0-1.0-tech= hw-linux-x86_64-gcc10_2\n"
-)
-
-_MANIFEST_NO_PROFILES_KEY = (
-    "name= libfoo\n" "versions.component= 1.0\n" "versions.platform= 2.0-tech\n"
-)
 
 
 @pytest.mark.business_logic
@@ -247,17 +236,6 @@ def test_manifest_parser_invalid_input_yields_no_components(
     )
     assert len(components) == 0
     assert len(warnings) == expected_warnings_count
-
-
-@pytest.mark.integration
-def test_manifest_parser_parses_real_openssl_file(resources_dir: Path) -> None:
-    """ManifestParser корректно парсит реальный файл ресурса openssl.properties."""
-    props_file = resources_dir / "manifests" / "openssl.properties"
-    components, warnings = ManifestParser(TARGET_PLATFORM).parse(
-        [props_file], component_names=[], filter_mode="exclude"
-    )
-    names = [c.name for c in components]
-    assert "openssl" in names
 
 
 @pytest.mark.integration
@@ -294,10 +272,13 @@ def test_parser_apr_profile_count_fast(
         filter_mode="exclude",
     )
     rel = components[0].releases[0]
-    assert len(rel.profile_builds) == 4
     profile_names = {pb.profile_name for pb in rel.profile_builds}
-    assert "hw-linux-x86_64-gcc10_2" in profile_names
-    assert "windows-x86_64-vs2022-mt" in profile_names
+    assert profile_names == {
+        "crypto_default_gcc_x86_64.jinja",
+        "hw-linux-x86_64-gcc10_2",
+        "windows-x86_64-vs2022-mt",
+        "windows-x86-vs2022-mt",
+    }
 
 
 @pytest.mark.integration
@@ -322,7 +303,7 @@ def test_parser_sqlite3_slow_release_version_and_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
 ) -> None:
-    """Релиз sqlite3 slow имеет версию 3.34.1 и только профили hw-linux-*."""
+    """Релиз sqlite3 slow имеет версию 3.34.1 и ровно 4 profile_builds."""
     components, _ = parser_20.parse(
         [real_manifests_dir / "sqlite3.properties"],
         component_names=[],
@@ -330,9 +311,13 @@ def test_parser_sqlite3_slow_release_version_and_profiles(
     )
     slow_rel = next(r for r in components[0].releases if r.channel == "slow")
     assert slow_rel.version == "3.34.1"
-    assert len(slow_rel.profile_builds) >= 2
     profile_names = {pb.profile_name for pb in slow_rel.profile_builds}
-    assert any("hw-linux" in p or "instrumented" in p for p in profile_names)
+    assert profile_names == {
+        "hw-linux-armv7-gcc10_2",
+        "hw-linux-armv8-gcc10_2",
+        "hw-linux-x86_64-gcc10_2",
+        "linux-x86_64-gcc10_2-instrumented",
+    }
 
 
 @pytest.mark.integration
@@ -351,35 +336,40 @@ def test_parser_sqlite3_fast_and_slow_different_versions(
 
 
 @pytest.mark.integration
-def test_parser_libnetfilter_queue_git_url_points_to_prg_quant(
+def test_parser_libnetfilter_queue_git_project_and_url_point_to_prg_quant(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
 ) -> None:
-    """component.git_url для libnetfilter_queue содержит 'PRG_Quant' — проект внешней команды."""
+    """компонент libnetfilter_queue имеет git_project=='PRG_Quant' (нестандартный
+    проект) и содержит 'PRG_Quant' в сформированном git_url."""
     components, _ = parser_20.parse(
         [real_manifests_dir / "libnetfilter_queue.properties"],
         component_names=[],
         filter_mode="exclude",
     )
+    assert len(components) == 1
+    assert components[0].git_project == "PRG_Quant"
     assert "PRG_Quant" in components[0].git_url
 
 
 @pytest.mark.integration
-def test_parser_libnetfilter_queue_slow_has_hw_linux_profiles(
+def test_parser_libnetfilter_queue_slow_has_expected_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
 ) -> None:
-    """libnetfilter_queue 1.0.5/slow имеет 4 profile_builds с префиксом hw-linux."""
+    """libnetfilter_queue 1.0.5/slow имеет ровно 4 profile_builds."""
     components, _ = parser_20.parse(
         [real_manifests_dir / "libnetfilter_queue.properties"],
         component_names=[],
         filter_mode="exclude",
     )
     pb_names = {pb.profile_name for pb in components[0].releases[0].profile_builds}
-    assert "hw-linux-armv7-gcc10_2" in pb_names
-    assert "hw-linux-armv8-gcc10_2" in pb_names
-    assert "hw-linux-x86_64-gcc10_2" in pb_names
-    assert "linux-x86_64-gcc10_2-instrumented" in pb_names
+    assert pb_names == {
+        "hw-linux-armv7-gcc10_2",
+        "hw-linux-armv8-gcc10_2",
+        "hw-linux-x86_64-gcc10_2",
+        "linux-x86_64-gcc10_2-instrumented",
+    }
 
 
 def _write_manifest(tmp_path: Path, name: str, content: str) -> Path:
@@ -659,7 +649,7 @@ def test_manifest_parser_skips_none_results_from_executor(
     monkeypatch.setattr(
         parser._executor,
         "execute",
-        lambda fn, items, task_label="": [None, fn(f2)],
+        lambda fn, _, task_label="": [None, fn(f2)],
     )
 
     components, _ = parser.parse([f1, f2], component_names=[], filter_mode="include")

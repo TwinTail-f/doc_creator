@@ -14,10 +14,11 @@ from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
 from autodoc.publisher.strategies.models.publish_report import PublishReport
 
-_SPACE: str = "TEST"
 _ROOT_PAGE_ID: str = "root-001"
 _RELEASE_PAGE_TITLE: str = "Platform 2.0 Release"
 _RELEASE_TEMPLATE: str = "release_doc.jinja2"
+_PROFILE_TITLE: str = "Profile Page"
+_PROFILE_TEMPLATE: str = "profile_doc.jinja2"
 
 
 @pytest.fixture
@@ -77,7 +78,7 @@ def test_publisher_publish_passes_space_and_data_dir_from_config(
     )
     publisher_document_publisher.publish("release", publisher_parsed_result)
     _, kwargs = mock_create.call_args
-    assert kwargs["space"] == _SPACE
+    assert kwargs["space"] == "TEST"
     assert kwargs["data_dir"] == tmp_path
 
 
@@ -256,8 +257,8 @@ def test_publisher_publish_all_with_profile_merges_three_reports(
         release_page_title=_RELEASE_PAGE_TITLE,
         release_template_name=_RELEASE_TEMPLATE,
         release_root_page_id=_ROOT_PAGE_ID,
-        profile_title="Profile Page",
-        profile_template_name="profile_doc.jinja2",
+        profile_title=_PROFILE_TITLE,
+        profile_template_name=_PROFILE_TEMPLATE,
     )
 
     mock_publish_profile_page.assert_called_once()
@@ -348,8 +349,8 @@ def test_publisher_publish_profile_page_uses_release_page_id_as_parent(
 
     result = publisher_document_publisher.publish_profile_page(
         parsed_data=publisher_parsed_result,
-        profile_title="Profile Page",
-        profile_template_name="profile_doc.jinja2",
+        profile_title=_PROFILE_TITLE,
+        profile_template_name=_PROFILE_TEMPLATE,
         release_report=release_report,
     )
 
@@ -376,8 +377,8 @@ def test_publisher_publish_profile_page_fails_without_publishing_when_release_fa
 
     result = publisher_document_publisher.publish_profile_page(
         parsed_data=publisher_parsed_result,
-        profile_title="Profile Page",
-        profile_template_name="profile_doc.jinja2",
+        profile_title=_PROFILE_TITLE,
+        profile_template_name=_PROFILE_TEMPLATE,
         release_report=release_report,
     )
 
@@ -388,9 +389,9 @@ def test_publisher_publish_profile_page_fails_without_publishing_when_release_fa
     assert result.pages_failed == 1
     assert result.failed_pages == [
         {
-            "page_title": "Profile Page",
+            "page_title": _PROFILE_TITLE,
             "reason": (
-                "Профильная страница 'Profile Page' не опубликована: "
+                f"Профильная страница {_PROFILE_TITLE!r} не опубликована: "
                 "страница релиза не была опубликована, родитель недоступен"
             ),
         }

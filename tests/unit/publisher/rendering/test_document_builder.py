@@ -9,14 +9,12 @@ import pytest
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 
 TITLE_TEMPLATE_NAME: str = "title.jinja2"
-KEY_TEMPLATE_NAME: str = "key.jinja2"
 STATIC_TEMPLATE_NAME: str = "static.jinja2"
 BAD_TEMPLATE_NAME: str = "nonexistent.jinja2"
 XMLATTR_TEMPLATE_NAME: str = "xmlattr.jinja2"
 SYNTAX_ERROR_TEMPLATE_NAME: str = "syntax_error.jinja2"
 
 TITLE_TEMPLATE_CONTENT: str = "{{ data.title }}"
-KEY_TEMPLATE_CONTENT: str = "{{ data.key }}"
 STATIC_TEMPLATE_CONTENT: str = "static"
 XMLATTR_TEMPLATE_CONTENT: str = '<a title="{{ data.value | xmlattr }}"></a>'
 SYNTAX_ERROR_TEMPLATE_CONTENT: str = "{% if data.flag %}unclosed"
@@ -59,15 +57,7 @@ def test_init_raises_if_dir_not_exists(tmp_path: Path) -> None:
             "Hello",
             id="substitutes-field-from-view-model",
         ),
-        # переменная шаблона 'data' — это именно тот словарь, что передан в build()
-        pytest.param(
-            KEY_TEMPLATE_NAME,
-            KEY_TEMPLATE_CONTENT,
-            {"key": "expected_value"},
-            "expected_value",
-            id="data-variable-is-passed-view-model",
-        ),
-        # пустой view_model не ломает рендеринг шаблона, не обращающегося к data
+        # шаблон, не обращающийся к data, рендерится корректно и с пустым view_model
         pytest.param(
             STATIC_TEMPLATE_NAME,
             STATIC_TEMPLATE_CONTENT,
@@ -102,10 +92,8 @@ def test_build_raises_template_not_found(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_build_xmlattr_filter_escapes_special_chars(tmp_path: Path) -> None:
-    """DocumentBuilder настроен так (autoescape без двойного экранирования),
-    что итоговый XML-атрибут содержит корректно экранированные '&' и '"'
-    ровно один раз — это проверка конфигурации проекта, а не поведения
-    фильтра Jinja2 самого по себе."""
+    """Кастомный фильтр xmlattr экранирует '&' и '"' в значении атрибута
+    ровно один раз, без двойного экранирования."""
     rendering_dir = make_rendering_dir(tmp_path, {XMLATTR_TEMPLATE_NAME: XMLATTR_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)
 

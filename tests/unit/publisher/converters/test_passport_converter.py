@@ -2,7 +2,7 @@
 
 import pytest
 
-from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
@@ -15,25 +15,6 @@ PLATFORM_VERSION: str = "2.0"
 COMP_DESCRIPTION: str = "OpenSSL TLS/SSL library"
 UNKNOWN_COMPONENT: str = "nonexistent"
 UNKNOWN_VERSION: str = "9.9.9"
-
-
-@pytest.fixture
-def converter_parsed_result_missing_profile(
-    publisher_parsed_result: ParsedResult,
-) -> ParsedResult:
-    """ParsedResult, где один ProfileBuild ссылается на profile_name, отсутствующий в profile_definitions."""
-    unknown_pb = ProfileBuild(
-        profile_name="unknown-profile",
-        exists=True,
-        variants=[],
-    )
-    original_release = publisher_parsed_result.components[0].releases[0]
-    patched_release = original_release.model_copy(
-        update={"profile_builds": original_release.profile_builds + [unknown_pb]}
-    )
-    original_comp = publisher_parsed_result.components[0]
-    patched_comp = original_comp.model_copy(update={"releases": [patched_release]})
-    return publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
 
 @pytest.mark.business_logic
@@ -381,7 +362,7 @@ def test_profile_builds_ordered_by_profile_name(
     ), "arm64 should be first (alphabetically before x86_64)"
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_legacy_contents_key_absent_from_view(
     publisher_parsed_result: ParsedResult,
 ) -> None:

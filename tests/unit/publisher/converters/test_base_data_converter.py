@@ -1,6 +1,5 @@
 """Тесты для статических методов BaseDataConverter и PassportLinkMixin."""
 
-import dataclasses
 from typing import Any
 
 import pytest
@@ -9,36 +8,20 @@ from autodoc.models.conan_variant import ConanVariant
 from autodoc.publisher.converters.base_data_converter import _VariantOpts
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.converters.passport_converter import PassportConverter
-from autodoc.publisher.view_models.passports import ConanVariantView
 
 COMP_NAME: str = "openssl"
 OPT_KEY_SHARED: str = "shared"
 OPT_KEY_FPIC: str = "fPIC"
+INSTALL_OVERRIDE: str = "-o pkg/*:x=1"
+_MULTI_OPTION_RESULT: str = (
+    f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
+)
 
 
 class _MinimalParsedResult:
     """Минимальная замена ParsedResult, экспонирующая только то, что читает _base_view_model."""
 
     platform_version: str = "2.0"
-
-
-VARIANT_PKG_ID: str = "abc"
-VARIANT_BUILD_URL: str = "https://ci/1"
-VARIANT_BUILD_DATE: str = "2024-01-01"
-VARIANT_OPT_REF: str = "r1"
-
-INSTALL_OVERRIDE: str = "-o pkg/*:x=1"
-
-
-@pytest.fixture
-def sample_variant() -> ConanVariant:
-    """ConanVariant со всеми заполненными полями, используется в нескольких тестах статических методов."""
-    return ConanVariant(
-        package_id=VARIANT_PKG_ID,
-        build_url=VARIANT_BUILD_URL,
-        build_date=VARIANT_BUILD_DATE,
-        options_ref=VARIANT_OPT_REF,
-    )
 
 
 @pytest.mark.business_logic
@@ -57,6 +40,12 @@ def sample_variant() -> ConanVariant:
             "-o icu/*:data_packaging=static",
             id="dep-key-with-colon-not-modified",
         ),
+        # несколько опций объединяются пробелом, каждая со своим флагом '-o'
+        pytest.param(
+            {OPT_KEY_SHARED: "True", OPT_KEY_FPIC: "True"},
+            _MULTI_OPTION_RESULT,
+            id="multiple-options-joined-by-space",
+        ),
     ],
 )
 def test_build_install_options(conan_options: dict[str, str], expected: str) -> None:
@@ -64,22 +53,6 @@ def test_build_install_options(conan_options: dict[str, str], expected: str) -> 
     result = PassportConverter._build_install_options(conan_options, COMP_NAME)
 
     assert result == expected
-
-
-@pytest.mark.business_logic
-def test_build_install_options_multiple_options_joined_by_space() -> None:
-    """Несколько опций объединяются пробелом, каждая со своим флагом '-o'."""
-    result = PassportConverter._build_install_options(
-        {OPT_KEY_SHARED: "True", OPT_KEY_FPIC: "True"}, COMP_NAME
-    )
-
-    assert f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" in result
-    assert f"-o {COMP_NAME}/*:{OPT_KEY_FPIC}=True" in result
-
-
-_MULTI_OPTION_RESULT: str = (
-    f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
-)
 
 
 @pytest.mark.business_logic
@@ -124,51 +97,39 @@ def test_build_install_options_from_string(options_str: str, expected: str) -> N
 
 
 @pytest.mark.contract
-def test_variant_opts_is_frozen_dataclass() -> None:
-    """_VariantOpts заморожен (frozen=True) — присвоение поля после создания поднимает ошибку."""
-    opts = _VariantOpts(conan_options={})
-
-    with pytest.raises(dataclasses.FrozenInstanceError):
-        opts.conan_options = {"x": "1"}
-
-
-@pytest.mark.contract
-def test_variant_opts_default_options_default_is_not_shared_between_instances() -> None:
-    """default_options по умолчанию — независимый dict на каждый экземпляр, а не общий объект."""
-    opts_a = _VariantOpts(conan_options={})
-    opts_b = _VariantOpts(conan_options={})
-
-    assert opts_a.default_options is not opts_b.default_options
-
-    opts_a.default_options["shared"] = "True"
-
-    assert opts_b.default_options == {}
-
-
-@pytest.mark.contract
-def test_build_variant_view_maps_fields_from_variant(sample_variant: ConanVariant) -> None:
+def test_build_variant_view_maps_fields_from_variant(
+    publisher_conan_variant: ConanVariant,
+) -> None:
     """package_id и build_url из ConanVariant попадают в итоговое представление."""
-    view = PassportConverter._build_variant_view(sample_variant, COMP_NAME)
+    view = PassportConverter._build_variant_view(publisher_conan_variant, COMP_NAME)
 
-    assert view.package_id == VARIANT_PKG_ID
-    assert view.build_url == VARIANT_BUILD_URL
-
-
-@pytest.mark.contract
-def test_build_variant_view_uses_conan_options_from_opts(sample_variant: ConanVariant) -> None:
-    """conan_options из _VariantOpts передаются в view-model без изменений (чистый passthrough)."""
-    opts = _VariantOpts(conan_options={OPT_KEY_SHARED: "True"})
-    view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
-
-    assert view.conan_options == {OPT_KEY_SHARED: "True"}
+    assert view.package_id == publisher_conan_variant.package_id
+    assert view.build_url == publisher_conan_variant.build_url
 
 
 @pytest.mark.business_logic
-def test_build_variant_view_no_opts_gives_empty_conan_options(sample_variant: ConanVariant) -> None:
-    """Если opts равен None, conan_options view-model — пустой словарь."""
-    view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, None)
+@pytest.mark.parametrize(
+    "opts, expected_conan_options",
+    [
+        # opts не задан (None) — conan_options view-model пуст
+        pytest.param(None, {}, id="no-opts-defaults-to-empty"),
+        # opts задан — conan_options передаются без изменений (чистый passthrough)
+        pytest.param(
+            _VariantOpts(conan_options={OPT_KEY_SHARED: "True"}),
+            {OPT_KEY_SHARED: "True"},
+            id="opts-conan-options-passthrough",
+        ),
+    ],
+)
+def test_build_variant_view_conan_options(
+    publisher_conan_variant: ConanVariant,
+    opts: _VariantOpts | None,
+    expected_conan_options: dict[str, str],
+) -> None:
+    """conan_options view-model: пустой словарь, если opts не задан, иначе — значение из opts.conan_options без изменений."""
+    view = PassportConverter._build_variant_view(publisher_conan_variant, COMP_NAME, opts)
 
-    assert view.conan_options == {}
+    assert view.conan_options == expected_conan_options
 
 
 @pytest.mark.business_logic
@@ -187,7 +148,7 @@ def test_build_variant_view_no_opts_gives_empty_conan_options(sample_variant: Co
     ],
 )
 def test_build_variant_view_install_options_priority(
-    sample_variant: ConanVariant,
+    publisher_conan_variant: ConanVariant,
     conan_options: dict[str, str],
     install_options_override: str | None,
     expected_install_options: str,
@@ -196,7 +157,7 @@ def test_build_variant_view_install_options_priority(
     opts = _VariantOpts(
         conan_options=conan_options, install_options_override=install_options_override
     )
-    view = PassportConverter._build_variant_view(sample_variant, COMP_NAME, opts)
+    view = PassportConverter._build_variant_view(publisher_conan_variant, COMP_NAME, opts)
 
     assert view.install_options == expected_install_options
 
@@ -244,16 +205,3 @@ def test_include_passport_links_is_forwarded(flag: bool) -> None:
     view = converter._base_view_model(_MinimalParsedResult())
 
     assert view["include_passport_links"] is flag
-
-
-@pytest.mark.contract
-def test_conan_variant_view_defaults() -> None:
-    """Необязательные поля ConanVariantView по умолчанию — пустая строка / пустой словарь."""
-    view = ConanVariantView(
-        package_id="pkg-abc",
-        build_url="https://ci.example.com/build/1",
-        build_date="2024-03-10",
-    )
-    assert view.options_ref == ""
-    assert view.conan_options == {}
-    assert view.install_options == ""

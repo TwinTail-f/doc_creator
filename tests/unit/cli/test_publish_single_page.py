@@ -23,6 +23,7 @@ from tests.unit.cli.conftest import make_confluence_config, make_parsed_result, 
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
+_SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
@@ -76,9 +77,6 @@ def _mock_collaborators(mocker, module: str, publish_report=None, conf_config=No
     if parsed_ok:
         mocker.patch(f"{module}.load_parsed_data", return_value=make_parsed_result())
     return mock_publisher
-
-
-_SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
 
 @pytest.mark.business_logic
@@ -164,7 +162,7 @@ def test_publish_release_passes_release_strategy_type(
     assert kwargs["template_name"] == RELEASE_TEMPLATE
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
@@ -210,30 +208,30 @@ def test_publish_profile_passes_profile_centric_strategy_type(
 
 
 @pytest.mark.business_logic
-def test_publish_profile_title_falls_back_to_profile_docs_page_title(
-    tmp_path: Path, configs_dir: Path, mocker
+@pytest.mark.parametrize(
+    ("config_title", "expected_title"),
+    [
+        # заголовок берётся из profile_docs_page_title конфига, а не как у release
+        pytest.param("Profile Config Title", "Profile Config Title", id="config-field-wins"),
+        # ни флага, ни поля конфига нет — используется DEFAULT_PROFILE_PAGE_TITLE
+        pytest.param(None, DEFAULT_PROFILE_PAGE_TITLE, id="default-wins"),
+    ],
+)
+def test_publish_profile_title_source(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    config_title: str | None,
+    expected_title: str,
 ) -> None:
-    """Источником заголовка по умолчанию для profile служит conf_config.profile_docs_page_title, а не как у release."""
-    conf_config = make_confluence_config(profile_docs_page_title="Profile Config Title")
+    """Источником заголовка по умолчанию для profile служит conf_config.profile_docs_page_title
+    (а не release_docs_page_title, как у release); при его отсутствии используется
+    DEFAULT_PROFILE_PAGE_TITLE."""
+    conf_config = make_confluence_config(profile_docs_page_title=config_title)
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, conf_config=conf_config)
 
     result = _invoke(tmp_path, configs_dir, "profile")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_single_page.call_args.kwargs
-    assert kwargs["page_title"] == "Profile Config Title"
-
-
-@pytest.mark.business_logic
-def test_publish_profile_title_falls_back_to_default_profile_page_title(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
-    """Если не задан ни флаг, ни поле конфига, profile использует DEFAULT_PROFILE_PAGE_TITLE."""
-    conf_config = make_confluence_config(profile_docs_page_title=None)
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, conf_config=conf_config)
-
-    result = _invoke(tmp_path, configs_dir, "profile")
-
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_single_page.call_args.kwargs
-    assert kwargs["page_title"] == DEFAULT_PROFILE_PAGE_TITLE
+    assert kwargs["page_title"] == expected_title

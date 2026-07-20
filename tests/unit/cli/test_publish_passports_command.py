@@ -65,33 +65,33 @@ def _mock_collaborators(mocker, publish_report=None, parsed_ok=True):
 
 
 @pytest.mark.business_logic
-def test_publish_passports_happy_path_neither_flag_set(
-    tmp_path: Path, configs_dir: Path, mocker
+@pytest.mark.parametrize(
+    ("cli_name", "expected_name"),
+    [
+        # ни один root-parent флаг не задан — оба значения уходят как None
+        pytest.param(None, None, id="no-root-parent-name"),
+        # --passports-root-parent-name передаётся в publish_passports без изменений
+        pytest.param("Passports Root", "Passports Root", id="root-parent-name-given"),
+    ],
+)
+def test_publish_passports_root_parent_name_forwarded(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    cli_name: str | None,
+    expected_name: str | None,
 ) -> None:
-    """Без установленных root-parent флагов publish_passports вызывается с None для обоих значений."""
+    """--passports-root-parent-name передаётся в publish_passports без изменений;
+    без флага уходит None (наравне с passports_root_parent_id)."""
     mock_publisher = _mock_collaborators(mocker)
 
-    result = _invoke(tmp_path, configs_dir)
+    args = ["--passports-root-parent-name", cli_name] if cli_name else []
+    result = _invoke(tmp_path, configs_dir, *args)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_passports.call_args.kwargs
     assert kwargs["template_name"] == PASSPORT_TEMPLATE
-    assert kwargs["passports_root_parent_name"] is None
-    assert kwargs["passports_root_parent_id"] is None
-
-
-@pytest.mark.business_logic
-def test_publish_passports_root_parent_name_passed_through(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
-    """--passports-root-parent-name передаётся в publish_passports без изменений."""
-    mock_publisher = _mock_collaborators(mocker)
-
-    result = _invoke(tmp_path, configs_dir, "--passports-root-parent-name", "Passports Root")
-
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_passports.call_args.kwargs
-    assert kwargs["passports_root_parent_name"] == "Passports Root"
+    assert kwargs["passports_root_parent_name"] == expected_name
     assert kwargs["passports_root_parent_id"] is None
 
 
@@ -133,7 +133,7 @@ def test_publish_passports_publisher_failure_report_exits_nonzero(
     assert "passport boom" in result.output
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_publish_passports_missing_parsed_data_exits_nonzero_cleanly(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:

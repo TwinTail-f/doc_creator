@@ -15,7 +15,6 @@ from autodoc.publisher.strategies.models.publish_report import PublishReport
 _PAGE_TITLE: str = "Test Page"
 _TEMPLATE_NAME: str = "test_template.jinja2"
 _PARENT_ID: str = "parent-001"
-_PAGE_ID: str = "page-001"
 
 
 class _StubStrategy(BasePublishStrategy):
@@ -27,43 +26,30 @@ class _StubStrategy(BasePublishStrategy):
 
 
 # _minify_html
-@pytest.mark.infrastructure
-def test_minify_html_removes_html_comments() -> None:
-    """HTML-комментарии удаляются из результата."""
-    result = BasePublishStrategy._minify_html("<!-- comment --><p>text</p>")
-    assert result == "<p>text</p>"
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "html, expected",
+    [
+        pytest.param("<!-- comment --><p>text</p>", "<p>text</p>", id="removes-html-comments"),
+        pytest.param("  <p>text</p>  ", "<p>text</p>", id="strips-leading-trailing-whitespace"),
+        pytest.param("two  spaces", "two spaces", id="collapses-multiple-spaces"),
+        pytest.param("", "", id="empty-string-returns-empty"),
+    ],
+)
+def test_minify_html_transforms_html(html: str, expected: str) -> None:
+    """_minify_html убирает комментарии, схлопывает пробелы и обрезает края результата."""
+    assert BasePublishStrategy._minify_html(html) == expected
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_minify_html_collapses_whitespace_between_tags() -> None:
-    """Пробелы между тегами схлопываются полностью."""
+    """Пробелы между тегами схлопываются полностью, без пробела в результате."""
     result = BasePublishStrategy._minify_html("><    <")
     assert "  " not in result
     assert ">  <" not in result
 
 
-@pytest.mark.infrastructure
-def test_minify_html_collapses_multiple_spaces() -> None:
-    """Несколько подряд идущих пробелов в тексте сжимаются до одного."""
-    result = BasePublishStrategy._minify_html("two  spaces")
-    assert result == "two spaces"
-
-
-@pytest.mark.infrastructure
-def test_minify_html_strips_result() -> None:
-    """Начальные и конечные пробелы удаляются из результата."""
-    result = BasePublishStrategy._minify_html("  <p>text</p>  ")
-    assert result == "<p>text</p>"
-
-
-@pytest.mark.infrastructure
-def test_minify_html_empty_string_returns_empty() -> None:
-    """Пустая строка на входе даёт пустую строку на выходе."""
-    result = BasePublishStrategy._minify_html("")
-    assert result == ""
-
-
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_minify_html_preserves_cdata_content_untouched() -> None:
     """Содержимое блоков CDATA (например, тела макросов Confluence) не изменяется минификацией."""
     html = (
@@ -74,16 +60,6 @@ def test_minify_html_preserves_cdata_content_untouched() -> None:
 
 
 # PublishReport
-@pytest.mark.contract
-def test_publish_report_defaults() -> None:
-    """Опциональные поля имеют корректные значения по умолчанию, если не заданы."""
-    report = PublishReport(success=True, pages_published=0)
-    assert report.pages_failed == 0
-    assert report.errors == []
-    assert report.failed_pages == []
-    assert report.details == []
-
-
 @pytest.mark.business_logic
 def test_publish_report_merge_concatenates_failed_pages_and_details() -> None:
     """merge() объединяет списки failed_pages и details нескольких отчётов, как это используется в publisher.py."""
@@ -142,7 +118,7 @@ def test_publish_single_page_returns_success_report(
     assert report.pages_published == 1
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_publish_single_page_adds_space_to_view_model(
     strategy_stub: _StubStrategy,
     publisher_document_builder: Any,

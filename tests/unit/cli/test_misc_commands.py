@@ -39,30 +39,31 @@ def test_info_exits_zero_and_shows_version(tmp_path: Path, configs_dir: Path) ->
 
 
 @pytest.mark.infrastructure
-def test_logs_clear_yes_with_deleted_files_shows_count(
-    tmp_path: Path, configs_dir: Path, mocker
+@pytest.mark.parametrize(
+    ("filenames", "expected_substring"),
+    [
+        # непустой список удалённых путей — в выводе показывается их количество
+        pytest.param(["parser-2024.log", "publisher-2024.log"], "2", id="files-deleted"),
+        # пустой список — выводится сообщение о том, что удалять нечего
+        pytest.param([], "нет файлов", id="nothing-to-delete"),
+    ],
+)
+def test_logs_clear_yes_shows_result_message(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    filenames: list[str],
+    expected_substring: str,
 ) -> None:
-    """logs clear --yes с непустым списком удалённых путей завершается с кодом 0 и показывает их количество."""
-    deleted = [tmp_path / "logs" / "parser-2024.log", tmp_path / "logs" / "publisher-2024.log"]
+    """logs clear --yes завершается с кодом 0 и показывает количество удалённых файлов либо
+    сообщение о том, что удалять нечего — в зависимости от результата clear_logs_dir."""
+    deleted = [tmp_path / "logs" / name for name in filenames]
     mocker.patch(f"{_LOGS_MODULE}.clear_logs_dir", return_value=deleted)
 
     result = _invoke(tmp_path, configs_dir, "logs", "clear", "--yes")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    assert "2" in result.output
-
-
-@pytest.mark.infrastructure
-def test_logs_clear_yes_with_nothing_to_delete_shows_message(
-    tmp_path: Path, configs_dir: Path, mocker
-) -> None:
-    """logs clear --yes с пустым списком удалённых путей завершается с кодом 0 и сообщением, что удалять нечего."""
-    mocker.patch(f"{_LOGS_MODULE}.clear_logs_dir", return_value=[])
-
-    result = _invoke(tmp_path, configs_dir, "logs", "clear", "--yes")
-
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    assert "нет файлов" in result.output.lower()
+    assert expected_substring in result.output.lower()
 
 
 @pytest.mark.infrastructure

@@ -192,64 +192,6 @@ def test_options_fetcher_patchelf_two_versions_share_options(
     assert ("patchelf", "0.18.0", "tech") in result.value
 
 
-@pytest.mark.integration
-def test_options_fetcher_empty_items_returns_empty_map(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """Когда get_items не возвращает элементов, OptionsFetcher добавляет запись опций-плейсхолдер."""
-    client = _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}")
-    release = Release(
-        version="3.0.0",
-        platform="2.0",
-        channel="tech",
-        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
-    )
-    comp = Component(
-        name="openssl",
-        git_project="DEP_Components",
-        git_repo="contrib_openssl",
-        releases=[release],
-    )
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert ("openssl", "3.0.0", "tech") in result.value
-
-
-@pytest.mark.integration
-def test_options_fetcher_invalid_json_does_not_raise_openssl_alias(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """OptionsFetcher не выбрасывает исключение при некорректном JSON; ключ релиза присутствует."""
-    path = "/conan/ci-2.0/tech/options.json"
-    client = _OptionsFileFakeTFSClient(
-        items=_make_items_response([path]),
-        content_bytes=b"NOT JSON",
-    )
-    release = Release(
-        version="3.0.0",
-        platform="2.0",
-        channel="tech",
-        profile_builds=[ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")],
-    )
-    comp = Component(
-        name="openssl",
-        git_project="DEP_Components",
-        git_repo="contrib_openssl",
-        releases=[release],
-    )
-    ctx = _make_context(parser_config, client, tmp_path)
-    fetcher = OptionsFetcher()
-    fetcher.configure(ctx)
-    result = fetcher.fetch([comp])
-
-    assert ("openssl", "3.0.0", "tech") in result.value
-
-
 class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
     """Отдаёт разные соответствия путь→содержимое в зависимости от запрошенной ветки.
 
@@ -408,17 +350,28 @@ class _NotFoundFakeTFSClient(FakeTFSClient):
         _RaisingOnGetItemsFakeTFSClient,
         _RaisingOnGetFileContentFakeTFSClient,
         _NotFoundFakeTFSClient,
+        lambda: _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}"),
+        lambda: _OptionsFileFakeTFSClient(
+            items=_make_items_response(["/conan/ci-2.0/tech/options.json"]),
+            content_bytes=b"NOT JSON",
+        ),
     ],
-    ids=["get_items-network-error", "get_file_content-network-error", "get_file_content-404"],
+    ids=[
+        "get_items-network-error",
+        "get_file_content-network-error",
+        "get_file_content-404",
+        "no-items-found",
+        "invalid-json",
+    ],
 )
 def test_options_fetcher_failure_modes_return_placeholder(
     make_client,
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """При любой ошибке доступа к TFS (сеть на get_items, сеть на
-    get_file_content, 404 на get_file_content) OptionsFetcher возвращает
-    плейсхолдер вместо падения."""
+    """При любой ошибке доступа к TFS или разбора options.json (сеть на get_items, сеть
+    на get_file_content, 404, отсутствие файлов options.json, невалидный JSON)
+    OptionsFetcher возвращает плейсхолдер {'1': ''} вместо падения."""
     client = make_client()
     comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
     ctx = _make_context(parser_config, client, tmp_path)

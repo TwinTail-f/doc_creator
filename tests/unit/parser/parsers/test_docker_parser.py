@@ -8,40 +8,36 @@ import pytest
 from autodoc.parser.parsers.docker_parser import DockerParser, DockerLinksMap
 
 DOCKER_IMAGE: str = "harbor.example.com/debian11:components"
-DOCKER_IMAGE_DICT: str = "harbor.example.com/image:tag"
 PROFILE_LINUX: str = "linux-x86_64-gcc10_2"
-PROFILE_WITH_PATH: str = "path/to/profile.jinja"
-PROFILE_FLAT: str = "hw-linux-x86_64-gcc10_2"
 
 
 @pytest.mark.business_logic
-def test_extract_from_yaml_plain_string_docker() -> None:
-    """extract_from_yaml сопоставляет ключ arch с URL docker-образа в виде простой строки."""
+@pytest.mark.parametrize(
+    "docker_value, expected_image",
+    [
+        # docker задан простой строкой
+        pytest.param(DOCKER_IMAGE, DOCKER_IMAGE, id="plain-string"),
+        # docker задан словарём с ключом 'image'
+        pytest.param(
+            {"image": "harbor.example.com/image:tag"},
+            "harbor.example.com/image:tag",
+            id="dict-image-key",
+        ),
+    ],
+)
+def test_extract_from_yaml_docker_value_formats(docker_value: object, expected_image: str) -> None:
+    """extract_from_yaml сопоставляет ключ arch с URL docker-образа независимо
+    от того, задан ли docker простой строкой или словарём с ключом 'image'."""
     content: dict = {
         "archs": {
             PROFILE_LINUX: {
                 "profile_host": PROFILE_LINUX,
-                "docker": DOCKER_IMAGE,
+                "docker": docker_value,
             }
         }
     }
     links: DockerLinksMap = DockerParser.extract_from_yaml(content)
-    assert links[PROFILE_LINUX] == DOCKER_IMAGE
-
-
-@pytest.mark.business_logic
-def test_extract_from_yaml_docker_dict_image_key() -> None:
-    """extract_from_yaml извлекает URL образа, когда docker-значение — словарь с ключом 'image'."""
-    content: dict = {
-        "archs": {
-            PROFILE_LINUX: {
-                "profile_host": PROFILE_LINUX,
-                "docker": {"image": DOCKER_IMAGE_DICT},
-            }
-        }
-    }
-    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
-    assert links[PROFILE_LINUX] == DOCKER_IMAGE_DICT
+    assert links[PROFILE_LINUX] == expected_image
 
 
 @pytest.mark.business_logic
@@ -113,28 +109,34 @@ def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
         }
     }
     links: DockerLinksMap = DockerParser.extract_from_yaml(content)
-    assert "prof-a" in links
-    assert "prof-b" in links
+    assert links == {"multi-arch": DOCKER_IMAGE, "prof-a": DOCKER_IMAGE, "prof-b": DOCKER_IMAGE}
 
 
 @pytest.mark.business_logic
-def test_add_aliases_with_extension_adds_four_entries() -> None:
-    """add_aliases добавляет полный путь, имя файла, stem и parent/stem для вложённого .jinja-имени."""
+@pytest.mark.parametrize(
+    "name, expected_keys",
+    [
+        # вложенное имя с расширением -> полный путь, имя файла, stem и parent/stem
+        pytest.param(
+            "path/to/profile.jinja",
+            {"path/to/profile.jinja", "profile.jinja", "profile", "path/to/profile"},
+            id="nested-path-with-extension",
+        ),
+        # плоское (невложенное) имя -> регистрируется только само имя, без parent/stem
+        pytest.param(
+            "hw-linux-x86_64-gcc10_2",
+            {"hw-linux-x86_64-gcc10_2"},
+            id="flat-name-no-parent",
+        ),
+    ],
+)
+def test_add_aliases_registers_expected_keys(name: str, expected_keys: set[str]) -> None:
+    """add_aliases регистрирует полный путь, имя файла, stem и (при наличии
+    родительской директории) parent/stem — все под одним и тем же docker-образом."""
     links: DockerLinksMap = {}
-    DockerParser.add_aliases(PROFILE_WITH_PATH, "img:tag", links)
-    assert links.get("path/to/profile.jinja") == "img:tag"
-    assert links.get("profile.jinja") == "img:tag"
-    assert links.get("profile") == "img:tag"
-    assert links.get("path/to/profile") == "img:tag"
-
-
-@pytest.mark.business_logic
-def test_add_aliases_flat_name_adds_entries() -> None:
-    """add_aliases отображает плоское (невложенное) имя без добавления ключа parent/stem."""
-    links: DockerLinksMap = {}
-    DockerParser.add_aliases(PROFILE_FLAT, "img:tag", links)
-    assert links[PROFILE_FLAT] == "img:tag"
-    assert "." not in links
+    DockerParser.add_aliases(name, "img:tag", links)
+    assert set(links.keys()) == expected_keys
+    assert all(value == "img:tag" for value in links.values())
 
 
 @pytest.mark.business_logic

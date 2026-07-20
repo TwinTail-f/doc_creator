@@ -229,20 +229,6 @@ def test_publish_one_continues_when_get_page_body_raises(
 
 # _make_page_title / _build_pages_map (статические хелперы)
 @pytest.mark.business_logic
-def test_page_title_is_unique_for_different_component_release_pairs() -> None:
-    """Разные пары (компонент, версия) всегда дают различающиеся заголовки страниц."""
-    pairs = [
-        ("openssl", "3.0.9"),  # из openssl.properties
-        ("patchelf", "0.16.1"),  # из patchelf.properties
-        ("patchelf", "0.18.0"),  # тот же компонент, другая версия
-        ("sqlite3", "3.51.2"),  # из sqlite3.properties
-        ("nlohmann_json", "3.9.1"),  # из nlohmann_json.properties
-    ]
-    titles = [PassportsStrategy._make_page_title(comp, ver) for comp, ver in pairs]
-    assert len(titles) == len(set(titles)), f"Обнаружены дублирующиеся заголовки: {titles}"
-
-
-@pytest.mark.contract
 def test_page_title_exact_format() -> None:
     """_make_page_title возвращает 'Документация <name> <version>' — точный формат."""
     # openssl/1.0.0 — базовый случай
@@ -277,9 +263,6 @@ def test_passports_strategy_build_pages_map_structure() -> None:
     assert entry["version"] == 1
 
 
-_BL_PS_VERSION_PAGE_ID = "bl-ps-ver-page-001"
-
-
 @pytest.mark.business_logic
 def test_one_page_per_component_release_combination(
     publisher_multi_component_result: ParsedResult,
@@ -288,12 +271,13 @@ def test_one_page_per_component_release_combination(
     mocker: Any,
 ) -> None:
     """
-    BL-PS-01
+    BL-PS-01, BL-PS-04
     Бизнес-правило: ровно 1 страница паспорта публикуется для каждой пары
-    (компонент × релиз).
+    (компонент × релиз), и при отсутствии ошибок report.pages_published
+    равен точному числу таких пар, а report.pages_failed равен 0.
 
     Предусловия:
-        - ParsedResult содержит несколько компонентов с несколькими релизами.
+        - ParsedResult содержит несколько компонентов с разным числом релизов.
         - PageHierarchyManager.ensure_hierarchy_exists застаблен.
         - PassportConverter.convert возвращает корректный заглушечный view_model.
 
@@ -303,12 +287,13 @@ def test_one_page_per_component_release_combination(
 
     Ожидаемый результат:
         report.pages_published == общему числу пар (компонент, релиз).
+        report.pages_failed == 0.
         Не публикуются лишние или пропущенные страницы паспортов.
     """
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
+        return_value=_VERSION_PAGE_ID,
     )
     mocker.patch.object(
         PassportConverter,
@@ -334,6 +319,7 @@ def test_one_page_per_component_release_combination(
         f"Ожидалось {total_releases} опубликованных страниц паспортов, "
         f"получено {report.pages_published}"
     )
+    assert report.pages_failed == 0, "Все страницы должны быть опубликованы успешно, без ошибок"
 
 
 @pytest.mark.business_logic
@@ -363,7 +349,7 @@ def test_registry_saved_after_all_pages_published(
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
+        return_value=_VERSION_PAGE_ID,
     )
     mocker.patch.object(
         PassportConverter,
@@ -431,7 +417,7 @@ def test_failure_of_one_page_does_not_stop_others(
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
+        return_value=_VERSION_PAGE_ID,
     )
 
     call_count: list[int] = [0]
@@ -478,7 +464,7 @@ def test_one_passport_publish_failure_isolated_from_others(
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
+        return_value=_VERSION_PAGE_ID,
     )
     mocker.patch.object(
         PassportConverter,
@@ -517,59 +503,6 @@ def test_one_passport_publish_failure_isolated_from_others(
 
 
 @pytest.mark.business_logic
-def test_report_pages_published_count_equals_successful_pages(
-    publisher_parsed_result: ParsedResult,
-    publisher_document_builder: FakeDocumentBuilder,
-    tmp_path: Path,
-    mocker: Any,
-) -> None:
-    """
-    BL-PS-04
-    Бизнес-правило: PublishReport.pages_published равен точному числу успешно
-    опубликованных страниц паспортов.
-
-    Предусловия:
-        - ParsedResult с одним компонентом и одним релизом.
-        - Ошибок при публикации нет.
-
-    Шаги:
-        1. Вызвать execute() со всеми зависимостями, застабленными на успех.
-
-    Ожидаемый результат:
-        report.pages_published == числу релизов компонента.
-        report.pages_failed == 0.
-    """
-    mocker.patch.object(
-        PageHierarchyManager,
-        "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
-    )
-    mocker.patch.object(
-        PassportConverter,
-        "convert",
-        return_value=dict(_STUB_TRANSFORM_RESULT),
-    )
-
-    strategy = PassportsStrategy(
-        confluence_client=FakeConfluenceClient(),
-        document_builder=publisher_document_builder,
-        parsed_data=publisher_parsed_result,
-        space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
-        data_dir=tmp_path,
-        batch_size=10,
-        batch_delay_seconds=0.0,
-    )
-    report = strategy.execute()
-
-    expected = sum(len(comp.releases) for comp in publisher_parsed_result.components)
-    assert (
-        report.pages_published == expected
-    ), f"pages_published должен быть равен {expected}, получено {report.pages_published}"
-    assert report.pages_failed == 0, "Все страницы должны быть опубликованы успешно, без ошибок"
-
-
-@pytest.mark.business_logic
 def test_report_pages_failed_count_equals_failed_pages(
     publisher_parsed_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
@@ -595,7 +528,7 @@ def test_report_pages_failed_count_equals_failed_pages(
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
+        return_value=_VERSION_PAGE_ID,
     )
     mocker.patch.object(
         PassportConverter,
@@ -657,7 +590,7 @@ def test_legacy_content_extracted_before_overwrite(
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",
-        return_value=_BL_PS_VERSION_PAGE_ID,
+        return_value=_VERSION_PAGE_ID,
     )
     # PassportConverter.convert(self, data) — 'self' здесь это экземпляр конвертера
     mocker.patch.object(

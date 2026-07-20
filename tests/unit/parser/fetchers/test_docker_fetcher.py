@@ -114,12 +114,15 @@ def test_docker_fetcher_extracts_links_from_yaml(
     assert result.value["linux-x86_64-gcc10_2"] == "harbor.example.com/debian11:components"
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_docker_fetcher_empty_urls_returns_empty_links(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """DockerFetcher.fetch с пустым списком URL возвращает пустую карту ссылок."""
+    """DockerFetcher.fetch с пустым списком URL возвращает пустую карту ссылок.
+
+    TFS и DockerParser не вызываются вовсе — это собственное правило
+    DockerFetcher на пустом входе, а не путь двух коллабораторов."""
     tfs_client = FakeTFSClient()
     ctx = _make_context(parser_config, tfs_client, tmp_path)
     fetcher = DockerFetcher()
@@ -159,6 +162,7 @@ def test_docker_fetcher_skips_url_on_fetch_failure(
     result = fetcher.fetch(urls=[_PROFILE_URL], target_platform="2.0")
 
     assert result.value == {}
+    assert result.warnings == []
 
 
 @pytest.mark.business_logic

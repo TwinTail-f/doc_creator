@@ -100,7 +100,7 @@ def test_profile_centric_strategy_loads_registry_iff_include_links_true(
     assert mock_load.call_count == expected_load_calls
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_profile_centric_strategy_execute_calls_publish_page(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,

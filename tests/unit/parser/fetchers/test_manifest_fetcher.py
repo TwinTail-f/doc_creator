@@ -12,32 +12,6 @@ from autodoc.parser.pipeline.context import PipelineContext
 from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient
 
 
-class WritingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient, который записывает один файл .properties в output_dir."""
-
-    def __init__(self, content: str, filename: str = "test.properties") -> None:
-        """
-        Args:
-            content: Текст, записываемый в файл .properties.
-            filename: Имя файла, создаваемого внутри output_dir.
-        """
-        self._content = content
-        self._filename = filename
-
-    def download_properties(
-        self,
-        items_url: str,
-        remote_path: str,
-        branch: str,
-        output_dir: str,
-        version_type=None,
-    ) -> None:
-        """Записывает настроенное содержимое в output_dir как файл .properties."""
-        out = Path(output_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        (out / self._filename).write_text(self._content, encoding="utf-8")
-
-
 class CopyingFakeTFSClient(FakeTFSClient):
     """FakeTFSClient, который копирует один реальный файл .properties в output_dir."""
 
@@ -117,54 +91,41 @@ def test_manifest_fetcher_all_five_components(
 
 
 @pytest.mark.integration
-def test_manifest_fetcher_include_filter(
+@pytest.mark.parametrize(
+    "filter_mode, component_names, check_names",
+    [
+        # filter_mode='include' со всеми файлами возвращает ровно перечисленный компонент
+        pytest.param(
+            "include",
+            ["apr"],
+            lambda names: names == ["apr"],
+            id="include-keeps-only-listed",
+        ),
+        # filter_mode='exclude' со всеми файлами исключает перечисленный компонент из результата
+        pytest.param(
+            "exclude",
+            ["apr"],
+            lambda names: "apr" not in names,
+            id="exclude-removes-listed",
+        ),
+        # filter_mode='include' со списком, не совпадающим ни с одним компонентом, даёт пустой результат
+        pytest.param(
+            "include",
+            ["no_such_component"],
+            lambda names: names == [],
+            id="include-nonmatching-returns-empty",
+        ),
+    ],
+)
+def test_manifest_fetcher_filter_mode(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
     tmp_path: Path,
+    filter_mode: str,
+    component_names: list[str],
+    check_names,
 ) -> None:
-    """component_names=['apr'], filter_mode='include' со всеми файлами возвращает ровно 1 компонент."""
-    ctx = _make_context(
-        parser_config,
-        CopyingAllFakeTFSClient(real_manifests_dir),
-        tmp_path,
-    )
-    fetcher = ManifestFetcher()
-    fetcher.configure(ctx)
-
-    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=["apr"], filter_mode="include")
-
-    assert len(result.value) == 1
-    assert result.warnings == []
-
-
-@pytest.mark.integration
-def test_manifest_fetcher_exclude_filter(
-    parser_config: ParserConfigSchema,
-    real_manifests_dir: Path,
-    tmp_path: Path,
-) -> None:
-    """component_names=['apr'], filter_mode='exclude' со всеми файлами исключает apr из результата."""
-    ctx = _make_context(
-        parser_config,
-        CopyingAllFakeTFSClient(real_manifests_dir),
-        tmp_path,
-    )
-    fetcher = ManifestFetcher()
-    fetcher.configure(ctx)
-
-    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=["apr"], filter_mode="exclude")
-
-    names = [c.name for c in result.value]
-    assert "apr" not in names
-
-
-@pytest.mark.business_logic
-def test_manifest_fetcher_include_nonmatching_list_returns_empty(
-    parser_config: ParserConfigSchema,
-    real_manifests_dir: Path,
-    tmp_path: Path,
-) -> None:
-    """filter_mode='include' со списком, не совпадающим ни с одним компонентом, даёт пустой результат."""
+    """component_names/filter_mode фильтруют список компонентов, возвращаемых ManifestFetcher."""
     ctx = _make_context(
         parser_config,
         CopyingAllFakeTFSClient(real_manifests_dir),
@@ -174,18 +135,23 @@ def test_manifest_fetcher_include_nonmatching_list_returns_empty(
     fetcher.configure(ctx)
 
     result = fetcher.fetch(
-        tmp_dir=ctx.tmp_dir, component_names=["no_such_component"], filter_mode="include"
+        tmp_dir=ctx.tmp_dir, component_names=component_names, filter_mode=filter_mode
     )
+    names = [c.name for c in result.value]
 
-    assert result.value == []
+    assert check_names(names)
+    assert result.warnings == []
 
 
-@pytest.mark.integration
-def test_manifest_fetcher_no_files_returns_empty(
+@pytest.mark.business_logic
+def test_manifest_fetcher_no_files_raises_parsing_error(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """ManifestFetcher выбрасывает ParsingError, если download_properties не записал ни одного файла."""
+    """ManifestFetcher выбрасывает ParsingError, если download_properties не записал ни одного файла.
+
+    ManifestParser при этом не вызывается (ошибка возникает раньше), поэтому
+    это собственное правило ManifestFetcher, а не путь двух коллабораторов."""
     ctx = _make_context(
         parser_config,
         FakeTFSClient(),
@@ -214,9 +180,7 @@ def test_manifest_fetcher_single_version_single_channel_fast(
     fixture = real_manifests_dir / "nlohmann_json_fast_only.properties"
     ctx = _make_context(
         parser_config,
-        WritingFakeTFSClient(
-            content=fixture.read_text(), filename="nlohmann_json_fast_only.properties"
-        ),
+        CopyingFakeTFSClient(fixture),
         tmp_path,
     )
     fetcher = ManifestFetcher()

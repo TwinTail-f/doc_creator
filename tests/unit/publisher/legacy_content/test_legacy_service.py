@@ -40,12 +40,23 @@ def test_extract_for_platform_returns_empty_on_empty_html() -> None:
 
 
 @pytest.mark.business_logic
-def test_extract_for_platform_excludes_current_by_version_suffix() -> None:
-    """Исключает вкладку, чьё имя оканчивается на переданную версию."""
-    result = extract_for_platform(TAB_HTML_MULTI, "2.0")
+@pytest.mark.parametrize(
+    "current_platform_version, expected_excluded, expected_included",
+    [
+        # Текущая версия "2.0" — исключается вкладка с этим именем, "2.1" остаётся.
+        pytest.param("2.0", "Platform 2.0", "Platform 2.1", id="current-2.0"),
+        # Зеркальный случай: текущая версия "2.1" — исключается уже она, "2.0" остаётся.
+        pytest.param("2.1", "Platform 2.1", "Platform 2.0", id="current-2.1"),
+    ],
+)
+def test_extract_for_platform_excludes_only_current_platform(
+    current_platform_version: str, expected_excluded: str, expected_included: str
+) -> None:
+    """Исключает вкладку, чьё имя оканчивается на переданную текущую версию; остальные возвращаются."""
+    result = extract_for_platform(TAB_HTML_MULTI, current_platform_version)
 
-    assert "Platform 2.0" not in result
-    assert "Platform 2.1" in result
+    assert expected_excluded not in result
+    assert expected_included in result
 
 
 @pytest.mark.business_logic
@@ -56,15 +67,6 @@ def test_extract_for_platform_excludes_all_tabs_ending_in_version() -> None:
     # Обе вкладки, оканчивающиеся на "2.0", должны быть исключены
     assert "Platform 2.0" not in result
     assert "CustomOS 2.0" not in result
-
-
-@pytest.mark.business_logic
-def test_extract_for_platform_returns_all_other_platforms() -> None:
-    """Все вкладки, кроме текущей платформы, возвращаются."""
-    result = extract_for_platform(TAB_HTML_MULTI, "2.1")
-
-    assert "Platform 2.0" in result
-    assert "Platform 2.1" not in result
 
 
 @pytest.mark.business_logic

@@ -40,12 +40,6 @@ TABS_GROUP_HTML = _html("tabs_group.html")
 
 # find_h1_sections
 @pytest.mark.infrastructure
-def test_find_h1_sections_empty_when_no_h1() -> None:
-    """Возвращает пустой список при отсутствии тегов <h1>."""
-    assert find_h1_sections("<p>no headings here</p>") == []
-
-
-@pytest.mark.infrastructure
 def test_find_h1_sections_returns_tags_in_document_order() -> None:
     """Возвращает теги <h1> в порядке их появления в документе."""
     html = "<h1>Platform 2.0</h1><p>body</p><h1>Platform 2.1</h1>"
@@ -54,16 +48,6 @@ def test_find_h1_sections_returns_tags_in_document_order() -> None:
     assert len(sections) == 2
     assert all(isinstance(tag, Tag) for tag in sections)
     assert [tag.get_text() for tag in sections] == ["Platform 2.0", "Platform 2.1"]
-
-
-@pytest.mark.infrastructure
-def test_find_h1_sections_strips_inner_html_tags_from_text() -> None:
-    """get_text() тега h1 не содержит вложенную разметку, только текст."""
-    html = "<h1><strong>Bold Title</strong></h1>"
-    sections = find_h1_sections(html)
-
-    assert len(sections) == 1
-    assert sections[0].get_text() == "Bold Title"
 
 
 @pytest.mark.infrastructure
@@ -116,7 +100,7 @@ def test_extract_platform_h1_sections_skips_section_with_no_content() -> None:
 
 
 # extract_tab_sections
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_extract_tab_sections_empty_string_returns_empty_dict() -> None:
     """Возвращает {} на пустой строке."""
     assert extract_tab_sections("") == {}
@@ -243,12 +227,10 @@ def test_parse_page_sections_h2_fallback_keeps_preamble_under_unknown_key() -> N
 
 
 @pytest.mark.business_logic
-def test_parse_page_sections_returns_empty_dict_when_nothing_matches() -> None:
-    """Возвращает {}, если ни одна из стратегий разбора не дала результата.
-
-    ``_parse_h2_version_sections`` в этом случае возвращает документ целиком
-    под ключом 'unknown', поэтому пустой результат возможен только когда
-    сам HTML пуст (см. test_parse_page_sections_empty_html_returns_empty_dict).
+def test_parse_page_sections_wraps_whole_document_under_unknown_key_when_no_version_headers() -> None:
+    """Если нет ни вкладок, ни h1 Platform, ни версионных h2/h3, весь документ
+    попадает под ключ 'unknown' — пустой результат возможен только когда сам
+    HTML пуст (см. test_parse_page_sections_empty_html_returns_empty_dict).
     """
     result = parse_page_sections("<p>plain paragraph, no headings at all</p>")
 

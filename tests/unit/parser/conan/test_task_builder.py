@@ -15,6 +15,9 @@ from autodoc.parser.conan.conan_task_builder import ConanTaskBuilder
 from autodoc.parser.conan.models.conan_task import ConanTask
 from autodoc.parser.conan.profile_overrides import ProfileSettingsOverrides
 
+ART_URL: str = "https://art.example.com"
+PLATFORM: str = "2.0"
+
 
 def make_release(
     version: str = "1.0",
@@ -40,10 +43,6 @@ def make_release(
 def make_component(name: str = "mylib", releases: list[Release] | None = None) -> Component:
     """Создаёт Component с необязательным списком релизов."""
     return Component(name=name, releases=releases or [])
-
-
-ART_URL: str = "https://art.example.com"
-PLATFORM: str = "2.0"
 
 
 @pytest.mark.business_logic
@@ -83,18 +82,33 @@ def test_task_builder_cmd_contains_requires_flag() -> None:
 
 
 @pytest.mark.business_logic
-def test_task_builder_normalizes_bare_option() -> None:
-    """Голое 'shared=True' должно быть дополнено префиксом '*:' в cmd."""
-    release = make_release(opts={"1": "shared=True"})
-    comp = make_component(releases=[release])
+@pytest.mark.parametrize(
+    "raw_option, expected_normalized",
+    [
+        # голая опция без имени пакета получает префикс '*:'
+        pytest.param("shared=True", "*:shared=True", id="bare-option-gets-wildcard-prefix"),
+        # опция с именем пакета без подстановочного знака нормализуется в 'pkg/*:...'
+        pytest.param("mylib:shared=True", "mylib/*:shared=True", id="package-key-gets-wildcard"),
+        # уже подставленная опция не изменяется повторно (без двойной подстановки)
+        pytest.param(
+            "mylib/*:shared=True", "mylib/*:shared=True", id="already-wildcarded-is-idempotent"
+        ),
+    ],
+)
+def test_task_builder_normalizes_option_to_wildcard_form(
+    raw_option: str, expected_normalized: str
+) -> None:
+    """_normalize_option() приводит одиночную опцию к форме 'pkg/*:key=val'; уже
+    нормализованная опция не подставляется повторно (без двойного '/*/*')."""
+    release = make_release(opts={"1": raw_option})
+    comp = make_component(name="mylib", releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
     cmd = tasks[0].cmd
-    # cmd содержит [..., "-o", "*:shared=True", ...]
-    assert "-o" in cmd
+    assert cmd.count("-o") == 1
     o_index = cmd.index("-o")
-    assert cmd[o_index + 1] == "*:shared=True"
+    assert cmd[o_index + 1] == expected_normalized
 
 
 @pytest.mark.business_logic
@@ -121,46 +135,6 @@ def test_task_builder_task_fields_populated() -> None:
     assert task.profile_name == "hw-linux-x86_64"
     assert task.option_id == "1"
     assert task.target_platform == PLATFORM
-
-
-@pytest.mark.business_logic
-def test_option_normalization_package_key_gets_wildcard() -> None:
-    """Опция с именем пакета без подстановочного знака ('mylib:shared=True') нормализуется в 'mylib/*:shared=True'."""
-    release = make_release(opts={"1": "mylib:shared=True"})
-    comp = make_component(name="mylib", releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
-
-    assert len(tasks) == 1
-    cmd = tasks[0].cmd
-
-    # Нормализованная форма с подстановочным знаком должна присутствовать
-    assert any(
-        "mylib/*:shared=True" in arg for arg in cmd
-    ), f"Expected 'mylib/*:shared=True' in command, got: {cmd}"
-    # Голая форма без подстановочного знака не должна встречаться как отдельный аргумент
-    assert not any(
-        arg == "mylib:shared=True" for arg in cmd
-    ), f"Unexpected bare 'mylib:shared=True' found in command: {cmd}"
-
-
-@pytest.mark.business_logic
-def test_option_normalization_already_wildcarded_is_idempotent() -> None:
-    """Уже подставленная опция ('mylib/*:shared=True') не изменяется повторно (без двойной подстановки)."""
-    release = make_release(opts={"1": "mylib/*:shared=True"})
-    comp = make_component(name="mylib", releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
-
-    assert len(tasks) == 1
-    cmd = tasks[0].cmd
-
-    # Двойной подстановочный знак не должен встречаться
-    assert not any("mylib/*/*" in arg for arg in cmd), f"Double wildcard detected in command: {cmd}"
-    # Корректная форма с одним подстановочным знаком должна присутствовать
-    assert any(
-        "mylib/*:shared=True" in arg for arg in cmd
-    ), f"Expected 'mylib/*:shared=True' in command, got: {cmd}"
 
 
 @pytest.mark.business_logic

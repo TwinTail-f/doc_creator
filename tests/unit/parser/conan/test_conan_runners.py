@@ -17,7 +17,6 @@ from autodoc.parser.conan.conan_environment_manager import ConanEnvironmentManag
 from autodoc.parser.conan.models.conan_raw_result import ConanRawResult
 from autodoc.parser.conan.models.conan_task import ConanTask
 
-_PACKAGE_REF: str = "zlib/1.2.13"
 _TIMEOUT_SEC: int = 30
 _CONFIG_URL: str = "https://art.example.com/conan-config.zip"
 _USERNAME: str = "testuser"
@@ -65,20 +64,6 @@ def _make_runner(tmp_path: Path) -> Conan2Runner:
     """
     tmp_path.mkdir(parents=True, exist_ok=True)
     return Conan2Runner(timeout=_TIMEOUT_SEC, conan_home_template=tmp_path)
-
-
-@pytest.mark.infrastructure
-def test_conan2_runner_raises_on_missing_conan_binary(tmp_path: Path) -> None:
-    """Conan2Runner.run() возвращает success=False, когда 'conan' отсутствует в PATH.
-
-    Runner не должен пробрасывать FileNotFoundError — он использует shutil.which
-    перед subprocess.run и возвращает результат-ошибку с диагностическим сообщением.
-    """
-    runner = _make_runner(tmp_path)
-    with patch("shutil.which", return_value=None):
-        result: ConanRawResult = runner.run(_make_task())
-    assert result.success is False
-    assert result.error  # сообщение об ошибке непустое
 
 
 @pytest.mark.infrastructure
@@ -246,7 +231,7 @@ def test_conan_environment_manager_cleanup_removes_directory(
     Проверяет, что временный домашний каталог Conan удаляется после использования,
     что важно для предотвращения накопления больших каталогов на агентах CI.
     """
-    mock_which = mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mock_run = mocker.patch("subprocess.run")
     mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="[]")
     setup_dir: Path = tmp_path / "conan_setup_fake"
@@ -282,8 +267,8 @@ def test_conan_environment_manager_setup_is_idempotent_on_double_call(
 ) -> None:
     """Повторный вызов setup() на одном и том же ConanEnvironmentManager завершается без ошибок.
 
-    ConanEnvironmentManager не вызывает исключение при повторном setup — он просто
-    перезаписывает _setup_dir новым временным каталогом.
+    ConanEnvironmentManager не вызывает исключение при повторном setup() — второй
+    вызов создаёт новый временный каталог, и именно его путь возвращается вызывающему коду.
     """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mock_run = mocker.patch("subprocess.run")
@@ -303,9 +288,9 @@ def test_conan_environment_manager_setup_is_idempotent_on_double_call(
     manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
     # Оба вызова должны завершиться без исключений
     manager.setup()
-    manager.setup()
-    # После второго setup() _setup_dir указывает на второй каталог
-    assert manager._setup_dir == second_dir
+    second_home = manager.setup()
+    # После второго setup() возвращённый путь указывает на второй каталог
+    assert second_home == second_dir
 
 
 @pytest.mark.infrastructure

@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import (
@@ -14,6 +13,7 @@ from autodoc.cli.helpers import (
     print_publish_result,
 )
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError, ValidationError
+from autodoc.publisher.publisher import DocumentPublisher
 from tests.unit.cli.conftest import (
     make_confluence_config,
     make_parsed_result,
@@ -156,10 +156,10 @@ def test_load_parsed_data_oserror_on_read_raises_doc_generator_error(
 
 
 @pytest.mark.business_logic
-def test_make_publisher_missing_config_raises_config_error(tmp_path: Path) -> None:
+def test_make_publisher_missing_config_raises_config_error(
+    tmp_path: Path, configs_dir: Path
+) -> None:
     """Незагрузившийся конфиг Confluence (возвращающий None) приводит к ConfigError."""
-    configs_dir = tmp_path / "configs"
-    configs_dir.mkdir()
     cli_ctx = CliCtx(tmp_path, configs_dir, verbose=False)
 
     with pytest.raises(ConfigError):
@@ -167,24 +167,24 @@ def test_make_publisher_missing_config_raises_config_error(tmp_path: Path) -> No
 
 
 @pytest.mark.business_logic
-def test_make_publisher_valid_config_returns_publisher_and_config(tmp_path: Path) -> None:
+def test_make_publisher_valid_config_returns_publisher_and_config(
+    tmp_path: Path, configs_dir: Path
+) -> None:
     """Валидный конфиг Confluence возвращает кортеж (DocumentPublisher, conf_config)."""
-    configs_dir = tmp_path / "configs"
-    configs_dir.mkdir()
     write_confluence_config(configs_dir)
     cli_ctx = CliCtx(tmp_path, configs_dir, verbose=False)
 
     publisher, conf_config = make_publisher(cli_ctx)
 
-    assert publisher is not None
+    assert isinstance(publisher, DocumentPublisher)
     assert conf_config == make_confluence_config()
 
 
 @pytest.mark.business_logic
-def test_make_publisher_forwards_config_file_argument(tmp_path: Path, mocker) -> None:
+def test_make_publisher_forwards_config_file_argument(
+    tmp_path: Path, configs_dir: Path, mocker
+) -> None:
     """Параметр config_file передаётся в config_manager.load_confluence_config без изменений."""
-    configs_dir = tmp_path / "configs"
-    configs_dir.mkdir()
     cli_ctx = CliCtx(tmp_path, configs_dir, verbose=False)
     mock_load = mocker.patch.object(
         cli_ctx.config_manager,
