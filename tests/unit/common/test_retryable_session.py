@@ -179,54 +179,33 @@ def test_create_bearer_session_no_token_sends_no_authorization_header() -> None:
 
 
 @pytest.mark.business_logic
-def test_create_retryable_session_bearer_true_delegates_to_bearer_auth(
-    mocker: MockerFixture,
+@pytest.mark.parametrize(
+    "bearer, delegate_target, sentinel_name",
+    [
+        pytest.param(True, "create_bearer_session", "bearer_session", id="bearer-true"),
+        pytest.param(False, "create_pat_session", "pat_session", id="bearer-false"),
+    ],
+)
+def test_create_retryable_session_delegates_to_matching_auth_builder(
+    mocker: MockerFixture, bearer: bool, delegate_target: str, sentinel_name: str
 ) -> None:
-    """create_retryable_session(bearer=True, token=...) не собирает сессию сама,
-    а делегирует её создание create_bearer_session() с теми же параметрами.
-
-    Раньше это проверялось так же, как и
-    test_create_bearer_session_sends_bearer_authorization_header (тем же
-    responses-сценарием) — но сам эффект Bearer-аутентификации там уже
-    покрыт; дублировать его здесь не нужно. Единственное, что специфично
-    именно для create_retryable_session(), — это факт и параметры
-    делегирования, поэтому здесь мокается сама create_bearer_session().
+    """create_retryable_session(bearer=...) не собирает сессию сама, а делегирует
+    её создание create_bearer_session()/create_pat_session() (в зависимости
+    от ``bearer``)
     """
-    mock_create_bearer = mocker.patch(
-        "autodoc.common.retryable_session.create_bearer_session",
-        return_value=mocker.sentinel.bearer_session,
+    sentinel = getattr(mocker.sentinel, sentinel_name)
+    mock_delegate = mocker.patch(
+        f"autodoc.common.retryable_session.{delegate_target}", return_value=sentinel
     )
 
     result = create_retryable_session(
-        token="my-pat-token", bearer=True, max_retries=5, backoff_factor=2.0, timeout=20
+        token="my-pat-token", bearer=bearer, max_retries=5, backoff_factor=2.0, timeout=20
     )
 
-    mock_create_bearer.assert_called_once_with(
+    mock_delegate.assert_called_once_with(
         token="my-pat-token", max_retries=5, backoff_factor=2.0, timeout=20
     )
-    assert result is mocker.sentinel.bearer_session
-
-
-@pytest.mark.business_logic
-def test_create_retryable_session_bearer_false_delegates_to_pat_auth(
-    mocker: MockerFixture,
-) -> None:
-    """create_retryable_session(bearer=False, token=...) делегирует создание сессии
-    create_pat_session() с теми же параметрами, а не собирает Basic-auth сама
-    (см. обоснование в test_create_retryable_session_bearer_true_delegates_to_bearer_auth)."""
-    mock_create_pat = mocker.patch(
-        "autodoc.common.retryable_session.create_pat_session",
-        return_value=mocker.sentinel.pat_session,
-    )
-
-    result = create_retryable_session(
-        token="my-pat-token", bearer=False, max_retries=5, backoff_factor=2.0, timeout=20
-    )
-
-    mock_create_pat.assert_called_once_with(
-        token="my-pat-token", max_retries=5, backoff_factor=2.0, timeout=20
-    )
-    assert result is mocker.sentinel.pat_session
+    assert result is sentinel
 
 
 @pytest.mark.business_logic
