@@ -191,9 +191,13 @@ def test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_defa
         # обходить пакетную ветку: _execute_in_batches не вызывается, пауз
         # между "пакетами" нет.
         pytest.param(0, False, 0, id="batch-size-0-skips-batching-entirely"),
-        # batch_size=1 - не то же самое, что отключённый батчинг. задачи всё
-        # равно идут через _execute_in_batches со своей паузой batch_delay
-        # между каждой парой соседних задач (TASK_COUNT - 1 пауза).
+        # batch_size=1 - не то же самое, что отключённый батчинг, и это не баг:
+        # задачи всё равно идут через _execute_in_batches со своей паузой
+        # batch_delay между каждой парой соседних задач (TASK_COUNT - 1 пауза).
+        # Смысл режима — троттлинг обращений к внешнему сервису (не чаще
+        # одного запроса за раз), а не последовательность сама по себе;
+        # поэтому batch_size=1 с ненулевым batch_delay намеренно ведёт себя
+        # иначе, чем batch_size=0 (см. docstring ParallelExecutor).
         pytest.param(1, True, _TASK_COUNT - 1, id="batch-size-1-still-batches-with-delay"),
         # batch_size=3 при TASK_COUNT=4: два пакета (3 задачи + 1 задача) ->
         # ровно одна пауза между ними. Добавлено, чтобы проверить не только

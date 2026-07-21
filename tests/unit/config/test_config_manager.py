@@ -17,6 +17,7 @@ from autodoc.config.manager import ConfigManager
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ConfigError
+from tests.conftest import CONFIG_RESOURCES_DIR
 
 
 def _dump(fmt: str, data: dict) -> str:
@@ -55,12 +56,12 @@ def test_config_manager_loads_valid_config_by_extension(parser_config_file: Path
     ],
 )
 def test_config_manager_loads_real_resource_files_json_and_yaml_agree(
-    config_resources_dir: Path, loader_name: str, schema_class: type, stem: str
+    loader_name: str, schema_class: type, stem: str
 ) -> None:
     """ConfigManager грузит настоящие файлы из tests/unit/config/resources/ напрямую —
     и для парсер-, и для confluence-конфига одним и тем же способом.
     """
-    manager = ConfigManager(configs_dir=config_resources_dir)
+    manager = ConfigManager(configs_dir=CONFIG_RESOURCES_DIR)
     loader = getattr(manager, loader_name)
 
     json_result = loader(f"{stem}.json")

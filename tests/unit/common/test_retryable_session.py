@@ -155,8 +155,14 @@ def test_create_bearer_session_sends_bearer_authorization_header() -> None:
 @pytest.mark.business_logic
 @responses.activate
 def test_create_bearer_session_no_token_sends_no_authorization_header() -> None:
-    """create_bearer_session(token=None) не добавляет заголовок Authorization."""
-    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
+    """create_bearer_session(token=None) не добавляет заголовок Authorization.
+
+    Статус ответа здесь не проверяется — важен только заголовок запроса,
+    который перехватывает ``responses``. Используем 401, а не 200: сессия
+    создаётся именно для аутентифицированных запросов, и без токена
+    ожидаемая реакция сервера — отказ в авторизации, а не успех.
+    """
+    responses.add(responses.GET, _TEST_URL, json={"error": "unauthorized"}, status=401)
     session = create_bearer_session(token=None)
 
     session.get(_TEST_URL)

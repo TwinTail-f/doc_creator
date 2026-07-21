@@ -2,15 +2,18 @@
 Общие фикстуры для tests/unit/config/.
 
 Путь к tests/unit/config/resources/ (канонические valid_parser_config.*,
-valid_confluence_config.*) уже даёт фикстура ``config_resources_dir`` из
-корневого tests/conftest.py — отдельной локальной фикстуры на тот же самый
-каталог здесь специально не заводим, чтобы не иметь двух имён для одного и
-того же пути.
+valid_confluence_config.*) — это константа ``CONFIG_RESOURCES_DIR`` из
+корневого tests/conftest.py. У неё одно константное значение, поэтому она
+используется как обычный модульный импорт, а не заворачивается в фикстуру
+ради самого факта наличия фикстуры.
 """
 
+import shutil
 from pathlib import Path
 
 import pytest
+
+from tests.conftest import CONFIG_RESOURCES_DIR
 
 
 @pytest.fixture(params=["nonexistent-dir", "file-instead-of-dir"])
@@ -31,9 +34,7 @@ def bad_configs_dir(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
 
 
 @pytest.fixture(params=["json", "yaml", "yml"])
-def parser_config_file(
-    request: pytest.FixtureRequest, tmp_path: Path, config_resources_dir: Path
-) -> Path:
+def parser_config_file(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
     """Копия канонического parser-конфига во временной директории в одном
     из поддерживаемых форматов.
 
@@ -45,7 +46,7 @@ def parser_config_file(
     """
     fmt = request.param
     source_fmt = "yaml" if fmt == "yml" else fmt
-    source = config_resources_dir / f"valid_parser_config.{source_fmt}"
+    source = CONFIG_RESOURCES_DIR / f"valid_parser_config.{source_fmt}"
     dest = tmp_path / f"parser_config.{fmt}"
-    dest.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    shutil.copy(source, dest)
     return dest
