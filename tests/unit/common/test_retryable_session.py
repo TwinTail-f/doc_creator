@@ -68,9 +68,8 @@ def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock
 
 @pytest.mark.infrastructure
 @pytest.mark.parametrize("retryable_status", _RETRY_STATUS_CODES)
-def test_retryable_session_retries_on_every_configured_status(
-    mocker: MockerFixture, retryable_status: int
-) -> None:
+@responses.activate
+def test_retryable_session_retries_on_every_configured_status(retryable_status: int) -> None:
     """После одного ответа с любым статусом из ``_RETRY_STATUS_CODES`` сессия
     автоматически повторяет запрос и возвращает результат второй, успешной
     попытки.
@@ -78,44 +77,51 @@ def test_retryable_session_retries_on_every_configured_status(
     Параметризовано по самому ``_RETRY_STATUS_CODES``, чтобы тест реально покрывал
     все коды, которые модуль считает временными и ДОСТОЙНЫМИ повтора — 408/429/500/502/503/504.
     """
-    mock_transport = _fake_transport(mocker, iter([retryable_status, _HTTP_OK]))
+    responses.add(responses.GET, _TEST_URL, status=retryable_status)
+    responses.add(responses.GET, _TEST_URL, status=_HTTP_OK)
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=0.0)
 
     response = session.get(_TEST_URL)
 
     assert response.status_code == _HTTP_OK
-    assert mock_transport.call_count == 2
+    assert len(responses.calls) == 2
 
 
 @pytest.mark.infrastructure
-def test_retryable_session_raises_after_exhausting_retries(mocker: MockerFixture) -> None:
+@responses.activate
+def test_retryable_session_raises_after_exhausting_retries() -> None:
     """Если транспорт неизменно отвечает 429, сессия делает не более
     ``max_retries`` повторов, после чего пробрасывает ``RetryError``, а не
     зацикливается бесконечно."""
     max_retries: int = 2
-    mock_transport = _fake_transport(mocker, iter(lambda: _HTTP_TOO_MANY, None))
+    for _ in range(max_retries + 1):
+        responses.add(responses.GET, _TEST_URL, status=_HTTP_TOO_MANY)
     session = RetryableSession(max_retries=max_retries, backoff_factor=0.0)
 
     with pytest.raises(requests.exceptions.RetryError):
         session.get(_TEST_URL)
 
     # Первая попытка + max_retries повторов.
-    assert mock_transport.call_count == max_retries + 1
+    assert len(responses.calls) == max_retries + 1
 
 
 @pytest.mark.infrastructure
 def test_retryable_session_backs_off_between_retries(mocker: MockerFixture) -> None:
-    """Пауза между повторными попытками растёт от повтора к повтору."""
+    """Пауза между повторными попытками растёт от повтора к повтору.
+    """
     mock_sleep = mocker.patch("time.sleep")
     # urllib3 не спит перед самым первым повтором (backoff=0 при одном подряд
     # сбое), поэтому нужны три неудачи подряд, чтобы получить два ненулевых,
     # растущих интервала ожидания.
-    _fake_transport(mocker, iter([_HTTP_TOO_MANY, _HTTP_TOO_MANY, _HTTP_TOO_MANY, _HTTP_OK]))
+    mock_transport = _fake_transport(
+        mocker, iter([_HTTP_TOO_MANY, _HTTP_TOO_MANY, _HTTP_TOO_MANY, _HTTP_OK])
+    )
     session = RetryableSession(max_retries=_MAX_RETRIES, backoff_factor=_BACKOFF_FACTOR)
 
     response = session.get(_TEST_URL)
 
     assert response.status_code == _HTTP_OK
+    assert mock_transport.call_count == 4
     assert mock_sleep.call_count == 2
     first_delay, second_delay = (call.args[0] for call in mock_sleep.call_args_list)
     assert second_delay > first_delay
@@ -155,14 +161,8 @@ def test_create_bearer_session_sends_bearer_authorization_header() -> None:
 @pytest.mark.business_logic
 @responses.activate
 def test_create_bearer_session_no_token_sends_no_authorization_header() -> None:
-    """create_bearer_session(token=None) не добавляет заголовок Authorization.
-
-    Статус ответа здесь не проверяется — важен только заголовок запроса,
-    который перехватывает ``responses``. Используем 401, а не 200: сессия
-    создаётся именно для аутентифицированных запросов, и без токена
-    ожидаемая реакция сервера — отказ в авторизации, а не успех.
-    """
-    responses.add(responses.GET, _TEST_URL, json={"error": "unauthorized"}, status=401)
+    """create_bearer_session(token=None) не добавляет заголовок Authorization."""
+    responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
     session = create_bearer_session(token=None)
 
     session.get(_TEST_URL)
