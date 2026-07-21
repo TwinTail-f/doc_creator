@@ -99,6 +99,7 @@ class FullReleaseConverter(BaseReleaseConverter):
         """
         logger.debug("Трансформация в полный вид")
         pd_map: dict[str, Any] = self._build_profile_definition_map(data)
+        components_sorted = sorted(data.components, key=lambda comp: comp.name)
         return {
             **self._base_view_model(data),
             "components": [
@@ -110,6 +111,6 @@ class FullReleaseConverter(BaseReleaseConverter):
                         for rel in comp.releases
                     ],
                 }
-                for comp in data.components
+                for comp in components_sorted
             ],
         }

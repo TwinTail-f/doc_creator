@@ -105,6 +105,10 @@ class ProfileCentricConverter(BaseReleaseConverter):
         for channel in entry["channels"]:
             entry["channels"][channel].sort(key=lambda x: x["name"])
 
+        entry["channels"] = {
+            channel: entry["channels"][channel] for channel in sorted(entry["channels"])
+        }
+
         return entry
 
     def convert(self, data: ParsedResult) -> dict[str, Any]:
