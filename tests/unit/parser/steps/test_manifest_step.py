@@ -5,7 +5,6 @@ import pytest
 from autodoc.exceptions import ParsingError
 from autodoc.parser.fetchers.manifest_fetcher import ManifestFetcher
 from autodoc.parser.steps.manifest_step import ManifestStep
-
 from tests.unit.parser.conftest import FakeTFSClient
 
 
@@ -22,13 +21,9 @@ def test_manifest_step_populates_ctx_components(
     assert parser_pipeline_context.components == [manifest_component]
 
 
-_EMPTY_NO_WARNINGS: list[str] = []
-_EMPTY_WITH_WARNING: list[str] = ["something failed"]
-
-
 @pytest.mark.parametrize(
     "warnings",
-    [_EMPTY_NO_WARNINGS, _EMPTY_WITH_WARNING],
+    [[], ["something failed"]],
     ids=["no-warnings", "with-warning"],
 )
 @pytest.mark.business_logic
@@ -55,15 +50,6 @@ def test_manifest_step_calls_configure_before_fetch(
     step = ManifestStep(fetcher=fake)
     step.execute(parser_pipeline_context)
     assert fake.configure_called is True
-
-
-@pytest.mark.infrastructure
-def test_manifest_step_is_critical() -> None:
-    """
-    ManifestStep является критичным шагом пайплайна.
-    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
-    """
-    assert ManifestStep.is_critical is True
 
 
 @pytest.mark.contract

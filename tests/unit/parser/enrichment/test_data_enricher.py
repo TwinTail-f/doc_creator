@@ -95,45 +95,83 @@ def test_apply_options_ignores_missing_key(
 
 
 @pytest.mark.business_logic
-def test_apply_docker_links_creates_profile_definition() -> None:
-    """apply_docker_links() добавляет новый ProfileDefinition, если его ещё нет."""
+@pytest.mark.parametrize(
+    "existing_docker_image, link_present, expected_docker_image",
+    [
+        # Профиль ещё не зарегистрирован, совпадение в docker_links есть — создаётся новая запись.
+        pytest.param(None, True, "harbor.example.com/img:tag", id="new-entry-with-match"),
+        # Профиль ещё не зарегистрирован, совпадения нет — запись создаётся с пустым docker_image.
+        pytest.param(None, False, "", id="new-entry-without-match"),
+        # Профиль уже зарегистрирован, совпадение есть — docker_image обновляется.
+        pytest.param("old", True, "harbor.example.com/img:tag", id="existing-entry-updated"),
+        # Профиль уже зарегистрирован непустым значением, совпадения нет — apply_docker_links
+        # всё равно перезаписывает его пустой строкой (в отличие от apply_conan_results,
+        # здесь нет защиты непустых значений от затирания).
+        pytest.param("old", False, "", id="existing-entry-overwritten-without-match"),
+    ],
+)
+def test_apply_docker_links_upserts_profile_definition(
+    existing_docker_image: str | None,
+    link_present: bool,
+    expected_docker_image: str,
+) -> None:
+    """apply_docker_links() создаёт или обновляет ровно одну запись ProfileDefinition
+    по имени профиля, записывая пустую строку при отсутствии совпадения в docker_links —
+    даже если запись уже существовала с непустым docker_image."""
     comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
-    docker_links = {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"}
     profile_definitions: list[ProfileDefinition] = []
+    if existing_docker_image is not None:
+        profile_definitions.append(
+            ProfileDefinition(
+                profile_name="hw-linux-x86_64-gcc10_2", docker_image=existing_docker_image
+            )
+        )
+    docker_links = (
+        {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"} if link_present else {}
+    )
 
     DataEnricher.apply_docker_links([comp], docker_links, profile_definitions)
 
     assert len(profile_definitions) == 1
-    assert profile_definitions[0].docker_image == "harbor.example.com/img:tag"
+    assert profile_definitions[0].docker_image == expected_docker_image
 
 
 @pytest.mark.business_logic
-def test_apply_docker_links_updates_existing_definition() -> None:
-    """apply_docker_links() обновляет docker_image в существующем ProfileDefinition."""
-    comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
-    existing = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2", docker_image="old")
-    profile_definitions: list[ProfileDefinition] = [existing]
-    docker_links = {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"}
+def test_apply_docker_links_partial_match_does_not_apply() -> None:
+    """Частичное (более короткое) совпадение имени профиля с ключом docker_links не приводит к привязке образа."""
+    comp = make_component("mylib", profiles=["hw-linux-x86_64-gcc10_2"])
+    pd = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2", docker_image="")
+    # docker_links содержит НЕ точное (более короткое) имя — совпадения быть не должно.
+    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
 
-    DataEnricher.apply_docker_links([comp], docker_links, profile_definitions)
+    DataEnricher.apply_docker_links([comp], docker_links, [pd])
 
-    assert existing.docker_image == "harbor.example.com/img:tag"
-    assert len(profile_definitions) == 1  # дубликат не создаётся
+    assert pd.docker_image == ""
 
 
 @pytest.mark.business_logic
-def test_apply_docker_links_profile_not_in_links_unchanged() -> None:
-    """apply_docker_links() с пустым docker_links создаёт ProfileDefinition
-    с пустым docker_image — профиль регистрируется, но URL не задан."""
-    comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
-    profile_definitions: list[ProfileDefinition] = []
+def test_apply_docker_links_profile_definitions_none_skips_upsert() -> None:
+    """При profile_definitions=None (по умолчанию) apply_docker_links() не пытается
+    создавать или обновлять ProfileDefinition — ветка upsert выполняется только
+    когда список explicit передан вызывающим кодом."""
+    comp = make_component("mylib", profiles=["hw-linux-x86_64"])
+    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
 
-    DataEnricher.apply_docker_links([comp], {}, profile_definitions)
+    # Не должно бросать исключение и не должно требовать список.
+    DataEnricher.apply_docker_links([comp], docker_links, profile_definitions=None)
 
-    # Запись профиля всегда обновляется/вставляется; docker_image пуст, если
-    # имя профиля отсутствует в docker_links.
-    assert len(profile_definitions) == 1
-    assert profile_definitions[0].docker_image == ""
+
+@pytest.mark.business_logic
+def test_apply_docker_links_multiple_components_same_profile() -> None:
+    """Одна запись docker_links применяется ко всем компонентам, использующим общий профиль."""
+    comp_a = make_component("mylib", profiles=["hw-linux-x86_64"])
+    comp_b = make_component("otherlib", profiles=["hw-linux-x86_64"])
+    pd = ProfileDefinition(profile_name="hw-linux-x86_64", docker_image="")
+    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
+
+    DataEnricher.apply_docker_links([comp_a, comp_b], docker_links, [pd])
+
+    assert pd.docker_image == "harbor.example.com/img:tag"
 
 
 @pytest.mark.business_logic
@@ -514,65 +552,3 @@ def test_apply_conan_results_profile_data_keyed_by_object_identity() -> None:
     # new_pb не получает данных, так как id(new_pb) != id(original_pb).
     assert new_pb.exists is False
     assert new_pb.variants == []
-
-
-@pytest.mark.business_logic
-def test_apply_docker_links_matches_profile_by_name_exact() -> None:
-    """Docker-образ привязывается к ProfileDefinition только при точном совпадении имени профиля с ключом docker_links."""
-    comp = make_component("mylib", profiles=["hw-linux-x86_64"])
-    pd = ProfileDefinition(profile_name="hw-linux-x86_64", docker_image="")
-    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
-
-    DataEnricher.apply_docker_links([comp], docker_links, [pd])
-
-    assert pd.docker_image == "harbor.example.com/img:tag"
-
-
-@pytest.mark.business_logic
-def test_apply_docker_links_partial_match_does_not_apply() -> None:
-    """Частичное (более короткое) совпадение имени профиля с ключом docker_links не приводит к привязке образа."""
-    comp = make_component("mylib", profiles=["hw-linux-x86_64-gcc10_2"])
-    pd = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2", docker_image="")
-    # docker_links содержит НЕ точное (более короткое) имя — совпадения быть не должно.
-    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
-
-    DataEnricher.apply_docker_links([comp], docker_links, [pd])
-
-    assert pd.docker_image == ""
-
-
-@pytest.mark.business_logic
-def test_apply_docker_links_empty_docker_image_preserved_when_no_match() -> None:
-    """Отсутствие имени профиля в docker_links оставляет docker_image пустой строкой, а не None."""
-    comp = make_component("mylib", profiles=["hw-linux-x86_64"])
-    pd = ProfileDefinition(profile_name="hw-linux-x86_64", docker_image="")
-    docker_links: dict[str, str] = {}  # Пусто — совпадение невозможно.
-
-    DataEnricher.apply_docker_links([comp], docker_links, [pd])
-
-    assert pd.docker_image == ""
-
-
-@pytest.mark.business_logic
-def test_apply_docker_links_profile_definitions_none_skips_upsert() -> None:
-    """При profile_definitions=None (по умолчанию) apply_docker_links() не пытается
-    создавать или обновлять ProfileDefinition — ветка upsert выполняется только
-    когда список explicit передан вызывающим кодом."""
-    comp = make_component("mylib", profiles=["hw-linux-x86_64"])
-    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
-
-    # Не должно бросать исключение и не должно требовать список.
-    DataEnricher.apply_docker_links([comp], docker_links, profile_definitions=None)
-
-
-@pytest.mark.business_logic
-def test_apply_docker_links_multiple_components_same_profile() -> None:
-    """Одна запись docker_links применяется ко всем компонентам, использующим общий профиль."""
-    comp_a = make_component("mylib", profiles=["hw-linux-x86_64"])
-    comp_b = make_component("otherlib", profiles=["hw-linux-x86_64"])
-    pd = ProfileDefinition(profile_name="hw-linux-x86_64", docker_image="")
-    docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
-
-    DataEnricher.apply_docker_links([comp_a, comp_b], docker_links, [pd])
-
-    assert pd.docker_image == "harbor.example.com/img:tag"

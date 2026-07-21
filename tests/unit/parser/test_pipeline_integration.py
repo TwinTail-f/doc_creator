@@ -25,30 +25,43 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.manifest_step import ManifestStep
-from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient
+from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient, NULL_PACKAGE_ID
 
 _MIN_COMPONENTS: int = 1
 
 _EMPTY_CONAN_RESULT = FetchResult(value=ConanEnrichmentResult(), warnings=[])
 
 
-def _make_parser_with_real_steps(
-    config: ParserConfigSchema,
-    data_dir: Path,
-    real_manifests_dir: Path,
-) -> ComponentParser:
-    """Построить ComponentParser, который использует реальные экземпляры шагов с заглушками ввода-вывода.
+_HTTP_OK_E2E: int = 200
 
-    TFS клиент копирует реальные .properties файлы из real_manifests_dir;
-    Artifactory всегда возвращает HTTP 200; ConanFetcher залатан для возврата
-    результата без операций, чтобы подпроцесс не был запущен.
+
+class _AlwaysOkArtifactoryClient:
+    """Заглушка Artifactory клиента: каждый HEAD запрос возвращает HTTP 200 OK."""
+
+    def head(self, url: str) -> requests.Response:
+        """Возвращает HTTP 200 без выполнения реального сетевого запроса."""
+        resp = requests.Response()
+        resp.status_code = _HTTP_OK_E2E
+        return resp
+
+
+def _make_real_pipeline(
+    real_manifests_dir: Path,
+    tmp_path: Path,
+    parser_config: ParserConfigSchema,
+) -> ComponentParser:
+    """Создаёт ComponentParser с реальными экземплярами шагов и заглушками внешнего ввода-вывода.
+
+    - TFS: ``CopyingAllFakeTFSClient`` копирует реальные фиксчуры ``.properties``.
+    - Artifactory: всегда возвращает HTTP 200.
+    - Conan: должен быть залатан каждым тестом на уровне fetcher.
     """
     tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
     artifactory_client = _AlwaysOkArtifactoryClient()
 
     return ComponentParser(
-        config=config,
-        data_dir=data_dir,
+        config=parser_config,
+        data_dir=tmp_path,
         tfs_client=tfs_client,
         artifactory_client=artifactory_client,
     )
@@ -65,7 +78,7 @@ def test_full_pipeline_runs_without_raising(
     Подключает все реальные экземпляры шагов с заглушками внешнего ввода-вывода. Сбой здесь
     указывает на регрессию в проводке шагов, использовании ключей контекста или интерфейсе шага.
     """
-    parser = _make_parser_with_real_steps(parser_config, tmp_path, real_manifests_dir)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     with patch(
         "autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch",
@@ -113,7 +126,7 @@ def test_finalize_step_output_length_matches_input(
     Передаёт полный пайплайн с N компонентами. После завершения пайплайна
     компоненты могут быть отфильтрованы ValidationStep, но никогда искусственно добавлены.
     """
-    parser = _make_parser_with_real_steps(parser_config, tmp_path, real_manifests_dir)
+    parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     with patch(
         "autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch",
@@ -127,41 +140,6 @@ def test_finalize_step_output_length_matches_input(
     assert (
         len(result.components) <= n_manifest_files
     ), "FinalizeStep не должен создавать больше компонентов, чем распарсил ManifestStep"
-
-
-_HTTP_OK_E2E: int = 200
-
-
-class _AlwaysOkArtifactoryClient:
-    """Заглушка Artifactory клиента: каждый HEAD запрос возвращает HTTP 200 OK."""
-
-    def head(self, url: str) -> requests.Response:
-        """Возвращает HTTP 200 без выполнения реального сетевого запроса."""
-        resp = requests.Response()
-        resp.status_code = _HTTP_OK_E2E
-        return resp
-
-
-def _make_real_pipeline(
-    real_manifests_dir: Path,
-    tmp_path: Path,
-    parser_config: ParserConfigSchema,
-) -> ComponentParser:
-    """Создаёт ComponentParser с реальными экземплярами шагов и заглушками внешнего ввода-вывода.
-
-    - TFS: ``CopyingAllFakeTFSClient`` копирует реальные фиксчуры ``.properties``.
-    - Artifactory: всегда возвращает HTTP 200.
-    - Conan: должен быть залатан каждым тестом на уровне fetcher.
-    """
-    tfs_client = CopyingAllFakeTFSClient(real_manifests_dir)
-    artifactory_client = _AlwaysOkArtifactoryClient()
-
-    return ComponentParser(
-        config=parser_config,
-        data_dir=tmp_path,
-        tfs_client=tfs_client,
-        artifactory_client=artifactory_client,
-    )
 
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
@@ -240,8 +218,6 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
         - nlohmann_json присутствует (у него есть варианты, поэтому FinalizeStep оставляет его).
         - ``nlohmann.is_header_only`` равна ``True``.
     """
-    _NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-
     def _build_nlohmann_enrich(components):
         """Построить ConanEnrichmentResult, дав каждому профилю nlohmann вариант с NULL_PACKAGE_ID.
 
@@ -260,7 +236,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
                         exists=True,
                         variants=[
                             ConanVariant(
-                                package_id=_NULL_PACKAGE_ID,
+                                package_id=NULL_PACKAGE_ID,
                                 build_url="",
                                 build_date="2024-01-01",
                                 options_ref="1",

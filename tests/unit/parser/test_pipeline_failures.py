@@ -69,6 +69,7 @@ class _FinalizeOnlyStep(BaseParseStep):
 def test_two_non_critical_failures_both_reported(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Два некритичных отказывающих шага должны быть залогированы; пайплайн не должен остановиться.
 
@@ -84,24 +85,21 @@ def test_two_non_critical_failures_both_reported(
 
     logger = logging.getLogger("doc_parser")
     handler = _CapturingHandler()
-    logger.addHandler(handler)
+    monkeypatch.setattr(logger, "handlers", [*logger.handlers, handler])
 
-    try:
-        steps = [
-            _FailingNonCriticalStep(_ERROR_MSG_FIRST),
-            _FailingNonCriticalStep(_ERROR_MSG_SECOND),
-            _FinalizeOnlyStep(),
-        ]
-        parser = ComponentParser(
-            config=parser_config,
-            data_dir=tmp_path,
-            steps=steps,
-        )
-        result = parser.parse()
-        # Пайплайн завершён: result заполнен FinalizeOnlyStep
-        assert isinstance(result, ParsedResult)
-    finally:
-        logger.removeHandler(handler)
+    steps = [
+        _FailingNonCriticalStep(_ERROR_MSG_FIRST),
+        _FailingNonCriticalStep(_ERROR_MSG_SECOND),
+        _FinalizeOnlyStep(),
+    ]
+    parser = ComponentParser(
+        config=parser_config,
+        data_dir=tmp_path,
+        steps=steps,
+    )
+    result = parser.parse()
+    # Пайплайн завершён: result заполнен FinalizeOnlyStep
+    assert isinstance(result, ParsedResult)
 
     # Оба сообщения об ошибке должны быть залогированы
     all_messages: str = "\n".join(warning_messages)

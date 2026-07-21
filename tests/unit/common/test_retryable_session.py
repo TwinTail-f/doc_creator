@@ -4,6 +4,7 @@ RetryableSession оборачивает сеанс HTTP с автоматиче�
 для временных ошибок сервера с экспоненциальной задержкой.
 """
 
+import base64
 import io
 from collections.abc import Iterator
 from unittest.mock import MagicMock
@@ -34,16 +35,6 @@ _TEST_URL: str = "https://example.com/api"
 def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock:
     """Подменяет ``HTTPConnectionPool._make_request`` фальшивым транспортом.
 
-    Всё ещё нужна и после добавления ``responses``: ``responses`` подменяет
-    запрос на уровне ``HTTPAdapter.send()`` — то есть до того, как запрос
-    попадает в пул соединений urllib3, а значит и до того, как в дело
-    вступает ``urllib3.util.retry.Retry``, которым в этом модуле реализованы
-    сами повторы и экспоненциальный backoff. Тесты retry/backoff ниже не
-    могут быть переведены на ``responses`` — им нужно подделывать транспорт
-    настолько низко, чтобы urllib3 всё ещё сам делал повторные попытки.
-    ``responses`` годится только для тестов аутентификации, где важен ровно
-    один исходящий запрос и его заголовки, а не механика повторов.
-
     Args:
         mocker: Фикстура pytest-mock для патчинга.
         statuses: Последовательность HTTP-статусов, отдаваемых по одному на вызов.
@@ -70,11 +61,6 @@ def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock
             request_method=method,
         )
 
-    # autospec и передача готового объекта как "new" несовместимы в mock.patch
-    # (autospec сам создаёт мок и конфликтует с явным new) — поэтому функция
-    # передаётся через side_effect: единственный способ одновременно получить
-    # автоспек по сигнатуре _make_request и мок с call_count/call_args_list
-    # для проверок в тестах ниже.
     return mocker.patch.object(
         HTTPConnectionPool, "_make_request", autospec=True, side_effect=_make_request
     )
@@ -213,7 +199,6 @@ def test_create_retryable_session_delegates_to_matching_auth_builder(
 def test_create_pat_session_sends_basic_auth_with_empty_username() -> None:
     """create_pat_session(token=...) настраивает Basic-аутентификацию с пустым
     именем пользователя и токеном в качестве пароля (PAT-паттерн)."""
-    import base64
 
     responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
     session = create_pat_session(token="my-pat-token")

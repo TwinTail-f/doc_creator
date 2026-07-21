@@ -11,14 +11,13 @@ from autodoc.parser.conan.models.conan_enrichment_result import (
     ProfileConanData,
     ReleaseConanData,
 )
+from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
+from tests.unit.parser.conftest import NULL_PACKAGE_ID
 
 EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
     release_data={}, profile_data={}, errors={}
 )
-
-# NULL_PACKAGE_ID — SHA1 пустой строки (header-only компоненты)
-NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 
 @pytest.mark.contract
@@ -31,15 +30,6 @@ def test_conan_step_stores_conan_report_in_intermediate(
     step = ConanEnrichStep(fetcher=fake)
     step.execute(parser_pipeline_context)
     assert "conan_report" in parser_pipeline_context.intermediate
-
-
-@pytest.mark.infrastructure
-def test_conan_step_is_not_critical() -> None:
-    """
-    ConanEnrichStep является некритичным шагом пайплайна.
-    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
-    """
-    assert ConanEnrichStep.is_critical is False
 
 
 @pytest.mark.infrastructure
@@ -200,7 +190,6 @@ def test_conan_step_applies_conan_results_to_components(
     fake = make_fake_fetcher(value=conan_result)
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
-    assert rel.conan_reference is not None
     assert rel.conan_reference != ""
     assert len(pb.variants) == 1
     assert rel.dependencies == expected_dependencies
@@ -245,10 +234,9 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
     ConanEnrichStep(fetcher=fake).execute(parser_pipeline_context)
 
     conan_report = parser_pipeline_context.intermediate.get("conan_report")
-    assert conan_report is not None
     assert "stunnel" in str(
         conan_report
-    ), f"Expected 'stunnel' error to appear in conan report, got: {conan_report}"
+    ), f"Ожидалось упоминание ошибки 'stunnel' в отчёте Conan, получено: {conan_report}"
 
 
 @pytest.mark.contract

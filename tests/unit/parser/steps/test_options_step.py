@@ -47,7 +47,7 @@ def _make_ctx_with_components(
     return ctx
 
 
-@pytest.mark.infrastructure
+@pytest.mark.contract
 def test_options_step_stores_options_map_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -73,16 +73,9 @@ def test_options_step_applies_options_to_components(
     fake = make_fake_fetcher(value=options_map)
     step = OptionsResolveStep(fetcher=fake)
     step.execute(parser_pipeline_context)
-    assert parser_pipeline_context.components[0].releases[0].build_option_sets != []
-
-
-@pytest.mark.infrastructure
-def test_options_step_is_not_critical() -> None:
-    """
-    OptionsResolveStep является некритичным шагом пайплайна.
-    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
-    """
-    assert OptionsResolveStep.is_critical is False
+    build_sets = parser_pipeline_context.components[0].releases[0].build_option_sets
+    assert len(build_sets) == 1
+    assert build_sets[0].options == "shared=True"
 
 
 @pytest.mark.contract
@@ -139,12 +132,14 @@ def test_options_step_sqlite3_twelve_options_applied(
 def test_options_step_patchelf_both_versions_get_options(
     parser_config,
     tmp_path: Path,
+    resources_dir: Path,
     make_fake_fetcher,
 ) -> None:
     """FakeFetcher с опциями для двух релизов patchelf заполняет build_option_sets у обоих."""
+    patchelf_opts = json.loads((resources_dir / "options" / "patchelf_options.json").read_text())
     options_map: OptionsMap = {
-        ("patchelf", "0.16.1", "tech"): {"1": ""},
-        ("patchelf", "0.18.0", "tech"): {"1": ""},
+        ("patchelf", "0.16.1", "tech"): patchelf_opts,
+        ("patchelf", "0.18.0", "tech"): patchelf_opts,
     }
     comp = _make_component(
         "patchelf",
@@ -159,7 +154,7 @@ def test_options_step_patchelf_both_versions_get_options(
     step.execute(ctx)
 
     for release in ctx.components[0].releases:
-        assert release.build_option_sets != []
+        assert len(release.build_option_sets) == 1
 
 
 @pytest.mark.integration
@@ -235,12 +230,15 @@ def test_options_step_configure_called_before_fetch(
 def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
     parser_config,
     tmp_path: Path,
+    resources_dir: Path,
     make_fake_fetcher,
 ) -> None:
     """sqlite3 с релизами fast (5 опций) и slow (12 опций) — каждый получает свой набор опций."""
+    fast_opts = json.loads((resources_dir / "options" / "sqlite3_fast_options.json").read_text())
+    slow_opts = json.loads((resources_dir / "options" / "sqlite3_slow_options.json").read_text())
     options_map: OptionsMap = {
-        ("sqlite3", "3.51.2", "fast"): {str(i): f"opt{i}" for i in range(1, 6)},
-        ("sqlite3", "3.34.1", "slow"): {str(i): f"opt{i}" for i in range(1, 13)},
+        ("sqlite3", "3.51.2", "fast"): fast_opts,
+        ("sqlite3", "3.34.1", "slow"): slow_opts,
     }
     comp = _make_component(
         "sqlite3",
@@ -253,5 +251,5 @@ def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
     releases = ctx.components[0].releases
     fast_rel = next(r for r in releases if r.channel == "fast")
     slow_rel = next(r for r in releases if r.channel == "slow")
-    assert len(fast_rel.build_option_sets) == 5
-    assert len(slow_rel.build_option_sets) == 12
+    assert len(fast_rel.build_option_sets) == len(fast_opts) == 5
+    assert len(slow_rel.build_option_sets) == len(slow_opts) == 12

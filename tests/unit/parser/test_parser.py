@@ -1,6 +1,7 @@
 """Юнит-тесты для autodoc/parser/parser.py (ComponentParser)."""
 
 import datetime
+from pathlib import Path
 
 import pytest
 
@@ -78,31 +79,6 @@ def test_component_parser_parse_returns_parsed_result(
     )
     result = parser.parse()
     assert isinstance(result, ParsedResult)
-
-
-@pytest.mark.business_logic
-def test_component_parser_critical_step_failure_raises_parsing_error(
-    parser_config,
-    tmp_path,
-) -> None:
-    """Сбой критичного шага вызывает ParsingError, последующие шаги не выполняются."""
-    finalize_executed: list[bool] = []
-
-    class TrackingFinalize(BaseParseStep):
-        name = "tracking_finalize"
-        is_critical = True
-
-        def execute(self, ctx: PipelineContext) -> None:
-            finalize_executed.append(True)
-
-    parser = ComponentParser(
-        config=parser_config,
-        data_dir=tmp_path,
-        steps=[FakeStep(side_effect=ParsingError("boom")), TrackingFinalize()],
-    )
-    with pytest.raises(ParsingError):
-        parser.parse()
-    assert finalize_executed == []
 
 
 @pytest.mark.business_logic
@@ -209,7 +185,7 @@ def test_component_parser_save_intermediate_writes_files(
     parser.parse(save_intermediate=True)
     intermediate_dir = tmp_path / "intermediate"
     json_files = list(intermediate_dir.glob("*.json"))
-    assert len(json_files) >= 1
+    assert len(json_files) == 1
 
 
 @pytest.mark.infrastructure

@@ -72,7 +72,7 @@ def test_pipeline_context_snapshot_converts_tuple_keys(
     ctx.intermediate["test_data"] = {("a", "b"): "value"}
     snapshot = ctx.to_snapshot_dict()
     keys = list(snapshot["intermediate"]["test_data"].keys())
-    assert all(isinstance(k, str) for k in keys)
+    assert keys == ["['a', 'b']"]
 
 
 @pytest.mark.contract

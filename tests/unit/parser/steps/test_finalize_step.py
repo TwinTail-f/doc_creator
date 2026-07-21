@@ -5,11 +5,10 @@ import pytest
 from autodoc.exceptions import ParsingError
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
+from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.models.release import Release
-from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.finalize_step import FinalizeStep
-
 from tests.unit.parser.conftest import make_conan_variant, NULL_PACKAGE_ID
 
 
@@ -84,51 +83,6 @@ def _make_comp_with_variant(name: str, package_id: str) -> Component:
         git_url="",
         is_header_only=False,
         releases=[release],
-    )
-
-
-def _bl_make_variant() -> ConanVariant:
-    """Возвращает минимальный ConanVariant с ненулевым package_id."""
-    return ConanVariant(
-        package_id="575ea8086554107ae2c0fdbb4909d62390c52b77",
-        build_url="",
-        build_date="",
-        options_ref="1",
-    )
-
-
-def _bl_make_release(profile_builds: list | None = None) -> Release:
-    """Возвращает минимальный Release; profile_builds по умолчанию пуст.
-
-    Args:
-        profile_builds: Список ProfileBuild или None для пустого списка.
-
-    Returns:
-        Собранный объект Release.
-    """
-    return Release(
-        version="1.0.0",
-        platform="2.0",
-        channel="tech",
-        profile_builds=profile_builds if profile_builds is not None else [],
-    )
-
-
-def _bl_make_component(name: str = "lib", releases: list | None = None) -> Component:
-    """Возвращает минимальный Component с заданным списком релизов.
-
-    Args:
-        name: Имя компонента.
-        releases: Список релизов или None для пустого списка.
-
-    Returns:
-        Собранный объект Component.
-    """
-    return Component(
-        name=name,
-        git_project="DEP",
-        git_repo=name,
-        releases=releases if releases is not None else [],
     )
 
 
@@ -246,40 +200,14 @@ def test_finalize_step_populates_ctx_result(
 
 
 @pytest.mark.business_logic
-def test_finalize_step_raises_parsing_error_on_validation_failure(
-    parser_pipeline_context,
-    mocker,
-) -> None:
-    """FinalizeStep оборачивает реальный Pydantic ValidationError в ParsingError."""
-    from pydantic import ValidationError as PydanticValidationError  # noqa: F401
-
-    def _force_validation_error(ctx):  # noqa: ANN001
-        # Передаём None в обязательное строковое поле — вызывает реальный ValidationError.
-        return ParsedResult(
-            generated_at=None,  # type: ignore[arg-type]
-            platform_version="2.0",
-            components=[],
-            profile_definitions=[],
-        )
-
-    # Патчим на классе — Python передаёт self первым аргументом,
-    # поэтому side_effect должен принимать (self, ctx), а не только (ctx).
-    mocker.patch.object(FinalizeStep, "_build_result", side_effect=_force_validation_error)
-    parser_pipeline_context.components = []
-    step = FinalizeStep()
-
-    with pytest.raises(ParsingError):
-        step.execute(parser_pipeline_context)
-
-
-@pytest.mark.business_logic
 def test_finalize_step_raises_parsing_error_on_invalid_platform_version(
     parser_pipeline_context,
 ) -> None:
-    """FinalizeStep оборачивает ValidationError в ParsingError и когда невалидность приходит
-    не из подмены _build_result (как в предыдущем тесте), а из реального значения
-    ctx.config.platform_version — единственного обязательного строкового поля ParsedResult,
-    заполняемого напрямую из конфига, а не из данных, накопленных пайплайном."""
+    """FinalizeStep оборачивает реальный Pydantic ValidationError в ParsingError.
+
+    platform_version — единственное обязательное строковое поле ParsedResult,
+    заполняемое напрямую из конфига, а не из данных, накопленных пайплайном.
+    """
     parser_pipeline_context.components = []
     # platform_version — обязательное строковое поле ParsedResult; None здесь
     # эмулирует ситуацию, когда конфиг оказался повреждён к моменту финализации.
@@ -295,7 +223,13 @@ def test_finalize_step_execute_applies_steps_in_order(
     parser_pipeline_context,
     mocker,
 ) -> None:
-    """execute() применяет фильтрацию, дедупликацию и сборку результата в этом порядке."""
+    """execute() применяет фильтрацию, дедупликацию и сборку результата в этом порядке.
+
+    Порядок не наблюдаем одним ассертом через публичный API: обёртки-шпионы
+    вокруг приватных методов сохраняют оригинальное поведение (вызывают
+    original_*) и лишь протоколируют порядок вызовов — осознанный компромисс,
+    а не проверка деталей реализации вместо результата.
+    """
     call_order: list[str] = []
 
     original_filter = FinalizeStep._filter_empty_profiles
@@ -432,11 +366,12 @@ def test_header_only_requires_all_profiles_to_have_null_package_id(
     parser_pipeline_context,
 ) -> None:
     """Хотя бы один вариант с ненулевым package_id делает весь компонент не header-only."""
-    null_id = NULL_PACKAGE_ID
     pb1 = ProfileBuild(
         profile_name="p1",
         exists=True,
-        variants=[ConanVariant(package_id=null_id, build_url="", build_date="", options_ref="")],
+        variants=[
+            ConanVariant(package_id=NULL_PACKAGE_ID, build_url="", build_date="", options_ref="")
+        ],
     )
     pb2 = ProfileBuild(
         profile_name="p2",
@@ -584,65 +519,73 @@ def test_filter_empty_profiles_removes_only_false_profiles(
 
 
 @pytest.mark.business_logic
-def test_filter_empty_profiles_count_matches_actual_removed() -> None:
-    """_filter_empty_profiles возвращает точное число удалённых профилей на большем наборе данных."""
+def test_filter_empty_profiles_count_matches_actual_removed(
+    parser_pipeline_context,
+) -> None:
+    """Все ProfileBuild с exists=False удаляются из release; выживает только exists=True."""
     pbs_false = [ProfileBuild(profile_name=f"profile-{i}", exists=False) for i in range(5)]
     pb_true = ProfileBuild(
-        profile_name="hw-linux-x86_64", exists=True, variants=[_bl_make_variant()]
+        profile_name="hw-linux-x86_64", exists=True, variants=[make_conan_variant()]
     )
 
-    release = _bl_make_release()
-    release.profile_builds = pbs_false + [pb_true]
-    comp = _bl_make_component(releases=[release])
+    release = _make_release(pbs_false + [pb_true])
+    comp = _make_component("lib", release)
 
-    step = FinalizeStep()
-    removed = step._filter_empty_profiles([comp])
+    ctx = parser_pipeline_context
+    ctx.components = [comp]
+    FinalizeStep().execute(ctx)
 
-    assert removed == 5
+    assert release.profile_builds == [pb_true]
 
 
 @pytest.mark.business_logic
-def test_filter_empty_profiles_release_with_all_false_stays_in_component() -> None:
+def test_filter_empty_profiles_release_with_all_false_stays_in_component(
+    parser_pipeline_context,
+) -> None:
     """Release остаётся в компоненте, даже если все его ProfileBuild были удалены."""
     pb_bad = ProfileBuild(profile_name="hw-linux-x86_64", exists=False)
-    release = _bl_make_release()
-    release.profile_builds = [pb_bad]
-    comp = _bl_make_component(releases=[release])
+    release = _make_release([pb_bad])
+    comp = _make_component("lib", release)
 
-    step = FinalizeStep()
-    step._filter_empty_profiles([comp])
+    ctx = parser_pipeline_context
+    ctx.components = [comp]
+    FinalizeStep().execute(ctx)
 
     assert len(comp.releases) == 1
     assert comp.releases[0].profile_builds == []
 
 
 @pytest.mark.business_logic
-def test_filter_empty_profiles_accumulates_count_across_components() -> None:
-    """_filter_empty_profiles суммирует число удалённых профилей по всем компонентам."""
+def test_filter_empty_profiles_accumulates_count_across_components(
+    parser_pipeline_context,
+) -> None:
+    """Фильтрация exists=False применяется независимо к каждому компоненту в одном запуске."""
 
     def _make_comp_with_mixed_pbs(name: str) -> Component:
         """Строит компонент с одним живым и одним мёртвым ProfileBuild."""
         good = ProfileBuild(
             profile_name="hw-linux-x86_64",
             exists=True,
-            variants=[_bl_make_variant()],
+            variants=[make_conan_variant()],
         )
         bad = ProfileBuild(profile_name="hw-linux-armv8", exists=False)
-        r = _bl_make_release()
-        r.profile_builds = [good, bad]
-        return _bl_make_component(name=name, releases=[r])
+        r = _make_release([good, bad])
+        return _make_component(name, r)
 
     comps = [_make_comp_with_mixed_pbs(f"lib{i}") for i in range(3)]
 
-    step = FinalizeStep()
-    removed = step._filter_empty_profiles(comps)
+    ctx = parser_pipeline_context
+    ctx.components = comps
+    FinalizeStep().execute(ctx)
 
-    assert removed == 3
+    for comp in comps:
+        assert len(comp.releases[0].profile_builds) == 1
+        assert comp.releases[0].profile_builds[0].exists is True
 
 
 @pytest.mark.business_logic
-def test_dedup_profile_definitions_last_write_wins() -> None:
-    """При совпадении profile_name побеждает последняя запись в списке."""
+def test_dedup_profile_definitions_last_write_wins(parser_pipeline_context) -> None:
+    """При совпадении profile_name в итоговом ctx.profile_definitions побеждает последняя запись."""
     pd_early = ProfileDefinition(
         profile_name="hw-linux-x86_64",
         docker_image="harbor.example.com/early:1",
@@ -654,33 +597,37 @@ def test_dedup_profile_definitions_last_write_wins() -> None:
         conan_settings={"os": "Linux"},
     )
 
-    step = FinalizeStep()
-    result = step._deduplicate_profile_definitions([pd_early, pd_late])
+    ctx = parser_pipeline_context
+    ctx.profile_definitions = [pd_early, pd_late]
+    FinalizeStep().execute(ctx)
 
-    assert len(result) == 1
-    assert result[0].docker_image == "harbor.example.com/late:2"
-    assert result[0].conan_settings == {"os": "Linux"}
+    assert len(ctx.profile_definitions) == 1
+    assert ctx.profile_definitions[0].docker_image == "harbor.example.com/late:2"
+    assert ctx.profile_definitions[0].conan_settings == {"os": "Linux"}
 
 
 @pytest.mark.business_logic
-def test_dedup_profile_definitions_unique_names_all_preserved() -> None:
+def test_dedup_profile_definitions_unique_names_all_preserved(parser_pipeline_context) -> None:
     """Записи ProfileDefinition с уникальными именами сохраняются все без исключения."""
     pds = [
         ProfileDefinition(profile_name=f"hw-linux-{arch}", docker_image="", conan_settings={})
         for arch in ["x86_64", "armv8", "rpi4"]
     ]
 
-    step = FinalizeStep()
-    result = step._deduplicate_profile_definitions(pds)
+    ctx = parser_pipeline_context
+    ctx.profile_definitions = pds
+    FinalizeStep().execute(ctx)
 
-    assert len(result) == 3
-    names = {pd.profile_name for pd in result}
+    assert len(ctx.profile_definitions) == 3
+    names = {pd.profile_name for pd in ctx.profile_definitions}
     assert names == {"hw-linux-x86_64", "hw-linux-armv8", "hw-linux-rpi4"}
 
 
 @pytest.mark.business_logic
-def test_dedup_profile_definitions_empty_input_returns_empty() -> None:
-    """Пустой входной список не вызывает исключений и возвращает пустой список."""
-    step = FinalizeStep()
-    result = step._deduplicate_profile_definitions([])
-    assert result == []
+def test_dedup_profile_definitions_empty_input_returns_empty(parser_pipeline_context) -> None:
+    """Пустой ctx.profile_definitions не вызывает исключений и остаётся пустым списком."""
+    ctx = parser_pipeline_context
+    ctx.profile_definitions = []
+    FinalizeStep().execute(ctx)
+
+    assert ctx.profile_definitions == []

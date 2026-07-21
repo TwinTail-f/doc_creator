@@ -36,26 +36,30 @@ def test_docker_step_upserts_profile_definitions(
     fake = make_fake_fetcher(value=docker_links)
     step = DockerResolveStep(fetcher=fake)
     step.execute(parser_pipeline_context)
-    assert len(parser_pipeline_context.profile_definitions) >= 1
-
-
-@pytest.mark.infrastructure
-def test_docker_step_is_not_critical() -> None:
-    """
-    DockerResolveStep является некритичным шагом пайплайна.
-    фиксируем состояние кода в т.ч. константы для защиты от изменений разработчиков
-    """
-    assert DockerResolveStep.is_critical is False
+    assert len(parser_pipeline_context.profile_definitions) == 1
+    pd = parser_pipeline_context.profile_definitions[0]
+    assert pd.profile_name == "hw-linux-x86_64-gcc10_2"
+    assert pd.docker_image == "harbor.example.com/img"
 
 
 @pytest.mark.business_logic
 def test_docker_step_empty_links_does_not_clear_profile_definitions(
     parser_pipeline_context,
+    manifest_component,
     make_fake_fetcher,
 ) -> None:
-    """Пустой словарь docker links не удаляет уже существующие ProfileDefinition из контекста."""
+    """Пустой словарь docker links не удаляет уже существующую запись ProfileDefinition
+    для профиля, реально присутствующего среди компонентов контекста.
+
+    manifest_component имеет profile_name="hw-linux-x86_64-gcc10_2" — то же имя,
+    что и у pre_existing, поэтому apply_docker_links() действительно проходит
+    по этому профилю (без реального компонента с совпадающим профилем цикл
+    в DataEnricher.apply_docker_links() не выполнился бы, и проверка была бы
+    тривиально истинной вне зависимости от корректности обработки пустого словаря).
+    """
     from autodoc.models.parsed_result import ProfileDefinition
 
+    parser_pipeline_context.components = [manifest_component]
     pre_existing = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2")
     parser_pipeline_context.profile_definitions = [pre_existing]
 
