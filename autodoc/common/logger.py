@@ -84,12 +84,21 @@ def setup_logging(logger_name: str = "doc_parser") -> logging.Logger:
     return log
 
 
+_SESSION_FILE_HANDLER_ATTR: str = "_autodoc_session_file_handler"
+
+
 def start_session_file_log(
     logger_obj: logging.Logger,
     module_name: ModuleName,
     logs_dir: Path,
 ) -> Callable[[], None]:
     """Подключает к логгеру файловый обработчик уровня DEBUG для текущего запуска.
+
+    Идемпотентна так же, как ``setup_logging``: если на ``logger_obj`` уже
+    висит файловый обработчик от предыдущего вызова (например, вызывающий
+    код забыл позвать функцию закрытия предыдущего запуска), он снимается
+    и закрывается перед тем, как добавить новый — обработчики от разных
+    запусков никогда не накапливаются, даже если про закрытие забыли.
 
     Args:
         logger_obj: Логгер, к которому нужно подключить файловый обработчик.
@@ -100,6 +109,13 @@ def start_session_file_log(
         Функция без аргументов для закрытия обработчика по завершении запуска
         (используется через ``ctx.call_on_close`` — см. ``cli/app.py``).
     """
+    previous_handler: logging.FileHandler | None = getattr(
+        logger_obj, _SESSION_FILE_HANDLER_ATTR, None
+    )
+    if previous_handler is not None:
+        logger_obj.removeHandler(previous_handler)
+        previous_handler.close()
+
     logs_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime(_FILENAME_TIMESTAMP_FORMAT)
     log_path = logs_dir / f"{module_name}-{timestamp}.log"
@@ -108,28 +124,25 @@ def start_session_file_log(
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(logging.Formatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT))
     logger_obj.addHandler(file_handler)
+    setattr(logger_obj, _SESSION_FILE_HANDLER_ATTR, file_handler)
 
     def close() -> None:
         """Отключает и закрывает файловый обработчик текущего запуска.
 
-        ``start_session_file_log`` (в отличие от ``setup_logging``) вызывается
-        не один раз за жизнь интерпретатора, а на каждый запуск CLI-команды —
-        и не проверяет, есть ли уже похожий обработчик, а просто добавляет
-        новый через ``logger_obj.addHandler(...)``. ``logger_obj`` при этом —
-        общий процесс-широкий синглтон (см. ``logger`` в конце модуля).
-
-        В проде процесс живёт одну команду, поэтому это не заметно. Но
-        внутри одного процесса (например, тесты, где ``CliRunner().invoke``
-        много раз вызывает ``cli`` без порождения нового процесса) обработчики
-        накапливаются на одном и том же логгере: без явного `close()` каждый
-        следующий запуск получал бы ещё один file-хендлер поверх старых, и
-        любая запись лога дублировалась бы во все ранее открытые файлы, а
-        файловые дескрипторы никогда бы не освобождались. Поэтому обработчик
-        снимается явно, а не полагается на закрытие процессом/GC.
-        Вызывается через ``ctx.call_on_close`` — см. ``cli/app.py``.
+        Само по себе накопление обработчиков теперь исключено на уровне
+        ``start_session_file_log`` (см. её докстринг), но ``close()``
+        по-прежнему нужен: он снимает обработчик сразу по завершении
+        команды, а не оставляет его висеть до следующего запуска (или до
+        конца процесса, если следующего не будет) — иначе файл лога не
+        флашится/закрывается вовремя, и, если после команды в этом же
+        процессе выполняется ещё какой-то код, он продолжит писать DEBUG
+        в уже закрытую сессию. Вызывается через ``ctx.call_on_close`` —
+        см. ``cli/app.py``.
         """
         logger_obj.removeHandler(file_handler)
         file_handler.close()
+        if getattr(logger_obj, _SESSION_FILE_HANDLER_ATTR, None) is file_handler:
+            delattr(logger_obj, _SESSION_FILE_HANDLER_ATTR)
 
     return close
 
