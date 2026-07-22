@@ -92,12 +92,11 @@ def test_parse_skip_flags_control_step_exclusion(
     expected_exclude: list[type] | None,
 ) -> None:
     """Флаги --skip-conan/--skip-validation исключают соответствующие шаги пайплайна через
-    ComponentParser.with_steps_excluded; без флагов используется обычный конструктор."""
+    parser.exclude(...); ComponentParser в любом случае создаётся обычным конструктором."""
     write_parser_config(configs_dir)
     parsed_result = make_parsed_result()
     mock_parser_cls = mocker.patch("autodoc.cli.commands.parse.ComponentParser")
     mock_parser_cls.return_value.parse.return_value = parsed_result
-    mock_parser_cls.with_steps_excluded.return_value.parse.return_value = parsed_result
 
     result = CliRunner().invoke(
         cli,
@@ -105,14 +104,13 @@ def test_parse_skip_flags_control_step_exclusion(
     )
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    mock_parser_cls.assert_called_once()
     if expected_exclude is None:
-        mock_parser_cls.assert_called_once()
-        mock_parser_cls.with_steps_excluded.assert_not_called()
+        mock_parser_cls.return_value.exclude.assert_not_called()
     else:
-        mock_parser_cls.assert_not_called()
-        mock_parser_cls.with_steps_excluded.assert_called_once()
-        _, _, exclude = mock_parser_cls.with_steps_excluded.call_args.args
-        assert set(exclude) == set(expected_exclude)
+        assert mock_parser_cls.return_value.exclude.call_args_list == [
+            mocker.call(step) for step in expected_exclude
+        ]
         for excluded_step in expected_exclude:
             assert excluded_step.__name__ in result.output
 

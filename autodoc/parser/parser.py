@@ -84,8 +84,11 @@ class ComponentParser:
         """
         Убирает из пайплайна шаги указанных классов.
 
-        Мутирует ``self._steps`` на месте и возвращает ``self`` для
-        возможности чейнинга (``parser.exclude(A).exclude(B)``).
+        Мутирует ``self._steps`` на месте (без пересборки списка целиком):
+        проходит по нему в обратном порядке и вырезает совпавшие элементы
+        через ``pop()``, чтобы удаление по индексу не сбивало ещё не
+        проверенные индексы. Возвращает ``self`` для чейнинга
+        (``parser.exclude(A).exclude(B)``).
 
         Args:
             *step_types: Классы шагов, которые нужно исключить из пайплайна.
@@ -93,26 +96,9 @@ class ComponentParser:
         Returns:
             ``self``, с отфильтрованным списком шагов.
         """
-        self._steps = [
-            step for step in self._steps if not isinstance(step, step_types)
-        ]
-        return self
-
-    def insert(self, step: BaseParseStep, index: int | None = None) -> Self:
-        """
-        Добавляет шаг в пайплайн.
-
-        Args:
-            step: Экземпляр шага для добавления.
-            index: Позиция вставки. ``None`` → добавить в конец пайплайна.
-
-        Returns:
-            ``self``, с обновлённым списком шагов.
-        """
-        if index is None:
-            self._steps.append(step)
-        else:
-            self._steps.insert(index, step)
+        for index in range(len(self._steps) - 1, -1, -1):
+            if isinstance(self._steps[index], step_types):
+                self._steps.pop(index)
         return self
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:

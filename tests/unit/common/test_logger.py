@@ -32,9 +32,8 @@ def _isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.infrastructure
-def test_setup_logging_configures_console_handler_only_once(
-    _isolated_logger_registry: None,
-) -> None:
+@pytest.mark.usefixtures("_isolated_logger_registry")
+def test_setup_logging_configures_console_handler_only_once() -> None:
     """setup_logging() навешивает ровно один консольный обработчик уровня
     INFO на логгер уровня DEBUG при первом вызове; повторный вызов для того
     же имени не добавляет второй обработчик.

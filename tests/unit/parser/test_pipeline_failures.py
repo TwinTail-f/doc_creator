@@ -313,42 +313,40 @@ def test_context_result_none_before_finalize_step(
 
 
 @pytest.mark.business_logic
-def test_with_steps_excluded_removes_class_not_instance(
+def test_exclude_removes_class_not_instance(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """with_steps_excluded удаляет шаги по типу класса, не по строке имени.
+    """exclude() удаляет шаги по типу класса, не по строке имени.
 
     Бизнес-правило:
-        ``ComponentParser.with_steps_excluded(config, data_dir, [ConanEnrichStep])``
-        фильтрует шаги, используя проверки ``isinstance``.  Другой класс, который
-        случайно имеет похожее имя, НЕ удаляется.
+        ``parser.exclude(ConanEnrichStep)`` фильтрует ``self._steps``, используя
+        проверки ``isinstance``. Другой класс, который случайно имеет похожее
+        имя, НЕ удаляется.
 
     Предусловия:
-        - Создать парсер с пайплайном по умолчанию
-          через ``ComponentParser.with_steps_excluded(..., [ConanEnrichStep])``.
+        - Создать парсер с пайплайном по умолчанию через обычный конструктор.
+        - Вызвать на нём ``parser.exclude(ConanEnrichStep)``.
 
     Шаги:
-        1. Проверить атрибут ``_steps`` отфильтрованного парсера.
+        1. Проверить атрибут ``_steps`` парсера после вызова ``exclude``.
 
     Ожидаемый результат:
         - Нет экземпляра ``ConanEnrichStep`` в ``_steps``.
-        - Общее количество шагов на один меньше, чем пайплайн по умолчанию.
+        - Общее количество шагов на один меньше, чем в исходном пайплайне.
+        - ``exclude`` возвращает тот же экземпляр (``self``), пригодный для чейнинга.
     """
-    default_parser = ComponentParser(config=parser_config, data_dir=tmp_path)
-    default_count = len(default_parser._steps)
+    parser = ComponentParser(config=parser_config, data_dir=tmp_path)
+    default_count = len(parser._steps)
 
-    filtered_parser = ComponentParser.with_steps_excluded(
-        config=parser_config,
-        data_dir=tmp_path,
-        exclude=[ConanEnrichStep],
-    )
+    returned = parser.exclude(ConanEnrichStep)
 
-    step_classes = [type(s) for s in filtered_parser._steps]
+    step_classes = [type(s) for s in parser._steps]
     assert (
         ConanEnrichStep not in step_classes
-    ), "ConanEnrichStep должен быть исключён из отфильтрованного пайплайна"
-    assert len(filtered_parser._steps) == default_count - 1, (
-        f"Отфильтрованный пайплайн должен иметь {default_count - 1} шагов, "
-        f"получили {len(filtered_parser._steps)}"
+    ), "ConanEnrichStep должен быть исключён из пайплайна"
+    assert len(parser._steps) == default_count - 1, (
+        f"После exclude() пайплайн должен иметь {default_count - 1} шагов, "
+        f"получили {len(parser._steps)}"
     )
+    assert returned is parser, "exclude() должен возвращать self для чейнинга"
