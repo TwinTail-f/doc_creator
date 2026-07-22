@@ -53,8 +53,7 @@ def cli(ctx: click.Context, base_dir: Path, configs_dir: Path | None, verbose: b
 
     module_name = _MODULE_BY_SUBCOMMAND.get(ctx.invoked_subcommand)
     if module_name is not None:
-        close_log = start_session_file_log(logger, module_name, base / LOGS_DIR_NAME)
-        ctx.call_on_close(close_log)
+        start_session_file_log(logger, module_name, base / LOGS_DIR_NAME)
 
 
 # Регистрируем все команды и подгруппы

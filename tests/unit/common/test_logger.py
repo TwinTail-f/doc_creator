@@ -58,21 +58,20 @@ def test_setup_logging_configures_console_handler_only_once() -> None:
 def test_start_session_file_log_replaces_stale_handler_without_close(
     tmp_path: Path,
 ) -> None:
-    """Повторный вызов start_session_file_log без close() предыдущего запуска
+    """Повторный вызов start_session_file_log без закрытия предыдущего запуска
     не копит файловые обработчики, а снимает старый перед добавлением нового.
 
     Бизнес-правило:
         start_session_file_log идемпотентна так же, как setup_logging: даже
-        если вызывающий код забыл закрыть предыдущую сессию, обработчики от
-        разных запусков не накапливаются на одном логгере, и запись лога не
+        если предыдущая сессия не была явно закрыта, обработчики от разных
+        запусков не накапливаются на одном логгере, и запись лога не
         дублируется в старые файлы.
 
     Предусловия:
         - Чистый логгер без обработчиков (session-scoped fixture).
 
     Шаги:
-        1. Дважды вызвать start_session_file_log на одном логгере, не вызывая
-           функцию закрытия первого вызова.
+        1. Дважды вызвать start_session_file_log на одном логгере.
         2. Записать одну запись лога.
 
     Ожидаемый результат:
@@ -82,7 +81,7 @@ def test_start_session_file_log_replaces_stale_handler_without_close(
     log = setup_logging("autodoc.session-file-log.test")
 
     start_session_file_log(log, "parser", tmp_path)
-    close_second = start_session_file_log(log, "parser", tmp_path)
+    start_session_file_log(log, "parser", tmp_path)
 
     file_handlers = [h for h in log.handlers if isinstance(h, logging.FileHandler)]
     assert len(file_handlers) == 1, "старый файловый обработчик должен быть снят"
@@ -91,9 +90,6 @@ def test_start_session_file_log_replaces_stale_handler_without_close(
     log_files = sorted(tmp_path.glob("*.log"))
     written_to = [p for p in log_files if "marker message" in p.read_text(encoding="utf-8")]
     assert len(written_to) == 1, "запись должна попасть только в актуальный файл сессии"
-
-    close_second()
-    assert not any(isinstance(h, logging.FileHandler) for h in log.handlers)
 
 
 

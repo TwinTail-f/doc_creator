@@ -12,7 +12,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 LOGS_DIR_NAME: str = "logs"
 
@@ -91,23 +91,13 @@ def start_session_file_log(
     logger_obj: logging.Logger,
     module_name: ModuleName,
     logs_dir: Path,
-) -> Callable[[], None]:
+) -> None:
     """Подключает к логгеру файловый обработчик уровня DEBUG для текущего запуска.
-
-    Идемпотентна так же, как ``setup_logging``: если на ``logger_obj`` уже
-    висит файловый обработчик от предыдущего вызова (например, вызывающий
-    код забыл позвать функцию закрытия предыдущего запуска), он снимается
-    и закрывается перед тем, как добавить новый — обработчики от разных
-    запусков никогда не накапливаются, даже если про закрытие забыли.
 
     Args:
         logger_obj: Логгер, к которому нужно подключить файловый обработчик.
         module_name: Имя модуля ("parser" или "publisher") — используется в имени файла.
         logs_dir: Директория для лог-файлов; создаётся, если отсутствует.
-
-    Returns:
-        Функция без аргументов для закрытия обработчика по завершении запуска
-        (используется через ``ctx.call_on_close`` — см. ``cli/app.py``).
     """
     previous_handler: logging.FileHandler | None = getattr(
         logger_obj, _SESSION_FILE_HANDLER_ATTR, None
@@ -125,26 +115,6 @@ def start_session_file_log(
     file_handler.setFormatter(logging.Formatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT))
     logger_obj.addHandler(file_handler)
     setattr(logger_obj, _SESSION_FILE_HANDLER_ATTR, file_handler)
-
-    def close() -> None:
-        """Отключает и закрывает файловый обработчик текущего запуска.
-
-        Само по себе накопление обработчиков теперь исключено на уровне
-        ``start_session_file_log`` (см. её докстринг), но ``close()``
-        по-прежнему нужен: он снимает обработчик сразу по завершении
-        команды, а не оставляет его висеть до следующего запуска (или до
-        конца процесса, если следующего не будет) — иначе файл лога не
-        флашится/закрывается вовремя, и, если после команды в этом же
-        процессе выполняется ещё какой-то код, он продолжит писать DEBUG
-        в уже закрытую сессию. Вызывается через ``ctx.call_on_close`` —
-        см. ``cli/app.py``.
-        """
-        logger_obj.removeHandler(file_handler)
-        file_handler.close()
-        if getattr(logger_obj, _SESSION_FILE_HANDLER_ATTR, None) is file_handler:
-            delattr(logger_obj, _SESSION_FILE_HANDLER_ATTR)
-
-    return close
 
 
 def clear_logs_dir(logs_dir: Path) -> list[Path]:
