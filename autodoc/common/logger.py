@@ -16,15 +16,13 @@ from typing import Callable, Literal
 
 LOGS_DIR_NAME: str = "logs"
 
-_CONSOLE_FORMAT: str = (
+_LOG_FORMAT: str = (
     "[%(asctime)s] | (%(module)s:%(funcName)s:%(lineno)d) -- %(levelname)s -- %(message)s"
 )
-_CONSOLE_DATEFMT: str = "%H:%M:%S"
-
-_FILE_FORMAT: str = (
-    "[%(asctime)s] | (%(module)s:%(funcName)s:%(lineno)d) -- %(levelname)s -- %(message)s"
-)
-_FILE_DATEFMT: str = "%Y-%m-%d %H:%M:%S"
+# Полная дата в записях лога не нужна: она уже есть в имени файла лога
+# (см. _FILENAME_TIMESTAMP_FORMAT), поэтому и консоль, и файл используют
+# один и тот же короткий datefmt.
+_LOG_DATEFMT: str = "%H:%M:%S"
 
 _FILENAME_TIMESTAMP_FORMAT: str = "%Y-%m-%dT%H-%M-%S"
 
@@ -75,7 +73,7 @@ def setup_logging(logger_name: str = "doc_parser") -> logging.Logger:
     if not log.handlers:
         log.setLevel(logging.DEBUG)
 
-        console_formatter = _ConsoleColorFormatter(fmt=_CONSOLE_FORMAT, datefmt=_CONSOLE_DATEFMT)
+        console_formatter = _ConsoleColorFormatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT)
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(console_formatter)
@@ -108,11 +106,18 @@ def start_session_file_log(
 
     file_handler = logging.FileHandler(log_path, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(fmt=_FILE_FORMAT, datefmt=_FILE_DATEFMT))
+    file_handler.setFormatter(logging.Formatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT))
     logger_obj.addHandler(file_handler)
 
     def close() -> None:
-        """Отключает и закрывает файловый обработчик текущего запуска."""
+        """Отключает и закрывает файловый обработчик текущего запуска.
+
+        ``logger_obj`` — процесс-широкий синглтон (см. ``logger`` в конце
+        модуля), поэтому обработчик нужно снимать явно: иначе он остаётся
+        висеть до конца процесса и задублируется при повторном вызове
+        ``start_session_file_log``. Вызывается через ``ctx.call_on_close`` —
+        см. ``cli/app.py``.
+        """
         logger_obj.removeHandler(file_handler)
         file_handler.close()
 

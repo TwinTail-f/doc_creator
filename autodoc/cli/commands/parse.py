@@ -42,14 +42,14 @@ def _load_config(cli_ctx: CliCtx, config: str | None) -> ParserConfigSchema:
 def _build_parser(
     parser_config: ParserConfigSchema,
     data_dir: Path,
-    skip_conan: bool,
-    skip_validation: bool,
+    skip_conan: bool = False,
+    skip_validation: bool = False,
 ) -> ComponentParser:
     """Собирает пайплайн парсера, опционально исключая шаги Conan и валидации.
 
-    Так как ``ComponentParser`` сам по умолчанию включает все шаги, при
-    наличии флагов пропуска используется ``with_steps_excluded`` вместо
-    обычного конструктора.
+    ``ComponentParser`` всегда создаётся обычным конструктором со стандартным
+    набором шагов; при наличии флагов пропуска лишние шаги убираются через
+    ``exclude()``.
 
     Args:
         parser_config: Валидированная конфигурация парсера.
@@ -60,18 +60,20 @@ def _build_parser(
     Returns:
         Собранный ``ComponentParser``, готовый к вызову ``parse()``.
     """
-    if not skip_conan and not skip_validation:
-        return ComponentParser(parser_config, data_dir)
+    parser = ComponentParser(parser_config, data_dir)
 
-    exclude = []
+    skipped: list[str] = []
     if skip_conan:
-        exclude.append(ConanEnrichStep)
+        parser.exclude(ConanEnrichStep)
+        skipped.append(ConanEnrichStep.__name__)
     if skip_validation:
-        exclude.append(ArtifactoryValidationStep)
+        parser.exclude(ArtifactoryValidationStep)
+        skipped.append(ArtifactoryValidationStep.__name__)
 
-    skipped = [cls.__name__ for cls in exclude]
-    console.print(f"⚠️  Пропущены шаги: {', '.join(skipped)}", style="yellow")
-    return ComponentParser.with_steps_excluded(parser_config, data_dir, exclude)
+    if skipped:
+        console.print(f"⚠️  Пропущены шаги: {', '.join(skipped)}", style="yellow")
+
+    return parser
 
 
 @click.command()

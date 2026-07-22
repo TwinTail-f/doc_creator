@@ -80,30 +80,40 @@ class ComponentParser:
             FinalizeStep(),
         ]
 
-    @classmethod
-    def with_steps_excluded(
-        cls,
-        config: ParserConfigSchema,
-        data_dir: Path,
-        exclude: list[type],
-    ) -> Self:
+    def exclude(self, *step_types: type) -> Self:
         """
-        Фабричный метод: создаёт парсер без указанных классов шагов.
+        Убирает из пайплайна шаги указанных классов.
+
+        Мутирует ``self._steps`` на месте и возвращает ``self`` для
+        возможности чейнинга (``parser.exclude(A).exclude(B)``).
 
         Args:
-            config: Валидированная конфигурация парсера.
-            data_dir: Корневая директория для временных и промежуточных файлов.
-            exclude: Список классов шагов, которые нужно исключить из пайплайна.
+            *step_types: Классы шагов, которые нужно исключить из пайплайна.
 
         Returns:
-            Экземпляр ``ComponentParser`` с отфильтрованным пайплайном.
+            ``self``, с отфильтрованным списком шагов.
         """
-        steps = [
-            step
-            for step in ComponentParser._default_pipeline()
-            if not isinstance(step, tuple(exclude))
+        self._steps = [
+            step for step in self._steps if not isinstance(step, step_types)
         ]
-        return ComponentParser(config, data_dir, steps=steps)
+        return self
+
+    def insert(self, step: BaseParseStep, index: int | None = None) -> Self:
+        """
+        Добавляет шаг в пайплайн.
+
+        Args:
+            step: Экземпляр шага для добавления.
+            index: Позиция вставки. ``None`` → добавить в конец пайплайна.
+
+        Returns:
+            ``self``, с обновлённым списком шагов.
+        """
+        if index is None:
+            self._steps.append(step)
+        else:
+            self._steps.insert(index, step)
+        return self
 
     def parse(self, save_intermediate: bool = False) -> ParsedResult:
         """
