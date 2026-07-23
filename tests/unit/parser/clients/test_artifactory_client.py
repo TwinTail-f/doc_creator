@@ -12,23 +12,17 @@ import requests
 from autodoc.parser.clients.artifactory_client import ArtifactoryClient
 
 
-def _make_artifactory_client(parser_config) -> ArtifactoryClient:
-    """
-    Создаёт ArtifactoryClient из минимальной корректной конфигурации парсера.
-
-    Args:
-        parser_config: Валидированная конфигурация парсера (фикстура).
-
-    Returns:
-        Готовый к использованию экземпляр ArtifactoryClient.
-    """
+@pytest.fixture
+def artifactory_client(parser_config) -> ArtifactoryClient:
+    """Готовый к использованию ArtifactoryClient, созданный из parser_config."""
     return ArtifactoryClient(parser_config)
 
 
 @pytest.mark.infrastructure
-def test_artifactory_client_head_returns_response(mocker, parser_config) -> None:
-    """ArtifactoryClient.head выполняет HEAD-запрос с allow_redirects=True и возвращает HTTP-ответ."""
-    client = _make_artifactory_client(parser_config)
+def test_artifactory_client_head_returns_response(mocker, artifactory_client) -> None:
+    """ArtifactoryClient.head делегирует HEAD-запрос сессии с allow_redirects=True
+    и возвращает её ответ без изменений (URL при этом не валидируется)."""
+    client = artifactory_client
     mock_resp = MagicMock(spec=requests.Response)
     mock_head = mocker.patch.object(client.session, "head", return_value=mock_resp)
 

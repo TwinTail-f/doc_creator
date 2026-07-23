@@ -66,7 +66,7 @@ def manifest_component(manifest_release: Release) -> Component:
 
 
 # Фейковый клиент Artifactory (используется в тестах validation_step)
-class _FakeArtifactoryClient:
+class FakeArtifactoryClient:
     """Минимальная заглушка клиента Artifactory, записывающая вызовы head()."""
 
     def __init__(self, status_code: int = 200) -> None:
@@ -78,12 +78,6 @@ class _FakeArtifactoryClient:
         resp = requests.Response()
         resp.status_code = self.status_code
         return resp
-
-
-@pytest.fixture
-def artifactory_client() -> _FakeArtifactoryClient:
-    """Фейковый клиент Artifactory по умолчанию (200 OK); тесты используют .__class__(status_code=N) для вариантов."""
-    return _FakeArtifactoryClient(status_code=200)
 
 
 class FakeTFSClient:

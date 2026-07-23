@@ -7,6 +7,7 @@ from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
+from tests.unit.parser.conftest import FakeArtifactoryClient
 
 REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"
 UI_URL: str = "https://art.example.com/ui/repos/tree/General/conan2/lib/package"
@@ -82,12 +83,11 @@ class _RaisingClient:
 @pytest.mark.business_logic
 def test_validation_step_keeps_200_variant(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """Вариант, чей build_url возвращает HTTP 200, остаётся в pb.variants."""
     component, pb, _ = _make_component_with_variant(build_url=UI_URL)
     parser_pipeline_context.components = [component]
-    parser_pipeline_context.artifactory_client = artifactory_client.__class__(status_code=200)
+    parser_pipeline_context.artifactory_client = FakeArtifactoryClient(status_code=200)
     step = ArtifactoryValidationStep()
     step.execute(parser_pipeline_context)
     assert len(pb.variants) == 1
@@ -109,7 +109,6 @@ def test_validation_step_no_client_skips(
 @pytest.mark.business_logic
 def test_collect_variants_collects_all_variants(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """_collect_variants собирает все варианты по всем компонентам и профилям."""
     # Строим 2 компонента × 2 профиля × 1 вариант каждый → 4 собранных
@@ -146,7 +145,7 @@ def test_collect_variants_collects_all_variants(
         )
 
     parser_pipeline_context.components = components
-    recording_client = artifactory_client.__class__(status_code=200)
+    recording_client = FakeArtifactoryClient(status_code=200)
     parser_pipeline_context.artifactory_client = recording_client
     step = ArtifactoryValidationStep()
     step.execute(parser_pipeline_context)
@@ -156,13 +155,12 @@ def test_collect_variants_collects_all_variants(
 @pytest.mark.business_logic
 def test_404_removes_variant_from_profile_build(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """HTTP 404 при HEAD-запросе удаляет вариант из ProfileBuild.variants."""
     comp, _, pb, variant = _make_tree(f"{_VS_UI_URL_PREFIX}/v1.zip")
     ctx = parser_pipeline_context
     ctx.components = [comp]
-    ctx.artifactory_client = artifactory_client.__class__(status_code=404)
+    ctx.artifactory_client = FakeArtifactoryClient(status_code=404)
 
     ArtifactoryValidationStep().execute(ctx)
 
@@ -189,14 +187,13 @@ def test_network_error_keeps_variant_fail_open(
 @pytest.mark.business_logic
 def test_ui_url_converted_to_api_url_before_head(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """UI URL преобразуется в API URL перед HEAD-запросом."""
     ui_url = "http://art/ui/repos/tree/General/repo/path/pkg.zip"
     comp, _, pb, variant = _make_tree(ui_url)
     ctx = parser_pipeline_context
     ctx.components = [comp]
-    recording_client = artifactory_client.__class__(status_code=200)
+    recording_client = FakeArtifactoryClient(status_code=200)
     ctx.artifactory_client = recording_client
 
     ArtifactoryValidationStep().execute(ctx)
@@ -212,13 +209,12 @@ def test_ui_url_converted_to_api_url_before_head(
 @pytest.mark.business_logic
 def test_empty_build_url_skips_head_check(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """Вариант с пустым build_url не проверяется через HEAD и не удаляется."""
     comp, _, pb, variant = _make_tree("")  # empty URL
     ctx = parser_pipeline_context
     ctx.components = [comp]
-    recording_client = artifactory_client.__class__(status_code=200)
+    recording_client = FakeArtifactoryClient(status_code=200)
     ctx.artifactory_client = recording_client
 
     ArtifactoryValidationStep().execute(ctx)
@@ -232,7 +228,6 @@ def test_empty_build_url_skips_head_check(
 @pytest.mark.business_logic
 def test_profile_build_with_all_dead_variants_becomes_empty_not_removed(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """ProfileBuild с полностью мёртвыми вариантами остаётся в release.profile_builds пустым."""
     v1 = _make_variant(f"{_VS_UI_URL_PREFIX}/v1.zip", "id1")
@@ -257,7 +252,7 @@ def test_profile_build_with_all_dead_variants_becomes_empty_not_removed(
     )
     ctx = parser_pipeline_context
     ctx.components = [comp]
-    ctx.artifactory_client = artifactory_client.__class__(status_code=404)
+    ctx.artifactory_client = FakeArtifactoryClient(status_code=404)
 
     ArtifactoryValidationStep().execute(ctx)
 
@@ -375,13 +370,12 @@ def test_validation_step_removes_two_consecutive_dead_variants(
 @pytest.mark.business_logic
 def test_validation_step_non_404_error_status_keeps_variant(
     parser_pipeline_context,
-    artifactory_client,
 ) -> None:
     """Статус, отличный от 404 (например 500), не приводит к удалению варианта."""
     comp, _, pb, variant = _make_tree(f"{_VS_UI_URL_PREFIX}/v1.zip")
     ctx = parser_pipeline_context
     ctx.components = [comp]
-    ctx.artifactory_client = artifactory_client.__class__(status_code=500)
+    ctx.artifactory_client = FakeArtifactoryClient(status_code=500)
 
     ArtifactoryValidationStep().execute(ctx)
 

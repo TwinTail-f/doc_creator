@@ -8,9 +8,8 @@ setup_logging (``if not log.handlers: ...`` — настройка происх�
 а не код проекта.
 """
 
-from pathlib import Path
-
 import logging
+from pathlib import Path
 
 import pytest
 
@@ -18,7 +17,7 @@ from autodoc.common.logger import clear_logs_dir, setup_logging, start_session_f
 
 
 @pytest.fixture
-def _isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+def isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     """Изолирует реестр логгеров ``logging.Logger.manager.loggerDict`` на время теста.
 
     ``logging.getLogger(name)`` кеширует инстансы в этом реестре (обычный
@@ -32,7 +31,7 @@ def _isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.infrastructure
-@pytest.mark.usefixtures("_isolated_logger_registry")
+@pytest.mark.usefixtures("isolated_logger_registry")
 def test_setup_logging_configures_console_handler_only_once() -> None:
     """setup_logging() навешивает ровно один консольный обработчик уровня
     INFO на логгер уровня DEBUG при первом вызове; повторный вызов для того
@@ -54,7 +53,7 @@ def test_setup_logging_configures_console_handler_only_once() -> None:
 
 
 @pytest.mark.infrastructure
-@pytest.mark.usefixtures("_isolated_logger_registry")
+@pytest.mark.usefixtures("isolated_logger_registry")
 def test_start_session_file_log_replaces_stale_handler_without_close(
     tmp_path: Path,
 ) -> None:
