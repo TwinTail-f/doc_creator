@@ -136,7 +136,7 @@
                 "name": "patchelf",
                 "user": "platform-2.0",
                 "channel": "tech",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_patchelf",
+                "url": "https://example.com/contrib_patchelf",
                 "license": "GPL-3.0-or-later",
                 "author": null,
                 "description": "A small utility to modify the dynamic linker and RPATH of ELF executables",
@@ -179,11 +179,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/patch49efafdb89d49/e",
+                "recipe_folder": "/home/builduser/.conan2/p/patch49efafdb89d49/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,

@@ -135,7 +135,7 @@
                 "name": "sqlite3",
                 "user": "platform-2.0",
                 "channel": "fast",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_sqlite",
+                "url": "https://example.com/contrib_sqlite",
                 "license": "Unlicense",
                 "author": null,
                 "description": "Self-contained, serverless, in-process SQL database engine.",
@@ -342,11 +342,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/sqlitfaacbb88ca9e4/e",
+                "recipe_folder": "/home/builduser/.conan2/p/sqlitfaacbb88ca9e4/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,
@@ -494,7 +494,7 @@
                 "name": "tcl",
                 "user": "components",
                 "channel": "platform",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_tcl",
+                "url": "https://example.com/contrib_tcl",
                 "license": "TCL",
                 "author": null,
                 "description": "Tcl is a very powerful but easy to learn dynamic programming language.",
@@ -527,11 +527,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/tcl92434adbbbc6d/e",
+                "recipe_folder": "/home/builduser/.conan2/p/tcl92434adbbbc6d/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,

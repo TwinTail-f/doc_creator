@@ -10,10 +10,12 @@ setup_logging (``if not log.handlers: ...`` — настройка происх�
 
 import logging
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
-from autodoc.common.logger import clear_logs_dir, setup_logging, start_session_file_log
+from autodoc.common import logger as logger_module
+from autodoc.common.logger import clear_logs_dir, setup_logging
 
 
 @pytest.fixture
@@ -54,42 +56,50 @@ def test_setup_logging_configures_console_handler_only_once() -> None:
 
 @pytest.mark.infrastructure
 @pytest.mark.usefixtures("isolated_logger_registry")
-def test_start_session_file_log_replaces_stale_handler_without_close(
+def test_setup_logging_replaces_stale_file_handler(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Повторный вызов start_session_file_log без закрытия предыдущего запуска
-    не копит файловые обработчики, а снимает старый перед добавлением нового.
+    """Повторный вызов setup_logging с module_name/logs_dir на одном логгере не
+    копит файловые обработчики: старый снимается перед добавлением нового,
+    лог пишется только в актуальный файл. Консольный обработчик при этом не
+    трогается и не дублируется.
 
-    Бизнес-правило:
-        start_session_file_log идемпотентна так же, как setup_logging: даже
-        если предыдущая сессия не была явно закрыта, обработчики от разных
-        запусков не накапливаются на одном логгере, и запись лога не
-        дублируется в старые файлы.
+    Такой повторный вызов не происходит в реальном CLI (parse/publish — это
+    отдельные процессы со своим чистым логгером); здесь он смоделирован
+    намеренно, чтобы проверить идемпотентность самой функции.
 
-    Предусловия:
-        - Чистый логгер без обработчиков (session-scoped fixture).
-
-    Шаги:
-        1. Дважды вызвать start_session_file_log на одном логгере.
-        2. Записать одну запись лога.
-
-    Ожидаемый результат:
-        - На логгере остаётся ровно один файловый обработчик (плюс консольный).
-        - Запись лога попадает только в файл второго (актуального) запуска.
+    Таймстемп в имени файла фиксируется явно (два разных значения), а не
+    берётся из реального времени: у формата секундная точность, и два вызова
+    подряд иначе рискуют получить одно и то же имя файла — тогда проверка
+    "запись попала только в один файл" была бы не показательной (файл был бы
+    просто один, а не то, что второй не тронут).
     """
+    fake_datetime = Mock()
+    fake_datetime.now.side_effect = [
+        Mock(strftime=Mock(return_value="2026-01-01T12-00-00")),
+        Mock(strftime=Mock(return_value="2026-01-01T12-00-01")),
+    ]
+    monkeypatch.setattr(logger_module, "datetime", fake_datetime)
+
     log = setup_logging("autodoc.session-file-log.test")
 
-    start_session_file_log(log, "parser", tmp_path)
-    start_session_file_log(log, "parser", tmp_path)
+    setup_logging("autodoc.session-file-log.test", module_name="parser", logs_dir=tmp_path)
+    setup_logging("autodoc.session-file-log.test", module_name="parser", logs_dir=tmp_path)
 
     file_handlers = [h for h in log.handlers if isinstance(h, logging.FileHandler)]
     assert len(file_handlers) == 1, "старый файловый обработчик должен быть снят"
+    assert sum(
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        for h in log.handlers
+    ) == 1, "консольный обработчик не должен дублироваться"
 
     log.info("marker message")
     log_files = sorted(tmp_path.glob("*.log"))
+    assert len(log_files) == 2, "должно быть два файла сессии — от первого и второго вызова"
+
     written_to = [p for p in log_files if "marker message" in p.read_text(encoding="utf-8")]
     assert len(written_to) == 1, "запись должна попасть только в актуальный файл сессии"
-
 
 
 @pytest.mark.infrastructure

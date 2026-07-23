@@ -134,7 +134,7 @@
                 "name": "nlohmann_json",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_nlohmann_json",
+                "url": "https://example.com/contrib_nlohmann_json",
                 "license": "MIT",
                 "author": null,
                 "description": "JSON for Modern C++ parser and generator.",
@@ -166,11 +166,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/nlohma27bb8a3b16c3/e",
+                "recipe_folder": "/home/builduser/.conan2/p/nlohma27bb8a3b16c3/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,

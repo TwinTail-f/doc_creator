@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from autodoc.common.logger import LOGS_DIR_NAME, logger, start_session_file_log
+from autodoc.common.logger import LOGS_DIR_NAME, setup_logging
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import console
 from autodoc.cli.commands.parse import parse
@@ -53,7 +53,7 @@ def cli(ctx: click.Context, base_dir: Path, configs_dir: Path | None, verbose: b
 
     module_name = _MODULE_BY_SUBCOMMAND.get(ctx.invoked_subcommand)
     if module_name is not None:
-        start_session_file_log(logger, module_name, base / LOGS_DIR_NAME)
+        setup_logging(module_name=module_name, logs_dir=base / LOGS_DIR_NAME)
 
 
 # Регистрируем все команды и подгруппы

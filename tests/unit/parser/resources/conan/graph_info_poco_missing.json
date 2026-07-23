@@ -166,7 +166,7 @@
                 "name": "poco",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "http://company.com:8080/tfs/companytc1/DEP_Components/_git/contrib_poco",
+                "url": "https://example.com/contrib_poco",
                 "license": "The Boost Software License 1.0",
                 "author": null,
                 "description": "Modern, powerful open source C++ class libraries for building network- and internet-based applications that run on desktop, server, mobile and embedded systems.",
@@ -394,11 +394,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/pocobc621d0601005/e",
+                "recipe_folder": "/home/builduser/.conan2/p/pocobc621d0601005/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,
@@ -600,7 +600,7 @@
                 "name": "zlib",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "http://company.com:8080/tfs/companytc1/DEP_Components/_git/contrib_zlib",
+                "url": "https://example.com/contrib_zlib",
                 "license": "Zlib",
                 "author": null,
                 "description": "A Massively Spiffy Yet Delicately Unobtrusive Compression Library (Also Free, Not to Mention Unencumbered by Patents)",
@@ -661,11 +661,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/zlib2da79124a9347/e",
+                "recipe_folder": "/home/builduser/.conan2/p/zlib2da79124a9347/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,
@@ -765,7 +765,7 @@
                 "name": "pcre2",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_pcre2",
+                "url": "https://example.com/contrib_pcre2",
                 "license": "BSD-3-Clause",
                 "author": null,
                 "description": "Perl Compatible Regular Expressions",
@@ -869,11 +869,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/pcre2ec3d746b17187/e",
+                "recipe_folder": "/home/builduser/.conan2/p/pcre2ec3d746b17187/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,

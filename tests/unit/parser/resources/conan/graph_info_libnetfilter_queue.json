@@ -166,7 +166,7 @@
                 "name": "libnetfilter_queue",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "https://company.com/tfs/companytc1/PRG_Quant/_git/contrib_libnetfilter_queue",
+                "url": "https://example.com/contrib_libnetfilter_queue",
                 "license": "company",
                 "author": null,
                 "description": "userspace library that provides an API to packets that have been queued by the kernel packet filter",
@@ -223,11 +223,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/libne5d0fe5959e5e7/e",
+                "recipe_folder": "/home/builduser/.conan2/p/libne5d0fe5959e5e7/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,
@@ -347,7 +347,7 @@
                 "name": "libmnl",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_libmnl",
+                "url": "https://example.com/contrib_libmnl",
                 "license": "company",
                 "author": null,
                 "description": "libmnl is a minimalistic user-space library oriented to Netlink developers",
@@ -400,11 +400,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/libmn029a4ea0be33e/e",
+                "recipe_folder": "/home/builduser/.conan2/p/libmn029a4ea0be33e/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,
@@ -487,7 +487,7 @@
                 "name": "libnfnetlink",
                 "user": "platform-2.0",
                 "channel": "slow",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_libnfnetlink",
+                "url": "https://example.com/contrib_libnfnetlink",
                 "license": "company",
                 "author": null,
                 "description": "low-level library for netfilter related kernel/userspace communication",
@@ -540,11 +540,11 @@
                     "conan_helper/2.0+95@platform/python_requires#05dd97518bbfb27024b6176c740d17f3": {
                         "remote": null,
                         "recipe": "Cache",
-                        "path": "/home/maxim/.conan2/p/conan0346ed5eab2d3/e"
+                        "path": "/home/builduser/.conan2/p/conan0346ed5eab2d3/e"
                     }
                 },
                 "system_requires": {},
-                "recipe_folder": "/home/maxim/.conan2/p/libnfb13aa6318ba05/e",
+                "recipe_folder": "/home/builduser/.conan2/p/libnfb13aa6318ba05/e",
                 "source_folder": null,
                 "build_folder": null,
                 "generators_folder": null,

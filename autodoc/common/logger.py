@@ -1,12 +1,4 @@
-"""
-Централизованный логгер проекта.
-
-Предоставляет единственный настроенный экземпляр ``logger`` для использования
-во всех модулях проекта. Консоль показывает INFO и выше (WARNING — жёлтым,
-ERROR/CRITICAL — красным); дополнительно каждый запуск parser/publisher может
-подключить файловый обработчик уровня DEBUG в ``logs/`` (см.
-``start_session_file_log``).
-"""
+"""Логгер проекта: цветной вывод в консоль (INFO+) и файловый DEBUG-лог на сессию parser/publisher."""
 
 import logging
 import sys
@@ -14,40 +6,23 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-LOGS_DIR_NAME: str = "logs"
+LOGS_DIR_NAME = "logs"
 
-_LOG_FORMAT: str = (
-    "[%(asctime)s] | (%(module)s:%(funcName)s:%(lineno)d) -- %(levelname)s -- %(message)s"
-)
-# Полная дата в записях лога не нужна: она уже есть в имени файла лога
-# (см. _FILENAME_TIMESTAMP_FORMAT), поэтому и консоль, и файл используют
-# один и тот же короткий datefmt.
-_LOG_DATEFMT: str = "%H:%M:%S"
-
-_FILENAME_TIMESTAMP_FORMAT: str = "%Y-%m-%dT%H-%M-%S"
+_LOG_FORMAT = "[%(asctime)s] | (%(module)s:%(funcName)s:%(lineno)d) -- %(levelname)s -- %(message)s"
+_LOG_DATEFMT = "%H:%M:%S"
+_TIMESTAMP_FORMAT = "%Y-%m-%dT%H-%M-%S"
 
 ModuleName = Literal["parser", "publisher"]
 
 
 class _ConsoleColorFormatter(logging.Formatter):
-    """Формирует цветную строку лога для консоли.
-
-    Раскрашивает предупреждения и ошибки, чтобы их было проще заметить среди
-    обычного вывода, не меняя формат самой записи.
-    """
+    """Красит WARNING жёлтым, ERROR/CRITICAL красным при выводе в TTY."""
 
     _YELLOW = "\033[33m"
     _RED = "\033[31m"
     _RESET = "\033[0m"
 
     def format(self, record: logging.LogRecord) -> str:
-        """
-        Args:
-            record: Запись лога, переданная стандартным механизмом logging.
-
-        Returns:
-            Отформатированная строка, обёрнутая в ANSI-код цвета для WARNING/ERROR/CRITICAL.
-        """
         formatted = super().format(record)
         if not sys.stderr.isatty():
             return formatted
@@ -58,80 +33,51 @@ class _ConsoleColorFormatter(logging.Formatter):
         return formatted
 
 
-def setup_logging(logger_name: str = "doc_parser") -> logging.Logger:
-    """
-    Настраивает логгер с выводом модуля и функции.
+def _get_stream_handler() -> logging.StreamHandler:
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(_ConsoleColorFormatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT))
+    return handler
 
-    Args:
-        logger_name: Имя логгера.
 
-    Returns:
-        Настроенный экземпляр logging.Logger.
-    """
+def _get_file_handler(module_name: ModuleName, logs_dir: Path) -> logging.FileHandler:
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime(_TIMESTAMP_FORMAT)
+    handler = logging.FileHandler(logs_dir / f"{module_name}-{timestamp}.log", encoding="utf-8")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT))
+    return handler
+
+
+def setup_logging(
+    logger_name: str = "doc_parser",
+    module_name: ModuleName | None = None,
+    logs_dir: Path | None = None,
+) -> logging.Logger:
+    """Настраивает логгер: консольный обработчик (один раз) + опционально файловый
+    DEBUG-лог текущей сессии для parser/publisher (если переданы module_name и logs_dir)."""
     log = logging.getLogger(logger_name)
 
     if not log.handlers:
         log.setLevel(logging.DEBUG)
+        log.addHandler(_get_stream_handler())
 
-        console_formatter = _ConsoleColorFormatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT)
-
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(console_formatter)
-        console_handler.setLevel(logging.INFO)
-
-        log.addHandler(console_handler)
+    if module_name is not None and logs_dir is not None:
+        for handler in list(log.handlers):
+            if isinstance(handler, logging.FileHandler):
+                log.removeHandler(handler)
+        log.addHandler(_get_file_handler(module_name, logs_dir))
 
     return log
 
 
-_SESSION_FILE_HANDLER_ATTR: str = "_autodoc_session_file_handler"
-
-
-def start_session_file_log(
-    logger_obj: logging.Logger,
-    module_name: ModuleName,
-    logs_dir: Path,
-) -> None:
-    """Подключает к логгеру файловый обработчик уровня DEBUG для текущего запуска.
-
-    Args:
-        logger_obj: Логгер, к которому нужно подключить файловый обработчик.
-        module_name: Имя модуля ("parser" или "publisher") — используется в имени файла.
-        logs_dir: Директория для лог-файлов; создаётся, если отсутствует.
-    """
-    previous_handler: logging.FileHandler | None = getattr(
-        logger_obj, _SESSION_FILE_HANDLER_ATTR, None
-    )
-    if previous_handler is not None:
-        logger_obj.removeHandler(previous_handler)
-        previous_handler.close()
-
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime(_FILENAME_TIMESTAMP_FORMAT)
-    log_path = logs_dir / f"{module_name}-{timestamp}.log"
-
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(fmt=_LOG_FORMAT, datefmt=_LOG_DATEFMT))
-    logger_obj.addHandler(file_handler)
-    setattr(logger_obj, _SESSION_FILE_HANDLER_ATTR, file_handler)
-
-
 def clear_logs_dir(logs_dir: Path) -> list[Path]:
-    """Удаляет все файлы логов из директории логов.
-
-    Args:
-        logs_dir: Директория с логами.
-
-    Returns:
-        Список удалённых путей (пустой, если директории нет или удалять нечего).
-    """
+    """Удаляет все *.log файлы из директории логов, возвращает список удалённых путей."""
     if not logs_dir.exists():
         return []
-    deleted: list[Path] = []
-    for path in sorted(logs_dir.glob("*.log")):
+    deleted = sorted(logs_dir.glob("*.log"))
+    for path in deleted:
         path.unlink()
-        deleted.append(path)
     return deleted
 
 

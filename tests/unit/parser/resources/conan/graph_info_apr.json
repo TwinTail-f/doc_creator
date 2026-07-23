@@ -126,7 +126,7 @@
                 "name": "apr",
                 "user": "platform-2.0",
                 "channel": "fast",
-                "url": "https://company.com/tfs/companytc1/DEP_Components/_git/contrib_apr",
+                "url": "https://example.com/contrib_apr",
                 "license": "Apache-2.0",
                 "author": null,
                 "description": "Apache Portable Runtime library",
