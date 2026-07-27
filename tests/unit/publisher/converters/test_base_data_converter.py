@@ -5,11 +5,11 @@ from typing import Any
 import pytest
 
 from autodoc.models.conan_variant import ConanVariant
-from autodoc.publisher.converters.base_data_converter import _VariantOpts
+from autodoc.publisher.converters.base_data_converter import BadgeClass, _VariantOpts
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.converters.passport_converter import PassportConverter
+from tests.unit.publisher.conftest import COMPONENT_NAME as COMP_NAME
 
-COMP_NAME: str = "openssl"
 OPT_KEY_SHARED: str = "shared"
 OPT_KEY_FPIC: str = "fPIC"
 INSTALL_OVERRIDE: str = "-o pkg/*:x=1"
@@ -168,11 +168,11 @@ def test_build_variant_view_install_options_priority(
 @pytest.mark.parametrize(
     "value,default_value,has_default,expected_badge",
     [
-        ("True", "True", True, "autodoc-badge-def"),
-        (True, False, True, "autodoc-badge-n"),
-        (False, True, True, "autodoc-badge-n"),
-        ("static", "shared", True, "autodoc-badge-n"),
-        ("True", "True", False, "autodoc-badge-n"),
+        ("True", "True", True, BadgeClass.DEFAULT.value),
+        (True, False, True, BadgeClass.NEUTRAL.value),
+        (False, True, True, BadgeClass.NEUTRAL.value),
+        ("static", "shared", True, BadgeClass.NEUTRAL.value),
+        ("True", "True", False, BadgeClass.NEUTRAL.value),
     ],
     ids=[
         "test_classify_option_badge_matches_default_is_default",

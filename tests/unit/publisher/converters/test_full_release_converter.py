@@ -3,15 +3,10 @@
 import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
-from autodoc.models.parsed_result import ParsedResult
+from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from tests.unit.publisher.conftest import COMPONENT_NAME as COMP_NAME
 
-COMP_NAME: str = "openssl"
-COMP_ZLIB: str = "zlib"
-COMP_DESCRIPTION: str = "TLS library"
-COMP_ZLIB_DESCRIPTION: str = "Compression library"
-PLATFORM_VERSION: str = "2.0"
-DOCKER_IMAGE: str = "registry.example.com/build/linux-gcc10:latest"
 UNKNOWN_PROFILE: str = "ghost"
 UNKNOWN_OPTIONS_REF: str = "UNKNOWN_REF"
 
@@ -39,7 +34,7 @@ def test_full_release_convert_returns_platform_version(
     """result['platform_version'] соответствует platform_version исходного ParsedResult."""
     result = FullReleaseConverter().convert(publisher_multi_component_result)
 
-    assert result["platform_version"] == PLATFORM_VERSION
+    assert result["platform_version"] == publisher_multi_component_result.platform_version
 
 
 @pytest.mark.contract
@@ -60,8 +55,8 @@ def test_full_release_convert_component_has_name_and_description(
     result = FullReleaseConverter().convert(publisher_multi_component_result)
 
     descriptions_by_name = {c["name"]: c["description"] for c in result["components"]}
-    assert descriptions_by_name[COMP_NAME] == COMP_DESCRIPTION
-    assert descriptions_by_name[COMP_ZLIB] == COMP_ZLIB_DESCRIPTION
+    for component in publisher_multi_component_result.components:
+        assert descriptions_by_name[component.name] == component.description
 
 
 @pytest.mark.contract
@@ -78,13 +73,17 @@ def test_full_release_convert_component_has_releases(
 @pytest.mark.business_logic
 def test_full_release_convert_profile_build_has_docker_image(
     publisher_multi_component_result: ParsedResult,
+    publisher_profile_definition: ProfileDefinition,
 ) -> None:
     """Сборки профиля обогащаются docker_image из соответствующего ProfileDefinition."""
     result = FullReleaseConverter().convert(publisher_multi_component_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     first_release = openssl_entry["releases"][0]
-    assert first_release["profile_builds"][0]["docker_image"] == DOCKER_IMAGE
+    assert (
+        first_release["profile_builds"][0]["docker_image"]
+        == publisher_profile_definition.docker_image
+    )
 
 
 @pytest.mark.business_logic
@@ -141,22 +140,9 @@ def test_header_only_component_has_no_profile_builds_in_view(
     publisher_header_only_component,
     publisher_profile_definition,
 ) -> None:
-    """
-    Бизнес-правило: у компонента с is_header_only=True в view-model для всех
-    его релизов profile_builds=[] (поле перенесено с Release на Component).
-
-    Предусловия:
-        - publisher_header_only_component имеет is_header_only=True;
-          его вложенный релиз содержит непустой profile_builds.
-
-    Шаги:
-        1. Построить ParsedResult с header-only компонентом.
-        2. Создать FullReleaseConverter(include_passport_links=False).
-        3. Вызвать convert() и проверить view["components"][0]["releases"].
-
-    Ожидаемый результат:
-        Каждый release_view["profile_builds"] == [].
-    """
+    """У компонента с is_header_only=True все его релизы получают profile_builds=[]
+    в view-model, даже если у вложенного release они непустые: это поле по смыслу
+    принадлежит Component, а не Release."""
     parsed = ParsedResult(
         generated_at="2024-01-15T12:00:00",
         platform_version="2.0",
@@ -179,21 +165,8 @@ def test_header_only_component_has_no_profile_builds_in_view(
 def test_non_header_only_component_has_profile_builds(
     publisher_parsed_result,
 ) -> None:
-    """
-    Бизнес-правило: у компонента с is_header_only=False непустой profile_builds
-    в view-model (если у релиза есть ProfileBuild).
-
-    Предусловия:
-        - publisher_parsed_result: компонент openssl с is_header_only=False
-          и одним ProfileBuild.
-
-    Шаги:
-        1. Создать FullReleaseConverter и вызвать convert().
-        2. Проверить release_view["profile_builds"] для openssl.
-
-    Ожидаемый результат:
-        len(release_view["profile_builds"]) > 0.
-    """
+    """У компонента с is_header_only=False profile_builds в view-model остаётся
+    непустым, если у соответствующего release есть хотя бы один ProfileBuild."""
     comp = publisher_parsed_result.components[0]
     assert comp.is_header_only is False, "Fixture must have is_header_only=False"
     assert len(comp.releases[0].profile_builds) > 0, "Fixture must have non-empty profile_builds"
@@ -212,24 +185,9 @@ def test_non_header_only_component_has_profile_builds(
 def test_components_sorted_alphabetically_in_view(
     publisher_multi_component_result,
 ) -> None:
-    """
-    Бизнес-правило: компоненты в view-model отсортированы по имени в алфавитном порядке.
-
-    Предусловия:
-        - publisher_multi_component_result содержит компоненты openssl и zlib;
-          порядок в components патчится на обратный (zlib раньше openssl) —
-          иначе тест не отличает настоящую сортировку от порядка вставки,
-          случайно совпадающего с алфавитным в исходной фикстуре.
-
-    Шаги:
-        1. Поменять местами компоненты во входных данных (zlib, openssl).
-        2. Создать FullReleaseConverter и вызвать convert().
-        3. Извлечь имена компонентов из view["components"].
-
-    Ожидаемый результат:
-        names == sorted(names), несмотря на то, что во входных данных
-        zlib идёт раньше openssl.
-    """
+    """Компоненты в view-model отсортированы по имени в алфавитном порядке. Входные
+    данные предварительно переставляются в обратном порядке, иначе тест не отличит
+    настоящую сортировку от порядка вставки, случайно совпадающего с алфавитным."""
     reversed_result = publisher_multi_component_result.model_copy(
         update={"components": list(reversed(publisher_multi_component_result.components))}
     )
@@ -259,27 +217,11 @@ def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, fl
 def test_no_passport_link_field_added_by_converter_itself(
     publisher_parsed_result,
 ) -> None:
-    """
-    Бизнес-правило: FullReleaseConverter.convert() сам по себе не добавляет
-    поле passport_link / passport_versions ни в release_view, ни в comp_view,
-    независимо от include_passport_links. Согласно докстрингу
-    BaseReleaseConverter, эта ответственность полностью лежит на
-    autodoc.publisher.page_manager.passport_link_injector.inject_links(),
-    который применяется позже слоем стратегии и проверяется в
-    tests/unit/publisher/page_manager/test_passport_registry.py.
-
-    Предусловия:
-        - publisher_parsed_result с одним компонентом и одним релизом.
-
-    Шаги:
-        1. Создать FullReleaseConverter(include_passport_links=True).
-        2. Вызвать convert().
-        3. Проверить, что ни "passport_link", ни "passport_versions" не
-           встречаются в release_view или comp_view.
-
-    Ожидаемый результат:
-        Ни один из ключей не присутствует нигде в исходном выводе convert().
-    """
+    """FullReleaseConverter.convert() сам по себе не добавляет поле passport_link /
+    passport_versions ни в release_view, ни в comp_view, даже при
+    include_passport_links=True: согласно докстрингу BaseReleaseConverter, эта
+    ответственность полностью лежит на inject_links(), который применяется позже
+    слоем стратегии (см. tests/unit/publisher/page_manager/test_passport_registry.py)."""
     converter = FullReleaseConverter(include_passport_links=True)
     view = converter.convert(publisher_parsed_result)
 

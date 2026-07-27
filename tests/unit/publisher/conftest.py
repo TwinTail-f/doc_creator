@@ -16,6 +16,7 @@ from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
 
 CI_BUILD_URL: str = "https://ci.example.com/build/42"
+COMPONENT_NAME: str = "openssl"
 
 
 class FakeConfluenceClient:
@@ -223,7 +224,7 @@ def publisher_release(publisher_profile_build: ProfileBuild) -> Release:
 def publisher_component(publisher_release: Release) -> Component:
     """Component 'openssl' с одним Release."""
     return Component(
-        name="openssl",
+        name=COMPONENT_NAME,
         description="OpenSSL TLS/SSL library",
         git_project="DEP_Components",
         git_repo="contrib_openssl",
@@ -568,7 +569,7 @@ def publisher_multi_component_result(
         total_option_sets=[],
     )
     comp1 = Component(
-        name="openssl",
+        name=COMPONENT_NAME,
         description="TLS library",
         git_project="DEP",
         git_repo="contrib_openssl",

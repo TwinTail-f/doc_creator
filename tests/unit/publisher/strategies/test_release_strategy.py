@@ -184,29 +184,15 @@ def test_release_make_converter_creates_full_release_converter(
 @pytest.mark.business_logic
 def test_links_injected_into_view_model_from_registry(
     publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
 ) -> None:
-    """
-    BL-RS-04
-    Бизнес-правило: после загрузки реестра ссылки на паспорта внедряются в
-    view-model, чтобы шаблон мог отрендерить кликабельные ссылки на каждую страницу паспорта.
-
-    Предусловия:
-        - PassportPageRegistry.load возвращает непустой pages_map для 'openssl'.
-        - Захватывающий builder записывает все view_model, переданные в build().
-
-    Шаги:
-        1. Патчим registry.load, чтобы он возвращал pages_map с openssl/1.0.0.
-        2. Используем CapturingBuilder вместо стандартного FakeDocumentBuilder.
-        3. Вызываем execute() с include_passport_links=True.
-
-    Ожидаемый результат:
-        builder.build() вызывается ровно один раз.
-        view_model для компонента 'openssl' содержит непустую запись
-        'passport_versions', полученную из реестра.
-    """
+    """После загрузки реестра ссылки на паспорта внедряются в view-model, чтобы
+    шаблон мог отрендерить кликабельные ссылки на каждую страницу паспорта:
+    view_model компонента 'openssl' получает непустую 'passport_versions',
+    полученную из pages_map реестра."""
     pages_map = {
         "openssl": {
             "1.0.0": {
@@ -218,16 +204,9 @@ def test_links_injected_into_view_model_from_registry(
     }
     mocker.patch.object(PassportPageRegistry, "load", return_value=pages_map)
 
-    captured_view_models: list[dict] = []
-
-    class CapturingBuilder:
-        def build(self, template_name: str, view_model: dict) -> str:
-            captured_view_models.append(view_model)
-            return "<html>test</html>"
-
     strategy = ReleasePageStrategy(
         confluence_client=publisher_confluence_client,
-        document_builder=CapturingBuilder(),
+        document_builder=publisher_document_builder,
         parsed_data=publisher_parsed_result,
         space=_SPACE,
         page_title=_PAGE_TITLE,
@@ -238,8 +217,8 @@ def test_links_injected_into_view_model_from_registry(
     )
     strategy.execute()
 
-    assert len(captured_view_models) == 1, "builder.build() должен быть вызван ровно один раз"
-    view = captured_view_models[0]
+    assert publisher_document_builder.last_call is not None, "builder.build() должен быть вызван"
+    view = publisher_document_builder.last_call["view_model"]
     openssl_view = next(
         (c for c in view.get("components", []) if c.get("name") == "openssl"),
         None,

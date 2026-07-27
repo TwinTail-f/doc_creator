@@ -155,7 +155,7 @@ def test_publish_single_page_calls_inject_links_if_provided(
     assert "key" in calls[0]
 
 
-@pytest.mark.infrastructure
+@pytest.mark.contract
 def test_publish_single_page_calls_builder_build(
     strategy_stub: _StubStrategy,
     publisher_document_builder: Any,
@@ -171,7 +171,7 @@ def test_publish_single_page_calls_builder_build(
     assert publisher_document_builder.last_call["template_name"] == _TEMPLATE_NAME
 
 
-@pytest.mark.infrastructure
+@pytest.mark.contract
 def test_publish_single_page_calls_client_publish_page(
     strategy_stub: _StubStrategy,
     publisher_confluence_client: Any,
