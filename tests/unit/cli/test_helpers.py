@@ -168,9 +168,10 @@ def test_make_publisher_missing_config_raises_config_error(
 
 @pytest.mark.business_logic
 def test_make_publisher_valid_config_returns_publisher_and_config(
-    tmp_path: Path, configs_dir: Path
+    tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
     """Валидный конфиг Confluence возвращает кортеж (DocumentPublisher, conf_config)."""
+    mocker.patch("autodoc.publisher.publisher.ConfluenceClient")
     write_confluence_config(configs_dir)
     cli_ctx = CliCtx(tmp_path, configs_dir, verbose=False)
 
@@ -185,6 +186,7 @@ def test_make_publisher_forwards_config_file_argument(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
     """Параметр config_file передаётся в config_manager.load_confluence_config без изменений."""
+    mocker.patch("autodoc.cli.helpers.DocumentPublisher")
     cli_ctx = CliCtx(tmp_path, configs_dir, verbose=False)
     mock_load = mocker.patch.object(
         cli_ctx.config_manager,

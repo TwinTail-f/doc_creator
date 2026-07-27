@@ -166,3 +166,23 @@ def test_cli_config_list_shows_examples_section(configs_dir: Path) -> None:
     result = CliRunner().invoke(cli, ["--configs-dir", str(configs_dir), "config", "list"])
     assert result.exit_code == _EXIT_SUCCESS
     assert "examples" in result.output.lower()
+    assert "parser_config.yaml" in result.output
+
+
+@pytest.mark.business_logic
+def test_cli_config_validate_reports_when_no_schema_matches(
+    configs_dir: Path,
+) -> None:
+    """validate печатает предупреждение и выходит с 0, если файл валиден,
+    но не проходит ни ParserConfigSchema, ни ConfluenceConfigSchema."""
+    _write_json(configs_dir, "unknown_schema.json", {})
+    result = CliRunner().invoke(
+        cli,
+        ["--configs-dir", str(configs_dir), "config", "validate", "unknown_schema.json"],
+    )
+    assert result.exit_code == _EXIT_SUCCESS, (
+        f"exit={result.exit_code}, output={result.output}, exc={result.exception}"
+    )
+    assert "не соответствует" in result.output
+    assert "схема parser" in result.output
+    assert "схема confluence" in result.output

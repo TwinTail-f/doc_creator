@@ -151,7 +151,7 @@ def test_publish_all_with_additional_page_profile_title(
     assert kwargs["profile_template_name"] == PROFILE_TEMPLATE
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_publish_all_profile_name_without_flag_raises_usage_error(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
@@ -196,8 +196,10 @@ def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
     id_kwarg: str,
 ) -> None:
     """Название и ID родительской страницы (для паспортов и отдельно для релиза) можно
-    указывать вместе: CLI их не проверяет и не отклоняет — разрешение конфликта между
-    ними (RootPageResolver._resolve_root_parent)"""
+    указывать вместе: CLI их не проверяет и не отклоняет, а просто пробрасывает оба
+    значения дальше без изменений. Приоритет между названием и id страницы CLI не
+    определяет — это происходит позже, при резолве родительской страницы
+    (RootPageResolver._resolve_root_parent)."""
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, name_flag, "Foo", id_flag, "123")
