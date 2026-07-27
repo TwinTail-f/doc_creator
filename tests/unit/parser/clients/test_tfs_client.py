@@ -18,8 +18,18 @@ REMOTE_PATH: str = "/platform/manifests"
 
 
 @pytest.fixture
-def tfs_client(parser_config) -> TFSClient:
-    """Готовый к использованию TFSClient, созданный из parser_config."""
+def tfs_client(parser_config, monkeypatch: pytest.MonkeyPatch) -> TFSClient:
+    """
+    Готовый к использованию TFSClient, созданный из parser_config.
+
+    Подменяет ``create_retryable_session`` на обычную ``requests.Session``,
+    чтобы retry-логика и особенности ``RetryableSession`` не влияли
+    на unit-тесты самого ``TFSClient``.
+    """
+    monkeypatch.setattr(
+        "autodoc.parser.clients.tfs_client.create_retryable_session",
+        lambda **kwargs: requests.Session(),
+    )
     return TFSClient(parser_config)
 
 

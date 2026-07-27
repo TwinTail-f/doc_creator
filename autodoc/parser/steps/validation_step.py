@@ -25,7 +25,7 @@ class ArtifactoryValidationStep(BaseParseStep):
     из-за временных проблем сети.
 
     Получает ``ArtifactoryClient`` из ``PipelineContext`` — SSL-подавление
-    инкапсулировано внутри ``client.head()``.
+    инкапсулировано внутри ``client.check_url()``.
 
     Шаг некритический.
     """
@@ -97,7 +97,7 @@ class ArtifactoryValidationStep(BaseParseStep):
 
         Args:
             variants_to_check: Список кортежей ``(pb, variant, url)`` для проверки.
-            client: Экземпляр ``ArtifactoryClient`` для HEAD-запросов.
+            client: Экземпляр ``ArtifactoryClient`` для проверки URL.
 
         Returns:
             Список кортежей ``(ProfileBuild, ConanVariant)`` с недоступными вариантами.
@@ -108,7 +108,7 @@ class ArtifactoryValidationStep(BaseParseStep):
         ) -> tuple[ProfileBuild, ConanVariant, bool]:
             pb, variant, url = item
             try:
-                resp = client.head(url)
+                resp = client.check_url(url)
                 if resp.status_code == _HTTP_STATUS_NOT_FOUND:
                     return pb, variant, False
             except requests.RequestException as exc:

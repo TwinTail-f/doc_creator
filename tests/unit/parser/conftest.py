@@ -67,13 +67,13 @@ def manifest_component(manifest_release: Release) -> Component:
 
 # Фейковый клиент Artifactory (используется в тестах validation_step)
 class FakeArtifactoryClient:
-    """Минимальная заглушка клиента Artifactory, записывающая вызовы head()."""
+    """Минимальная заглушка клиента Artifactory, записывающая вызовы check_url()."""
 
     def __init__(self, status_code: int = 200) -> None:
         self.status_code = status_code
         self.called_urls: list[str] = []
 
-    def head(self, url: str) -> requests.Response:
+    def check_url(self, url: str) -> requests.Response:
         self.called_urls.append(url)
         resp = requests.Response()
         resp.status_code = self.status_code

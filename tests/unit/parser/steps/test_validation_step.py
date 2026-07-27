@@ -73,9 +73,9 @@ def _make_tree(
 
 
 class _RaisingClient:
-    """Фейковый клиент Artifactory, чей head() всегда вызывает RequestException."""
+    """Фейковый клиент Artifactory, чей check_url() всегда вызывает RequestException."""
 
-    def head(self, url: str) -> requests.Response:
+    def check_url(self, url: str) -> requests.Response:
         """Безусловно вызывает сетевую ошибку."""
         raise requests.RequestException("network failure")
 
@@ -295,7 +295,7 @@ def test_validation_step_mixed_alive_and_dead_variants_partial_removal(
         def __init__(self) -> None:
             self.called_urls: list[str] = []
 
-        def head(self, url: str) -> requests.Response:
+        def check_url(self, url: str) -> requests.Response:
             """Возвращает 404, если в URL встречается 'dead', иначе 200."""
             self.called_urls.append(url)
             resp = requests.Response()
@@ -350,7 +350,7 @@ def test_validation_step_removes_two_consecutive_dead_variants(
     class _MixedClient:
         """Возвращает 404 для 'dead' и 200 для остальных URL."""
 
-        def head(self, url: str) -> requests.Response:
+        def check_url(self, url: str) -> requests.Response:
             resp = requests.Response()
             resp.status_code = 404 if "dead" in url else 200
             return resp

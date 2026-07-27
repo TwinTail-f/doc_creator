@@ -36,9 +36,9 @@ _HTTP_OK_E2E: int = 200
 
 
 class _AlwaysOkArtifactoryClient:
-    """Заглушка Artifactory клиента: каждый HEAD запрос возвращает HTTP 200 OK."""
+    """Заглушка Artifactory клиента: каждый check_url() возвращает HTTP 200 OK."""
 
-    def head(self, url: str) -> requests.Response:
+    def check_url(self, url: str) -> requests.Response:
         """Возвращает HTTP 200 без выполнения реального сетевого запроса."""
         resp = requests.Response()
         resp.status_code = _HTTP_OK_E2E
@@ -562,7 +562,7 @@ def test_full_pipeline_removes_dead_variant_on_404(
     class _NotFoundForDeadUrlArtifactoryClient:
         """Заглушка: HTTP 404 для _DEAD_URL (после преобразования в API-путь), иначе 200."""
 
-        def head(self, url: str) -> requests.Response:
+        def check_url(self, url: str) -> requests.Response:
             resp = requests.Response()
             resp.status_code = 404 if "patchelf/dead" in url else 200
             return resp

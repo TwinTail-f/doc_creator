@@ -38,9 +38,9 @@ class ArtifactoryClient:
             backoff_factor=config.retry_backoff_factor,
         )
 
-    def head(self, url: str) -> requests.Response:
+    def check_url(self, url: str) -> requests.Response:
         """
-        Выполняет HTTP HEAD-запрос к указанному URL.
+        Проверяет доступность URL с помощью HTTP HEAD-запроса.
 
         Args:
             url: URL для проверки.
