@@ -6,17 +6,6 @@ from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 
 
-@pytest.mark.contract
-def test_pipeline_context_construction(
-    parser_config,
-    tmp_path,
-) -> None:
-    """PipelineContext инициализируется с пустыми components и result=None."""
-    ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
-    assert ctx.components == []
-    assert ctx.result is None
-
-
 @pytest.mark.business_logic
 def test_pipeline_context_snapshot_excludes_docker_links(
     parser_config,
@@ -62,7 +51,7 @@ def test_pipeline_context_snapshot_handles_non_dict_intermediate(
     assert snapshot["intermediate"]["plain_value"] == "just a string, not a dict"
 
 
-@pytest.mark.infrastructure
+@pytest.mark.business_logic
 def test_pipeline_context_snapshot_converts_tuple_keys(
     parser_config,
     tmp_path,

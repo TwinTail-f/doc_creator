@@ -6,9 +6,9 @@ FakeTFSClient — заглушка-пустышка для реального TF
 тестовую поверхность минимальной и явной.
 """
 
+from pathlib import Path
 import shutil
 import unittest.mock as mock
-from pathlib import Path
 
 import pytest
 import requests
@@ -17,7 +17,6 @@ from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.release import Release
-from autodoc.parser.pipeline.context import PipelineContext
 
 
 # Фикстуры конфигурации / путей
@@ -39,13 +38,6 @@ def real_manifests_dir(resources_dir: Path) -> Path:
     return resources_dir / "manifests"
 
 
-# Фикстура контекста пайплайна (используется в steps/ и test_pipeline.py)
-@pytest.fixture
-def parser_pipeline_context(parser_config: ParserConfigSchema, tmp_path: Path) -> PipelineContext:
-    """Полностью инициализированный PipelineContext на основе parser_config и tmp_path."""
-    return PipelineContext(config=parser_config, tmp_dir=tmp_path)
-
-
 # Фикстуры Component / Release (общие для steps/, enrichment/, test_pipeline.py)
 @pytest.fixture
 def manifest_release() -> Release:
@@ -63,21 +55,6 @@ def manifest_release() -> Release:
 def manifest_component(manifest_release: Release) -> Component:
     """Component с именем 'openssl', оборачивающий manifest_release."""
     return Component(name="openssl", releases=[manifest_release])
-
-
-# Фейковый клиент Artifactory (используется в тестах validation_step)
-class FakeArtifactoryClient:
-    """Минимальная заглушка клиента Artifactory, записывающая вызовы check_url()."""
-
-    def __init__(self, status_code: int = 200) -> None:
-        self.status_code = status_code
-        self.called_urls: list[str] = []
-
-    def check_url(self, url: str) -> requests.Response:
-        self.called_urls.append(url)
-        resp = requests.Response()
-        resp.status_code = self.status_code
-        return resp
 
 
 class FakeTFSClient:

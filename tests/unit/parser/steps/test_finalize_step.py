@@ -1,6 +1,7 @@
 """Юнит-тесты для autodoc/parser/steps/finalize_step.py."""
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from autodoc.exceptions import ParsingError
 from autodoc.models.component import Component
@@ -218,7 +219,22 @@ def test_finalize_step_raises_parsing_error_on_invalid_platform_version(
         step.execute(parser_pipeline_context)
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
+def test_finalize_step_execute_wraps_validation_error_from_build_result(
+    parser_pipeline_context,
+    mocker,
+) -> None:
+    """execute() оборачивает в ParsingError PydanticValidationError, долетевший
+    из _build_result напрямую (в обход её собственного except) — это внешний
+    try/except в execute, отдельный от уже покрытого внутреннего в _build_result."""
+    validation_error = PydanticValidationError.from_exception_data("ParsedResult", [])
+    mocker.patch.object(FinalizeStep, "_build_result", side_effect=validation_error)
+
+    with pytest.raises(ParsingError, match="Валидация результата не прошла"):
+        FinalizeStep().execute(parser_pipeline_context)
+
+
+@pytest.mark.infrastructure
 def test_finalize_step_execute_applies_steps_in_order(
     parser_pipeline_context,
     mocker,
@@ -483,76 +499,54 @@ def test_header_only_without_evidence_is_false(
 
 
 @pytest.mark.business_logic
-def test_filter_empty_profiles_removes_only_false_profiles(
+@pytest.mark.parametrize(
+    "make_profile_builds",
+    [
+        # большинство профилей живые, один мёртвый
+        pytest.param(
+            lambda: [
+                ProfileBuild(profile_name="p1", exists=True, variants=[make_conan_variant()]),
+                ProfileBuild(profile_name="p3", exists=False, variants=[]),
+                ProfileBuild(profile_name="p2", exists=True, variants=[make_conan_variant()]),
+            ],
+            id="mixed-majority-alive",
+        ),
+        # большинство профилей мёртвые, один живой
+        pytest.param(
+            lambda: [ProfileBuild(profile_name=f"profile-{i}", exists=False) for i in range(5)]
+            + [
+                ProfileBuild(
+                    profile_name="hw-linux-x86_64", exists=True, variants=[make_conan_variant()]
+                )
+            ],
+            id="mixed-majority-dead",
+        ),
+        # все профили мёртвые -> release остаётся в компоненте с пустым profile_builds
+        pytest.param(
+            lambda: [ProfileBuild(profile_name="hw-linux-x86_64", exists=False)],
+            id="all-dead",
+        ),
+    ],
+)
+def test_filter_empty_profiles(
     parser_pipeline_context,
+    make_profile_builds,
 ) -> None:
-    """После финализации в profile_builds остаются только профили с exists=True."""
-    pb_exists = ProfileBuild(profile_name="p1", exists=True, variants=[make_conan_variant()])
-    pb_exists2 = ProfileBuild(profile_name="p2", exists=True, variants=[make_conan_variant()])
-    pb_missing = ProfileBuild(profile_name="p3", exists=False, variants=[])
-
-    release = Release(
-        version="1.0",
-        platform="2.2",
-        channel="fast",
-        conan_reference="",
-        artifactory_url="",
-        profile_builds=[pb_exists, pb_missing, pb_exists2],
-    )
-    comp = Component(
-        name="mylib",
-        description="",
-        git_project="P",
-        git_repo="r",
-        git_url="",
-        is_header_only=False,
-        releases=[release],
-    )
-
-    ctx = parser_pipeline_context
-    ctx.components = [comp]
-    FinalizeStep().execute(ctx)
-
-    remaining_names = {pb.profile_name for pb in release.profile_builds}
-    assert remaining_names == {"p1", "p2"}
-    assert "p3" not in remaining_names
-
-
-@pytest.mark.business_logic
-def test_filter_empty_profiles_count_matches_actual_removed(
-    parser_pipeline_context,
-) -> None:
-    """Все ProfileBuild с exists=False удаляются из release; выживает только exists=True."""
-    pbs_false = [ProfileBuild(profile_name=f"profile-{i}", exists=False) for i in range(5)]
-    pb_true = ProfileBuild(
-        profile_name="hw-linux-x86_64", exists=True, variants=[make_conan_variant()]
-    )
-
-    release = _make_release(pbs_false + [pb_true])
+    """FinalizeStep удаляет из release.profile_builds все записи с exists=False,
+    сохраняя записи с exists=True в исходном порядке и точном составе —
+    независимо от соотношения живых и мёртвых профилей, в том числе когда
+    живых не остаётся вовсе (Release при этом остаётся в компоненте)."""
+    profile_builds = make_profile_builds()
+    expected_alive_pbs = [pb for pb in profile_builds if pb.exists]
+    release = _make_release(profile_builds)
     comp = _make_component("lib", release)
 
     ctx = parser_pipeline_context
     ctx.components = [comp]
     FinalizeStep().execute(ctx)
 
-    assert release.profile_builds == [pb_true]
-
-
-@pytest.mark.business_logic
-def test_filter_empty_profiles_release_with_all_false_stays_in_component(
-    parser_pipeline_context,
-) -> None:
-    """Release остаётся в компоненте, даже если все его ProfileBuild были удалены."""
-    pb_bad = ProfileBuild(profile_name="hw-linux-x86_64", exists=False)
-    release = _make_release([pb_bad])
-    comp = _make_component("lib", release)
-
-    ctx = parser_pipeline_context
-    ctx.components = [comp]
-    FinalizeStep().execute(ctx)
-
+    assert release.profile_builds == expected_alive_pbs
     assert len(comp.releases) == 1
-    assert comp.releases[0].profile_builds == []
 
 
 @pytest.mark.business_logic

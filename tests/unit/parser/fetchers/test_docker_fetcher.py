@@ -98,7 +98,7 @@ def _make_context(
     )
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_docker_fetcher_extracts_links_from_yaml(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
@@ -138,7 +138,7 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
     "make_client",
     [
         # get_file_content выбрасывает сетевое исключение
-        lambda: _RaisingFakeTFSClient(),
+        _RaisingFakeTFSClient,
         # тело ответа — некорректный YAML
         lambda: _ContentFakeTFSClient(content=b"[unclosed: mapping: {"),
         # get_file_content вернул не-200 статус без исключения

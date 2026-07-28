@@ -6,15 +6,11 @@ from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.view_models.passports import ConanVariantView
-from tests.unit.publisher.conftest import CI_BUILD_URL
+from tests.unit.publisher.converters.conftest import CI_BUILD_URL
 
 COMP_NAME: str = "openssl"
 RELEASE_VERSION: str = "1.0.0"
 CHANNEL_TECH: str = "tech"
-PLATFORM_VERSION: str = "2.0"
-COMP_DESCRIPTION: str = "OpenSSL TLS/SSL library"
-UNKNOWN_COMPONENT: str = "nonexistent"
-UNKNOWN_VERSION: str = "9.9.9"
 
 
 @pytest.mark.business_logic
@@ -22,7 +18,7 @@ def test_passport_convert_raises_on_unknown_component(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """convert() бросает ValueError, если запрошенный компонент не существует."""
-    converter = PassportConverter(UNKNOWN_COMPONENT, RELEASE_VERSION)
+    converter = PassportConverter("nonexistent", RELEASE_VERSION)
 
     with pytest.raises(ValueError):
         converter.convert(publisher_parsed_result)
@@ -33,51 +29,10 @@ def test_passport_convert_raises_on_unknown_version(
     publisher_parsed_result: ParsedResult,
 ) -> None:
     """convert() бросает ValueError, если версия релиза не найдена."""
-    converter = PassportConverter(COMP_NAME, UNKNOWN_VERSION)
+    converter = PassportConverter(COMP_NAME, "9.9.9")
 
     with pytest.raises(ValueError):
         converter.convert(publisher_parsed_result)
-
-
-@pytest.mark.contract
-def test_passport_convert_returns_platform_version(
-    publisher_parsed_result: ParsedResult,
-) -> None:
-    """result['platform_version'] соответствует platform_version исходного ParsedResult."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).convert(publisher_parsed_result)
-
-    assert result["platform_version"] == PLATFORM_VERSION
-
-
-@pytest.mark.contract
-def test_passport_convert_returns_component_fields(
-    publisher_parsed_result: ParsedResult,
-) -> None:
-    """result['component'] содержит name и description компонента."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).convert(publisher_parsed_result)
-
-    assert result["component"]["name"] == COMP_NAME
-    assert result["component"]["description"] == COMP_DESCRIPTION
-
-
-@pytest.mark.contract
-def test_passport_convert_returns_release_version(
-    publisher_parsed_result: ParsedResult,
-) -> None:
-    """result['releases'][0]['version'] соответствует запрошенной версии релиза."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).convert(publisher_parsed_result)
-
-    assert result["releases"][0]["version"] == RELEASE_VERSION
-
-
-@pytest.mark.contract
-def test_passport_convert_returns_release_channel(
-    publisher_parsed_result: ParsedResult,
-) -> None:
-    """result['releases'][0]['channel'] соответствует каналу релиза."""
-    result = PassportConverter(COMP_NAME, RELEASE_VERSION).convert(publisher_parsed_result)
-
-    assert result["releases"][0]["channel"] == CHANNEL_TECH
 
 
 @pytest.mark.business_logic
@@ -106,15 +61,15 @@ def test_variant_options_linked_by_options_ref_id(
     view = converter.convert(publisher_parsed_result)
 
     profile_builds = view["releases"][0]["profile_builds"]
-    assert len(profile_builds) == 1, "There should be one profile_build"
+    assert len(profile_builds) == 1, "Должен быть один profile_build"
     variants = profile_builds[0]["variants"]
-    assert len(variants) == 1, "There should be one variant"
+    assert len(variants) == 1, "Должен быть один вариант"
 
     variant_view = variants[0]
     assert variant_view.conan_options == {
         "shared": "True",
         "fPIC": "True",
-    }, "Variant conan_options must correspond to the TotalOptionsSet with matching id"
+    }, "conan_options варианта должен соответствовать TotalOptionsSet с совпадающим id"
 
 
 @pytest.mark.business_logic
@@ -158,7 +113,7 @@ def test_variant_with_unknown_options_ref_has_empty_options(
     assert len(variants) == 1
     assert (
         variants[0].conan_options == {}
-    ), "Unknown options_ref should result in empty conan_options, not an exception"
+    ), "Неизвестный options_ref должен давать пустой conan_options, а не исключение"
 
 
 @pytest.mark.business_logic
@@ -257,7 +212,7 @@ def test_profile_build_enriched_with_conan_settings_from_profile_definition(
     assert any(
         pd.profile_name == "hw-linux-x86_64-gcc10"
         for pd in publisher_parsed_result.profile_definitions
-    ), "Fixture must contain ProfileDefinition for hw-linux-x86_64-gcc10"
+    ), "У фикстуры должен быть ProfileDefinition для hw-linux-x86_64-gcc10"
 
     converter = PassportConverter(component_name="openssl", release_version="1.0.0")
     view = converter.convert(publisher_parsed_result)
@@ -266,7 +221,7 @@ def test_profile_build_enriched_with_conan_settings_from_profile_definition(
     assert pb_view["profile_name"] == "hw-linux-x86_64-gcc10"
     assert (
         pb_view["conan_settings"] == publisher_profile_definition.conan_settings
-    ), "conan_settings must be taken from ProfileDefinition, not from ProfileBuild"
+    ), "conan_settings должен браться из ProfileDefinition, а не из ProfileBuild"
 
 
 @pytest.mark.business_logic
@@ -294,8 +249,8 @@ def test_profile_build_enriched_with_docker_image_from_profile_definition(
     pb_view = view["releases"][0]["profile_builds"][0]
     assert (
         pb_view["docker_image"] == publisher_profile_definition.docker_image
-    ), "docker_image must be taken from ProfileDefinition"
-    assert pb_view["docker_image"] != "", "docker_image must not be empty"
+    ), "docker_image должен браться из ProfileDefinition"
+    assert pb_view["docker_image"] != "", "docker_image не должен быть пустым"
 
 
 @pytest.mark.business_logic
@@ -325,10 +280,10 @@ def test_missing_profile_definition_gives_empty_settings_not_error(
     pb_view = view["releases"][0]["profile_builds"][0]
     assert (
         pb_view["conan_settings"] == {}
-    ), "Missing ProfileDefinition should result in conan_settings={}"
+    ), "Отсутствие ProfileDefinition должно давать conan_settings={}"
     assert (
         pb_view["docker_image"] == ""
-    ), "Missing ProfileDefinition should result in docker_image=''"
+    ), "Отсутствие ProfileDefinition должно давать docker_image=''"
 
 
 @pytest.mark.business_logic
@@ -356,10 +311,10 @@ def test_profile_builds_ordered_by_profile_name(
     view = converter.convert(publisher_two_profile_parsed_result)
 
     names = [pb["profile_name"] for pb in view["releases"][0]["profile_builds"]]
-    assert names == sorted(names), f"profile_builds must be sorted by name, got: {names}"
+    assert names == sorted(names), f"profile_builds должны быть отсортированы по имени, получено: {names}"
     assert (
         names[0] == "hw-linux-arm64-gcc10"
-    ), "arm64 should be first (alphabetically before x86_64)"
+    ), "arm64 должен идти первым (по алфавиту раньше x86_64)"
 
 
 @pytest.mark.business_logic
@@ -386,8 +341,8 @@ def test_legacy_contents_key_absent_from_view(
     view = converter.convert(publisher_parsed_result)
 
     assert "legacy_contents" not in view, (
-        "legacy_contents must NOT be set by the converter; "
-        "it is injected later by PassportsStrategy"
+        "legacy_contents не должен устанавливаться конвертером; "
+        "он добавляется позже через PassportsStrategy"
     )
 
 

@@ -7,11 +7,25 @@ from autodoc.models.component import Component
 from autodoc.models.conan_variant import ConanVariant, ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-from tests.unit.parser.conftest import FakeArtifactoryClient
+from tests.unit.parser.steps.conftest import FakeArtifactoryClient
 
 REAL_PACKAGE_ID: str = "575ea8086554107ae2c0fdbb4909d62390c52b77"
 UI_URL: str = "https://art.example.com/ui/repos/tree/General/conan2/lib/package"
 _VS_UI_URL_PREFIX: str = "http://art/ui/repos/tree/General/repo"
+
+
+class _MixedClient:
+    """Возвращает 404 для 'dead' и 200 для остальных URL, записывая вызванные URL."""
+
+    def __init__(self) -> None:
+        self.called_urls: list[str] = []
+
+    def check_url(self, url: str) -> requests.Response:
+        """Возвращает 404, если в URL встречается 'dead', иначе 200."""
+        self.called_urls.append(url)
+        resp = requests.Response()
+        resp.status_code = 404 if "dead" in url else 200
+        return resp
 
 
 def _make_component_with_variant(
@@ -289,19 +303,6 @@ def test_validation_step_mixed_alive_and_dead_variants_partial_removal(
         releases=[release],
     )
 
-    class _MixedClient:
-        """Возвращает 404 для 'dead' и 200 для остальных URL."""
-
-        def __init__(self) -> None:
-            self.called_urls: list[str] = []
-
-        def check_url(self, url: str) -> requests.Response:
-            """Возвращает 404, если в URL встречается 'dead', иначе 200."""
-            self.called_urls.append(url)
-            resp = requests.Response()
-            resp.status_code = 404 if "dead" in url else 200
-            return resp
-
     ctx = parser_pipeline_context
     ctx.components = [comp]
     ctx.artifactory_client = _MixedClient()
@@ -347,14 +348,6 @@ def test_validation_step_removes_two_consecutive_dead_variants(
         releases=[release],
     )
 
-    class _MixedClient:
-        """Возвращает 404 для 'dead' и 200 для остальных URL."""
-
-        def check_url(self, url: str) -> requests.Response:
-            resp = requests.Response()
-            resp.status_code = 404 if "dead" in url else 200
-            return resp
-
     ctx = parser_pipeline_context
     ctx.components = [comp]
     ctx.artifactory_client = _MixedClient()
@@ -381,3 +374,47 @@ def test_validation_step_non_404_error_status_keeps_variant(
 
     assert variant in pb.variants
     assert len(pb.variants) == 1
+
+
+class _UnexpectedErrorClient:
+    """Фейковый клиент Artifactory, чей check_url() бросает ValueError —
+    ParallelExecutor перехватывает такие ошибки домена задач и подставляет
+    None на место результата, вместо падения check_one()."""
+
+    def check_url(self, url: str) -> requests.Response:
+        """Безусловно бросает ValueError, не связанный с сетью."""
+        raise ValueError("unexpected parsing failure inside check_url")
+
+
+@pytest.mark.business_logic
+def test_check_one_unexpected_exception_swallowed_by_executor_keeps_variant(
+    parser_pipeline_context,
+) -> None:
+    """Если check_url() бросает исключение, не являющееся requests.RequestException
+    (например ValueError), ParallelExecutor перехватывает его и возвращает
+    None вместо результата — execute() не должен падать, а вариант должен
+    остаться (ветка `result is None: continue` в _check_urls_parallel)."""
+    comp, _, pb, variant = _make_tree(f"{_VS_UI_URL_PREFIX}/v1.zip")
+    ctx = parser_pipeline_context
+    ctx.components = [comp]
+    ctx.artifactory_client = _UnexpectedErrorClient()
+
+    ArtifactoryValidationStep().execute(ctx)  # не должно вызывать исключений
+
+    assert variant in pb.variants, "При None-результате executor'а вариант не должен удаляться"
+    assert len(pb.variants) == 1
+
+
+@pytest.mark.business_logic
+def test_remove_dead_variants_skips_variant_already_absent() -> None:
+    """_remove_dead_variants не падает и не выполняет повторное удаление,
+    если один и тот же вариант дважды попал в список мёртвых (например,
+    из-за дублирующегося build_url у двух записей) — вторая попытка должна
+    молча пропускаться веткой `if variant in pb.variants`."""
+    variant = _make_variant(f"{_VS_UI_URL_PREFIX}/dup.zip", "dup-id")
+    pb = ProfileBuild(profile_name="hw-linux-x86_64", exists=True, variants=[variant])
+
+    step = ArtifactoryValidationStep()
+    step._remove_dead_variants([(pb, variant), (pb, variant)])
+
+    assert pb.variants == []

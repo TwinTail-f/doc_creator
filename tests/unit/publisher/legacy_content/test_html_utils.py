@@ -7,8 +7,8 @@
 
 from pathlib import Path
 
-import pytest
 from bs4 import BeautifulSoup, Tag
+import pytest
 
 from autodoc.publisher.legacy_content.html_utils import (
     extract_platform_h1_sections,
@@ -28,6 +28,7 @@ def _html(filename: str) -> str:
 
 H1_HTML = _html("h1_sections.html")
 H2_VERSION_HTML = _html("h2_version.html")
+H2_VERSION_MIXED_HTML = _html("h2_version_mixed_headers.html")
 TAB_HTML_DUPLICATE_NAMES = _html("tab_duplicate_names.html")
 TAB_HTML_MULTI = _html("tab_multi.html")
 TAB_HTML_NESTED = _html("tab_nested.html")
@@ -42,8 +43,7 @@ TABS_GROUP_HTML = _html("tabs_group.html")
 @pytest.mark.infrastructure
 def test_find_h1_sections_returns_tags_in_document_order() -> None:
     """Возвращает теги <h1> в порядке их появления в документе."""
-    html = "<h1>Platform 2.0</h1><p>body</p><h1>Platform 2.1</h1>"
-    sections = find_h1_sections(html)
+    sections = find_h1_sections(H1_HTML)
 
     assert len(sections) == 2
     assert all(isinstance(tag, Tag) for tag in sections)
@@ -224,6 +224,23 @@ def test_parse_page_sections_h2_fallback_keeps_preamble_under_unknown_key() -> N
     assert "unknown" in result
     assert "Intro text" in result["unknown"]
     assert "v1.0" in result
+
+
+@pytest.mark.business_logic
+def test_parse_page_sections_h2_fallback_skips_non_version_header_and_empty_section() -> None:
+    """h2/h3-fallback: заголовок без версии в тексте не создаёт отдельную
+    секцию (уходит в преамбулу под ключом 'unknown'), а версионный заголовок,
+    сразу за которым следует другой заголовок (без контента между ними),
+    всё равно получает свой ключ — секция включает только сам тег заголовка,
+    без дополнительного контента. Так различаются "нет секции" (нет ключа
+    вовсе) и "пустая по контенту секция" (ключ есть, значение — только тег
+    заголовка)."""
+    result = parse_page_sections(H2_VERSION_MIXED_HTML)
+
+    assert "Overview" not in result
+    assert result["unknown"] == "<h2>Overview</h2>\n<p>General notes, not tied to a version</p>"
+    assert result["v1.0"] == "<h2>v1.0</h2>"
+    assert result["v1.1"] == "<h2>v1.1</h2>\n<p>content for v1.1</p>"
 
 
 @pytest.mark.business_logic

@@ -7,7 +7,7 @@ from autodoc.parser.steps.docker_step import DockerResolveStep
 DockerLinksMap = dict[str, str]
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_docker_step_stores_links_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,

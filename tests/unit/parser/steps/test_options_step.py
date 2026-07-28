@@ -47,7 +47,7 @@ def _make_ctx_with_components(
     return ctx
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_options_step_stores_options_map_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,
@@ -102,7 +102,7 @@ def test_options_step_component_not_in_options_map_left_untouched(
     assert ctx.components[0].releases[0].build_option_sets == []
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_options_step_sqlite3_twelve_options_applied(
     parser_config,
     tmp_path: Path,
@@ -128,7 +128,7 @@ def test_options_step_sqlite3_twelve_options_applied(
     assert all(bs.options != "" for bs in non_empty)
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_options_step_patchelf_both_versions_get_options(
     parser_config,
     tmp_path: Path,
@@ -157,7 +157,7 @@ def test_options_step_patchelf_both_versions_get_options(
         assert len(release.build_option_sets) == 1
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 @pytest.mark.parametrize(
     "comp_name, version, channel, option_str, expected_parsed",
     [
@@ -226,7 +226,7 @@ def test_options_step_configure_called_before_fetch(
     assert fake.configure_called is True
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
     parser_config,
     tmp_path: Path,

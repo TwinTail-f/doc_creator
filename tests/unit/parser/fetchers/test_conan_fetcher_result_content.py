@@ -87,7 +87,7 @@ def _build_fake_result_cases() -> list:
     ]
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 @pytest.mark.parametrize("fake_result, check", _build_fake_result_cases())
 def test_conan_fetcher_result_content_passes_through(
     mocker: MockerFixture,

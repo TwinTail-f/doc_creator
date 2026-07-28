@@ -16,10 +16,8 @@ from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
-from tests.unit.publisher.conftest import (
-    FakeConfluenceClient,
-    FakeDocumentBuilder,
-)
+from tests.unit.publisher.conftest import FakeConfluenceClient
+from tests.unit.publisher.strategies.conftest import FakeDocumentBuilder
 
 _SPACE: str = "TEST"
 _PAGE_TITLE: str = "Platform 2.0 Profile-Centric Docs"
@@ -153,6 +151,7 @@ def test_profile_links_injected_into_view_model_from_registry(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    publisher_capturing_document_builder: Any,
 ) -> None:
     """
     Правило: после загрузки реестра паспортов ссылки на паспорта внедряются в
@@ -170,16 +169,9 @@ def test_profile_links_injected_into_view_model_from_registry(
     }
     mocker.patch.object(PassportPageRegistry, "load", return_value=pages_map)
 
-    captured_view_models: list[dict] = []
-
-    class CapturingBuilder:
-        def build(self, template_name: str, view_model: dict) -> str:
-            captured_view_models.append(view_model)
-            return "<html>test</html>"
-
     strategy = ProfileCentricStrategy(
         confluence_client=FakeConfluenceClient(),
-        document_builder=CapturingBuilder(),
+        document_builder=publisher_capturing_document_builder,
         parsed_data=publisher_parsed_result,
         space=_SPACE,
         page_title=_PAGE_TITLE,
@@ -190,6 +182,7 @@ def test_profile_links_injected_into_view_model_from_registry(
     )
     strategy.execute()
 
+    captured_view_models = publisher_capturing_document_builder.captured_view_models
     assert len(captured_view_models) == 1, "builder.build() должен быть вызван ровно один раз"
     view = captured_view_models[0]
     profile = next(

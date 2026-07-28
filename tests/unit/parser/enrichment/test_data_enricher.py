@@ -396,7 +396,9 @@ def test_apply_options_replaces_build_option_sets_idempotently() -> None:
 
 @pytest.mark.business_logic
 def test_apply_conan_results_conan_reference_format_no_revision_hash() -> None:
-    """release.conan_reference содержит только часть name/ver@user/channel, без суффикса #rrev."""
+    """DataEnricher копирует rel_data.base_ref как есть в release.conan_reference,
+    не выполняя над ним никакой обработки (отсутствие суффикса #rrev — гарантия
+    продюсера base_ref, а не DataEnricher)."""
     comp = make_component("mylib", "1.0", "fast")
     pb = comp.releases[0].profile_builds[0]
     enrich = _make_enrich_result("mylib", "1.0", "fast", pb, base_ref="mylib/1.0@user/fast")

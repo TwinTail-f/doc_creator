@@ -56,6 +56,21 @@ def _write_yaml(tmp_path: Path, content: dict) -> Path:
     return p
 
 
+def _write_bad_json(tmp_path: Path) -> Path:
+    """
+    Записывает заведомо некорректный (не-JSON) overrides.json и возвращает путь.
+
+    Args:
+        tmp_path: Временная директория для размещения файла.
+
+    Returns:
+        Путь к созданному файлу с некорректным содержимым.
+    """
+    p = tmp_path / "overrides.json"
+    p.write_bytes(b"not-json")
+    return p
+
+
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
     "write_fixture",
@@ -76,41 +91,41 @@ def test_profile_overrides_from_file_loads_correctly(
 
 
 @pytest.mark.business_logic
-def test_profile_overrides_from_file_missing_file_returns_empty() -> None:
-    """from_file() с несуществующим путём возвращает пустой экземпляр."""
-    overrides = ProfileSettingsOverrides.from_file(Path("/nonexistent/path.json"))
-
-    assert overrides.is_empty() is True
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_from_file_invalid_json_returns_empty(tmp_path: Path) -> None:
-    """from_file() с некорректным JSON возвращает пустой экземпляр."""
-    bad_file = tmp_path / "bad.json"
-    bad_file.write_bytes(b"not-json")
-
-    overrides = ProfileSettingsOverrides.from_file(bad_file)
-
-    assert overrides.is_empty() is True
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_resolve_exact_match(tmp_path: Path) -> None:
-    """resolve() с точным именем профиля из конфига возвращает настройки."""
-    data = {
-        "overrides": [
-            {
-                "profiles": ["hw-linux-x86_64.jinja"],
-                "settings": {"compiler": "gcc"},
-            }
-        ]
-    }
-    path = _write_json(tmp_path, data)
+@pytest.mark.parametrize(
+    "make_path",
+    [
+        # путь к файлу не существует на диске
+        pytest.param(lambda tmp_path: Path("/nonexistent/path.json"), id="missing-file"),
+        # файл существует, но содержит некорректный JSON
+        pytest.param(_write_bad_json, id="invalid-json"),
+        # валидный JSON, но не объект (например список)
+        pytest.param(
+            lambda tmp_path: _write_json(tmp_path, ["not", "a", "dict"]),
+            id="raw-not-a-dict",
+        ),
+        # валидный JSON-объект, но без секции 'overrides'
+        pytest.param(
+            lambda tmp_path: _write_json(tmp_path, {"something_else": True}),
+            id="missing-overrides-key",
+        ),
+        # 'overrides' присутствует, но не является списком
+        pytest.param(
+            lambda tmp_path: _write_json(tmp_path, {"overrides": {"not": "a list"}}),
+            id="overrides-key-not-a-list",
+        ),
+    ],
+)
+def test_profile_overrides_from_file_returns_empty_instance(
+    tmp_path: Path,
+    make_path: Callable[[Path], Path],
+) -> None:
+    """from_file() возвращает пустой экземпляр при разных дефектах входа:
+    отсутствующий файл, некорректный JSON, валидный JSON не-объект,
+    отсутствующая или некорректная по типу секция 'overrides'."""
+    path = make_path(tmp_path)
     overrides = ProfileSettingsOverrides.from_file(path)
 
-    result = overrides.resolve("hw-linux-x86_64.jinja")
-
-    assert result == {"compiler": "gcc"}
+    assert overrides.is_empty() is True
 
 
 @pytest.mark.business_logic
@@ -339,32 +354,3 @@ def test_profile_overrides_partial_corruption_final_state_correct(tmp_path: Path
     assert overrides.resolve("profile-two.jinja") == {"compiler": "clang"}
     assert overrides.is_empty() is False
 
-
-@pytest.mark.business_logic
-def test_profile_overrides_raw_not_a_dict_returns_empty(tmp_path: Path) -> None:
-    """Если содержимое файла — валидный JSON, но не объект (например список) — возвращается пустой экземпляр."""
-    path = _write_json(tmp_path, ["not", "a", "dict"])  # type: ignore[arg-type]
-
-    overrides = ProfileSettingsOverrides.from_file(path)
-
-    assert overrides.is_empty() is True
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_missing_overrides_key_returns_empty(tmp_path: Path) -> None:
-    """Если в валидном JSON-объекте отсутствует секция 'overrides' — возвращается пустой экземпляр."""
-    path = _write_json(tmp_path, {"something_else": True})
-
-    overrides = ProfileSettingsOverrides.from_file(path)
-
-    assert overrides.is_empty() is True
-
-
-@pytest.mark.business_logic
-def test_profile_overrides_overrides_key_not_a_list_returns_empty(tmp_path: Path) -> None:
-    """Если 'overrides' присутствует, но не является списком (например объектом) — возвращается пустой экземпляр."""
-    path = _write_json(tmp_path, {"overrides": {"not": "a list"}})
-
-    overrides = ProfileSettingsOverrides.from_file(path)
-
-    assert overrides.is_empty() is True

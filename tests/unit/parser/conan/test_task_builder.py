@@ -40,7 +40,7 @@ def make_release(
     return r
 
 
-def make_component(name: str = "mylib", releases: list[Release] | None = None) -> Component:
+def _make_component_with_releases(name: str = "mylib", releases: list[Release] | None = None) -> Component:
     """Создаёт Component с необязательным списком релизов."""
     return Component(name=name, releases=releases or [])
 
@@ -49,7 +49,7 @@ def make_component(name: str = "mylib", releases: list[Release] | None = None) -
 def test_task_builder_produces_one_task_per_profile() -> None:
     """Один компонент × один релиз × два профиля → две задачи."""
     release = make_release(profiles=("hw-linux-x86_64", "hw-linux-armv8"))
-    comp = make_component(releases=[release])
+    comp = _make_component_with_releases(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
@@ -61,7 +61,7 @@ def test_task_builder_multiplies_tasks_by_option_sets() -> None:
     """Один профиль × два набора опций → две задачи."""
     opts = {"1": "shared=True", "2": "shared=False"}
     release = make_release(opts=opts)
-    comp = make_component(releases=[release])
+    comp = _make_component_with_releases(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
@@ -72,7 +72,7 @@ def test_task_builder_multiplies_tasks_by_option_sets() -> None:
 def test_task_builder_cmd_contains_requires_flag() -> None:
     """Первый элемент --requires= в cmd должен содержать имя компонента."""
     release = make_release()
-    comp = make_component(name="mylib", releases=[release])
+    comp = _make_component_with_releases(name="mylib", releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
@@ -101,7 +101,7 @@ def test_task_builder_normalizes_option_to_wildcard_form(
     """_normalize_option() приводит одиночную опцию к форме 'pkg/*:key=val'; уже
     нормализованная опция не подставляется повторно (без двойного '/*/*')."""
     release = make_release(opts={"1": raw_option})
-    comp = make_component(name="mylib", releases=[release])
+    comp = _make_component_with_releases(name="mylib", releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
@@ -123,7 +123,7 @@ def test_task_builder_empty_components_returns_empty() -> None:
 def test_task_builder_task_fields_populated() -> None:
     """Все скалярные поля ConanTask должны совпадать со значениями исходной модели."""
     release = make_release(version="3.2.1", channel="stable", profiles=("hw-linux-x86_64",))
-    comp = make_component(name="zlib", releases=[release])
+    comp = _make_component_with_releases(name="zlib", releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
@@ -144,7 +144,7 @@ def test_no_option_sets_produces_one_default_task() -> None:
         profiles=("hw-linux-x86_64",),
         opts=None,  # наборы опций не заданы
     )
-    comp = make_component(releases=[release])
+    comp = _make_component_with_releases(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
 
@@ -158,63 +158,75 @@ def test_no_option_sets_produces_one_default_task() -> None:
 
 
 @pytest.mark.business_logic
-def test_task_builder_lettered_version_uses_exact_range() -> None:
-    """Версии с буквенным суффиксом (например '8.4p1') используют точный диапазон [>=X <X+1], а не '~'."""
-    release = make_release(version="8.4p1")
-    comp = make_component(name="openssh", releases=[release])
+@pytest.mark.parametrize(
+    "version, exact_range_components, expected_substring, forbidden_substrings",
+    [
+        # версии с буквенным суффиксом (например '8.4p1') всегда используют точный
+        # диапазон [>=X <X+1], а не '~'
+        pytest.param(
+            "8.4p1", None, "[>=8.4 <8.5]", ["~"], id="lettered-version-uses-exact-range"
+        ),
+        # версия без числового префикса (например 'latest') подставляется как есть,
+        # без диапазона '~' или '[>=X <Y]'
+        pytest.param(
+            "latest",
+            None,
+            "mylib/latest@platform-2.0/tech",
+            ["~", "["],
+            id="non-numeric-prefix-used-as-is",
+        ),
+        # exact_range_components заставляет использовать точный диапазон даже для
+        # чисто числовой версии
+        pytest.param(
+            "3.34.1",
+            ["mylib"],
+            "[>=3.34.1 <3.34.2]",
+            ["~"],
+            id="exact-range-components-forces-exact-range",
+        ),
+        # для многосегментной версии ('20.11.10') точный диапазон увеличивает только
+        # последний числовой сегмент
+        pytest.param(
+            "20.11.10",
+            ["mylib"],
+            "[>=20.11.10 <20.11.11]",
+            ["~"],
+            id="exact-range-increments-only-last-segment",
+        ),
+        # зеркальный кейс: чисто числовая версия без exact_range_components -> дефолтная
+        # ветка '~' (недостающий кейс, добавлен при рефакторинге)
+        pytest.param(
+            "3.34.1",
+            None,
+            "[~3.34.1,include_prerelease]",
+            ["[>="],
+            id="numeric-version-without-exact-range-uses-tilde",
+        ),
+    ],
+)
+def test_task_builder_requires_flag_version_formatting(
+    version: str,
+    exact_range_components: list[str] | None,
+    expected_substring: str,
+    forbidden_substrings: list[str],
+) -> None:
+    """--requires= формирует диапазон версии в зависимости от формата версии и наличия
+    компонента в exact_range_components: буквенный суффикс версии или явный
+    exact_range_components всегда дают точный диапазон [>=X <Y]; версия без числового
+    префикса подставляется как есть; чисто числовая версия без exact_range_components
+    использует стандартный оператор Conan 2 '~'."""
+    release = make_release(version=version)
+    comp = _make_component_with_releases(name="mylib", releases=[release])
 
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
+    tasks = ConanTaskBuilder().build(
+        [comp], PLATFORM, ART_URL, exact_range_components=exact_range_components
+    )
 
     requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
     assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
-    assert "[>=8.4 <8.5]" in requires_flags[0]
-    assert "~" not in requires_flags[0]
-
-
-@pytest.mark.business_logic
-def test_task_builder_version_without_numeric_prefix_used_as_is() -> None:
-    """Версия без числового префикса (например 'latest') подставляется в --requires
-    как есть, без диапазона версий '~' или '[>=X <Y]', так как _format_reference
-    не может вычислить upper_bound из нечислового значения."""
-    release = make_release(version="latest")
-    comp = make_component(name="mylib", releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL)
-
-    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
-    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
-    assert "mylib/latest@platform-2.0/tech" in requires_flags[0]
-    assert "~" not in requires_flags[0]
-    assert "[" not in requires_flags[0]
-
-
-@pytest.mark.business_logic
-def test_task_builder_exact_range_components_forces_exact_range_for_numeric_version() -> None:
-    """exact_range_components заставляет использовать точный диапазон даже для чисто числовой версии."""
-    release = make_release(version="3.34.1")
-    comp = make_component(name="mylib", releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL, exact_range_components=["mylib"])
-
-    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
-    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
-    assert "[>=3.34.1 <3.34.2]" in requires_flags[0]
-    assert "~" not in requires_flags[0]
-
-
-@pytest.mark.business_logic
-def test_task_builder_exact_range_increments_only_last_segment_of_multi_segment_version() -> None:
-    """Для многосегментной версии ('20.11.10') точный диапазон увеличивает
-    только последний числовой сегмент: верхняя граница — '20.11.11', а не,
-    например, '21.11.10' или '20.12.10'."""
-    release = make_release(version="20.11.10")
-    comp = make_component(name="mylib", releases=[release])
-
-    tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL, exact_range_components=["mylib"])
-
-    requires_flags = [arg for arg in tasks[0].cmd if arg.startswith("--requires=")]
-    assert requires_flags, f"Expected a --requires= flag, got: {tasks[0].cmd}"
-    assert "[>=20.11.10 <20.11.11]" in requires_flags[0]
+    assert expected_substring in requires_flags[0]
+    for forbidden in forbidden_substrings:
+        assert forbidden not in requires_flags[0]
 
 
 @pytest.mark.business_logic
@@ -224,7 +236,7 @@ def test_task_builder_applies_profile_overrides_as_settings_flags() -> None:
         mapping={"kos_profile.jinja": {"compiler.toolchain_config_id": "kos-kisg-3.1.0.130"}}
     )
     release = make_release(profiles=("kos_profile.jinja",))
-    comp = make_component(releases=[release])
+    comp = _make_component_with_releases(releases=[release])
 
     tasks = ConanTaskBuilder().build([comp], PLATFORM, ART_URL, profile_overrides=overrides)
 

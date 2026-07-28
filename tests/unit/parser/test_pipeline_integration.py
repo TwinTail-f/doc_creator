@@ -27,12 +27,7 @@ from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.manifest_step import ManifestStep
 from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient, NULL_PACKAGE_ID
 
-_MIN_COMPONENTS: int = 1
-
 _EMPTY_CONAN_RESULT = FetchResult(value=ConanEnrichmentResult(), warnings=[])
-
-
-_HTTP_OK_E2E: int = 200
 
 
 class _AlwaysOkArtifactoryClient:
@@ -41,7 +36,7 @@ class _AlwaysOkArtifactoryClient:
     def check_url(self, url: str) -> requests.Response:
         """Возвращает HTTP 200 без выполнения реального сетевого запроса."""
         resp = requests.Response()
-        resp.status_code = _HTTP_OK_E2E
+        resp.status_code = 200
         return resp
 
 
@@ -52,7 +47,7 @@ def _make_real_pipeline(
 ) -> ComponentParser:
     """Создаёт ComponentParser с реальными экземплярами шагов и заглушками внешнего ввода-вывода.
 
-    - TFS: ``CopyingAllFakeTFSClient`` копирует реальные фиксчуры ``.properties``.
+    - TFS: ``CopyingAllFakeTFSClient`` копирует реальные фикстуры ``.properties``.
     - Artifactory: всегда возвращает HTTP 200.
     - Conan: должен быть залатан каждым тестом на уровне fetcher.
     """
@@ -109,8 +104,8 @@ def test_manifest_step_populates_ctx_components(
         artifactory_client=MagicMock(),
     )
     ManifestStep().execute(ctx)
-    assert len(ctx.components) >= _MIN_COMPONENTS, (
-        f"ManifestStep должен заполнить хотя бы {_MIN_COMPONENTS} компонент(ов); "
+    assert len(ctx.components) >= 1, (
+        f"ManifestStep должен заполнить хотя бы 1 компонент(ов); "
         f"получено {len(ctx.components)}"
     )
 
@@ -153,7 +148,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
     """patchelf имеет ровно 2 релиза после полного прохода пайплайна.
 
     Бизнес-сценарий:
-        Фиксчур ``patchelf.properties`` объявляет две версии компонента
+        фикстур ``patchelf.properties`` объявляет две версии компонента
         (0.16.1 и 0.18.0), привязанные к одной платформе. После полного прохода
         пайплайна (с заглушкой Conan и всегда возвращающим 200 Artifactory),
         полученный ``ParsedResult`` должен содержать один компонент patchelf
@@ -161,7 +156,7 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
 
     Предусловия:
         - Реальный пайплайн с ``CopyingAllFakeTFSClient``, указывающим на директорию
-          фиксчур ``resources/manifests``.
+          фикстур ``resources/manifests``.
         - ``ConanFetcher.fetch`` залатан для возврата пустого результата обогащения.
 
     Шаги:
@@ -202,7 +197,7 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
         для заголовочных пакетов, которые не производят бинарный артефакт.
 
     Предусловия:
-        - ``nlohmann_json.properties`` существует в директории фиксчур manifests.
+        - ``nlohmann_json.properties`` существует в директории фикстур manifests.
         - ``ConanFetcher.fetch`` залатан с ``side_effect``, который получает живой
           список ``components`` во время вызова (после того как ``ManifestStep``
           создал объекты ``ProfileBuild``) и строит ``ConanEnrichmentResult``
@@ -324,19 +319,21 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
 
 @patch("autodoc.parser.fetchers.conan_fetcher.ConanFetcher.fetch")
 @pytest.mark.integration
-def test_pipeline_options_applied_after_options_step(
+def test_pipeline_options_step_wired_without_breaking_data_flow(
     mock_conan_fetch,
     real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """По крайней мере один релиз имеет build_option_sets после OptionsResolveStep.
+    """OptionsResolveStep выполняется по месту в пайплайне и не ломает проводку данных.
 
     Бизнес-сценарий:
-        ``OptionsResolveStep`` получает конфигурацию параметров Conan из TFS и
-        заполняет ``Release.build_option_sets``. С реальными фиксчурами манифестов
-        и ``CopyingAllFakeTFSClient``, по крайней мере один релиз должен иметь
-        непустой список опций после выполнения шага.
+        ``OptionsResolveStep`` должен быть вызван в правильной позиции пайплайна
+        (после ManifestStep) и передать управление дальше, не потеряв компоненты.
+        Этот тест НЕ проверяет, что опции реально были применены: используемый
+        здесь ``CopyingAllFakeTFSClient`` не копирует ``options.json``, поэтому
+        ``release.build_option_sets`` почти наверняка останется пустым для всех
+        релизов — это ожидаемо и не является дефектом теста.
 
     Предусловия:
         - Observer-шаг вставлен после OptionsResolveStep (индекс 2).
@@ -347,13 +344,8 @@ def test_pipeline_options_applied_after_options_step(
         2. Вызвать ``parser.parse()``.
 
     Ожидаемый результат:
-        - Сумма ``len(release.build_option_sets)`` во всех релизах больше 0
-          по крайней мере для одного компонента.
-
-    Примечание:
-        Если фейк TFS-клиент не возвращает файлы опций, общее значение может быть 0.
-        Тест утверждает, что наблюдатель выполнился (проводка шагов корректна),
-        даже если фейк TFS не применил опции.
+        - Наблюдатель выполнился хотя бы для одного релиза (проводка шагов корректна),
+          независимо от фактического количества применённых опций.
     """
     mock_conan_fetch.return_value = _EMPTY_CONAN_RESULT
 

@@ -13,7 +13,8 @@ import pytest
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
-from tests.unit.publisher.conftest import FakeConfluenceClient, FakeDocumentBuilder
+from tests.unit.publisher.conftest import FakeConfluenceClient
+from tests.unit.publisher.strategies.conftest import FakeDocumentBuilder
 
 _SPACE: str = "TEST"
 _TEMPLATE_NAME: str = "release_doc.jinja2"

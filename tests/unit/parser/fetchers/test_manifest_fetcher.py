@@ -50,23 +50,44 @@ def _make_context(
 
 
 @pytest.mark.integration
-def test_manifest_fetcher_returns_nlohmann_json(
+@pytest.mark.parametrize(
+    "filename, expected_release_count",
+    [
+        # реальный nlohmann_json.properties через CopyingFakeTFSClient даёт ровно 1 компонент
+        pytest.param("nlohmann_json.properties", None, id="nlohmann-json"),
+        # синтетический header-only манифест: 1 компонент / 1 релиз (fetcher-parser связка)
+        pytest.param(
+            "nlohmann_json_fast_only.properties", 1, id="single-version-single-channel-fast"
+        ),
+        # patchelf: несколько версий в одном канале -> 1 компонент / 2 релиза
+        pytest.param("patchelf.properties", 2, id="patchelf-two-versions-one-channel"),
+        # libnetfilter_queue (внешний TFS-проект, не DEP_Components) обрабатывается без ошибок
+        pytest.param("libnetfilter_queue.properties", None, id="external-project-no-error"),
+    ],
+)
+def test_manifest_fetcher_single_file_scenarios(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
     tmp_path: Path,
+    filename: str,
+    expected_release_count: int | None,
 ) -> None:
-    """Реальный nlohmann_json.properties через CopyingFakeTFSClient даёт ровно 1 компонент."""
+    """Собирает ctx с CopyingFakeTFSClient(<один файл>), вызывает fetch() и проверяет
+    количество компонентов (и, где применимо, релизов) и отсутствие предупреждений."""
     ctx = _make_context(
         parser_config,
-        CopyingFakeTFSClient(real_manifests_dir / "nlohmann_json.properties"),
+        CopyingFakeTFSClient(real_manifests_dir / filename),
         tmp_path,
     )
     fetcher = ManifestFetcher()
     fetcher.configure(ctx)
 
     result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
+    components = result.value
 
-    assert len(result.value) == 1
+    assert len(components) == 1
+    if expected_release_count is not None:
+        assert len(components[0].releases) == expected_release_count
     assert result.warnings == []
 
 

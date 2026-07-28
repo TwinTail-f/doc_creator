@@ -1,7 +1,7 @@
 """Юнит-тесты для autodoc.parser.parsers.options_parser.OptionsParser.
 
 Охватывает: select_ci_prefix, parse_file (реальные JSON файлы), pick_options.
-Реальные JSON файлы опций загружаются из директории фиксчур resources/options/.
+Реальные JSON файлы опций загружаются из директории фикстур resources/options/.
 """
 
 from pathlib import Path

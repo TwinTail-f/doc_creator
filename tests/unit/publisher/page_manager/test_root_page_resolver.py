@@ -72,7 +72,7 @@ def _make_resolver(
 
 
 # _find_page_id / _page_id_exists — сырые обёртки над клиентом, без логики приоритетов.
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_find_page_id_found(mocker: Any, minimal_confluence_config: dict) -> None:
     """Страница найдена по имени — возвращается её ID."""
     resolver, _ = _make_resolver(
@@ -82,7 +82,7 @@ def test_find_page_id_found(mocker: Any, minimal_confluence_config: dict) -> Non
     assert resolver._find_page_id("Root Page") == "100001"
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_find_page_id_not_found_returns_none(mocker: Any, minimal_confluence_config: dict) -> None:
     """Страница не найдена по имени — возвращается None."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_pages={})
@@ -90,7 +90,7 @@ def test_find_page_id_not_found_returns_none(mocker: Any, minimal_confluence_con
     assert resolver._find_page_id("Missing Page") is None
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_page_id_exists_true_for_known_id(mocker: Any, minimal_confluence_config: dict) -> None:
     """Известный ID — страница считается существующей."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_ids={"100002"})
@@ -98,7 +98,7 @@ def test_page_id_exists_true_for_known_id(mocker: Any, minimal_confluence_config
     assert resolver._page_id_exists("100002") is True
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_page_id_exists_false_for_unknown_id(mocker: Any, minimal_confluence_config: dict) -> None:
     """Неизвестный ID — страница считается несуществующей."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_ids=set())
@@ -439,45 +439,36 @@ def test_resolve_profile_parent_reads_its_own_config_fields(
 
 # resolve_single_page_parent: диспетчеризация по strategy_type
 @pytest.mark.business_logic
-def test_release_strategy_delegates_to_resolve_release_parent(
-    mocker: Any, minimal_confluence_config: dict
+@pytest.mark.parametrize(
+    "strategy_type, patched_method_name, return_value",
+    [
+        pytest.param("release", "resolve_release_parent", "400002", id="release"),
+        pytest.param(
+            "profile_centric", "resolve_profile_parent", "400003", id="profile_centric"
+        ),
+        pytest.param(
+            "some_other_strategy",
+            "resolve_release_parent",
+            "400002",
+            id="unknown-falls-back-to-release",
+        ),
+    ],
+)
+def test_resolve_single_page_parent_delegates_by_strategy_type(
+    mocker: Any,
+    minimal_confluence_config: dict,
+    strategy_type: str,
+    patched_method_name: str,
+    return_value: str,
 ) -> None:
-    """'release' делегирует в resolve_release_parent."""
+    """resolve_single_page_parent() делегирует resolve_release_parent/resolve_profile_parent по strategy_type, с release как значением по умолчанию для неизвестных типов."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-    mock_release = mocker.patch.object(resolver, "resolve_release_parent", return_value="400002")
+    mock_method = mocker.patch.object(resolver, patched_method_name, return_value=return_value)
 
-    result = resolver.resolve_single_page_parent("release", "Some Name", None)
+    result = resolver.resolve_single_page_parent(strategy_type, "Some Name", None)
 
-    assert result == "400002"
-    mock_release.assert_called_once_with("Some Name", None)
-
-
-@pytest.mark.business_logic
-def test_profile_centric_strategy_delegates_to_resolve_profile_parent(
-    mocker: Any, minimal_confluence_config: dict
-) -> None:
-    """'profile_centric' делегирует в resolve_profile_parent."""
-    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-    mock_profile = mocker.patch.object(resolver, "resolve_profile_parent", return_value="400003")
-
-    result = resolver.resolve_single_page_parent("profile_centric", "Some Name", None)
-
-    assert result == "400003"
-    mock_profile.assert_called_once_with("Some Name", None)
-
-
-@pytest.mark.business_logic
-def test_unknown_strategy_type_falls_through_to_release(
-    mocker: Any, minimal_confluence_config: dict
-) -> None:
-    """Любой strategy_type кроме 'profile_centric' попадает в release-путь по умолчанию."""
-    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-    mock_release = mocker.patch.object(resolver, "resolve_release_parent", return_value="400002")
-
-    result = resolver.resolve_single_page_parent("some_other_strategy", "Some Name", None)
-
-    assert result == "400002"
-    mock_release.assert_called_once_with("Some Name", None)
+    assert result == return_value
+    mock_method.assert_called_once_with("Some Name", None)
 
 
 # resolve_root_pages: паспорта + релиз

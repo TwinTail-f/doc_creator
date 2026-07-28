@@ -47,21 +47,22 @@ def _mock_strategy(report: PublishReport, mocker: MockerFixture) -> MagicMock:
     return mock
 
 
-@pytest.mark.contract
-def test_publisher_publish_delegates_to_strategy_execute(
+@pytest.mark.business_logic
+def test_publisher_publish_delegates_to_strategy_and_returns_its_report(
     publisher_document_publisher: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """publish() вызывает strategy.execute() ровно один раз."""
-    expected_report = PublishReport(success=True, pages_published=1)
+    """publish() вызывает strategy.execute() ровно один раз и возвращает именно тот PublishReport, что она вернула."""
+    expected_report = PublishReport(success=True, pages_published=5)
     mock_strategy = _mock_strategy(expected_report, mocker)
     mocker.patch(
         "autodoc.publisher.publisher.create_strategy",
         return_value=mock_strategy,
     )
-    publisher_document_publisher.publish("release", publisher_parsed_result)
+    result = publisher_document_publisher.publish("release", publisher_parsed_result)
     mock_strategy.execute.assert_called_once()
+    assert result is expected_report
 
 
 @pytest.mark.contract
@@ -80,22 +81,6 @@ def test_publisher_publish_passes_space_and_data_dir_from_config(
     _, kwargs = mock_create.call_args
     assert kwargs["space"] == "TEST"
     assert kwargs["data_dir"] == tmp_path
-
-
-@pytest.mark.contract
-def test_publisher_publish_returns_strategy_report(
-    publisher_document_publisher: DocumentPublisher,
-    publisher_parsed_result: ParsedResult,
-    mocker: MockerFixture,
-) -> None:
-    """publish() возвращает именно тот PublishReport, что вернул strategy.execute()."""
-    expected = PublishReport(success=True, pages_published=5)
-    mocker.patch(
-        "autodoc.publisher.publisher.create_strategy",
-        return_value=_mock_strategy(expected, mocker),
-    )
-    result = publisher_document_publisher.publish("release", publisher_parsed_result)
-    assert result is expected
 
 
 def _patch_publish_all_strategies(
@@ -147,7 +132,21 @@ def test_publisher_publish_all_runs_passports_then_release(
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """publish_all() выполняет стратегию паспортов раньше стратегии релиза."""
+    """
+    publish_all() выполняет стратегию паспортов раньше стратегии релиза.
+
+    Порядок важен не сам по себе: ReleasePageStrategy при рендеринге читает
+    passport_pages.json, записанный предшествующим запуском PassportsStrategy,
+    чтобы вставить ссылки на паспорта компонентов (см. докстринг
+    ReleasePageStrategy и link_injector/inject_links). Без порядка
+    "паспорта → релиз" релизная страница будет опубликована без ссылок на
+    паспорта или со ссылками на несуществующие/устаревшие страницы.
+    """
+    mocker.patch.object(
+        publisher_document_publisher._page_resolver,
+        "resolve_root_pages",
+        return_value=(_ROOT_PAGE_ID, _ROOT_PAGE_ID),
+    )
     call_order = _patch_publish_all_strategies(
         mocker,
         PublishReport(success=True, pages_published=1),
@@ -200,6 +199,11 @@ def test_publisher_publish_all_aggregates_reports_via_publish_report_merge(
     expected: dict[str, Any],
 ) -> None:
     """Итоговый отчёт publish_all() агрегирует success/pages_published/errors обеих стратегий."""
+    mocker.patch.object(
+        publisher_document_publisher._page_resolver,
+        "resolve_root_pages",
+        return_value=(_ROOT_PAGE_ID, _ROOT_PAGE_ID),
+    )
     _patch_publish_all_strategies(mocker, passports_report, release_report)
 
     result = publisher_document_publisher.publish_all(
@@ -235,6 +239,11 @@ def test_publisher_publish_all_with_profile_merges_three_reports(
     )
     profile_report = PublishReport(success=True, pages_published=1)
 
+    mocker.patch.object(
+        publisher_document_publisher._page_resolver,
+        "resolve_root_pages",
+        return_value=(_ROOT_PAGE_ID, _ROOT_PAGE_ID),
+    )
     strategies = iter(
         [
             _mock_strategy(passports_report, mocker),

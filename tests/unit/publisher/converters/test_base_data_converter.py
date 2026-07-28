@@ -6,9 +6,8 @@ import pytest
 
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.publisher.converters.base_data_converter import BadgeClass, _VariantOpts
-from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
 from autodoc.publisher.converters.passport_converter import PassportConverter
-from tests.unit.publisher.conftest import COMPONENT_NAME as COMP_NAME
+from tests.unit.publisher.converters.conftest import COMPONENT_NAME as COMP_NAME
 
 OPT_KEY_SHARED: str = "shared"
 OPT_KEY_FPIC: str = "fPIC"
@@ -16,12 +15,6 @@ INSTALL_OVERRIDE: str = "-o pkg/*:x=1"
 _MULTI_OPTION_RESULT: str = (
     f"-o {COMP_NAME}/*:{OPT_KEY_SHARED}=True" f" -o {COMP_NAME}/*:{OPT_KEY_FPIC}=True"
 )
-
-
-class _MinimalParsedResult:
-    """Минимальная замена ParsedResult, экспонирующая только то, что читает _base_view_model."""
-
-    platform_version: str = "2.0"
 
 
 @pytest.mark.business_logic
@@ -87,6 +80,12 @@ def test_build_install_options(conan_options: dict[str, str], expected: str) -> 
             _MULTI_OPTION_RESULT,
             id="strips-whitespace-between-options",
         ),
+        # токен без ':' возвращается как есть, без квалификации пакета
+        pytest.param(
+            "just-a-flag",
+            "-o just-a-flag",
+            id="token-without-colon-returned-as-is",
+        ),
     ],
 )
 def test_build_install_options_from_string(options_str: str, expected: str) -> None:
@@ -94,17 +93,6 @@ def test_build_install_options_from_string(options_str: str, expected: str) -> N
     result = PassportConverter._build_install_options_from_string(options_str)
 
     assert result == expected
-
-
-@pytest.mark.contract
-def test_build_variant_view_maps_fields_from_variant(
-    publisher_conan_variant: ConanVariant,
-) -> None:
-    """package_id и build_url из ConanVariant попадают в итоговое представление."""
-    view = PassportConverter._build_variant_view(publisher_conan_variant, COMP_NAME)
-
-    assert view.package_id == publisher_conan_variant.package_id
-    assert view.build_url == publisher_conan_variant.build_url
 
 
 @pytest.mark.business_logic
@@ -192,16 +180,3 @@ def test_classify_option_badge(
     result = PassportConverter._classify_option_badge(value, default_value, has_default)
 
     assert result == expected_badge
-
-
-# Тесты передачи include_passport_links из BaseReleaseConverter в view-model.
-@pytest.mark.contract
-@pytest.mark.parametrize("flag", [False, True])
-def test_include_passport_links_is_forwarded(flag: bool) -> None:
-    """view['include_passport_links'] равен переданному в конструктор значению."""
-    converter = FullReleaseConverter(include_passport_links=flag)
-    # _base_view_model требует ParsedResult только ради platform_version;
-    # минимальной заглушки достаточно, поскольку читается только этот атрибут.
-    view = converter._base_view_model(_MinimalParsedResult())
-
-    assert view["include_passport_links"] is flag

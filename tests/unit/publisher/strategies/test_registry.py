@@ -13,7 +13,8 @@ import pytest
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
 from autodoc.publisher.strategies.registry import available_strategies, create_strategy
-from tests.unit.publisher.conftest import FakeConfluenceClient, FakeDocumentBuilder
+from tests.unit.publisher.conftest import FakeConfluenceClient
+from tests.unit.publisher.strategies.conftest import FakeDocumentBuilder
 
 _SPACE: str = "TEST"
 _ROOT_PAGE_ID: str = "root-001"

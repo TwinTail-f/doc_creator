@@ -19,6 +19,7 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.release import Release
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 
@@ -96,37 +97,37 @@ def test_styles_base_template_renders_without_error(
     ), f"Ожидался маркер '{_STYLES_BASE_MARKER}' в выводе (из _styles_base.jinja2)"
 
 
-@pytest.mark.infrastructure
+@pytest.mark.integration
 def test_styles_passport_template_renders_without_error(
     builder: DocumentBuilder,
 ) -> None:
     """_styles_passport.jinja2 подключается через component_passport.jinja2 и должен рендериться без ошибок."""
-    GIT_URL = "https://tfs.example.com/_git/testlib"
     component = Component(
         name="testlib",
         description="A test library",
-        git_url=GIT_URL,
+        git_url="https://tfs.example.com/_git/testlib",
         is_header_only=False,
-        releases=[],
+        releases=[
+            Release(
+                version="1.0.0",
+                platform="2.0",
+                channel="fast",
+                profile_builds=[],
+            )
+        ],
     )
-    release = Release(
-        version="1.0.0",
-        platform="2.0",
-        channel="fast",
-        profile_builds=[],
+    parsed_result = ParsedResult(
+        generated_at="2024-01-15T12:00:00",
+        platform_version="2.0",
+        profile_definitions=[],
+        components=[component],
     )
-    release_dict = release.model_dump()
-    release_dict["git_url"] = component.git_url
-    release_dict["git_repo_base_url"] = component.git_url
-    release_dict["git_branch_version"] = f"GBrelease_{release.version}"
-    release_dict["is_header_only"] = component.is_header_only
-    view_model: dict[str, Any] = {
-        "target_platform": "2.0",
-        "component": component.model_dump(),
-        "releases": [release_dict],
-        "profile_definitions": [],
-        "legacy_contents": {},
-    }
+    view_model: dict[str, Any] = PassportConverter("testlib", "1.0.0").convert(parsed_result)
+    # PassportConverter намеренно не устанавливает legacy_contents — это делает
+    # PassportsStrategy перед вызовом builder.build() (см. test_passport_converter.py:
+    # "legacy_contents не должен устанавливаться конвертером"). Шаблон ожидает
+    # этот ключ, поэтому воспроизводим здесь то же внедрение вручную.
+    view_model["legacy_contents"] = {}
     output: str = builder.build("component_passport.jinja2", view_model)
     assert output.strip(), "Отрендеренный вывод component_passport.jinja2 пуст"
     assert (

@@ -10,7 +10,7 @@
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pytest
 
@@ -21,8 +21,8 @@ from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.page_manager.hierarchy_manager import PageHierarchyManager
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
-from tests.unit.publisher.conftest import (
-    FakeConfluenceClient,
+from tests.unit.publisher.conftest import FakeConfluenceClient
+from tests.unit.publisher.strategies.conftest import (
     FakeDocumentBuilder,
     RecordingConfluenceClient,
 )
@@ -40,23 +40,28 @@ _STUB_TRANSFORM_RESULT: dict[str, Any] = {
 }
 
 
-def make_passports_strategy(
-    client: FakeConfluenceClient,
-    builder: FakeDocumentBuilder,
-    data: ParsedResult,
-    tmp_path: Path,
-) -> PassportsStrategy:
-    """Создаёт экземпляр PassportsStrategy с нулевой задержкой между пакетами для быстрых тестов."""
-    return PassportsStrategy(
-        confluence_client=client,
-        document_builder=builder,
-        parsed_data=data,
-        space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
-        data_dir=tmp_path,
-        batch_size=10,
-        batch_delay_seconds=0.0,
-    )
+@pytest.fixture
+def make_passports_strategy() -> Callable[..., PassportsStrategy]:
+    """Фабрика PassportsStrategy с нулевой задержкой между пакетами для быстрых тестов."""
+
+    def _factory(
+        client: FakeConfluenceClient,
+        builder: FakeDocumentBuilder,
+        data: ParsedResult,
+        tmp_path: Path,
+    ) -> PassportsStrategy:
+        return PassportsStrategy(
+            confluence_client=client,
+            document_builder=builder,
+            parsed_data=data,
+            space=_SPACE,
+            root_page_id=_ROOT_PAGE_ID,
+            data_dir=tmp_path,
+            batch_size=10,
+            batch_delay_seconds=0.0,
+        )
+
+    return _factory
 
 
 @pytest.mark.business_logic
@@ -97,6 +102,7 @@ def test_passports_strategy_execute_records_failed_component_without_releases(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_profile_definition: ProfileDefinition,
     tmp_path: Path,
+    make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """Компоненты без релизов фиксируются как ошибки в отчёте."""
     empty_component = Component(
@@ -129,6 +135,7 @@ def test_passports_strategy_execute_saves_registry_after_publish(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """После execute() файл passport_pages.json существует в data_dir.
 
@@ -165,6 +172,7 @@ def test_passports_strategy_execute_report_contains_details(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """Успешная публикация создаёт минимум одну запись details с page_title и page_id."""
     mocker.patch.object(
@@ -196,6 +204,7 @@ def test_publish_one_continues_when_get_page_body_raises(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """Если получение тела существующей страницы падает с ConfluenceError,
     публикация паспорта всё равно продолжается и завершается успешно
@@ -229,16 +238,17 @@ def test_publish_one_continues_when_get_page_body_raises(
 
 # _make_page_title / _build_pages_map (статические хелперы)
 @pytest.mark.business_logic
-def test_page_title_exact_format() -> None:
+@pytest.mark.parametrize(
+    "name, version, expected",
+    [
+        pytest.param("openssl", "1.0.0", "Документация openssl 1.0.0", id="openssl"),
+        pytest.param("sqlite3", "3.51.2", "Документация sqlite3 3.51.2", id="sqlite3"),
+        pytest.param("patchelf", "0.18.0", "Документация patchelf 0.18.0", id="patchelf"),
+    ],
+)
+def test_page_title_exact_format(name: str, version: str, expected: str) -> None:
     """_make_page_title возвращает 'Документация <name> <version>' — точный формат."""
-    # openssl/1.0.0 — базовый случай
-    assert PassportsStrategy._make_page_title("openssl", "1.0.0") == "Документация openssl 1.0.0"
-    # sqlite3/3.51.2 из sqlite3.properties (версии: 3.34.1, 3.51.2, 3.45.3, 3.46.0)
-    assert PassportsStrategy._make_page_title("sqlite3", "3.51.2") == "Документация sqlite3 3.51.2"
-    # patchelf/0.18.0 из patchelf.properties
-    assert (
-        PassportsStrategy._make_page_title("patchelf", "0.18.0") == "Документация patchelf 0.18.0"
-    )
+    assert PassportsStrategy._make_page_title(name, version) == expected
 
 
 @pytest.mark.contract
@@ -560,6 +570,7 @@ def test_legacy_content_extracted_before_overwrite(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: Any,
+    publisher_capturing_document_builder: Any,
 ) -> None:
     """
     BL-PS-06
@@ -599,14 +610,6 @@ def test_legacy_content_extracted_before_overwrite(
         return_value={k: v for k, v in _STUB_TRANSFORM_RESULT.items() if k != "legacy_contents"},
     )
 
-    captured_view_models: list[dict] = []
-
-    class CapturingBuilder:
-        def build(self, template_name: str, view_model: dict) -> str:
-            """Фиксирует view_model, переданный в build(), включая внедрённые ключи."""
-            captured_view_models.append(dict(view_model))
-            return "<html>test</html>"
-
     client = FakeConfluenceClient()
     client._page_bodies = {
         "Документация openssl 1.0.0": (
@@ -619,7 +622,7 @@ def test_legacy_content_extracted_before_overwrite(
 
     strategy = PassportsStrategy(
         confluence_client=client,
-        document_builder=CapturingBuilder(),
+        document_builder=publisher_capturing_document_builder,
         parsed_data=publisher_parsed_result,
         space=_SPACE,
         root_page_id=_ROOT_PAGE_ID,
@@ -629,6 +632,7 @@ def test_legacy_content_extracted_before_overwrite(
     )
     strategy.execute()
 
+    captured_view_models = publisher_capturing_document_builder.captured_view_models
     assert (
         len(captured_view_models) > 0
     ), "builder.build() должен быть вызван хотя бы один раз (одна страница паспорта)"

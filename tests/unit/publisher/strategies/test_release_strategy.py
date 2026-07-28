@@ -17,10 +17,8 @@ from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
 from autodoc.publisher.strategies.registry import create_strategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
-from tests.unit.publisher.conftest import (
-    FakeConfluenceClient,
-    FakeDocumentBuilder,
-)
+from tests.unit.publisher.conftest import FakeConfluenceClient
+from tests.unit.publisher.strategies.conftest import FakeDocumentBuilder
 
 _SPACE: str = "TEST"
 _PAGE_TITLE: str = "Platform 2.0 Release Docs"

@@ -1,8 +1,35 @@
 """Общие фикстуры для парсера step unit tests."""
 
-import pytest
+from pathlib import Path
 
+import pytest
+import requests
+
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
+from autodoc.parser.pipeline.context import PipelineContext
+
+
+# Фикстура контекста пайплайна (используется только в steps/*)
+@pytest.fixture
+def parser_pipeline_context(parser_config: ParserConfigSchema, tmp_path: Path) -> PipelineContext:
+    """Полностью инициализированный PipelineContext на основе parser_config и tmp_path."""
+    return PipelineContext(config=parser_config, tmp_dir=tmp_path)
+
+
+# Фейковый клиент Artifactory (используется в тестах validation_step)
+class FakeArtifactoryClient:
+    """Минимальная заглушка клиента Artifactory, записывающая вызовы check_url()."""
+
+    def __init__(self, status_code: int = 200) -> None:
+        self.status_code = status_code
+        self.called_urls: list[str] = []
+
+    def check_url(self, url: str) -> requests.Response:
+        self.called_urls.append(url)
+        resp = requests.Response()
+        resp.status_code = self.status_code
+        return resp
 
 
 class _FakeFetcher:

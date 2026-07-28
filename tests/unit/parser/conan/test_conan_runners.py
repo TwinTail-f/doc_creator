@@ -23,7 +23,8 @@ _USERNAME: str = "testuser"
 _PASSWORD: str = "test-pat-token"
 
 
-def _make_task() -> ConanTask:
+@pytest.fixture
+def conan_task() -> ConanTask:
     """
     Создаёт минимальный ConanTask для тестов runner.
 
@@ -52,7 +53,8 @@ def _make_task() -> ConanTask:
     )
 
 
-def _make_runner(tmp_path: Path) -> Conan2Runner:
+@pytest.fixture
+def conan2_runner(tmp_path: Path) -> Conan2Runner:
     """
     Создаёт Conan2Runner, используя tmp_path как каталог-шаблон.
 
@@ -67,13 +69,14 @@ def _make_runner(tmp_path: Path) -> Conan2Runner:
 
 
 @pytest.mark.infrastructure
-def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
+def test_conan2_runner_returns_failure_on_timeout(
+    conan2_runner: Conan2Runner, conan_task: ConanTask
+) -> None:
     """Conan2Runner.run() возвращает success=False при истечении времени ожидания subprocess.
 
     TimeoutExpired не должен пробрасываться — runner перехватывает его и возвращает
     результат-ошибку, чтобы вызывающий код мог накапливать ошибки вместо падения.
     """
-    runner = _make_runner(tmp_path)
     with (
         patch("shutil.which", return_value="/usr/bin/conan"),
         patch(
@@ -81,24 +84,23 @@ def test_conan2_runner_returns_failure_on_timeout(tmp_path: Path) -> None:
             side_effect=subprocess.TimeoutExpired(cmd="conan", timeout=_TIMEOUT_SEC),
         ),
     ):
-        result: ConanRawResult = runner.run(_make_task())
+        result: ConanRawResult = conan2_runner.run(conan_task)
     assert result.success is False
     assert result.error  # сообщение об ошибке непустое
 
 
 @pytest.mark.infrastructure
-def test_conan2_runner_clean_cache_success(tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
+def test_conan2_runner_clean_cache_success(conan2_runner: Conan2Runner, tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
     """clean_cache() не бросает исключений при успешном завершении и использует шаблонный CONAN_HOME напрямую."""
-    runner = _make_runner(tmp_path)
     mock_run = mocker.patch(
         "subprocess.run", return_value=MagicMock(returncode=0, stderr="", stdout="")
     )
 
-    runner.clean_cache()
+    conan2_runner.clean_cache()
 
     mock_run.assert_called_once()
     args, kwargs = mock_run.call_args
-    assert args[0] == Conan2Runner._CLEAN_CACHE_CMD
+    assert args[0] == ["conan", "remove", "*", "-c"]
     # clean_cache() использует сам шаблонный каталог, а не свежую временную копию
     # (в отличие от run(), который всегда копирует во временный каталог).
     assert kwargs["env"]["CONAN_HOME"] == str(tmp_path)
@@ -125,26 +127,24 @@ def test_conan2_runner_clean_cache_success(tmp_path: Path, mocker) -> None:  # t
     ],
 )
 def test_conan2_runner_clean_cache_swallows_failures(
-    tmp_path: Path,
+    conan2_runner: Conan2Runner,
     mocker,
     run_kwargs: dict,  # type: ignore[no-untyped-def]
 ) -> None:
     """clean_cache() не бросает исключений ни при ненулевом коде возврата
     conan, ни при истечении времени ожидания subprocess."""
-    runner = _make_runner(tmp_path)
     mocker.patch("subprocess.run", **run_kwargs)
 
-    runner.clean_cache()
+    conan2_runner.clean_cache()
 
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
-    tmp_path: Path, mocker
+    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker
 ) -> None:  # type: ignore[no-untyped-def]
     """run() при returncode=0 и валидном JSON на stdout возвращает
     ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
     в проде путь (returncode=0)."""
-    runner = _make_runner(tmp_path)
     parsed_payload = {"graph": {"nodes": {"0": {"name": "zlib"}}}}
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mocker.patch(
@@ -152,7 +152,7 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
         return_value=MagicMock(returncode=0, stdout=json.dumps(parsed_payload), stderr=""),
     )
 
-    result: ConanRawResult = runner.run(_make_task())
+    result: ConanRawResult = conan2_runner.run(conan_task)
 
     assert result.success is True
     assert result.data == parsed_payload
@@ -161,10 +161,9 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
-    tmp_path: Path, mocker
+    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker
 ) -> None:  # type: ignore[no-untyped-def]
     """run() при не-JSON stdout возвращает success=False с сообщением, включающим превью исходного stdout."""
-    runner = _make_runner(tmp_path)
     fake_stdout = "<warning>not actually json this time</warning>"
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mocker.patch(
@@ -172,7 +171,7 @@ def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
         return_value=MagicMock(returncode=0, stdout=fake_stdout, stderr=""),
     )
 
-    result: ConanRawResult = runner.run(_make_task())
+    result: ConanRawResult = conan2_runner.run(conan_task)
 
     assert result.success is False
     assert result.data is None
@@ -182,10 +181,12 @@ def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message(
-    tmp_path: Path, mocker
+    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker
 ) -> None:  # type: ignore[no-untyped-def]
-    """run() при ненулевом returncode передаёт stderr в _extract_error_message и возвращает его результат."""
-    runner = _make_runner(tmp_path)
+    """run() при ненулевом returncode передаёт stderr в _extract_error_message и
+    возвращает его результат: _extract_error_message обрезает stderr до
+    среза, начинающегося с первого вхождения маркера "error:" (регистронезависимо),
+    отбрасывая предшествующий preamble-вывод."""
     stderr = "some INFO preamble\nERROR: something broke"
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mocker.patch(
@@ -193,7 +194,7 @@ def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message
         return_value=MagicMock(returncode=1, stdout="", stderr=stderr),
     )
 
-    result: ConanRawResult = runner.run(_make_task())
+    result: ConanRawResult = conan2_runner.run(conan_task)
 
     assert result.success is False
     assert "ERROR: something broke" in result.error
@@ -355,7 +356,7 @@ def test_conan_environment_manager_setup_raises_when_remote_login_fails(
     mock_rmtree.assert_called_once()
 
 
-@pytest.mark.business_logic
+@pytest.mark.infrastructure
 def test_conan_environment_manager_install_config_raises_on_invalid_url(mocker) -> None:
     """setup() отклоняет config_url без схемы и хоста ещё до обращения к conan CLI.
 
@@ -418,3 +419,26 @@ def test_conan_environment_manager_install_config_cleans_up_before_raising_on_su
     mock_rmtree.assert_called_once()
     called_path = Path(mock_rmtree.call_args[0][0])
     assert called_path == setup_dir
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "stderr, expected",
+    [
+        pytest.param(
+            "warning: deprecated option used\nnothing critical here",
+            "warning: deprecated option used\nnothing critical here",
+            id="no-error-marker-returns-stripped-stderr",
+        ),
+        pytest.param(
+            "INFO: preamble\nERROR: something broke",
+            "ERROR: something broke",
+            id="error-marker-present-returns-suffix",
+        ),
+    ],
+)
+def test_extract_error_message(stderr: str, expected: str, tmp_path: Path) -> None:
+    """_extract_error_message возвращает срез stderr с маркера 'error:',
+    либо весь stderr (обрезанный), если маркера нет."""
+    runner = Conan2Runner(timeout=_TIMEOUT_SEC, conan_home_template=tmp_path)
+    assert runner._extract_error_message(stderr) == expected

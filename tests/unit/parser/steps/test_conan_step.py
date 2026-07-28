@@ -20,7 +20,7 @@ EMPTY_CONAN_RESULT: ConanEnrichmentResult = ConanEnrichmentResult(
 )
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_conan_step_stores_conan_report_in_intermediate(
     parser_pipeline_context,
     make_fake_fetcher,

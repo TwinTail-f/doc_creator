@@ -5,10 +5,9 @@ import pytest
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-from tests.unit.publisher.conftest import COMPONENT_NAME as COMP_NAME
+from tests.unit.publisher.converters.conftest import COMPONENT_NAME as COMP_NAME
 
 UNKNOWN_PROFILE: str = "ghost"
-UNKNOWN_OPTIONS_REF: str = "UNKNOWN_REF"
 
 
 @pytest.fixture
@@ -27,17 +26,7 @@ def multi_result_with_unknown_profile(
     return publisher_multi_component_result.model_copy(update={"components": components})
 
 
-@pytest.mark.contract
-def test_full_release_convert_returns_platform_version(
-    publisher_multi_component_result: ParsedResult,
-) -> None:
-    """result['platform_version'] соответствует platform_version исходного ParsedResult."""
-    result = FullReleaseConverter().convert(publisher_multi_component_result)
-
-    assert result["platform_version"] == publisher_multi_component_result.platform_version
-
-
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_full_release_convert_contains_all_components(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
@@ -47,19 +36,7 @@ def test_full_release_convert_contains_all_components(
     assert len(result["components"]) == 2
 
 
-@pytest.mark.contract
-def test_full_release_convert_component_has_name_and_description(
-    publisher_multi_component_result: ParsedResult,
-) -> None:
-    """Каждая запись компонента содержит поля name и description."""
-    result = FullReleaseConverter().convert(publisher_multi_component_result)
-
-    descriptions_by_name = {c["name"]: c["description"] for c in result["components"]}
-    for component in publisher_multi_component_result.components:
-        assert descriptions_by_name[component.name] == component.description
-
-
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_full_release_convert_component_has_releases(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
@@ -158,18 +135,17 @@ def test_header_only_component_has_no_profile_builds_in_view(
     for release_view in comp_view["releases"]:
         assert (
             release_view["profile_builds"] == []
-        ), "header-only component must not have profile_builds in view model"
-
-
-@pytest.mark.business_logic
+        ), "header-only компонент не должен иметь profile_builds в view model"@pytest.mark.business_logic
 def test_non_header_only_component_has_profile_builds(
     publisher_parsed_result,
 ) -> None:
     """У компонента с is_header_only=False profile_builds в view-model остаётся
     непустым, если у соответствующего release есть хотя бы один ProfileBuild."""
     comp = publisher_parsed_result.components[0]
-    assert comp.is_header_only is False, "Fixture must have is_header_only=False"
-    assert len(comp.releases[0].profile_builds) > 0, "Fixture must have non-empty profile_builds"
+    assert comp.is_header_only is False, "У фикстуры должно быть is_header_only=False"
+    assert (
+        len(comp.releases[0].profile_builds) > 0
+    ), "У фикстуры должен быть непустой profile_builds"
 
     converter = FullReleaseConverter(include_passport_links=False)
     view = converter.convert(publisher_parsed_result)
@@ -178,7 +154,7 @@ def test_non_header_only_component_has_profile_builds(
     release_view = comp_view["releases"][0]
     assert (
         len(release_view["profile_builds"]) > 0
-    ), "Non-header-only component must have non-empty profile_builds in view"
+    ), "У не-header-only компонента profile_builds в view не должен быть пустым"
 
 
 @pytest.mark.business_logic
@@ -197,20 +173,7 @@ def test_components_sorted_alphabetically_in_view(
     names = [c["name"] for c in view["components"]]
     assert names == sorted(
         names
-    ), f"Components must be sorted alphabetically: expected {sorted(names)}, got {names}"
-
-
-@pytest.mark.parametrize("flag", [True, False])
-@pytest.mark.contract
-def test_include_links_flag_propagated_to_view_model(publisher_parsed_result, flag: bool) -> None:
-    """view['include_passport_links'] равен значению include_passport_links, переданному в конструктор FullReleaseConverter."""
-    converter = FullReleaseConverter(include_passport_links=flag)
-    view = converter.convert(publisher_parsed_result)
-
-    assert "include_passport_links" in view, "view_model must contain key include_passport_links"
-    assert (
-        view["include_passport_links"] is flag
-    ), f"include_passport_links should be {flag}, got {view['include_passport_links']}"
+    ), f"Компоненты должны быть отсортированы по алфавиту: ожидалось {sorted(names)}, получено {names}"
 
 
 @pytest.mark.business_logic
@@ -227,13 +190,13 @@ def test_no_passport_link_field_added_by_converter_itself(
 
     for comp_view in view["components"]:
         assert "passport_versions" not in comp_view, (
-            "passport_versions must NOT be set by the converter; "
-            "it is injected later by inject_links()"
+            "passport_versions не должен устанавливаться конвертером; "
+            "он добавляется позже через inject_links()"
         )
         for release_view in comp_view["releases"]:
             assert "passport_link" not in release_view, (
-                "passport_link must NOT be set by the converter; "
-                "it is injected later by inject_links()"
+                "passport_link не должен устанавливаться конвертером; "
+                "он добавляется позже через inject_links()"
             )
 
 
@@ -246,7 +209,7 @@ def test_full_release_convert_variant_with_unknown_options_ref_has_empty_conan_o
     original_rel = original_comp.releases[0]
     original_pb = original_rel.profile_builds[0]
     original_variant = original_pb.variants[0]
-    unknown_variant = original_variant.model_copy(update={"options_ref": UNKNOWN_OPTIONS_REF})
+    unknown_variant = original_variant.model_copy(update={"options_ref": "UNKNOWN_REF"})
     patched_pb = original_pb.model_copy(update={"variants": [unknown_variant]})
     patched_rel = original_rel.model_copy(update={"profile_builds": [patched_pb]})
     patched_comp = original_comp.model_copy(

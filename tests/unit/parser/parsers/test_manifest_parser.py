@@ -22,13 +22,6 @@ _MANIFEST_NO_PROFILES_KEY = (
 )
 
 
-def write_props(tmp_path: Path, filename: str, content: str) -> Path:
-    """Записать содержимое в файл .properties в tmp_path и вернуть путь."""
-    p = tmp_path / filename
-    p.write_text(content, encoding="utf-8")
-    return p
-
-
 @pytest.fixture
 def all_real_properties(real_manifests_dir: Path) -> list[Path]:
     """Отсортированный список всех реальных файлов .properties в resources/manifests/."""
@@ -44,7 +37,7 @@ def parser_20() -> ManifestParser:
     )
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_returns_correct_component_count(
     parser_20: ManifestParser,
     all_real_properties: list[Path],
@@ -64,7 +57,7 @@ def test_parser_returns_correct_component_count(
     }
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 @pytest.mark.parametrize(
     "manifest_filename, expected_pairs",
     [
@@ -104,7 +97,7 @@ def test_parser_release_version_channel_pairs(
     assert pairs == expected_pairs
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_sqlite3_many_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -195,7 +188,7 @@ def test_parser_file_without_recognizable_properties_is_silently_skipped(
 ) -> None:
     """Файл без пары ключ-значение (нет поля 'name') не создаёт компонент и не
     добавляет предупреждение; корректные файлы рядом обрабатываются как обычно."""
-    bad_file = write_props(tmp_path, "garbage.properties", "not valid properties!!!")
+    bad_file = _write_manifest(tmp_path, "garbage", "not valid properties!!!")
     good_file = real_manifests_dir / "apr.properties"
     components, warnings = parser_20.parse(
         [good_file, bad_file], component_names=[], filter_mode="exclude"
@@ -230,7 +223,7 @@ def test_manifest_parser_invalid_input_yields_no_components(
     if content is None:
         path = tmp_path / "nonexistent.properties"
     else:
-        path = write_props(tmp_path, "libfoo.properties", content)
+        path = _write_manifest(tmp_path, "libfoo", content)
     components, warnings = ManifestParser(TARGET_PLATFORM).parse(
         [path], component_names=[], filter_mode="exclude"
     )
@@ -238,7 +231,7 @@ def test_manifest_parser_invalid_input_yields_no_components(
     assert len(warnings) == expected_warnings_count
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_nlohmann_json_fast_release_has_one_profile(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -258,7 +251,7 @@ def test_parser_nlohmann_json_fast_release_has_one_profile(
     assert fast_release.profile_builds[0].profile_name == "mobile-windows-x86_64.jinja"
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_apr_profile_count_fast(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -281,7 +274,7 @@ def test_parser_apr_profile_count_fast(
     }
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_patchelf_both_versions_have_same_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -298,7 +291,7 @@ def test_parser_patchelf_both_versions_have_same_profiles(
     assert len(profile_sets[0]) == 6
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_sqlite3_slow_release_version_and_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -320,7 +313,7 @@ def test_parser_sqlite3_slow_release_version_and_profiles(
     }
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_sqlite3_fast_and_slow_different_versions(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -335,7 +328,7 @@ def test_parser_sqlite3_fast_and_slow_different_versions(
     assert len(versions) == 2
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_libnetfilter_queue_git_project_and_url_point_to_prg_quant(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -352,7 +345,7 @@ def test_parser_libnetfilter_queue_git_project_and_url_point_to_prg_quant(
     assert "PRG_Quant" in components[0].git_url
 
 
-@pytest.mark.integration
+@pytest.mark.business_logic
 def test_parser_libnetfilter_queue_slow_has_expected_profiles(
     parser_20: ManifestParser,
     real_manifests_dir: Path,
@@ -656,3 +649,32 @@ def test_manifest_parser_skips_none_results_from_executor(
 
     assert len(components) == 1
     assert components[0].name == "mylib"
+
+
+@pytest.mark.business_logic
+def test_filter_mode_unknown_value_disables_filtering(tmp_path: Path) -> None:
+    """Неизвестное значение filter_mode (не 'exclude' и не 'include') не
+    фильтрует ничего и не падает — ни одна из веток if/elif не срабатывает,
+    выполнение сразу переходит к сборке релизов."""
+    content = _minimal_manifest(comp_name="mylib", git_project="P", git_repo="mylib")
+    f = _write_manifest(tmp_path, "mylib", content)
+    parser = ManifestParser(target_platform="2.2")
+
+    components, _ = parser.parse([f], component_names=["mylib"], filter_mode="unknown")
+
+    assert len(components) == 1
+    assert components[0].name == "mylib"
+
+
+@pytest.mark.business_logic
+def test_git_url_empty_when_no_collection_url_and_no_git_repo(tmp_path: Path) -> None:
+    """Component.git_url остаётся пустой строкой, если не задан ни
+    tfs_collection_url у парсера, ни git_repo_name в манифесте — собрать
+    ссылку не из чего, и парсер не должен подставлять частичный/некорректный URL."""
+    content = _minimal_manifest(comp_name="mylib", git_project="P", git_repo="")
+    f = _write_manifest(tmp_path, "mylib", content)
+    parser = ManifestParser(target_platform="2.2")  # tfs_collection_url по умолчанию ""
+
+    components, _ = parser.parse([f], component_names=[], filter_mode="include")
+
+    assert components[0].git_url == ""

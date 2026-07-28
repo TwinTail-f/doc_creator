@@ -23,7 +23,7 @@ class _ConcreteFetcher(BaseTFSFetcher):
         return FetchResult(value=[])
 
 
-@pytest.mark.contract
+@pytest.mark.infrastructure
 def test_base_fetcher_fetch_before_configure_raises() -> None:
     """Вызов fetch() до configure() нарушает двухфазный инвариант и выбрасывает AssertionError."""
     fetcher = _ConcreteFetcher()

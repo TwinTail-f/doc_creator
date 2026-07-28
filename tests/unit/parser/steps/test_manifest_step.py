@@ -8,7 +8,7 @@ from autodoc.parser.steps.manifest_step import ManifestStep
 from tests.unit.parser.conftest import FakeTFSClient
 
 
-@pytest.mark.contract
+@pytest.mark.business_logic
 def test_manifest_step_populates_ctx_components(
     parser_pipeline_context,
     manifest_component,
@@ -59,7 +59,7 @@ def test_manifest_step_default_fetcher_is_manifest_fetcher() -> None:
     assert isinstance(step._fetcher, ManifestFetcher)
 
 
-@pytest.mark.business_logic
+@pytest.mark.integration
 def test_manifest_step_propagates_parsing_error_from_fetcher(
     parser_pipeline_context,
 ) -> None:

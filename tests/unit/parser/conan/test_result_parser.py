@@ -7,6 +7,7 @@ sqlite3, libnetfilter_queue), бинарник Missing (poco), отсутств�
 JSON-фикстуры загружаются через общую фикстуру resources_dir.
 """
 
+import dataclasses
 import json
 from pathlib import Path
 from typing import Any
@@ -17,9 +18,7 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
-
-# SHA1 пустой строки — используется для header-only компонентов
-NULL_PACKAGE_ID: str = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+from tests.unit.parser.conftest import NULL_PACKAGE_ID
 
 
 @pytest.fixture
@@ -191,19 +190,6 @@ def test_result_parser_returns_enrich_data_with_package_id(
 
 
 @pytest.mark.business_logic
-def test_result_parser_patchelf_base_ref_no_hash(
-    success_json: dict[str, Any],
-    conan_task: ConanTask,
-) -> None:
-    """base_ref начинается с 'patchelf/' и не содержит символа '#' (хэша ревизии)."""
-    result = Conan2ResultParser().parse(success_json, conan_task)
-
-    assert result is not None
-    assert result.base_ref.startswith("patchelf/")
-    assert "#" not in result.base_ref
-
-
-@pytest.mark.business_logic
 def test_result_parser_patchelf_conan_settings_has_os_distro(
     success_json: dict[str, Any],
     conan_task: ConanTask,
@@ -216,12 +202,21 @@ def test_result_parser_patchelf_conan_settings_has_os_distro(
 
 
 @pytest.mark.business_logic
-def test_result_parser_patchelf_empty_default_options(
-    success_json: dict[str, Any],
-    conan_task: ConanTask,
+@pytest.mark.parametrize(
+    "graph_fixture, task_fixture",
+    [
+        pytest.param("success_json", "conan_task", id="patchelf-missing-key"),
+        pytest.param("nlohmann_json_graph", "nlohmann_task", id="nlohmann-json-empty-dict"),
+    ],
+)
+def test_result_parser_no_default_options(
+    request: pytest.FixtureRequest, graph_fixture: str, task_fixture: str
 ) -> None:
-    """patchelf не имеет default_options в graph JSON — результат должен быть пустым списком."""
-    result = Conan2ResultParser().parse(success_json, conan_task)
+    """default_options возвращается пустым списком и когда ключ default_options
+    отсутствует в JSON (patchelf), и когда он присутствует, но пуст (nlohmann_json)."""
+    graph = request.getfixturevalue(graph_fixture)
+    task = request.getfixturevalue(task_fixture)
+    result = Conan2ResultParser().parse(graph, task)
 
     assert result is not None
     assert result.default_options == []
@@ -244,24 +239,20 @@ def test_result_parser_nlohmann_json_null_package_id(
 
 
 @pytest.mark.business_logic
-def test_result_parser_nlohmann_json_no_default_options(
-    nlohmann_json_graph: dict[str, Any],
-    nlohmann_task: ConanTask,
+@pytest.mark.parametrize(
+    "graph_fixture, task_fixture",
+    [
+        pytest.param("nlohmann_json_graph", "nlohmann_task", id="nlohmann_json"),
+        pytest.param("apr_graph", "apr_task", id="apr"),
+    ],
+)
+def test_result_parser_no_dependencies(
+    request: pytest.FixtureRequest, graph_fixture: str, task_fixture: str
 ) -> None:
-    """nlohmann_json имеет пустой словарь default_options в JSON — результат должен быть []."""
-    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
-
-    assert result is not None
-    assert result.default_options == []
-
-
-@pytest.mark.business_logic
-def test_result_parser_nlohmann_json_no_dependencies(
-    nlohmann_json_graph: dict[str, Any],
-    nlohmann_task: ConanTask,
-) -> None:
-    """nlohmann_json не имеет узлов зависимостей — список dependencies должен быть пустым."""
-    result = Conan2ResultParser().parse(nlohmann_json_graph, nlohmann_task)
+    """nlohmann_json и apr не имеют узлов зависимостей — dependencies должен быть пустым списком."""
+    graph = request.getfixturevalue(graph_fixture)
+    task = request.getfixturevalue(task_fixture)
+    result = Conan2ResultParser().parse(graph, task)
 
     assert result is not None
     assert result.dependencies == []
@@ -280,12 +271,20 @@ def test_result_parser_sqlite3_has_tcl_dependency(
 
 
 @pytest.mark.business_logic
-def test_result_parser_sqlite3_has_default_options(
-    sqlite3_deps_graph: dict[str, Any],
-    sqlite3_task: ConanTask,
+@pytest.mark.parametrize(
+    "graph_fixture, task_fixture",
+    [
+        pytest.param("sqlite3_deps_graph", "sqlite3_task", id="sqlite3"),
+        pytest.param("apr_graph", "apr_task", id="apr"),
+    ],
+)
+def test_result_parser_has_default_options(
+    request: pytest.FixtureRequest, graph_fixture: str, task_fixture: str
 ) -> None:
-    """sqlite3 имеет несколько default_options, включая 'shared' — список должен быть непустым."""
-    result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
+    """sqlite3 и apr оба имеют default_options, включая 'shared' — список должен быть непустым."""
+    graph = request.getfixturevalue(graph_fixture)
+    task = request.getfixturevalue(task_fixture)
+    result = Conan2ResultParser().parse(graph, task)
 
     assert result is not None
     assert len(result.default_options) > 0
@@ -326,7 +325,7 @@ def test_result_parser_returns_none_when_node_not_found(
     conan_task: ConanTask,
 ) -> None:
     """parse() возвращает None, когда ни один узел не совпадает с заданным comp_name."""
-    object.__setattr__(conan_task, "comp_name", "nonexistent")
+    conan_task = dataclasses.replace(conan_task, comp_name="nonexistent")
     result = Conan2ResultParser().parse(success_json, conan_task)
 
     assert result is None
@@ -352,7 +351,7 @@ def test_result_parser_returns_none_on_missing_binary(
     graph = request.getfixturevalue(graph_fixture)
     task = request.getfixturevalue(task_fixture)
     if comp_name_override is not None:
-        object.__setattr__(task, "comp_name", comp_name_override)
+        task = dataclasses.replace(task, comp_name=comp_name_override)
 
     result = Conan2ResultParser().parse(graph, task)
 
@@ -387,6 +386,64 @@ def test_result_parser_malformed_target_ref_returns_empty_base_ref(
 
 
 @pytest.mark.business_logic
+def test_result_parser_missing_ref_returns_empty_base_ref(
+    conan_task: ConanTask,
+) -> None:
+    """parse() возвращает base_ref='', если у узла нет поля 'ref' вовсе
+    (ранний выход до RecipeReference.loads, отдельно от кейса с кривым ref)."""
+    minimal_json: dict[str, Any] = {
+        "graph": {
+            "nodes": {
+                "0": {"ref": "conanfile", "name": None, "binary": None},
+                "1": {
+                    "name": "patchelf",
+                    "binary": "Download",
+                    "package_id": "abc123",
+                    "rrev": "existing-rrev",
+                    "info": {},
+                    # поле "ref" намеренно отсутствует
+                },
+            }
+        }
+    }
+    result = Conan2ResultParser().parse(minimal_json, conan_task)
+
+    assert result is not None
+    assert result.base_ref == ""
+    assert result.rrev == "existing-rrev"
+    assert result.full_version == conan_task.version
+
+
+@pytest.mark.business_logic
+def test_result_parser_short_ref_without_user_uses_ref_revision(
+    conan_task: ConanTask,
+) -> None:
+    """Короткий ref без @user/channel ('name/version#rrev'): rrev берётся из
+    ref, если node['rrev'] пуст, а full_version НЕ переопределяется —
+    переопределение версии срабатывает только когда у ref есть user."""
+    minimal_json: dict[str, Any] = {
+        "graph": {
+            "nodes": {
+                "0": {"ref": "conanfile", "name": None, "binary": None},
+                "1": {
+                    "name": "patchelf",
+                    "binary": "Download",
+                    "ref": "patchelf/9.9.9#deadbeef",  # без @user/channel
+                    "rrev": "",
+                    "package_id": "abc123",
+                    "info": {},
+                },
+            }
+        }
+    }
+    result = Conan2ResultParser().parse(minimal_json, conan_task)
+
+    assert result is not None
+    assert result.rrev == "deadbeef"
+    assert result.full_version == conan_task.version  # не "9.9.9"
+
+
+@pytest.mark.business_logic
 def test_result_parser_malformed_dependency_ref_is_skipped(
     conan_task: ConanTask,
 ) -> None:
@@ -414,14 +471,28 @@ def test_result_parser_malformed_dependency_ref_is_skipped(
                     "name": "goodlib",
                     "binary": "Download",
                 },
+                "4": {
+                    # поле "ref" отсутствует вовсе — должен быть пропущен
+                    "name": "no-ref-dep",
+                    "binary": "Download",
+                },
+                "5": {
+                    # name узла отличается от comp_name (иначе отсеялся бы
+                    # раньше, до парсинга ref), но ref реально указывает на
+                    # тот же компонент, что и цель — не должен попасть в deps
+                    "ref": "patchelf/2.0@platform-2.0/tech",
+                    "name": "patchelf-alias-node",
+                    "binary": "Download",
+                },
             }
         }
     }
     result = Conan2ResultParser().parse(minimal_json, conan_task)
 
     assert result is not None
-    assert "goodlib" in result.dependencies
-    assert "broken-dep" not in result.dependencies
+    assert result.dependencies == ["goodlib"]
+    assert "no-ref-dep" not in result.dependencies
+    assert "patchelf-alias-node" not in result.dependencies
 
 
 @pytest.mark.business_logic
@@ -501,19 +572,6 @@ def test_result_parser_patchelf_016_version_uses_same_channel(
     assert result.conan_settings.get("os.distro") == "alpine"
 
 
-@pytest.mark.business_logic
-def test_result_parser_sqlite3_fast_base_ref_format(
-    sqlite3_deps_graph: dict[str, Any],
-    sqlite3_task: ConanTask,
-) -> None:
-    """base_ref для sqlite3 fast имеет формат 'sqlite3/<version>@platform-2.0/fast' без хэша rrev."""
-    result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
-    assert result is not None
-    assert result.base_ref.startswith("sqlite3/")
-    assert "@platform-2.0/fast" in result.base_ref
-    assert "#" not in result.base_ref
-
-
 @pytest.fixture
 def apr_task() -> ConanTask:
     """Минимальный ConanTask для apr/1.7.6 (канал fast, без зависимостей)."""
@@ -541,38 +599,40 @@ def apr_graph(resources_dir: Path) -> dict[str, Any]:
 
 
 @pytest.mark.business_logic
-def test_result_parser_apr_no_dependencies(
-    apr_graph: dict[str, Any],
-    apr_task: ConanTask,
+@pytest.mark.parametrize(
+    "graph_fixture, task_fixture, expected_prefix, expected_channel_part",
+    [
+        pytest.param(
+            "success_json", "conan_task", "patchelf/", "@platform-2.0/tech", id="patchelf-tech"
+        ),
+        pytest.param(
+            "sqlite3_deps_graph",
+            "sqlite3_task",
+            "sqlite3/",
+            "@platform-2.0/fast",
+            id="sqlite3-fast",
+        ),
+        pytest.param("apr_graph", "apr_task", "apr/", "@platform-2.0/fast", id="apr-fast"),
+    ],
+)
+def test_result_parser_base_ref_format(
+    request: pytest.FixtureRequest,
+    graph_fixture: str,
+    task_fixture: str,
+    expected_prefix: str,
+    expected_channel_part: str,
 ) -> None:
-    """apr не имеет узлов зависимостей — список dependencies должен быть пустым."""
-    result = Conan2ResultParser().parse(apr_graph, apr_task)
+    """base_ref начинается с '<comp_name>/', содержит канал вида '@platform-2.0/<channel>' и
+    никогда не содержит символ '#' (хэш ревизии) — единый строгий набор ассертов для
+    patchelf (tech), sqlite3 (fast) и apr (fast)."""
+    graph = request.getfixturevalue(graph_fixture)
+    task = request.getfixturevalue(task_fixture)
+    result = Conan2ResultParser().parse(graph, task)
+
     assert result is not None
-    assert result.dependencies == []
-
-
-@pytest.mark.business_logic
-def test_result_parser_apr_fast_channel_in_base_ref(
-    apr_graph: dict[str, Any],
-    apr_task: ConanTask,
-) -> None:
-    """base_ref для apr должен содержать '@platform-2.0/fast' (канал fast, не slow или tech)."""
-    result = Conan2ResultParser().parse(apr_graph, apr_task)
-    assert result is not None
-    assert "@platform-2.0/fast" in result.base_ref
-
-
-@pytest.mark.business_logic
-def test_result_parser_apr_has_default_options(
-    apr_graph: dict[str, Any],
-    apr_task: ConanTask,
-) -> None:
-    """Узел apr содержит default_options (shared, fPIC, …) — список должен быть непустым."""
-    result = Conan2ResultParser().parse(apr_graph, apr_task)
-    assert result is not None
-    assert len(result.default_options) > 0
-    names = [opt.name for opt in result.default_options]
-    assert "shared" in names
+    assert result.base_ref.startswith(expected_prefix)
+    assert expected_channel_part in result.base_ref
+    assert "#" not in result.base_ref
 
 
 @pytest.mark.business_logic
@@ -643,20 +703,40 @@ def test_result_parser_extracts_patch_file_names(
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
-    "conandata",
+    "conandata, expected_patches",
     [
         # patches — не словарь (например список) -> возвращается пустой список патчей
-        pytest.param({"patches": ["not-a-dict"]}, id="patches-not-a-dict"),
+        pytest.param({"patches": ["not-a-dict"]}, [], id="patches-not-a-dict"),
         # значение под ключом версии — не список (например строка) -> элемент пропускается
-        pytest.param({"patches": {"0.18.0": "not-a-list"}}, id="patch-entry-not-a-list"),
+        pytest.param({"patches": {"0.18.0": "not-a-list"}}, [], id="patch-entry-not-a-list"),
+        # элемент списка — не словарь -> пропускается, валидные элементы остаются
+        pytest.param(
+            {"patches": {"0.18.0": ["not-a-dict", {"patch_file": "keep.patch"}]}},
+            ["keep.patch"],
+            id="list-item-not-a-dict",
+        ),
+        # отсутствующий или пустой patch_file -> пропускается, валидные элементы остаются
+        pytest.param(
+            {
+                "patches": {
+                    "0.18.0": [
+                        {"other_field": "x"},
+                        {"patch_file": ""},
+                        {"patch_file": "real.patch"},
+                    ]
+                }
+            },
+            ["real.patch"],
+            id="missing-or-empty-patch-file",
+        ),
     ],
 )
 def test_result_parser_extract_patches_guards_against_malformed_conandata(
-    conan_task: ConanTask, conandata: dict[str, Any]
+    conan_task: ConanTask, conandata: dict[str, Any], expected_patches: list[str]
 ) -> None:
-    """_extract_patches возвращает пустой список патчей при неожиданной форме
-    conandata.patches (не dict/не list там, где Conan обычно кладёт словарь/списки),
-    не поднимая AttributeError/TypeError на кривых данных из реального ответа."""
+    """_extract_patches возвращает только валидные patch_file при неожиданной форме
+    conandata.patches: не-dict/не-list контейнеры, не-dict элементы списка,
+    отсутствующий/пустой patch_file — без AttributeError/TypeError."""
     graph_json: dict[str, Any] = {
         "graph": {
             "nodes": {
@@ -675,7 +755,7 @@ def test_result_parser_extract_patches_guards_against_malformed_conandata(
     result = Conan2ResultParser().parse(graph_json, conan_task)
 
     assert result is not None
-    assert result.patches == []
+    assert result.patches == expected_patches
 
 
 @pytest.mark.business_logic
@@ -702,6 +782,21 @@ def test_result_parser_build_url_empty_when_artifactory_base_url_missing(
 
     assert result is not None
     assert result.build_url == ""
+
+
+@pytest.mark.business_logic
+def test_build_artifactory_url_without_package_id_suffix(
+    conan_task: ConanTask,
+) -> None:
+    """_build_artifactory_url не добавляет суффикс '/package/<id>' без package_id.
+    Метод вызывается напрямую: через parse() эта ветка недостижима, т.к. вызов
+    там уже обёрнут условием 'if package_id'."""
+    url = Conan2ResultParser()._build_artifactory_url(
+        conan_task, full_version="0.18.0", rrev="abc123", package_id=""
+    )
+
+    assert url == "https://art.example.com/platform-2.0/patchelf/0.18.0/tech/abc123"
+    assert "/package/" not in url
 
 
 @pytest.mark.business_logic

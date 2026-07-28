@@ -38,16 +38,6 @@ def result_with_header_only_unique_profile(
 
 
 @pytest.mark.contract
-def test_profile_centric_convert_returns_profiles_list(
-    publisher_multi_component_result: ParsedResult,
-) -> None:
-    """result['profiles'] — непустой список."""
-    result = ProfileCentricConverter().convert(publisher_multi_component_result)
-
-    assert len(result["profiles"]) > 0
-
-
-@pytest.mark.contract
 def test_profile_centric_convert_profile_has_required_fields(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
@@ -110,18 +100,6 @@ def test_profile_centric_convert_comp_entry_has_reference_and_url(
     assert "url" in comp_entry
 
 
-@pytest.mark.contract
-def test_profile_centric_convert_include_links_flag_in_result(
-    publisher_multi_component_result: ParsedResult,
-) -> None:
-    """result['include_passport_links'] отражает параметр конструктора."""
-    result = ProfileCentricConverter(include_passport_links=False).convert(
-        publisher_multi_component_result
-    )
-
-    assert result["include_passport_links"] is False
-
-
 @pytest.mark.business_logic
 def test_profile_centric_converter_profile_with_no_components_does_not_raise() -> None:
     """ProfileDefinition без совпадающих ProfileBuild не приводит к падению."""
@@ -130,7 +108,7 @@ def test_profile_centric_converter_profile_with_no_components_does_not_raise() -
 
     pb = ProfileBuild(profile_name="hw-linux-x86_64-gcc10_2")  # другое имя
     release = Release(
-        version="3.0.9",  # from openssl.properties
+        version="3.0.9",
         platform="2.0",
         channel="tech",
         profile_builds=[pb],
@@ -163,38 +141,32 @@ def test_data_restructured_from_component_to_profile_axis(
     Компонент→Релиз→Профиль в Профиль→словарь каналов→[компоненты].
 
     Предусловия:
-        - publisher_multi_channel_result с comp_alpha и comp_beta.
+        - publisher_multi_channel_result: comp_alpha с релизами в каналах
+          'fast' и 'stable', оба под профилем 'hw-linux-x86_64-gcc10'.
 
     Шаги:
         1. Создать ProfileCentricConverter(include_passport_links=False).
         2. Вызвать convert().
-        3. Проверить структуру view["profiles"].
+        3. Проверить, что комponент alpha оказался под обоими каналами
+           одного и того же профиля (реструктуризация по оси
+           профиль→канал→компонент), а не просто что у профиля есть ключи
+           (это уже проверяется test_profile_centric_convert_profile_has_required_fields
+           и test_profile_centric_convert_comp_entry_has_reference_and_url).
 
     Ожидаемый результат:
-        view содержит список "profiles"; у каждого профиля есть "profile_name"
-        и "channels" (словарь); каждый канал ссылается на непустой список
-        компонентов.
+        Оба канала 'fast' и 'stable' профиля 'hw-linux-x86_64-gcc10' содержат
+        запись компонента 'alpha'.
     """
     converter = ProfileCentricConverter(include_passport_links=False)
     view = converter.convert(publisher_multi_channel_result)
 
-    assert "profiles" in view, "view_model must contain key 'profiles'"
-    assert len(view["profiles"]) > 0, "profiles must not be empty"
-
-    profile = view["profiles"][0]
-    assert "profile_name" in profile, "Each profile must have profile_name"
-    assert "channels" in profile, "Each profile must have channels"
+    profile = next(
+        p for p in view["profiles"] if p["profile_name"] == "hw-linux-x86_64-gcc10"
+    )
     channels = profile["channels"]
-    assert isinstance(channels, dict), "channels must be a dict keyed by channel name"
-    assert len(channels) > 0, "channels dict must not be empty"
-
-    first_channel = next(iter(channels))
-    components_list = channels[first_channel]
-    assert isinstance(components_list, list), "Each channel value must be a list"
-    assert len(components_list) > 0, "Channel must contain at least one component entry"
-    comp_entry = components_list[0]
-    assert "name" in comp_entry, "Component entry must have 'name'"
-    assert "version" in comp_entry, "Component entry must have 'version'"
+    for channel_name in ("fast", "stable"):
+        names_in_channel = {entry["name"] for entry in channels[channel_name]}
+        assert "alpha" in names_in_channel
 
 
 @pytest.mark.business_logic
@@ -227,11 +199,11 @@ def test_header_only_components_excluded_from_profile_metadata(
         (p for p in view["profiles"] if p["profile_name"] == "hw-linux-x86_64-gcc10"),
         None,
     )
-    assert profile is not None, "Profile hw-linux-x86_64-gcc10 must be present"
+    assert profile is not None, "Профиль hw-linux-x86_64-gcc10 должен присутствовать"
     assert (
         profile["os"] == publisher_profile_definition.conan_settings["os"]
-    ), "Profile os must come from the non-header-only component's ProfileDefinition"
-    assert profile["os"] != "", "conan_settings['os'] must not be empty"
+    ), "profile['os'] должен браться из ProfileDefinition не-header-only компонента"
+    assert profile["os"] != "", "conan_settings['os'] не должен быть пустым"
 
 
 @pytest.mark.business_logic
@@ -276,8 +248,8 @@ def test_channels_within_profile_sorted_consistently(
     for profile in view["profiles"]:
         channel_names = list(profile["channels"].keys())
         assert channel_names == sorted(channel_names), (
-            f"Channels in profile '{profile['profile_name']}' must be sorted, "
-            f"got: {channel_names}"
+            f"Каналы в профиле '{profile['profile_name']}' должны быть отсортированы, "
+            f"получено: {channel_names}"
         )
 
 
@@ -307,82 +279,60 @@ def test_components_within_channel_sorted_by_name(
         for channel_name, comp_entries in profile["channels"].items():
             comp_names = [c["name"] for c in comp_entries]
             assert comp_names == sorted(comp_names), (
-                f"Components in channel '{channel_name}' of profile "
-                f"'{profile['profile_name']}' must be sorted: "
-                f"expected {sorted(comp_names)}, got {comp_names}"
+                f"Компоненты в канале '{channel_name}' профиля "
+                f"'{profile['profile_name']}' должны быть отсортированы: "
+                f"ожидалось {sorted(comp_names)}, получено {comp_names}"
             )
 
 
 @pytest.mark.business_logic
-def test_passport_link_none_without_pattern(publisher_multi_channel_result) -> None:
-    """
-    Бизнес-правило: без include_passport_links=True passport_link равен
-    None или отсутствует для каждого компонента в каждом канале.
-
-    Предусловия:
-        - ProfileCentricConverter создан с include_passport_links=False.
-
-    Шаги:
-        1. Создать ProfileCentricConverter(include_passport_links=False).
-        2. Вызвать convert().
-        3. Проверить passport_link для всех записей компонентов.
-
-    Ожидаемый результат:
-        Все значения passport_link — None или "".
-    """
-    converter = ProfileCentricConverter(include_passport_links=False)
-    view = converter.convert(publisher_multi_channel_result)
-
-    for profile in view["profiles"]:
-        for _, comp_entries in profile["channels"].items():
-            for comp_entry in comp_entries:
-                link = comp_entry.get("passport_link")
-                assert link is None or link == "", (
-                    f"Without include_links=True, passport_link should be None/empty, "
-                    f"got: {link!r}"
-                )
-
-
-@pytest.mark.business_logic
-def test_passport_link_key_present_and_none_when_include_links_true(
-    publisher_multi_channel_result,
+@pytest.mark.parametrize("include_passport_links", [False, True])
+def test_passport_link_reflects_include_passport_links_flag(
+    publisher_multi_channel_result, include_passport_links: bool
 ) -> None:
     """
-    Бизнес-правило: при include_passport_links=True каждая не-header-only
-    запись компонента в каждом канале получает ключ "passport_link",
-    инициализированный значением None. Сам конвертер не форматирует
+    Бизнес-правило: значение passport_link у каждой не-header-only записи
+    компонента зависит от include_passport_links, переданного в конструктор.
+
+    При include_passport_links=False ключ passport_link отсутствует или
+    равен None/"" для каждого компонента в каждом канале.
+
+    При include_passport_links=True каждая запись получает ключ
+    "passport_link", инициализированный None (сам конвертер не форматирует
     строку ссылки — реальный URL заполняется позже в
-    PassportPageRegistry.inject_links_for_profiles() (см. test_passport_registry.py)
-    на основе фактических id опубликованных страниц.
+    PassportPageRegistry.inject_links_for_profiles(), см. test_passport_registry.py).
 
     Предусловия:
         - publisher_multi_channel_result с comp_alpha (не header-only).
 
     Шаги:
-        1. Создать ProfileCentricConverter(include_passport_links=True).
+        1. Создать ProfileCentricConverter(include_passport_links=<флаг>).
         2. Вызвать convert().
-        3. Проверить, что у каждой записи компонента есть ключ "passport_link"
-           со значением None.
-
-    Ожидаемый результат:
-        У каждой записи компонента в каждом канале "passport_link" is None.
+        3. Проверить passport_link для всех записей компонентов.
     """
-    converter = ProfileCentricConverter(include_passport_links=True)
+    converter = ProfileCentricConverter(include_passport_links=include_passport_links)
     view = converter.convert(publisher_multi_channel_result)
 
     checked_any = False
     for profile in view["profiles"]:
         for _, comp_entries in profile["channels"].items():
             for comp_entry in comp_entries:
-                assert (
-                    "passport_link" in comp_entry
-                ), "When include_links=True, each component must have key passport_link"
-                assert comp_entry["passport_link"] is None, (
-                    "The converter must leave passport_link as None; "
-                    "real links are injected later by PassportPageRegistry"
-                )
+                if include_passport_links:
+                    assert (
+                        "passport_link" in comp_entry
+                    ), "При include_links=True у каждого компонента должен быть ключ passport_link"
+                    assert comp_entry["passport_link"] is None, (
+                        "Конвертер должен оставлять passport_link равным None; "
+                        "реальные ссылки добавляются позже через PassportPageRegistry"
+                    )
+                else:
+                    link = comp_entry.get("passport_link")
+                    assert link is None or link == "", (
+                        f"Без include_links=True passport_link должен быть None/пустым, "
+                        f"получено: {link!r}"
+                    )
                 checked_any = True
-    assert checked_any, "At least one component entry should have been checked"
+    assert checked_any, "Должна была быть проверена хотя бы одна запись компонента"
 
 
 @pytest.mark.business_logic

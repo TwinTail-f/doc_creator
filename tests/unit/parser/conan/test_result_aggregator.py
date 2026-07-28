@@ -188,6 +188,24 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
     assert result.release_data[key].dependencies == ["depA", "depB"]
 
 
+def _make_profile_task(release: Release, pb: ProfileBuild, profile_name: str) -> ConanTask:
+    """Возвращает ConanTask (patchelf/0.18.0/tech, cmd=[]) для сценариев с несколькими
+    профилями одного релиза, разделяющих один Release, но с разными ProfileBuild."""
+    return ConanTask(
+        cmd=[],
+        comp_name="patchelf",
+        version="0.18.0",
+        channel="tech",
+        profile_name=profile_name,
+        option_id="1",
+        option_str="",
+        target_platform="2.0",
+        artifactory_base_url="https://art.example.com",
+        release=release,
+        pb=pb,
+    )
+
+
 @pytest.mark.business_logic
 def test_aggregator_two_profiles_same_release() -> None:
     """Две задачи для одного релиза (разные профили) → одна запись release_data, две записи profile_data."""
@@ -200,23 +218,8 @@ def test_aggregator_two_profiles_same_release() -> None:
         profile_builds=[pb1, pb2],
     )
 
-    def _task(pb: ProfileBuild, profile_name: str) -> ConanTask:
-        return ConanTask(
-            cmd=[],
-            comp_name="patchelf",
-            version="0.18.0",
-            channel="tech",
-            profile_name=profile_name,
-            option_id="1",
-            option_str="",
-            target_platform="2.0",
-            artifactory_base_url="https://art.example.com",
-            release=release,
-            pb=pb,
-        )
-
-    task1 = _task(pb1, "crypto_alpine_gcc_x86_64.jinja")
-    task2 = _task(pb2, "hw-linux-armv7-gcc10_2")
+    task1 = _make_profile_task(release, pb1, "crypto_alpine_gcc_x86_64.jinja")
+    task2 = _make_profile_task(release, pb2, "hw-linux-armv7-gcc10_2")
 
     enrich = ConanEnrichData(
         base_ref="patchelf/0.18.0.39@platform-2.0/tech",
@@ -264,23 +267,8 @@ def test_aggregator_merges_dependencies_across_profiles_of_same_release() -> Non
         profile_builds=[pb1, pb2],
     )
 
-    def _task(pb: ProfileBuild, profile_name: str) -> ConanTask:
-        return ConanTask(
-            cmd=[],
-            comp_name="patchelf",
-            version="0.18.0",
-            channel="tech",
-            profile_name=profile_name,
-            option_id="1",
-            option_str="",
-            target_platform="2.0",
-            artifactory_base_url="https://art.example.com",
-            release=release,
-            pb=pb,
-        )
-
-    task1 = _task(pb1, "crypto_alpine_gcc_x86_64.jinja")
-    task2 = _task(pb2, "hw-linux-armv7-gcc10_2")
+    task1 = _make_profile_task(release, pb1, "crypto_alpine_gcc_x86_64.jinja")
+    task2 = _make_profile_task(release, pb2, "hw-linux-armv7-gcc10_2")
 
     def _enrich(deps: list[str]) -> ConanEnrichData:
         return ConanEnrichData(
@@ -382,14 +370,22 @@ def test_aggregator_records_version_range_error_message() -> None:
             "BINARY_MISSING",
             id="binary-missing",
         ),
+        # success=True, но данные графа отсутствуют (пустой ответ conan) ->
+        # _extract_binary_status возвращает "" -> SUCCESS
+        pytest.param(
+            ConanRawResult(success=True, data=None),
+            "SUCCESS",
+            id="success-empty-data",
+        ),
     ],
 )
 def test_build_execution_report_maps_raw_result_to_status(
     raw: ConanRawResult | None, expected_status: str
 ) -> None:
-    """build_execution_report сопоставляет сырой результат одному из трёх статусов:
+    """build_execution_report сопоставляет сырой результат одному из четырёх статусов:
     отсутствующий результат -> FAILED, успешный разбор без Missing -> SUCCESS,
-    узел с binary=Missing в графе -> BINARY_MISSING."""
+    узел с binary=Missing в графе -> BINARY_MISSING, успешный разбор с отсутствующими
+    данными графа (data=None) -> SUCCESS (_extract_binary_status возвращает "")."""
     task = _make_task()
     report = ConanResultAggregator().build_execution_report([task], [raw])
 

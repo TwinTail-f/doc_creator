@@ -34,19 +34,12 @@ class _StubStrategy(BasePublishStrategy):
         pytest.param("  <p>text</p>  ", "<p>text</p>", id="strips-leading-trailing-whitespace"),
         pytest.param("two  spaces", "two spaces", id="collapses-multiple-spaces"),
         pytest.param("", "", id="empty-string-returns-empty"),
+        pytest.param("><    <", "><" + " " + "<", id="collapses-whitespace-between-tags"),
     ],
 )
 def test_minify_html_transforms_html(html: str, expected: str) -> None:
     """_minify_html убирает комментарии, схлопывает пробелы и обрезает края результата."""
     assert BasePublishStrategy._minify_html(html) == expected
-
-
-@pytest.mark.business_logic
-def test_minify_html_collapses_whitespace_between_tags() -> None:
-    """Пробелы между тегами схлопываются полностью, без пробела в результате."""
-    result = BasePublishStrategy._minify_html("><    <")
-    assert "  " not in result
-    assert ">  <" not in result
 
 
 @pytest.mark.business_logic

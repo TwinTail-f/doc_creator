@@ -27,23 +27,18 @@ _COMP_RESPONSE = PageResult(id=COMP_PAGE_ID, version=1, status="created", messag
 _VERSION_RESPONSE = PageResult(id=VERSION_PAGE_ID, version=1, status="created", message="")
 
 
-def _make_manager(client: FakeConfluenceClient) -> PageHierarchyManager:
+@pytest.fixture
+def hierarchy_manager(publisher_confluence_client: FakeConfluenceClient) -> PageHierarchyManager:
     """
-    Конструирует PageHierarchyManager с предварительно настроенным FakeConfluenceClient.
+    PageHierarchyManager с предварительно настроенным FakeConfluenceClient.
 
     Ни одна из страниц ещё не существует (resolve_existing_page_id по умолчанию
     возвращает None, так как ни одна страница не зарегистрирована), поэтому
     ensure_hierarchy_exists() обязан вызвать create_page() и для страницы
     компонента, и для страницы версии.
-
-    Args:
-        client: FakeConfluenceClient, которому будут заданы create_responses.
-
-    Returns:
-        PageHierarchyManager, обёрнутый вокруг переданного клиента.
     """
-    client.create_responses = [_COMP_RESPONSE, _VERSION_RESPONSE]
-    return PageHierarchyManager(client)
+    publisher_confluence_client.create_responses = [_COMP_RESPONSE, _VERSION_RESPONSE]
+    return PageHierarchyManager(publisher_confluence_client)
 
 
 def _create_calls(client: FakeConfluenceClient) -> list[dict]:
@@ -60,81 +55,35 @@ def _create_calls(client: FakeConfluenceClient) -> list[dict]:
 
 
 @pytest.mark.business_logic
-def test_ensure_hierarchy_calls_create_page_twice(
+def test_ensure_hierarchy_creates_component_then_version_page(
+    hierarchy_manager: PageHierarchyManager,
     publisher_confluence_client: FakeConfluenceClient,
 ) -> None:
-    """ensure_hierarchy_exists выполняет ровно два вызова create_page, если ни одна страница ещё не существует."""
-    manager = _make_manager(publisher_confluence_client)
+    """
+    ensure_hierarchy_exists() создаёт ровно две страницы (компонент, затем версию).
 
-    manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
-
-    assert len(_create_calls(publisher_confluence_client)) == 2
-
-
-@pytest.mark.business_logic
-def test_ensure_hierarchy_first_call_uses_root_as_parent(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """Первый вызов create_page должен использовать ROOT_PAGE_ID как parent_id и COMP_NAME как title."""
-    manager = _make_manager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
-
-    first_call = _create_calls(publisher_confluence_client)[0]
-    assert first_call["parent_id"] == ROOT_PAGE_ID
-    assert first_call["title"] == COMP_NAME
-
-
-@pytest.mark.business_logic
-def test_ensure_hierarchy_second_call_uses_comp_id_as_parent(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """Второй вызов create_page должен использовать ID, возвращённый первым вызовом, как parent_id."""
-    manager = _make_manager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
-
-    second_call = _create_calls(publisher_confluence_client)[1]
-    assert second_call["parent_id"] == COMP_PAGE_ID
-
-
-@pytest.mark.business_logic
-def test_ensure_hierarchy_second_call_title_is_comp_version(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """Заголовок второго вызова create_page должен быть '<comp_name> <release_version>'."""
-    manager = _make_manager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
-
-    second_call = _create_calls(publisher_confluence_client)[1]
-    assert second_call["title"] == f"{COMP_NAME} {RELEASE_VERSION}"
-
-
-@pytest.mark.business_logic
-def test_ensure_hierarchy_returns_version_page_id(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """Возвращаемое значение должно быть ID из второго ответа create_page."""
-    manager = _make_manager(publisher_confluence_client)
-
-    result = manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
-
-    assert result == VERSION_PAGE_ID
-
-
-@pytest.mark.business_logic
-def test_ensure_hierarchy_passes_space_to_both_calls(
-    publisher_confluence_client: FakeConfluenceClient,
-) -> None:
-    """Оба вызова create_page должны получать один и тот же ключ space."""
-    manager = _make_manager(publisher_confluence_client)
-
-    manager.ensure_hierarchy_exists(SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION)
+    Первый вызов create_page использует ROOT_PAGE_ID как parent_id и COMP_NAME
+    как title. Второй вызов использует ID, возвращённый первым вызовом, как
+    parent_id, и заголовок '<comp_name> <release_version>'. Оба вызова
+    получают один и тот же space. Возвращаемое значение — ID из второго ответа.
+    """
+    result = hierarchy_manager.ensure_hierarchy_exists(
+        SPACE, ROOT_PAGE_ID, COMP_NAME, RELEASE_VERSION
+    )
 
     calls = _create_calls(publisher_confluence_client)
-    assert calls[0]["space"] == SPACE
-    assert calls[1]["space"] == SPACE
+    assert len(calls) == 2
+
+    first_call, second_call = calls
+    assert first_call["parent_id"] == ROOT_PAGE_ID
+    assert first_call["title"] == COMP_NAME
+    assert first_call["space"] == SPACE
+
+    assert second_call["parent_id"] == COMP_PAGE_ID
+    assert second_call["title"] == f"{COMP_NAME} {RELEASE_VERSION}"
+    assert second_call["space"] == SPACE
+
+    assert result == VERSION_PAGE_ID
 
 
 @pytest.mark.business_logic
@@ -156,16 +105,25 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
     ), "create_page не должен вызываться, если страница уже разрешена через resolve_existing_page_id"
 
 
-@pytest.mark.contract
-def test_ensure_hierarchy_propagates_confluence_error_from_create(
+@pytest.mark.infrastructure  # было contract — это делегирование ошибки, не совместимость протокола
+@pytest.mark.parametrize(
+    ("failing_method", "error_message"),
+    [
+        pytest.param("resolve_existing_page_id", "Не удалось найти страницу", id="resolve_existing_page_id"),
+        pytest.param("create_page", "Не удалось создать страницу", id="create_page"),
+    ],
+)
+def test_ensure_hierarchy_propagates_confluence_error(
     publisher_confluence_client: FakeConfluenceClient,
+    failing_method: str,
+    error_message: str,
 ) -> None:
-    """ConfluenceError из create_page должна распространяться вызывающему коду без подавления."""
+    """ConfluenceError от клиента распространяется вызывающему коду без подавления."""
 
-    def _raise_confluence_error(*args: object, **kwargs: object) -> PageResult:
-        raise ConfluenceError("Не удалось создать страницу")
+    def _raise_confluence_error(*args: object, **kwargs: object) -> object:
+        raise ConfluenceError(error_message)
 
-    publisher_confluence_client.create_page = _raise_confluence_error
+    setattr(publisher_confluence_client, failing_method, _raise_confluence_error)
     manager = PageHierarchyManager(publisher_confluence_client)
 
     with pytest.raises(ConfluenceError):
