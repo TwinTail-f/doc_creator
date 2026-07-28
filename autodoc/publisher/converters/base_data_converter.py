@@ -38,7 +38,7 @@ class BaseDataConverter(ABC):
     """
     Абстрактный базовый класс конвертеров данных.
 
-    Преобразует ``ParsedResult`` в view-model, пригодный для рендеринга
+    Преобразует ``ParsedResult`` во view-model, пригодный для рендеринга
     конкретного шаблона. Следует паттерну Стратегия.
     """
 
@@ -199,7 +199,7 @@ class BaseDataConverter(ABC):
     @abstractmethod
     def convert(self, data: ParsedResult) -> dict[str, Any]:
         """
-        Преобразует данные в view-model для шаблона.
+        Преобразует данные во view-model для шаблона.
 
         Args:
             data: Полный набор данных парсера.

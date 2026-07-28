@@ -22,7 +22,7 @@ class BaseReleaseConverter(BaseDataConverter):
         """
         Args:
             include_passport_links: Передавать ли флаг включения ссылок на паспорта
-                                    в view-model шаблона.
+                                    во view-model шаблона.
         """
         self._include_passport_links: bool = include_passport_links
 

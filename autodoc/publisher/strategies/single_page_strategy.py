@@ -48,8 +48,8 @@ class SinglePagePublishStrategy(BasePublishStrategy):
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
             page_title: Заголовок публикуемой страницы Confluence.
-            converter: Конвертер данных парсера в view-model для шаблона.
-            link_injector: Callable, вставляющий ссылки на паспорта в view-model.
+            converter: Конвертер данных парсера во view-model для шаблона.
+            link_injector: Callable, вставляющий ссылки на паспорта во view-model.
             template_name: Имя Jinja2-шаблона.
             parent_id: ID родительской страницы. ``None`` означает отсутствие родителя.
             include_passport_links: Вставлять ли ссылки на паспорта компонентов.
@@ -84,7 +84,7 @@ class SinglePagePublishStrategy(BasePublishStrategy):
 
     def _build_view_model(self) -> dict[str, Any]:
         """
-        Трансформирует данные парсера в view-model для шаблона.
+        Трансформирует данные парсера во view-model для шаблона.
 
         Returns:
             Словарь view-model, готовый для рендеринга шаблона.
@@ -95,7 +95,7 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         self, view_model: dict[str, Any], passport_pages: dict[str, Any]
     ) -> None:
         """
-        Вставляет ссылки на паспорта в view-model на месте.
+        Вставляет ссылки на паспорта во view-model на месте.
 
         Args:
             view_model: Словарь view-model для мутации.
