@@ -437,38 +437,56 @@ def test_resolve_profile_parent_reads_its_own_config_fields(
     mock_client.find_page.assert_called_once_with("Profile Parent Page", space=SPACE)
 
 
-# resolve_single_page_parent: диспетчеризация по strategy_type
+# resolve_single_page_parent: диспетчеризация через registry.STRATEGIES + CONFIG_FIELD_PREFIX
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
-    "strategy_type, patched_method_name, return_value",
+    "strategy_type, config_field_prefix, return_value",
     [
-        pytest.param("release", "resolve_release_parent", "400002", id="release"),
-        pytest.param(
-            "profile_centric", "resolve_profile_parent", "400003", id="profile_centric"
-        ),
-        pytest.param(
-            "some_other_strategy",
-            "resolve_release_parent",
-            "400002",
-            id="unknown-falls-back-to-release",
-        ),
+        pytest.param("release", "release", "400002", id="release"),
+        pytest.param("profile_centric", "profile", "400003", id="profile_centric"),
     ],
 )
-def test_resolve_single_page_parent_delegates_by_strategy_type(
+def test_resolve_single_page_parent_dispatches_by_registered_strategy_class(
     mocker: Any,
     minimal_confluence_config: dict,
     strategy_type: str,
-    patched_method_name: str,
+    config_field_prefix: str,
     return_value: str,
 ) -> None:
-    """resolve_single_page_parent() делегирует resolve_release_parent/resolve_profile_parent по strategy_type, с release как значением по умолчанию для неизвестных типов."""
+    """resolve_single_page_parent() читает CONFIG_FIELD_PREFIX с класса стратегии
+    из registry.STRATEGIES[strategy_type] и резолвит родителя по этому префиксу"""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-    mock_method = mocker.patch.object(resolver, patched_method_name, return_value=return_value)
+    mock_by_prefix = mocker.patch.object(
+        resolver, "_resolve_single_page_parent_by_prefix", return_value=return_value
+    )
 
     result = resolver.resolve_single_page_parent(strategy_type, "Some Name", None)
 
     assert result == return_value
-    mock_method.assert_called_once_with("Some Name", None)
+    mock_by_prefix.assert_called_once_with(config_field_prefix, "Some Name", None)
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "strategy_type",
+    [
+        # опечатка/несуществующий тип — не зарегистрирован в registry.STRATEGIES вообще
+        pytest.param("some_other_strategy", id="unregistered-in-registry"),
+        # зарегистрирован, но не наследник SinglePagePublishStrategy — нет родителя по префиксу
+        pytest.param("passports", id="registered-but-not-single-page"),
+    ],
+)
+def test_resolve_single_page_parent_rejects_non_single_page_strategy_type(
+    mocker: Any,
+    minimal_confluence_config: dict,
+    strategy_type: str,
+) -> None:
+    """Неизвестный или не-single-page strategy_type
+    останавливает резолвинг явной ошибкой."""
+    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
+
+    with pytest.raises(ConfigError):
+        resolver.resolve_single_page_parent(strategy_type, "Some Name", None)
 
 
 # resolve_root_pages: паспорта + релиз

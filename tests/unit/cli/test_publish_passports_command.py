@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import PASSPORT_TEMPLATE
-from tests.unit.cli.conftest import make_confluence_config, make_parsed_result, make_publish_report
+from tests.unit.cli.utils import make_confluence_config, make_parsed_result, make_publish_report
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1

@@ -11,7 +11,7 @@ from autodoc.exceptions import NetworkError, ParsingError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-from tests.unit.cli.conftest import (
+from tests.unit.cli.utils import (
     VALID_PARSER_CONFIG,
     make_parsed_result,
     write_parser_config,

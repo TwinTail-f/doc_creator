@@ -18,6 +18,7 @@ class ReleasePageStrategy(SinglePagePublishStrategy):
     """
 
     DEFAULT_TEMPLATE: str = "release_doc.jinja2"
+    CONFIG_FIELD_PREFIX: str = "release"
 
     def __init__(
         self,

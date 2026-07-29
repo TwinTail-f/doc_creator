@@ -2,6 +2,8 @@
 Специфичные для паблишера фикстуры и заглушки.
 """
 
+import random
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -13,6 +15,13 @@ from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
 from autodoc.models.release import Release
 from autodoc.publisher.clients.models.confluence_page import ConfluencePage
 from autodoc.publisher.clients.models.page_result import PageResult
+
+
+def _random_generated_at() -> str:
+    """Возвращает случайную дату/время в ISO 8601 (без привязки к конкретному дню)."""
+    start = datetime(2020, 1, 1)
+    random_offset = timedelta(seconds=random.randint(0, int(timedelta(days=365 * 5).total_seconds())))
+    return (start + random_offset).isoformat()
 
 
 class FakeConfluenceClient:
@@ -151,15 +160,7 @@ def publisher_confluence_client() -> FakeConfluenceClient:
 
 @pytest.fixture
 def publisher_profile_build() -> ProfileBuild:
-    """ProfileBuild для профиля 'hw-linux-x86_64-gcc10' с одним вариантом.
-
-    ``ConanVariant`` собирается инлайн, а не через отдельную фикстуру
-    ``publisher_conan_variant``: та фикстура была публичным контрактом только
-    для ``converters/test_base_data_converter.py`` и переехала в
-    ``converters/conftest.py`` как независимая локальная копия (см. план
-    рефакторинга, п. 1.4) — эта цепочка (``publisher_profile_build`` →
-    ``publisher_release`` → ``publisher_component``) от неё больше не зависит.
-    """
+    """ProfileBuild для профиля 'hw-linux-x86_64-gcc10' с одним вариантом."""
     variant = ConanVariant(
         package_id="abc123",
         build_url="https://ci.example.com/build/42",
@@ -229,7 +230,7 @@ def publisher_parsed_result(
 ) -> ParsedResult:
     """Минимальный ParsedResult с одним компонентом и одним профилем."""
     return ParsedResult(
-        generated_at="2024-01-15T12:00:00",
+        generated_at=_random_generated_at(),
         platform_version="2.0",
         profile_definitions=[publisher_profile_definition],
         components=[publisher_component],
@@ -318,7 +319,7 @@ def publisher_multi_channel_result(
         ],
     )
     return ParsedResult(
-        generated_at="2024-01-15T12:00:00",
+        generated_at=_random_generated_at(),
         platform_version="2.0",
         profile_definitions=[publisher_profile_definition],
         components=[comp_alpha, comp_beta],
@@ -397,7 +398,7 @@ def publisher_multi_component_result(
         ],
     )
     return ParsedResult(
-        generated_at="2024-01-15T12:00:00",
+        generated_at=_random_generated_at(),
         platform_version="2.0",
         profile_definitions=[publisher_profile_definition],
         components=[comp1, comp2],

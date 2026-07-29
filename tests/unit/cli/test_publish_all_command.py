@@ -14,7 +14,7 @@ from autodoc.cli.constants import (
     RELEASE_TEMPLATE,
 )
 from autodoc.exceptions import ConfigError
-from tests.unit.cli.conftest import (
+from tests.unit.cli.utils import (
     make_confluence_config,
     make_parsed_result,
     make_publish_report,

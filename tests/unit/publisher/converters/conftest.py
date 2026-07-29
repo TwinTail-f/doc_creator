@@ -1,13 +1,5 @@
 """
 Фикстуры и константы, используемые только тестами tests/unit/publisher/converters/*.
-
-Перенесены сюда из tests/unit/publisher/conftest.py (см. план рефакторинга,
-п. 1.2): publisher_header_only_component и publisher_two_profile_parsed_result
-использовались только в converters/*; CI_BUILD_URL и COMPONENT_NAME —
-аналогично. publisher_conan_variant — отдельный случай (см. п. 1.4 плана):
-это независимая локальная копия только для test_base_data_converter.py,
-не связанная с цепочкой publisher_profile_build → publisher_release →
-publisher_component из общего publisher/conftest.py.
 """
 
 import pytest
@@ -20,17 +12,6 @@ from autodoc.models.release import Release
 
 CI_BUILD_URL: str = "https://ci.example.com/build/42"
 COMPONENT_NAME: str = "openssl"
-
-
-@pytest.fixture
-def publisher_conan_variant() -> ConanVariant:
-    """Один ConanVariant с заполненными полями (только для test_base_data_converter.py)."""
-    return ConanVariant(
-        package_id="abc123",
-        build_url=CI_BUILD_URL,
-        build_date="2024-01-15",
-        options_ref="opt-set-1",
-    )
 
 
 @pytest.fixture

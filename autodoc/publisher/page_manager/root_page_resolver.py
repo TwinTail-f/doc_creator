@@ -4,6 +4,8 @@ from autodoc.common.logger import logger
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError, ConfluenceError
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
+from autodoc.publisher.strategies import registry
+from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
 class RootPageResolver:
@@ -160,6 +162,37 @@ class RootPageResolver:
             "passports_root_parent",
         )
 
+    def _resolve_single_page_parent_by_prefix(
+        self,
+        config_field_prefix: str,
+        name: str | None,
+        page_id: str | None,
+    ) -> str:
+        """
+        Резолвит ID родительской страницы по префиксу полей конфига стратегии.
+
+        Общая реализация для всех наследников ``SinglePagePublishStrategy``:
+        читает ``{config_field_prefix}_docs_root_parent_name``/``_id`` из
+        конфигурации Confluence.
+
+        Args:
+            config_field_prefix: Префикс полей конфига (``SinglePagePublishStrategy.CONFIG_FIELD_PREFIX``
+                                 конкретной стратегии, например ``'release'`` или ``'profile'``).
+            name: Название родительской страницы, введённое пользователем.
+            page_id: ID родительской страницы, введённый пользователем.
+
+        Returns:
+            ID родительской страницы.
+        """
+        field_label = f"{config_field_prefix}_docs_root_parent"
+        return self._resolve_root_parent(
+            name,
+            page_id,
+            getattr(self._config, f"{field_label}_name"),
+            getattr(self._config, f"{field_label}_id"),
+            field_label,
+        )
+
     def resolve_release_parent(
         self,
         name: str | None,
@@ -175,13 +208,7 @@ class RootPageResolver:
         Returns:
             ID родительской страницы.
         """
-        return self._resolve_root_parent(
-            name,
-            page_id,
-            self._config.release_docs_root_parent_name,
-            self._config.release_docs_root_parent_id,
-            "release_docs_root_parent",
-        )
+        return self._resolve_single_page_parent_by_prefix("release", name, page_id)
 
     def resolve_profile_parent(
         self,
@@ -198,13 +225,7 @@ class RootPageResolver:
         Returns:
             ID родительской страницы.
         """
-        return self._resolve_root_parent(
-            name,
-            page_id,
-            self._config.profile_docs_root_parent_name,
-            self._config.profile_docs_root_parent_id,
-            "profile_docs_root_parent",
-        )
+        return self._resolve_single_page_parent_by_prefix("profile", name, page_id)
 
     def resolve_single_page_parent(
         self,
@@ -215,19 +236,44 @@ class RootPageResolver:
         """
         Резолвит родительскую страницу для публикации одной страницы.
 
-        Выбирает конфигурационный запасной вариант в зависимости от типа стратегии.
+        Тип стратегии сверяется с ``registry.STRATEGIES``: сначала проверяется,
+        что стратегия вообще зарегистрирована, затем — что она является
+        наследником ``SinglePagePublishStrategy`` (т.е. в принципе поддерживает
+        понятие "родительская страница по префиксу конфига"). Сам префикс
+        полей конфига берётся с класса стратегии (``CONFIG_FIELD_PREFIX``),
+        а не через отдельный ``if/else`` по конкретным именам типов — так
+        резолвинг остаётся корректным для любого количества наследников
+        ``SinglePagePublishStrategy``, без асимметрии "один из типов — особый
+        случай, всё остальное — единственный, кто пришёл на ум".
 
         Args:
-            strategy_type: Тип стратегии (``'release'`` или ``'profile_centric'``).
+            strategy_type: Тип стратегии, зарегистрированный в ``registry.STRATEGIES``
+                           и являющийся наследником ``SinglePagePublishStrategy``
+                           (например ``'release'`` или ``'profile_centric'``).
             name: Название родительской страницы, введённое пользователем.
             page_id: ID родительской страницы, введённый пользователем.
 
         Returns:
             ID родительской страницы.
+
+        Raises:
+            ConfigError: Если ``strategy_type`` не зарегистрирован в
+                ``registry.STRATEGIES``, либо зарегистрирован, но не является
+                наследником ``SinglePagePublishStrategy`` (например
+                ``'passports'``) — такая стратегия не имеет родительской
+                страницы, резолвируемой по этой схеме.
         """
-        if strategy_type == "profile_centric":
-            return self.resolve_profile_parent(name, page_id)
-        return self.resolve_release_parent(name, page_id)
+        strategy_cls = registry.STRATEGIES.get(strategy_type)
+        if strategy_cls is None or not issubclass(strategy_cls, SinglePagePublishStrategy):
+            raise ConfigError(
+                f"Стратегия {strategy_type!r} не поддерживает резолвинг родительской "
+                "страницы одностраничной публикации (не зарегистрирована в "
+                "registry.STRATEGIES либо не является наследником "
+                "SinglePagePublishStrategy)"
+            )
+        return self._resolve_single_page_parent_by_prefix(
+            strategy_cls.CONFIG_FIELD_PREFIX, name, page_id
+        )
 
     def resolve_root_pages(
         self,

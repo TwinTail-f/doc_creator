@@ -13,6 +13,9 @@ from autodoc.cli.helpers import (
     make_publisher,
     print_publish_result,
 )
+from autodoc.exceptions import DocGeneratorError
+from autodoc.publisher.strategies import registry
+from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
 def single_page_options(f: Callable) -> Callable:
@@ -83,18 +86,36 @@ def run_single_page_command(
         cli_root_page_id: ID корневой родительской страницы, заданный через CLI.
         cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
         no_passport_links: Если ``True`` — отключает вставку ссылок на паспорта.
+
+    Raises:
+        DocGeneratorError: Если ``strategy_type`` не зарегистрирован в
+            ``registry.STRATEGIES``, либо зарегистрирован, но не является
+            наследником ``SinglePagePublishStrategy`` (например
+            ``'passports'``).
     """
     cli_ctx: CliCtx = ctx.obj
 
     with cli_error_boundary(panel_header):
+        strategy_cls = registry.STRATEGIES.get(strategy_type)
+        if strategy_cls is None or not issubclass(strategy_cls, SinglePagePublishStrategy):
+            single_page_strategies = sorted(
+                key
+                for key, cls in registry.STRATEGIES.items()
+                if issubclass(cls, SinglePagePublishStrategy)
+            )
+            raise DocGeneratorError(
+                f"Внутренняя ошибка: неизвестный тип стратегии публикации {strategy_type!r}. "
+                f"Поддерживаются: {single_page_strategies}. "
+                "Публикация остановлена, чтобы не создать страницу не в том режиме. "
+                "Сообщите об этом разработчику."
+            )
+
         parsed_data = load_parsed_data(cli_ctx.base_dir)
         console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
 
         publisher, conf_config = make_publisher(cli_ctx)
-        if strategy_type == "release":
-            final_title = page_title or conf_config.release_docs_page_title or default_title
-        else:
-            final_title = page_title or conf_config.profile_docs_page_title or default_title
+        title_field = f"{strategy_cls.CONFIG_FIELD_PREFIX}_docs_page_title"
+        final_title = page_title or getattr(conf_config, title_field) or default_title
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish_single_page(

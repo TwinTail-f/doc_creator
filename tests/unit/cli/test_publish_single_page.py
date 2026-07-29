@@ -19,7 +19,7 @@ from autodoc.cli.constants import (
     PROFILE_TEMPLATE,
     RELEASE_TEMPLATE,
 )
-from tests.unit.cli.conftest import make_confluence_config, make_parsed_result, make_publish_report
+from tests.unit.cli.utils import make_confluence_config, make_parsed_result, make_publish_report
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
@@ -235,3 +235,58 @@ def test_publish_profile_title_source(
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_single_page.call_args.kwargs
     assert kwargs["page_title"] == expected_title
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "bad_strategy_type",
+    [
+        # опечатка/несуществующий тип — не зарегистрирован в registry.STRATEGIES вообще
+        pytest.param("not_a_real_strategy", id="unregistered-in-registry"),
+        # зарегистрирован в registry.STRATEGIES, но не поддерживает single-page (нет заголовка)
+        pytest.param("passports", id="registered-but-not-single-page"),
+    ],
+)
+def test_run_single_page_command_rejects_invalid_strategy_type(
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker,
+    capsys: pytest.CaptureFixture,
+    bad_strategy_type: str,
+) -> None:
+    """Некорректный strategy_type останавливает публикацию с понятной ошибкой,
+    вместо того чтобы молча выбрать один из известных режимов через else-фоллбек
+    (это баг в коде, вызывающем run_single_page_command, а не ошибка пользователя).
+
+    Покрывает оба случая валидации: strategy_type вообще не зарегистрирован в
+    ``autodoc.publisher.strategies.registry.STRATEGIES``, и strategy_type
+    зарегистрирован, но не поддерживает одностраничную публикацию (``passports``).
+    """
+    import click
+
+    from autodoc.cli.commands.publish.single_page import run_single_page_command
+    from autodoc.cli.context import CliCtx
+
+    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    cli_ctx = CliCtx(base_dir=tmp_path, configs_dir=configs_dir, verbose=False)
+    ctx = click.Context(click.Command("test"))
+    ctx.obj = cli_ctx
+
+    with pytest.raises(SystemExit) as exc_info:
+        run_single_page_command(
+            ctx,
+            strategy_type=bad_strategy_type,
+            template_name="irrelevant.jinja2",
+            default_title="Default",
+            panel_header="Test Panel",
+            page_title=None,
+            cli_root_page_id=None,
+            cli_root_page_name=None,
+            no_passport_links=False,
+        )
+
+    assert exc_info.value.code == _EXIT_FAILURE
+    output = capsys.readouterr().out
+    assert bad_strategy_type in output
+    # Публикация не должна была даже начаться.
+    mock_publisher.publish_single_page.assert_not_called()

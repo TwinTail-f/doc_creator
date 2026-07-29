@@ -12,7 +12,7 @@ import yaml
 from click.testing import CliRunner
 
 from autodoc.cli.app import cli
-from tests.unit.cli.conftest import VALID_PARSER_CONFIG
+from tests.unit.cli.utils import VALID_PARSER_CONFIG
 
 _EXIT_SUCCESS: int = 0
 

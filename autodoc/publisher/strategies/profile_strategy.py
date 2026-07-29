@@ -16,6 +16,7 @@ class ProfileCentricStrategy(SinglePagePublishStrategy):
     """
 
     DEFAULT_TEMPLATE: str = "profile_centric.jinja2"
+    CONFIG_FIELD_PREFIX: str = "profile"
 
     def __init__(
         self,

@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from autodoc.common.logger import logger
 from autodoc.models.parsed_result import ParsedResult
@@ -22,6 +22,20 @@ class SinglePagePublishStrategy(BasePublishStrategy):
     Управляет общими атрибутами и шаблонным потоком выполнения
     (inject → publish), который разделяют ReleasePageStrategy
     и ProfileCentricStrategy.
+    """
+
+    CONFIG_FIELD_PREFIX: ClassVar[str]
+    """Префикс полей конфига Confluence для этой стратегии single-page публикации.
+
+    Определяет имена полей ``{CONFIG_FIELD_PREFIX}_docs_page_title`` и
+    ``{CONFIG_FIELD_PREFIX}_docs_root_parent_name``/``_id``, которые CLI
+    (``single_page.py``) и ``RootPageResolver`` читают из конфигурации.
+
+    Обязателен для каждого конкретного наследника (``ReleasePageStrategy``,
+    ``ProfileCentricStrategy`` и любого будущего single-page наследника) —
+    без него код, читающий ``strategy_cls.CONFIG_FIELD_PREFIX``, сразу
+    упадёт с ``AttributeError`` при регистрации новой стратегии без
+    префикса.
     """
 
     def __init__(

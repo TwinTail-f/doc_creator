@@ -14,7 +14,7 @@ from autodoc.cli.helpers import (
 )
 from autodoc.exceptions import ConfigError, DocGeneratorError, PublishError, ValidationError
 from autodoc.publisher.publisher import DocumentPublisher
-from tests.unit.cli.conftest import (
+from tests.unit.cli.utils import (
     make_confluence_config,
     make_parsed_result,
     make_publish_report,
