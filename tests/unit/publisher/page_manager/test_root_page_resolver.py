@@ -4,6 +4,7 @@
 """
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -15,16 +16,43 @@ from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 
 SPACE: str = "TEST"
 
-# Метод резолвера + поля конфигурации, специфичные для passports/release/profile.
-_PASSPORTS_METHOD: str = "resolve_passports_root"
-_RELEASE_METHOD: str = "resolve_release_parent"
-_PROFILE_METHOD: str = "resolve_profile_parent"
-_PASSPORTS_CONFIG_NAME_FIELD: str = "passports_root_parent_name"
-_PASSPORTS_CONFIG_ID_FIELD: str = "passports_root_parent_id"
-_RELEASE_CONFIG_NAME_FIELD: str = "release_docs_root_parent_name"
-_RELEASE_CONFIG_ID_FIELD: str = "release_docs_root_parent_id"
-_PROFILE_CONFIG_NAME_FIELD: str = "profile_docs_root_parent_name"
-_PROFILE_CONFIG_ID_FIELD: str = "profile_docs_root_parent_id"
+
+def _call_passports(resolver: RootPageResolver, name: str | None, page_id: str | None) -> str:
+    return resolver.resolve_passports_root(name, page_id)
+
+
+def _call_release(resolver: RootPageResolver, name: str | None, page_id: str | None) -> str:
+    return resolver.resolve_single_page_parent("release", name, page_id)
+
+
+def _call_profile(resolver: RootPageResolver, name: str | None, page_id: str | None) -> str:
+    return resolver.resolve_single_page_parent("profile_centric", name, page_id)
+
+
+# section: имя секции в strategies (совпадает с "profile" для читаемости id теста,
+# хотя сама секция в конфиге называется profile_centric — см. _SECTION_CONFIG_KEY)
+_CALLERS: dict[str, Callable[[RootPageResolver, str | None, str | None], str]] = {
+    "passports": _call_passports,
+    "release": _call_release,
+    "profile": _call_profile,
+}
+_SECTION_CONFIG_KEY: dict[str, str] = {
+    "passports": "passports",
+    "release": "release",
+    "profile": "profile_centric",
+}
+
+
+def _config_overrides(section: str, *, name: str | None = None, id_value: str | None = None) -> dict:
+    """Строит overrides для _make_resolver(): {"strategies": {<config_key>: {...}}}.
+    Пропускает поля, равные None, чтобы не перезаписывать root_parent_id/name пустым
+    значением там, где вызывающий тест их не задавал."""
+    fields = {}
+    if name is not None:
+        fields["root_parent_name"] = name
+    if id_value is not None:
+        fields["root_parent_id"] = id_value
+    return {"strategies": {_SECTION_CONFIG_KEY[section]: fields}} if fields else {}
 
 
 def _make_mock_client(
@@ -137,12 +165,8 @@ def test_nothing_set_anywhere_raises_config_error_with_field_label(
 
 
 @pytest.mark.parametrize(
-    "method_name,config_name_field,config_id_field",
-    [
-        (_PASSPORTS_METHOD, _PASSPORTS_CONFIG_NAME_FIELD, _PASSPORTS_CONFIG_ID_FIELD),
-        (_RELEASE_METHOD, _RELEASE_CONFIG_NAME_FIELD, _RELEASE_CONFIG_ID_FIELD),
-        (_PROFILE_METHOD, _PROFILE_CONFIG_NAME_FIELD, _PROFILE_CONFIG_ID_FIELD),
-    ],
+    "section",
+    ["passports", "release", "profile"],
     ids=["passports", "release", "profile"],
 )
 class TestResolveRequiredParent:
@@ -153,19 +177,17 @@ class TestResolveRequiredParent:
         self,
         mocker: Any,
         minimal_confluence_config: dict,
-        method_name: str,
-        config_name_field: str,
-        config_id_field: str,
+        section: str,
     ) -> None:
         """CLI-имя побеждает, даже если в конфиге задан ID."""
         resolver, _ = _make_resolver(
             mocker,
             minimal_confluence_config,
             known_pages={"CLI Parent": "200001"},
-            **{config_id_field: "200002"},
+            **_config_overrides(section, id_value="200002"),
         )
 
-        result = getattr(resolver, method_name)("CLI Parent", None)
+        result = _CALLERS[section](resolver, "CLI Parent", None)
 
         assert result == "200001"
 
@@ -174,9 +196,7 @@ class TestResolveRequiredParent:
         self,
         mocker: Any,
         minimal_confluence_config: dict,
-        method_name: str,
-        config_name_field: str,
-        config_id_field: str,
+        section: str,
     ) -> None:
         """CLI-имя не резолвится — отката на config id нет (источник «всё или ничего»)."""
         resolver, mock_client = _make_resolver(
@@ -184,11 +204,11 @@ class TestResolveRequiredParent:
             minimal_confluence_config,
             known_pages={},
             known_ids={"200003"},
-            **{config_id_field: "200003"},
+            **_config_overrides(section, id_value="200003"),
         )
 
         with pytest.raises(ConfigError):
-            getattr(resolver, method_name)("Nonexistent Parent", None)
+            _CALLERS[section](resolver, "Nonexistent Parent", None)
 
         mock_client.get_page.assert_not_called()
 
@@ -198,20 +218,18 @@ class TestResolveRequiredParent:
         mocker: Any,
         minimal_confluence_config: dict,
         caplog: pytest.LogCaptureFixture,
-        method_name: str,
-        config_name_field: str,
-        config_id_field: str,
+        section: str,
     ) -> None:
         """CLI-значение задано — конфликт name/id в конфиге не проверяется и не логируется."""
         resolver, mock_client = _make_resolver(
             mocker,
             minimal_confluence_config,
             known_pages={"CLI Parent": "200001", "Config Parent": "200004"},
-            **{config_name_field: "Config Parent", config_id_field: "200005"},
+            **_config_overrides(section, name="Config Parent", id_value="200005"),
         )
 
         with caplog.at_level(logging.WARNING):
-            result = getattr(resolver, method_name)("CLI Parent", None)
+            result = _CALLERS[section](resolver, "CLI Parent", None)
 
         assert result == "200001"
         mock_client.find_page.assert_called_once_with("CLI Parent", space=SPACE)
@@ -224,8 +242,7 @@ def _build_resolver_for_source(
     source: str,
     name: str | None,
     id_value: str | None,
-    config_name_field: str,
-    config_id_field: str,
+    section: str,
     known_pages: dict[str, str],
     known_ids: set[str] | None,
 ) -> tuple[RootPageResolver, Any, str | None, str | None]:
@@ -240,17 +257,12 @@ def _build_resolver_for_source(
         )
         return resolver, mock_client, name, id_value
 
-    overrides: dict[str, str] = {}
-    if name is not None:
-        overrides[config_name_field] = name
-    if id_value is not None:
-        overrides[config_id_field] = id_value
     resolver, mock_client = _make_resolver(
         mocker,
         minimal_confluence_config,
         known_pages=known_pages,
         known_ids=known_ids,
-        **overrides,
+        **_config_overrides(section, name=name, id_value=id_value),
     )
     return resolver, mock_client, None, None
 
@@ -352,17 +364,13 @@ _NAME_ID_PRIORITY_CASES = [
 
 
 @pytest.mark.parametrize(
-    "method_name,config_name_field,config_id_field",
-    [
-        (_PASSPORTS_METHOD, _PASSPORTS_CONFIG_NAME_FIELD, _PASSPORTS_CONFIG_ID_FIELD),
-        (_RELEASE_METHOD, _RELEASE_CONFIG_NAME_FIELD, _RELEASE_CONFIG_ID_FIELD),
-        (_PROFILE_METHOD, _PROFILE_CONFIG_NAME_FIELD, _PROFILE_CONFIG_ID_FIELD),
-    ],
+    "section",
+    ["passports", "release", "profile"],
     ids=["passports", "release", "profile"],
 )
 @pytest.mark.parametrize("source", ["CLI", "Config"])
 class TestNameIdPriorityMatrix:
-    """Матрица _NAME_ID_PRIORITY_CASES x 2 источника x 3 поля = 54 прогона.
+    """Матрица _NAME_ID_PRIORITY_CASES x 2 источника x 3 секции = 54 прогона.
     Кросс-source кейсы — в TestResolveRequiredParent."""
 
     @pytest.mark.business_logic
@@ -375,9 +383,7 @@ class TestNameIdPriorityMatrix:
         mocker: Any,
         minimal_confluence_config: dict,
         caplog: pytest.LogCaptureFixture,
-        method_name: str,
-        config_name_field: str,
-        config_id_field: str,
+        section: str,
         source: str,
         name: str | None,
         id_value: str | None,
@@ -393,19 +399,18 @@ class TestNameIdPriorityMatrix:
             source,
             name,
             id_value,
-            config_name_field,
-            config_id_field,
+            section,
             known_pages,
             known_ids,
         )
 
         if expects_error:
             with pytest.raises(ConfigError):
-                getattr(resolver, method_name)(call_name, call_id)
+                _CALLERS[section](resolver, call_name, call_id)
             return
 
         with caplog.at_level(logging.WARNING):
-            result = getattr(resolver, method_name)(call_name, call_id)
+            result = _CALLERS[section](resolver, call_name, call_id)
 
         assert result == expected_result
         if name is None:
@@ -419,60 +424,35 @@ class TestNameIdPriorityMatrix:
 
 
 @pytest.mark.business_logic
-def test_resolve_profile_parent_reads_its_own_config_fields(
+def test_resolve_single_page_parent_profile_centric_reads_its_own_config_section(
     mocker: Any, minimal_confluence_config: dict
 ) -> None:
-    """Читает profile_docs_root_parent_*, а не release_docs_root_parent_*."""
+    """resolve_single_page_parent('profile_centric', ...) читает
+    strategies.profile_centric, а не strategies.release."""
     resolver, mock_client = _make_resolver(
         mocker,
         minimal_confluence_config,
         known_pages={"Profile Parent Page": "400001"},
-        profile_docs_root_parent_name="Profile Parent Page",
-        release_docs_root_parent_name="Release Parent Page",
+        strategies={
+            "profile_centric": {"root_parent_name": "Profile Parent Page"},
+            "release": {"root_parent_name": "Release Parent Page"},
+        },
     )
 
-    result = resolver.resolve_profile_parent(None, None)
+    result = resolver.resolve_single_page_parent("profile_centric", None, None)
 
     assert result == "400001"
     mock_client.find_page.assert_called_once_with("Profile Parent Page", space=SPACE)
 
 
-# resolve_single_page_parent: диспетчеризация через registry.STRATEGIES + CONFIG_FIELD_PREFIX
-@pytest.mark.business_logic
-@pytest.mark.parametrize(
-    "strategy_type, config_field_prefix, return_value",
-    [
-        pytest.param("release", "release", "400002", id="release"),
-        pytest.param("profile_centric", "profile", "400003", id="profile_centric"),
-    ],
-)
-def test_resolve_single_page_parent_dispatches_by_registered_strategy_class(
-    mocker: Any,
-    minimal_confluence_config: dict,
-    strategy_type: str,
-    config_field_prefix: str,
-    return_value: str,
-) -> None:
-    """resolve_single_page_parent() читает CONFIG_FIELD_PREFIX с класса стратегии
-    из registry.STRATEGIES[strategy_type] и резолвит родителя по этому префиксу"""
-    resolver, _ = _make_resolver(mocker, minimal_confluence_config)
-    mock_by_prefix = mocker.patch.object(
-        resolver, "_resolve_single_page_parent_by_prefix", return_value=return_value
-    )
-
-    result = resolver.resolve_single_page_parent(strategy_type, "Some Name", None)
-
-    assert result == return_value
-    mock_by_prefix.assert_called_once_with(config_field_prefix, "Some Name", None)
-
-
+# resolve_single_page_parent: диспетчеризация через registry.STRATEGIES + IS_SINGLE_PAGE
 @pytest.mark.contract
 @pytest.mark.parametrize(
     "strategy_type",
     [
         # опечатка/несуществующий тип — не зарегистрирован в registry.STRATEGIES вообще
         pytest.param("some_other_strategy", id="unregistered-in-registry"),
-        # зарегистрирован, но не наследник SinglePagePublishStrategy — нет родителя по префиксу
+        # зарегистрирован, но IS_SINGLE_PAGE=False — нет родителя по секции конфига
         pytest.param("passports", id="registered-but-not-single-page"),
     ],
 )

@@ -5,7 +5,7 @@
 import pytest
 from pydantic import ValidationError
 
-from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema, StrategiesConfig
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 
 
@@ -62,3 +62,81 @@ def test_parser_config_normalize_url_strips_whitespace_and_trailing_slash(
     payload = {**valid_parser_config, field_name: "  https://example.com/path/  "}
     config = ParserConfigSchema(**payload)
     assert getattr(config, field_name) == "https://example.com/path"
+
+
+@pytest.mark.business_logic
+def test_strategies_config_absent_uses_defaults_for_all_sections(
+    valid_confluence_config: dict,
+) -> None:
+    """Если ключ strategies в конфиге отсутствует вовсе — все три секции берут
+    значения по умолчанию, включая дефолтный page_title у release."""
+    config = ConfluenceConfigSchema(**valid_confluence_config)
+    assert config.strategies.release.page_title == "Сборки компонентов Платформы"
+    assert config.strategies.release.root_parent_id is None
+    assert config.strategies.release.root_parent_name is None
+    assert config.strategies.profile_centric.page_title is None
+    assert config.strategies.profile_centric.root_parent_id is None
+    assert config.strategies.profile_centric.root_parent_name is None
+    assert config.strategies.passports.root_parent_id is None
+    assert config.strategies.passports.root_parent_name is None
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "section_fields",
+    [
+        pytest.param({"root_parent_name": "X"}, id="name-only"),
+        pytest.param({"root_parent_id": "123"}, id="id-only"),
+    ],
+)
+def test_strategies_config_release_section_with_root_parent_keeps_default_page_title(
+    valid_confluence_config: dict,
+    section_fields: dict,
+) -> None:
+    """Секция release с заданным root_parent_name или root_parent_id (без явного
+    page_title) — валидна, а дефолт page_title не теряется при частично заданной
+    секции (см. раздел 2.3 спеки)."""
+    payload = {**valid_confluence_config, "strategies": {"release": section_fields}}
+    config = ConfluenceConfigSchema(**payload)
+    assert config.strategies.release.page_title == "Сборки компонентов Платформы"
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "section_name",
+    [
+        pytest.param("release", id="release"),
+        pytest.param("profile_centric", id="profile_centric"),
+    ],
+)
+def test_strategies_config_section_without_root_parent_raises(
+    valid_confluence_config: dict,
+    section_name: str,
+) -> None:
+    """Секция release/profile_centric, присутствующая в конфиге без root_parent_name
+    и root_parent_id (хотя бы с одним полем, например page_title) — невалидна."""
+    payload = {**valid_confluence_config, "strategies": {section_name: {"page_title": "X"}}}
+    with pytest.raises(ValidationError, match=f"strategies.{section_name}"):
+        ConfluenceConfigSchema(**payload)
+
+
+@pytest.mark.contract
+def test_strategies_config_passports_empty_section_raises() -> None:
+    """Секция passports, присутствующая в конфиге как пустой словарь, всё равно
+    считается явно указанной — root_parent_name/root_parent_id обязательны."""
+    with pytest.raises(ValidationError, match="strategies.passports"):
+        StrategiesConfig(**{"passports": {}})
+
+
+@pytest.mark.business_logic
+def test_strategies_config_explicit_none_page_title_overrides_class_default(
+    valid_confluence_config: dict,
+) -> None:
+    """Явный page_title=None в секции release побеждает дефолт класса
+    ReleaseDocsFields.page_title."""
+    payload = {
+        **valid_confluence_config,
+        "strategies": {"release": {"root_parent_name": "X", "page_title": None}},
+    }
+    config = ConfluenceConfigSchema(**payload)
+    assert config.strategies.release.page_title is None

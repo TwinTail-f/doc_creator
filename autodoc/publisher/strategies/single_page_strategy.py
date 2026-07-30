@@ -24,19 +24,7 @@ class SinglePagePublishStrategy(BasePublishStrategy):
     и ProfileCentricStrategy.
     """
 
-    CONFIG_FIELD_PREFIX: ClassVar[str]
-    """Префикс полей конфига Confluence для этой стратегии single-page публикации.
-
-    Определяет имена полей ``{CONFIG_FIELD_PREFIX}_docs_page_title`` и
-    ``{CONFIG_FIELD_PREFIX}_docs_root_parent_name``/``_id``, которые CLI
-    (``single_page.py``) и ``RootPageResolver`` читают из конфигурации.
-
-    Обязателен для каждого конкретного наследника (``ReleasePageStrategy``,
-    ``ProfileCentricStrategy`` и любого будущего single-page наследника) —
-    без него код, читающий ``strategy_cls.CONFIG_FIELD_PREFIX``, сразу
-    упадёт с ``AttributeError`` при регистрации новой стратегии без
-    префикса.
-    """
+    IS_SINGLE_PAGE: ClassVar[bool] = True
 
     def __init__(
         self,

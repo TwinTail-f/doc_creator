@@ -15,7 +15,6 @@ from autodoc.cli.helpers import (
 )
 from autodoc.exceptions import DocGeneratorError
 from autodoc.publisher.strategies import registry
-from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
 def single_page_options(f: Callable) -> Callable:
@@ -35,7 +34,7 @@ def single_page_options(f: Callable) -> Callable:
         click.option(
             "--page-title",
             default=None,
-            help="Заголовок страницы (переопределяет release_docs_page_title из конфига)",
+            help="Заголовок страницы (переопределяет strategies.<strategy_type>.page_title из конфига)",
         ),
         click.option(
             "--root-page-id",
@@ -89,19 +88,16 @@ def run_single_page_command(
 
     Raises:
         DocGeneratorError: Если ``strategy_type`` не зарегистрирован в
-            ``registry.STRATEGIES``, либо зарегистрирован, но не является
-            наследником ``SinglePagePublishStrategy`` (например
-            ``'passports'``).
+            ``registry.STRATEGIES``, либо зарегистрирован, но
+            ``IS_SINGLE_PAGE`` у него ``False`` (например ``'passports'``).
     """
     cli_ctx: CliCtx = ctx.obj
 
     with cli_error_boundary(panel_header):
         strategy_cls = registry.STRATEGIES.get(strategy_type)
-        if strategy_cls is None or not issubclass(strategy_cls, SinglePagePublishStrategy):
+        if strategy_cls is None or not strategy_cls.IS_SINGLE_PAGE:
             single_page_strategies = sorted(
-                key
-                for key, cls in registry.STRATEGIES.items()
-                if issubclass(cls, SinglePagePublishStrategy)
+                key for key, cls in registry.STRATEGIES.items() if cls.IS_SINGLE_PAGE
             )
             raise DocGeneratorError(
                 f"Внутренняя ошибка: неизвестный тип стратегии публикации {strategy_type!r}. "
@@ -114,8 +110,8 @@ def run_single_page_command(
         console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
 
         publisher, conf_config = make_publisher(cli_ctx)
-        title_field = f"{strategy_cls.CONFIG_FIELD_PREFIX}_docs_page_title"
-        final_title = page_title or getattr(conf_config, title_field) or default_title
+        strategy_fields = getattr(conf_config.strategies, strategy_type)
+        final_title = page_title or strategy_fields.page_title or default_title
 
         console.print("🔄 Публикация в Confluence…", style="cyan")
         result = publisher.publish_single_page(

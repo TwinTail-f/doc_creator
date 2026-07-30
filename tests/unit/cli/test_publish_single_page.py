@@ -19,7 +19,12 @@ from autodoc.cli.constants import (
     PROFILE_TEMPLATE,
     RELEASE_TEMPLATE,
 )
-from tests.unit.cli.utils import make_confluence_config, make_parsed_result, make_publish_report
+from tests.unit.cli.utils import (
+    make_confluence_config,
+    make_parsed_result,
+    make_publish_report,
+    strategy_override,
+)
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
@@ -97,7 +102,7 @@ def test_publish_release_page_title_precedence(
     expected: str,
 ) -> None:
     """Приоритет источников заголовка страницы для release: флаг CLI > поле конфига > значение по умолчанию."""
-    conf_config = make_confluence_config(release_docs_page_title=config_title)
+    conf_config = make_confluence_config(**strategy_override("release", page_title=config_title))
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, conf_config=conf_config)
 
     args = ["--page-title", cli_title] if cli_title else []
@@ -211,7 +216,7 @@ def test_publish_profile_passes_profile_centric_strategy_type(
 @pytest.mark.parametrize(
     ("config_title", "expected_title"),
     [
-        # заголовок берётся из profile_docs_page_title конфига, а не как у release
+        # заголовок берётся из strategies.profile_centric.page_title конфига, а не как у release
         pytest.param("Profile Config Title", "Profile Config Title", id="config-field-wins"),
         # ни флага, ни поля конфига нет — используется DEFAULT_PROFILE_PAGE_TITLE
         pytest.param(None, DEFAULT_PROFILE_PAGE_TITLE, id="default-wins"),
@@ -224,10 +229,13 @@ def test_publish_profile_title_source(
     config_title: str | None,
     expected_title: str,
 ) -> None:
-    """Источником заголовка по умолчанию для profile служит conf_config.profile_docs_page_title
-    (а не release_docs_page_title, как у release); при его отсутствии используется
-    DEFAULT_PROFILE_PAGE_TITLE."""
-    conf_config = make_confluence_config(profile_docs_page_title=config_title)
+    """Источником заголовка по умолчанию для profile служит
+    conf_config.strategies.profile_centric.page_title (а не
+    conf_config.strategies.release.page_title, как у release); при его отсутствии
+    используется DEFAULT_PROFILE_PAGE_TITLE."""
+    conf_config = make_confluence_config(
+        **strategy_override("profile_centric", page_title=config_title)
+    )
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, conf_config=conf_config)
 
     result = _invoke(tmp_path, configs_dir, "profile")

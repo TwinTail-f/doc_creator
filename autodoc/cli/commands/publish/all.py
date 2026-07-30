@@ -56,7 +56,7 @@ from autodoc.cli.helpers import (
     default=None,
     help=(
         "Заголовок страницы релизной документации "
-        "(переопределяет release_docs_page_title из конфига)"
+        "(переопределяет strategies.release.page_title из конфига)"
     ),
 )
 @click.option(
@@ -109,7 +109,7 @@ def publish_all(
 
         final_title = (
             release_doc_page_name
-            or conf_config.release_docs_page_title
+            or conf_config.strategies.release.page_title
             or DEFAULT_RELEASE_PAGE_TITLE
         )
 

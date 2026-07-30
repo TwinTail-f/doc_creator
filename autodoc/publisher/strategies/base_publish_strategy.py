@@ -3,7 +3,7 @@
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any
+from typing import Any, ClassVar
 
 from jinja2 import TemplateError, TemplateNotFound
 
@@ -28,6 +28,11 @@ class BasePublishStrategy(ABC):
     (рендеринг шаблона, минификация HTML, обработка ошибок). Конкретный
     подкласс выбирается через ``autodoc.publisher.strategies.registry``.
     """
+
+    IS_SINGLE_PAGE: ClassVar[bool] = False
+    """True для стратегий, публикующих одну страницу Confluence (см.
+    SinglePagePublishStrategy). PassportsStrategy — многостраничная, оставляет
+    значение по умолчанию False."""
 
     def __init__(
         self,

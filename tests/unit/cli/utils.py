@@ -82,6 +82,20 @@ def make_confluence_config(**overrides: Any) -> ConfluenceConfigSchema:
     return ConfluenceConfigSchema(**data)
 
 
+def strategy_override(section: str, **fields: Any) -> dict[str, Any]:
+    """Собирает overrides для make_confluence_config() с валидной секцией
+    strategies.<section>: если вызывающий не передал ни root_parent_id, ни
+    root_parent_name явно, подставляет заглушку root_parent_id, чтобы секция
+    прошла валидацию ConfluenceConfigSchema (см. StrategiesConfig._require_root_parent_for_explicit_sections).
+
+    Явный root_parent_id=None (или root_parent_name=None) в fields НЕ переопределяется —
+    так тесты могут осознанно проверить сценарий "секция есть, родителя нет".
+    """
+    if "root_parent_id" not in fields and "root_parent_name" not in fields:
+        fields["root_parent_id"] = "test-parent-id"
+    return {"strategies": {section: fields}}
+
+
 def make_parsed_result(**overrides: Any) -> ParsedResult:
     """Создаёт минимальный валидный экземпляр ParsedResult.
 

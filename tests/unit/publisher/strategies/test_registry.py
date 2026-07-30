@@ -12,7 +12,7 @@ import pytest
 
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
-from autodoc.publisher.strategies.registry import available_strategies, create_strategy
+from autodoc.publisher.strategies.registry import STRATEGIES, available_strategies, create_strategy
 from tests.unit.publisher.conftest import FakeConfluenceClient
 from tests.unit.publisher.strategies.conftest import FakeDocumentBuilder
 
@@ -54,3 +54,19 @@ def test_all_three_strategy_types_registered() -> None:
     assert "release" in strategies
     assert "profile_centric" in strategies
     assert "passports" in strategies
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "strategy_type, expected_is_single_page",
+    [
+        pytest.param("release", True, id="release"),
+        pytest.param("profile_centric", True, id="profile_centric"),
+        pytest.param("passports", False, id="passports"),
+    ],
+)
+def test_is_single_page_flag_matches_strategy_kind(
+    strategy_type: str, expected_is_single_page: bool
+) -> None:
+    """IS_SINGLE_PAGE верно проставлен для каждой зарегистрированной стратегии."""
+    assert STRATEGIES[strategy_type].IS_SINGLE_PAGE is expected_is_single_page

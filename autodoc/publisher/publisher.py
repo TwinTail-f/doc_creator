@@ -147,9 +147,9 @@ class DocumentPublisher:
             Запасной вариант родительской страницы (если ``root_page_name``/
             ``root_page_id`` не заданы) берётся из конфигурации Confluence
             и зависит от ``strategy_type``: для ``'release'`` — это
-            ``release_docs_root_parent_name``/``release_docs_root_parent_id``,
-            для ``'profile_centric'`` — ``profile_docs_root_parent_name``/
-            ``profile_docs_root_parent_id``.
+            ``strategies.release.root_parent_name``/``strategies.release.root_parent_id``,
+            для ``'profile_centric'`` — ``strategies.profile_centric.root_parent_name``/
+            ``strategies.profile_centric.root_parent_id``.
         """
         parent_id = self._page_resolver.resolve_single_page_parent(
             strategy_type, root_page_name, root_page_id

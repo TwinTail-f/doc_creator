@@ -18,6 +18,7 @@ from tests.unit.cli.utils import (
     make_confluence_config,
     make_parsed_result,
     make_publish_report,
+    strategy_override,
 )
 
 _EXIT_SUCCESS: int = 0
@@ -110,7 +111,7 @@ def test_publish_all_release_page_title_precedence(
     expected: str,
 ) -> None:
     """Приоритет источников заголовка релиза: флаг CLI > поле конфига > значение по умолчанию."""
-    conf_config = make_confluence_config(release_docs_page_title=config_title)
+    conf_config = make_confluence_config(**strategy_override("release", page_title=config_title))
     mock_publisher = _mock_collaborators(mocker, conf_config=conf_config)
 
     args = ["--release-doc-page-name", cli_title] if cli_title else []

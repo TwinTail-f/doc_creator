@@ -3,7 +3,75 @@
 """
 
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+class RootParentFields(BaseModel):
+    """Адресация родительской страницы: общие поля для всех стратегий публикации."""
+
+    root_parent_id: str | None = Field(
+        default=None,
+        description="ID родительской страницы Confluence.",
+    )
+    root_parent_name: str | None = Field(
+        default=None,
+        description="Название родительской страницы Confluence.",
+    )
+
+
+class SinglePageDocsFields(RootParentFields):
+    """Поля single-page стратегий: адресация родителя + заголовок публикуемой страницы."""
+
+    page_title: str | None = Field(
+        default=None,
+        description="Заголовок публикуемой страницы.",
+    )
+
+
+class ReleaseDocsFields(SinglePageDocsFields):
+    """Поля стратегии release — со своим дефолтным заголовком."""
+
+    page_title: str | None = Field(
+        default="Сборки компонентов Платформы",
+        description="Заголовок корневой страницы релизной документации.",
+    )
+
+
+class ProfileCentricDocsFields(SinglePageDocsFields):
+    """Поля стратегии profile_centric. Отдельный класс — по аналогии с ReleaseDocsFields,
+    хотя дефолт page_title тот же (None), что и в SinglePageDocsFields; так пара
+    (release, profile_centric) выглядит симметрично и в схему легко добавить
+    третьей single-page стратегии её собственный дефолт заголовка."""
+
+
+class StrategiesConfig(BaseModel):
+    """Настройки публикации, сгруппированные по типу стратегии.
+
+    Имена полей класса дословно совпадают с ключами ``registry.STRATEGIES``
+    (``"release"``, ``"profile_centric"``, ``"passports"``) — это специально, чтобы
+    резолвинг ``strategy_type -> секция конфига`` был просто ``getattr(strategies,
+    strategy_type)``, без отдельной таблицы соответствия где-либо в коде.
+    """
+
+    release: ReleaseDocsFields = Field(default_factory=ReleaseDocsFields)
+    profile_centric: ProfileCentricDocsFields = Field(default_factory=ProfileCentricDocsFields)
+    passports: RootParentFields = Field(default_factory=RootParentFields)
+
+    @model_validator(mode="after")
+    def _require_root_parent_for_explicit_sections(self) -> "StrategiesConfig":
+        """Секция, явно присутствующая в конфиге, обязана задавать root_parent_name
+        и/или root_parent_id. Секция, которую пользователь вообще не упомянул в файле
+        (полагается целиком на CLI-флаги на каждый вызов) — легальна, для неё эта
+        проверка не запускается. См. раздел 2.3 спеки."""
+        for section_name in self.model_fields_set & {"release", "profile_centric", "passports"}:
+            section: RootParentFields = getattr(self, section_name)
+            if not section.root_parent_id and not section.root_parent_name:
+                raise ValueError(
+                    f"strategies.{section_name}: укажите root_parent_name или "
+                    f"root_parent_id. Либо не указывайте секцию '{section_name}' "
+                    "вовсе, если родительская страница всегда передаётся через CLI."
+                )
+        return self
 
 
 class ConfluenceConfigSchema(BaseModel):
@@ -29,37 +97,9 @@ class ConfluenceConfigSchema(BaseModel):
         description="Проверять SSL-сертификаты",
     )
 
-    release_docs_root_parent_id: str | None = Field(
-        default=None,
-        description="ID корневой родительской страницы релизной документации.",
-    )
-    release_docs_root_parent_name: str | None = Field(
-        default=None,
-        description="Название корневой родительской страницы релизной документации.",
-    )
-    release_docs_page_title: str | None = Field(
-        default="Сборки компонентов Платформы",
-        description="Заголовок корневой страницы релизной документации.",
-    )
-    profile_docs_page_title: str | None = Field(
-        default=None,
-        description="Заголовок страницы профиль-центричной документации.",
-    )
-    profile_docs_root_parent_id: str | None = Field(
-        default=None,
-        description="ID корневой родительской страницы профиль-центричной документации.",
-    )
-    profile_docs_root_parent_name: str | None = Field(
-        default=None,
-        description="Название корневой родительской страницы профиль-центричной документации.",
-    )
-    passports_root_parent_id: str | None = Field(
-        default=None,
-        description="ID родительской страницы для дерева паспортов",
-    )
-    passports_root_parent_name: str | None = Field(
-        default=None,
-        description="Название корневой страницы для дерева паспортов.",
+    strategies: StrategiesConfig = Field(
+        default_factory=StrategiesConfig,
+        description="Настройки публикации по типам стратегий (release/profile_centric/passports).",
     )
 
     confluence_request_timeout: int = Field(

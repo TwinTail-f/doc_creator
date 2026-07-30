@@ -263,12 +263,12 @@ overrides:
 
 | Поле | Описание |
 |------|----------|
-| `release_docs_root_parent_name` | Название корневой родительской страницы релизной документации |
-| `release_docs_root_parent_id` | ID корневой родительской страницы релизной документации |
-| `profile_docs_root_parent_name` | Название корневой родительской страницы документации от профилей |
-| `profile_docs_root_parent_id` | ID корневой родительской страницы документации от профилей |
-| `passports_root_parent_name` | Название корневой страницы иерархии паспортов |
-| `passports_root_parent_id` | ID корневой страницы иерархии паспортов |
+| `strategies.release.root_parent_name` | Название корневой родительской страницы релизной документации |
+| `strategies.release.root_parent_id` | ID корневой родительской страницы релизной документации |
+| `strategies.profile_centric.root_parent_name` | Название корневой родительской страницы документации от профилей |
+| `strategies.profile_centric.root_parent_id` | ID корневой родительской страницы документации от профилей |
+| `strategies.passports.root_parent_name` | Название корневой страницы иерархии паспортов |
+| `strategies.passports.root_parent_id` | ID корневой страницы иерархии паспортов |
 
 Все три пары задают **родителя**, под которым публикуемые страницы будут созданы в дереве
 Confluence — сам инструмент эти страницы не создаёт, только ищет их по названию (или ID (число в url у страницы) )
@@ -277,13 +277,15 @@ Confluence уже существует страница «Паспорта ко�
 компонентов появились под ней:
 
 ```yaml
-passports_root_parent_name: "Паспорта компонентов"
+strategies:
+  passports:
+    root_parent_name: "Паспорта компонентов"
 ```
 
 После `python autodoc publish passports` в дереве появится:
 
 ```
-Паспорта компонентов      ← passports_root_parent_name (уже существовала)
+Паспорта компонентов      ← strategies.passports.root_parent_name (уже существовала)
 └── sqlite3               ← эта и дочерние страницы содадутся автоматически
     └──sqlite 3.34.1
         └──Документация sqlite 3.34.1
@@ -292,13 +294,15 @@ passports_root_parent_name: "Паспорта компонентов"
 Для публикации релизной документации (Например существует страница  «Релиз Platrorm 2.x»):
 
 ```yaml
-release_docs_root_parent_name: "Релиз Platrorm 2.x"
+strategies:
+  release:
+    root_parent_name: "Релиз Platrorm 2.x"
 ```
 
 После `python autodoc publish release` в дереве появится:
 
 ```
-Релиз Platrorm 2.x                            ← release_docs_root_parent_name (уже существовала)
+Релиз Platrorm 2.x                            ← strategies.release.root_parent_name (уже существовала)
 └── Документация к релизу Платформы 2.2.0     ← будет создана страница с релизной документацией 
 ```
 
@@ -307,8 +311,8 @@ release_docs_root_parent_name: "Релиз Platrorm 2.x"
 | Поле | По умолчанию | Описание |
 |------|-------------|----------|
 | `verify_ssl` | `true` | Проверять SSL-сертификаты |
-| `release_docs_page_title` | `"Сборки компонентов Платформы"` | Заголовок корневой страницы релизной документации |
-| `profile_docs_page_title` | — | Заголовок страницы профиль-центричной документации |
+| `strategies.release.page_title` | `"Сборки компонентов Платформы"` | Заголовок корневой страницы релизной документации |
+| `strategies.profile_centric.page_title` | — | Заголовок страницы профиль-центричной документации |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -316,9 +320,9 @@ release_docs_root_parent_name: "Релиз Platrorm 2.x"
 | `title_conflict_policy` | `"error"` | Поведение при обнаружении страницы с совпадающим заголовком под другим родителем: `"error"` — прервать с исключением, `"move"` — перенести существующую страницу под ожидаемого родителя, сохранив содержимое |
 
 Приоритет источников заголовка страницы (от высшего к низшему): флаг `--page-title` из CLI →
-`profile_docs_page_title` / `release_docs_page_title` из конфига → встроенный заголовок по
-умолчанию (`"Документация от профилей"` для `publish profile`, `"Сборки компонентов Платформы"`
-для `publish release`). Первый заданный источник побеждает, остальные игнорируются.
+`strategies.profile_centric.page_title` / `strategies.release.page_title` из конфига → встроенный
+заголовок по умолчанию (`"Документация от профилей"` для `publish profile`, `"Сборки компонентов
+Платформы"` для `publish release`). Первый заданный источник побеждает, остальные игнорируются.
 
 ### Структура директории configs/
 
@@ -416,9 +420,9 @@ python autodoc parse --save-intermediate
 
 | Флаг | Описание |
 |------|----------|
-| `--page-title` | Заголовок страницы. Переопределяет `release_docs_page_title` из конфига |
-| `--root-page-name "Название"` | Название родительской страницы (переопределяет `release_docs_root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
-| `--root-page-id ID` | ID родительской страницы (переопределяет `release_docs_root_parent_id`). Можно указывать вместе с `--root-page-name` |
+| `--page-title` | Заголовок страницы. Переопределяет `strategies.release.page_title` из конфига |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.release.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.release.root_parent_id`). Можно указывать вместе с `--root-page-name` |
 | `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
 
 ```bash
@@ -445,15 +449,15 @@ python autodoc publish release --no-passport-links
 
 | Флаг | Описание |
 |------|----------|
-| `--page-title` | Заголовок страницы. Переопределяет `profile_docs_page_title` из конфига |
-| `--root-page-name "Название"` | Название родительской страницы (переопределяет `profile_docs_root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
-| `--root-page-id ID` | ID родительской страницы (переопределяет `profile_docs_root_parent_id`). Можно указывать вместе с `--root-page-name` |
+| `--page-title` | Заголовок страницы. Переопределяет `strategies.profile_centric.page_title` из конфига |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.profile_centric.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.profile_centric.root_parent_id`). Можно указывать вместе с `--root-page-name` |
 | `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
 
 ```bash
 # Использовать параметры из конфига
-# (заголовок — profile_docs_page_title, родительская страница —
-#  profile_docs_root_parent_name / profile_docs_root_parent_id)
+# (заголовок — strategies.profile_centric.page_title, родительская страница —
+#  strategies.profile_centric.root_parent_name / strategies.profile_centric.root_parent_id)
 python autodoc publish profile
 
 # Переопределить заголовок страницы
@@ -479,7 +483,7 @@ python autodoc publish profile --no-passport-links
 | `--passports-root-parent-id ID` | ID корневой страницы иерархии паспортов (переопределяет конфиг). Можно указывать вместе с `--passports-root-parent-name` |
 
 ```bash
-# Корневая страница берётся из конфига (passports_root_parent_name или passports_root_parent_id)
+# Корневая страница берётся из конфига (strategies.passports.root_parent_name или strategies.passports.root_parent_id)
 python autodoc publish passports
 
 # Переопределить корневую страницу через название
@@ -505,7 +509,7 @@ python autodoc publish passports --passports-root-parent-id 987654321
 | `--passports-root-parent-id ID` | ID корневой страницы иерархии паспортов (переопределяет конфиг). Можно указывать вместе с `--passports-root-parent-name` |
 | `--release-root-page-name "Название"` | Название корневой родительской страницы релизной документации (переопределяет конфиг). Приоритет над конфигом и `--release-root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
 | `--release-root-page-id ID` | ID корневой родительской страницы релизной документации (переопределяет конфиг). Можно указывать вместе с `--release-root-page-name` |
-| `--release-doc-page-name` | Заголовок страницы релизной документации (переопределяет `release_docs_page_title` из конфига) |
+| `--release-doc-page-name` | Заголовок страницы релизной документации (переопределяет `strategies.release.page_title` из конфига) |
 | `--with-additional-page-profile` | Опубликовать дополнительную страницу в представлении от профилей (дочернюю к странице релиза) |
 | `--additional-page-profile-name "Название"` | Заголовок дополнительной страницы профилей. Требует `--with-additional-page-profile` |
 | `--no-passport-links` | Не вставлять ссылки на паспорта в страницы документации |
