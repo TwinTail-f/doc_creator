@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import (
@@ -50,7 +51,9 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-def _mock_collaborators(mocker, publish_report=None, confluence_config=None):
+def _mock_collaborators(
+    mocker: MockerFixture, publish_report=None, confluence_config=None
+):
     """Подменяет make_publisher и load_parsed_data для `publish all` и возвращает поддельный publisher.
 
     Args:
@@ -77,7 +80,9 @@ def _mock_collaborators(mocker, publish_report=None, confluence_config=None):
 
 
 @pytest.mark.business_logic
-def test_publish_all_happy_path_minimal_flags(tmp_path: Path, configs_dir: Path, mocker) -> None:
+def test_publish_all_happy_path_minimal_flags(
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+) -> None:
     """Без дополнительных флагов publish_all вызывается с документированными значениями по умолчанию."""
     mock_publisher = _mock_collaborators(mocker)
 
@@ -105,7 +110,7 @@ def test_publish_all_happy_path_minimal_flags(tmp_path: Path, configs_dir: Path,
 def test_publish_all_release_page_title_precedence(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     cli_title: str | None,
     config_title: str | None,
     expected: str,
@@ -135,7 +140,7 @@ def test_publish_all_release_page_title_precedence(
 def test_publish_all_with_additional_page_profile_title(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     extra_args: list[str],
     expected_profile_title: str,
 ) -> None:
@@ -154,7 +159,7 @@ def test_publish_all_with_additional_page_profile_title(
 
 @pytest.mark.business_logic
 def test_publish_all_profile_name_without_flag_raises_usage_error(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """--additional-page-profile-name без --with-additional-page-profile приводит к UsageError."""
     _mock_collaborators(mocker)
@@ -190,7 +195,7 @@ def test_publish_all_profile_name_without_flag_raises_usage_error(
 def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     name_flag: str,
     id_flag: str,
     name_kwarg: str,
@@ -213,7 +218,7 @@ def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
 
 @pytest.mark.business_logic
 def test_publish_all_no_passport_links_disables_links(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """--no-passport-links устанавливает include_passport_links=False."""
     mock_publisher = _mock_collaborators(mocker)
@@ -227,7 +232,7 @@ def test_publish_all_no_passport_links_disables_links(
 
 @pytest.mark.infrastructure
 def test_publish_all_domain_error_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """ConfigError, возникающая в make_publisher, завершает команду с кодом 1 и понятным сообщением, без трейсбека."""
     mocker.patch(
@@ -248,7 +253,7 @@ def test_publish_all_domain_error_exits_nonzero_cleanly(
 
 @pytest.mark.business_logic
 def test_publish_all_partial_failure_exits_nonzero_with_error_text(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Неуспешный PublishReport (success=False) завершает команду с кодом 1 и печатает каждое сообщение об ошибке."""
     report = make_publish_report(success=False, pages_published=0, errors=["some page failed"])
@@ -262,7 +267,7 @@ def test_publish_all_partial_failure_exits_nonzero_with_error_text(
 
 @pytest.mark.business_logic
 def test_publish_all_zero_pages_published_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Успешный отчёт с pages_published=0 всё равно завершается кодом 1 (случай «публиковать нечего»)."""
     report = make_publish_report(success=True, pages_published=0)

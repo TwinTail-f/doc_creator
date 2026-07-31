@@ -2,6 +2,7 @@
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
+from pytest_mock import MockerFixture
 
 from autodoc.exceptions import ParsingError
 from autodoc.models.component import Component
@@ -222,7 +223,7 @@ def test_finalize_step_raises_parsing_error_on_invalid_platform_version(
 @pytest.mark.business_logic
 def test_finalize_step_execute_wraps_validation_error_from_build_result(
     parser_pipeline_context,
-    mocker,
+    mocker: MockerFixture,
 ) -> None:
     """execute() оборачивает в ParsingError PydanticValidationError, долетевший
     из _build_result напрямую (в обход её собственного except) — это внешний
@@ -237,7 +238,7 @@ def test_finalize_step_execute_wraps_validation_error_from_build_result(
 @pytest.mark.infrastructure
 def test_finalize_step_execute_applies_steps_in_order(
     parser_pipeline_context,
-    mocker,
+    mocker: MockerFixture,
 ) -> None:
     """execute() применяет фильтрацию, дедупликацию и сборку результата в этом порядке.
 

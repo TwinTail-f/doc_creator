@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.component import Component
@@ -134,7 +135,7 @@ def test_passports_strategy_execute_saves_registry_after_publish(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
     make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """После execute() файл passport_pages.json существует в data_dir.
@@ -171,7 +172,7 @@ def test_passports_strategy_execute_report_contains_details(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
     make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """Успешная публикация создаёт минимум одну запись details с page_title и page_id."""
@@ -203,7 +204,7 @@ def test_publish_one_continues_when_get_page_body_raises(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
     make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
     """Если получение тела существующей страницы падает с ConfluenceError,
@@ -278,7 +279,7 @@ def test_one_page_per_component_release_combination(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     BL-PS-01, BL-PS-04
@@ -337,7 +338,7 @@ def test_registry_saved_after_all_pages_published(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     BL-PS-02
@@ -403,7 +404,7 @@ def test_failure_of_one_page_does_not_stop_others(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     BL-PS-03
@@ -463,7 +464,7 @@ def test_one_passport_publish_failure_isolated_from_others(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     Бизнес-правило: если ConfluenceError выбрасывается на этапе самой публикации
@@ -483,14 +484,13 @@ def test_one_passport_publish_failure_isolated_from_others(
     )
 
     call_count: list[int] = [0]
-    real_publish_page = FakeConfluenceClient.publish_page
 
     class FlakyClient(FakeConfluenceClient):
         def publish_page(self, space, parent_id, title, body_html):
             call_count[0] += 1
             if call_count[0] == 1:
                 raise ConfluenceError("сбой публикации первой страницы")
-            return real_publish_page(self, space, parent_id, title, body_html)
+            return super().publish_page(space, parent_id, title, body_html)
 
     strategy = PassportsStrategy(
         confluence_client=FlakyClient(),
@@ -517,7 +517,7 @@ def test_report_pages_failed_count_equals_failed_pages(
     publisher_parsed_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     BL-PS-05
@@ -569,7 +569,7 @@ def test_report_pages_failed_count_equals_failed_pages(
 def test_legacy_content_extracted_before_overwrite(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
     publisher_capturing_document_builder: Any,
 ) -> None:
     """
@@ -651,7 +651,7 @@ def test_hierarchy_created_for_each_component(
     publisher_multi_component_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     BL-PS-07
@@ -717,7 +717,7 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
     publisher_multi_channel_result: ParsedResult,
     publisher_document_builder: FakeDocumentBuilder,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """
     Бизнес-правило (текущее поведение — задокументировано, чтобы будущее изменение

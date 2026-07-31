@@ -287,20 +287,17 @@ def test_components_within_channel_sorted_by_name(
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize("include_passport_links", [False, True])
-def test_passport_link_reflects_include_passport_links_flag(
+def test_top_level_flag_reflects_constructor_arg_while_passport_link_stays_none(
     publisher_multi_channel_result, include_passport_links: bool
 ) -> None:
     """
-    Бизнес-правило: значение passport_link у каждой не-header-only записи
-    компонента зависит от include_passport_links, переданного в конструктор.
-
-    При include_passport_links=False ключ passport_link отсутствует или
-    равен None/"" для каждого компонента в каждом канале.
-
-    При include_passport_links=True каждая запись получает ключ
-    "passport_link", инициализированный None (сам конвертер не форматирует
-    строку ссылки — реальный URL заполняется позже в
-    PassportPageRegistry.inject_links_for_profiles(), см. test_passport_registry.py).
+    Бизнес-правило: include_passport_links, переданный в конструктор,
+    отражается только в верхнеуровневом ключе view["include_passport_links"]
+    (его читает шаблон, решая, рендерить ли блок ссылки на паспорт).
+    Сам convert() при этом ключ passport_link каждой записи компонента
+    всегда инициализирует None независимо от флага — реальный URL
+    подставляется позже, в PassportPageRegistry.inject_links_for_profiles()
+    (см. test_passport_registry.py), а не в convert().
 
     Предусловия:
         - publisher_multi_channel_result с comp_alpha (не header-only).
@@ -308,29 +305,32 @@ def test_passport_link_reflects_include_passport_links_flag(
     Шаги:
         1. Создать ProfileCentricConverter(include_passport_links=<флаг>).
         2. Вызвать convert().
-        3. Проверить passport_link для всех записей компонентов.
+        3. Проверить верхнеуровневый view["include_passport_links"].
+        4. Проверить passport_link для всех записей компонентов.
+
+    Ожидаемый результат:
+        view["include_passport_links"] == include_passport_links;
+        passport_link каждой записи компонента — None при любом значении флага.
     """
     converter = ProfileCentricConverter(include_passport_links=include_passport_links)
     view = converter.convert(publisher_multi_channel_result)
+
+    assert view["include_passport_links"] == include_passport_links, (
+        "Верхнеуровневый ключ include_passport_links должен совпадать со значением, "
+        "переданным в конструктор"
+    )
 
     checked_any = False
     for profile in view["profiles"]:
         for _, comp_entries in profile["channels"].items():
             for comp_entry in comp_entries:
-                if include_passport_links:
-                    assert (
-                        "passport_link" in comp_entry
-                    ), "При include_links=True у каждого компонента должен быть ключ passport_link"
-                    assert comp_entry["passport_link"] is None, (
-                        "Конвертер должен оставлять passport_link равным None; "
-                        "реальные ссылки добавляются позже через PassportPageRegistry"
-                    )
-                else:
-                    link = comp_entry.get("passport_link")
-                    assert link is None or link == "", (
-                        f"Без include_links=True passport_link должен быть None/пустым, "
-                        f"получено: {link!r}"
-                    )
+                assert (
+                    "passport_link" in comp_entry
+                ), "У каждой записи компонента должен быть ключ passport_link"
+                assert comp_entry["passport_link"] is None, (
+                    "Конвертер всегда оставляет passport_link равным None; "
+                    "реальные ссылки добавляются позже через PassportPageRegistry"
+                )
                 checked_any = True
     assert checked_any, "Должна была быть проверена хотя бы одна запись компонента"
 

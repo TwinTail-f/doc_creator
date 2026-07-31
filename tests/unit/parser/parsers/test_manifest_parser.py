@@ -631,8 +631,8 @@ def test_manifest_parser_skips_none_results_from_executor(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """parse() пропускает файлы, для которых ParallelExecutor вернул None (задача
-    завершилась ожидаемой ошибкой, например ComponentParsingError) через ветку
-    continue, не прерывая обработку остальных файлов и не падая на None."""
+    завершилась ожидаемой ошибкой, например ComponentParsingError), не прерывая
+    обработку остальных файлов и не падая на None."""
     f1 = _write_manifest(tmp_path, "broken", _minimal_manifest(comp_name="broken"))
     f2 = _write_manifest(tmp_path, "mylib", _minimal_manifest(comp_name="mylib"))
     parser = ManifestParser(target_platform="2.2")
@@ -654,8 +654,8 @@ def test_manifest_parser_skips_none_results_from_executor(
 @pytest.mark.business_logic
 def test_filter_mode_unknown_value_disables_filtering(tmp_path: Path) -> None:
     """Неизвестное значение filter_mode (не 'exclude' и не 'include') не
-    фильтрует ничего и не падает — ни одна из веток if/elif не срабатывает,
-    выполнение сразу переходит к сборке релизов."""
+    фильтрует компоненты и не вызывает ошибку — обрабатываются все файлы,
+    как если бы фильтрация была отключена."""
     content = _minimal_manifest(comp_name="mylib", git_project="P", git_repo="mylib")
     f = _write_manifest(tmp_path, "mylib", content)
     parser = ManifestParser(target_platform="2.2")

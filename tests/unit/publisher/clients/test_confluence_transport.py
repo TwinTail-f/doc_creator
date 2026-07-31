@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 import requests
 import responses
+from pytest_mock import MockerFixture
 from responses import matchers
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
@@ -206,7 +207,7 @@ def test_create_session_respects_verify_ssl_true_and_timeout(
 
 @pytest.mark.infrastructure
 def test_create_session_logs_warning_when_verify_ssl_false(
-    mocker: Any, minimal_confluence_config: dict
+    mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """При verify_ssl=False отключение проверки SSL — намеренное поведение, о котором предупреждает лог."""
     mock_warning = mocker.patch("autodoc.publisher.clients.confluence_transport.logger.warning")
@@ -222,7 +223,7 @@ def test_create_session_logs_warning_when_verify_ssl_false(
 
 @pytest.mark.infrastructure
 def test_create_session_configures_retry_parameters(
-    mocker: Any, minimal_confluence_config: dict
+    mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """_create_session передаёт в create_bearer_session параметры ретраев и таймаута из конфигурации."""
     mock_create_bearer_session = mocker.patch(

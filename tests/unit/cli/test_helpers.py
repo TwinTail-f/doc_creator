@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.cli.context import CliCtx
 from autodoc.cli.helpers import (
@@ -36,26 +37,25 @@ def test_cli_error_boundary_no_exception_completes_normally() -> None:
 @pytest.mark.infrastructure
 @pytest.mark.parametrize(
     "exc_cls",
-    [ConfigError, DocGeneratorError, PublishError],
+    [
+        # доменные исключения — перехватываются отдельной веткой except (ConfigError,
+        # DocGeneratorError, PublishError)
+        pytest.param(ConfigError, id="config-error"),
+        pytest.param(DocGeneratorError, id="doc-generator-error"),
+        pytest.param(PublishError, id="publish-error"),
+        # не входят в доменные — перехватываются веткой except Exception, но пользователь
+        # всё равно никогда не видит «сырой» трейсбек
+        pytest.param(ValueError, id="unrelated-value-error"),
+        pytest.param(RuntimeError, id="unrelated-runtime-error"),
+    ],
 )
-def test_cli_error_boundary_catches_domain_exceptions_as_system_exit(exc_cls: type) -> None:
-    """ConfigError, DocGeneratorError и PublishError перехватываются и превращаются в SystemExit(1)."""
+def test_cli_error_boundary_catches_any_exception_as_system_exit(exc_cls: type) -> None:
+    """Любое исключение, возникшее внутри блока with, перехватывается cli_error_boundary
+    и превращается в SystemExit(1) — как доменные (ConfigError, DocGeneratorError,
+    PublishError), так и любые прочие."""
     with pytest.raises(SystemExit) as exc_info:
         with cli_error_boundary("Test Panel"):
             raise exc_cls("boom")
-
-    assert exc_info.value.code == 1
-
-
-@pytest.mark.infrastructure
-@pytest.mark.parametrize("exc_cls", [ValueError, RuntimeError])
-def test_cli_error_boundary_catches_unrelated_exceptions_as_system_exit(exc_cls: type) -> None:
-    """Исключение, не входящее в (ConfigError, DocGeneratorError, PublishError), тоже
-    перехватывается — пользователь никогда не видит «сырой» трейсбек — и превращается
-    в SystemExit(1)."""
-    with pytest.raises(SystemExit) as exc_info:
-        with cli_error_boundary("Test Panel"):
-            raise exc_cls("not a domain error")
 
     assert exc_info.value.code == 1
 
@@ -168,7 +168,7 @@ def test_make_publisher_missing_config_raises_config_error(
 
 @pytest.mark.business_logic
 def test_make_publisher_valid_config_returns_publisher_and_config(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Валидный конфиг Confluence возвращает кортеж (DocumentPublisher, confluence_config)."""
     mocker.patch("autodoc.publisher.publisher.ConfluenceClient")
@@ -183,7 +183,7 @@ def test_make_publisher_valid_config_returns_publisher_and_config(
 
 @pytest.mark.business_logic
 def test_make_publisher_forwards_config_file_argument(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Параметр config_file передаётся в config_manager.load_confluence_config без изменений."""
     mocker.patch("autodoc.cli.helpers.DocumentPublisher")

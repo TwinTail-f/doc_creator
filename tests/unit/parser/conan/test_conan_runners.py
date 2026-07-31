@@ -9,6 +9,7 @@ import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
@@ -90,7 +91,9 @@ def test_conan2_runner_returns_failure_on_timeout(
 
 
 @pytest.mark.infrastructure
-def test_conan2_runner_clean_cache_success(conan2_runner: Conan2Runner, tmp_path: Path, mocker) -> None:  # type: ignore[no-untyped-def]
+def test_conan2_runner_clean_cache_success(
+    conan2_runner: Conan2Runner, tmp_path: Path, mocker: MockerFixture
+) -> None:
     """clean_cache() не бросает исключений при успешном завершении и использует шаблонный CONAN_HOME напрямую."""
     mock_run = mocker.patch(
         "subprocess.run", return_value=MagicMock(returncode=0, stderr="", stdout="")
@@ -128,8 +131,8 @@ def test_conan2_runner_clean_cache_success(conan2_runner: Conan2Runner, tmp_path
 )
 def test_conan2_runner_clean_cache_swallows_failures(
     conan2_runner: Conan2Runner,
-    mocker,
-    run_kwargs: dict,  # type: ignore[no-untyped-def]
+    mocker: MockerFixture,
+    run_kwargs: dict,
 ) -> None:
     """clean_cache() не бросает исключений ни при ненулевом коде возврата
     conan, ни при истечении времени ожидания subprocess."""
@@ -140,8 +143,8 @@ def test_conan2_runner_clean_cache_swallows_failures(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
-    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker
-) -> None:  # type: ignore[no-untyped-def]
+    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker: MockerFixture
+) -> None:
     """run() при returncode=0 и валидном JSON на stdout возвращает
     ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
     в проде путь (returncode=0)."""
@@ -161,8 +164,8 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
-    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker
-) -> None:  # type: ignore[no-untyped-def]
+    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker: MockerFixture
+) -> None:
     """run() при не-JSON stdout возвращает success=False с сообщением, включающим превью исходного stdout."""
     fake_stdout = "<warning>not actually json this time</warning>"
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
@@ -181,8 +184,8 @@ def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message(
-    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker
-) -> None:  # type: ignore[no-untyped-def]
+    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker: MockerFixture
+) -> None:
     """run() при ненулевом returncode передаёт stderr в _extract_error_message и
     возвращает его результат: _extract_error_message обрезает stderr до
     среза, начинающегося с первого вхождения маркера "error:" (регистронезависимо),
@@ -202,7 +205,7 @@ def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type: ignore[no-untyped-def]
+def test_conan_environment_manager_setup_copies_config(mocker: MockerFixture) -> None:
     """Успешный setup() выполняет установку конфигурации Conan через 'conan config install'.
     Здесь проверяется реальное поведение setup(): установка конфигурации через CLI-команду
     'conan config install' (в дополнение к последующему логину в remotes).
@@ -225,8 +228,8 @@ def test_conan_environment_manager_setup_copies_config(mocker) -> None:  # type:
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_cleanup_removes_directory(
-    tmp_path: Path, mocker
-) -> None:  # type: ignore[no-untyped-def]
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
     """cleanup() удаляет каталог настройки, созданный setup().
 
     Проверяет, что временный домашний каталог Conan удаляется после использования,
@@ -264,7 +267,7 @@ def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_is_idempotent_on_double_call(
-    tmp_path: Path, mocker
+    tmp_path: Path, mocker: MockerFixture
 ) -> None:
     """Повторный вызов setup() на одном и том же ConanEnvironmentManager завершается без ошибок.
 
@@ -296,7 +299,7 @@ def test_conan_environment_manager_setup_is_idempotent_on_double_call(
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_raises_when_remote_list_fails(
-    tmp_path: Path, mocker
+    tmp_path: Path, mocker: MockerFixture
 ) -> None:
     """Если получение списка remotes завершилось ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
@@ -326,7 +329,7 @@ def test_conan_environment_manager_setup_raises_when_remote_list_fails(
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_raises_when_remote_login_fails(
-    tmp_path: Path, mocker
+    tmp_path: Path, mocker: MockerFixture
 ) -> None:
     """Если логин в один из remotes завершился ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
@@ -357,7 +360,9 @@ def test_conan_environment_manager_setup_raises_when_remote_login_fails(
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_install_config_raises_on_invalid_url(mocker) -> None:
+def test_conan_environment_manager_install_config_raises_on_invalid_url(
+    mocker: MockerFixture,
+) -> None:
     """setup() отклоняет config_url без схемы и хоста ещё до обращения к conan CLI.
 
     URL конфигурации всегда должен содержать схему и хост, поскольку в него
@@ -376,7 +381,9 @@ def test_conan_environment_manager_install_config_raises_on_invalid_url(mocker) 
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_raises_when_conan_not_in_path(mocker) -> None:
+def test_conan_environment_manager_setup_raises_when_conan_not_in_path(
+    mocker: MockerFixture,
+) -> None:
     """setup() пробрасывает RuntimeError, если утилита 'conan' не найдена в PATH,
     и не пытается создавать временную директорию или обращаться к conan CLI."""
     mocker.patch("shutil.which", return_value=None)
@@ -394,7 +401,7 @@ def test_conan_environment_manager_setup_raises_when_conan_not_in_path(mocker) -
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_install_config_cleans_up_before_raising_on_subprocess_failure(
-    tmp_path: Path, mocker
+    tmp_path: Path, mocker: MockerFixture
 ) -> None:
     """Если сама команда 'conan config install' завершилась ненулевым кодом,
     _install_config вызывает self.cleanup() (удаляет временный CONAN_HOME) перед

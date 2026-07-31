@@ -290,7 +290,7 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
     observed_states: list[tuple[str, bool, int]] = []
 
     class _ObserveAfterManifest(BaseParseStep):
-        name = "observe_after_manifest_bl_e2e_03"
+        name = "observe_after_manifest"
         is_critical = False
 
         def execute(self, ctx: PipelineContext) -> None:
@@ -352,7 +352,7 @@ def test_pipeline_options_step_wired_without_breaking_data_flow(
     options_by_release: dict[tuple, int] = {}
 
     class _ObserveAfterOptions(BaseParseStep):
-        name = "observe_after_options_bl_e2e_04"
+        name = "observe_after_options"
         is_critical = False
 
         def execute(self, ctx: PipelineContext) -> None:
@@ -551,13 +551,15 @@ def test_full_pipeline_removes_dead_variant_on_404(
                     )
         return FetchResult(value=result, warnings=[])
 
-    class _NotFoundForDeadUrlArtifactoryClient:
-        """Заглушка: HTTP 404 для _DEAD_URL (после преобразования в API-путь), иначе 200."""
+    class _NotFoundForDeadUrlArtifactoryClient(_AlwaysOkArtifactoryClient):
+        """Заглушка: HTTP 404 для _DEAD_URL (после преобразования в API-путь), иначе 200 (см. базовый класс)."""
 
         def check_url(self, url: str) -> requests.Response:
-            resp = requests.Response()
-            resp.status_code = 404 if "patchelf/dead" in url else 200
-            return resp
+            if "patchelf/dead" in url:
+                resp = requests.Response()
+                resp.status_code = 404
+                return resp
+            return super().check_url(url)
 
     mock_conan_fetch.side_effect = _build_patchelf_enrich
 

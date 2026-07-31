@@ -249,7 +249,7 @@ def test_context_components_empty_before_manifest_step(
     observed_counts: list[int] = []
 
     class _ObservingStep(BaseParseStep):
-        name = "observing_step_bl_pp_07"
+        name = "observing_step"
         is_critical = True
 
         def execute(self, ctx: PipelineContext) -> None:
@@ -293,7 +293,7 @@ def test_context_result_none_before_finalize_step(
     observed_results: list = []
 
     class _CheckResultStep(BaseParseStep):
-        name = "check_result_step_bl_pp_08"
+        name = "check_result_step"
         is_critical = False
 
         def execute(self, ctx: PipelineContext) -> None:

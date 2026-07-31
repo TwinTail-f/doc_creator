@@ -4,6 +4,7 @@ import datetime
 from pathlib import Path
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.exceptions import ParsingError
 from autodoc.models.parsed_result import ParsedResult
@@ -152,7 +153,7 @@ def test_component_parser_raises_if_result_not_set(
 
 @pytest.mark.infrastructure
 def test_component_parser_uses_injected_tfs_client(
-    mocker,
+    mocker: MockerFixture,
     parser_config,
     tmp_path,
 ) -> None:
@@ -190,7 +191,7 @@ def test_component_parser_save_intermediate_writes_files(
 
 @pytest.mark.infrastructure
 def test_component_parser_save_intermediate_oserror_logged_not_raised(
-    mocker,
+    mocker: MockerFixture,
     parser_config,
     tmp_path,
 ) -> None:
@@ -229,7 +230,7 @@ def test_component_parser_default_pipeline_step_order(
 
 @pytest.mark.infrastructure
 def test_component_parser_uses_injected_artifactory_client(
-    mocker,
+    mocker: MockerFixture,
     parser_config,
     tmp_path,
 ) -> None:

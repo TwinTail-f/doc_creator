@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import VERSION
@@ -51,7 +52,7 @@ def test_info_exits_zero_and_shows_version(tmp_path: Path, configs_dir: Path) ->
 def test_logs_clear_yes_shows_result_message(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     filenames: list[str],
     expected_substring: str,
 ) -> None:

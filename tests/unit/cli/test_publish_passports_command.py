@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import PASSPORT_TEMPLATE
@@ -40,7 +41,7 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-def _mock_collaborators(mocker, publish_report=None, parsed_ok=True):
+def _mock_collaborators(mocker: MockerFixture, publish_report=None, parsed_ok=True):
     """Подменяет make_publisher и load_parsed_data для `publish passports`.
 
     Args:
@@ -77,7 +78,7 @@ def _mock_collaborators(mocker, publish_report=None, parsed_ok=True):
 def test_publish_passports_root_parent_name_forwarded(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     cli_name: str | None,
     expected_name: str | None,
 ) -> None:
@@ -97,7 +98,7 @@ def test_publish_passports_root_parent_name_forwarded(
 
 @pytest.mark.contract
 def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """--passports-root-parent-name и --passports-root-parent-id можно указывать вместе —
     CLI пробрасывает оба значения в publish_passports без изменений и без проверки
@@ -121,7 +122,7 @@ def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
 
 @pytest.mark.business_logic
 def test_publish_passports_publisher_failure_report_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Неуспешный PublishReport от publish_passports завершает команду с кодом 1."""
     report = make_publish_report(success=False, pages_published=0, errors=["passport boom"])
@@ -135,7 +136,7 @@ def test_publish_passports_publisher_failure_report_exits_nonzero(
 
 @pytest.mark.infrastructure
 def test_publish_passports_missing_parsed_data_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Отсутствующий parsed_data.json завершает команду с кодом 1 и понятным сообщением."""
     _mock_collaborators(mocker, parsed_ok=False)

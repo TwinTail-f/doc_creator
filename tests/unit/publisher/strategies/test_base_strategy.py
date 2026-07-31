@@ -34,7 +34,11 @@ class _StubStrategy(BasePublishStrategy):
         pytest.param("  <p>text</p>  ", "<p>text</p>", id="strips-leading-trailing-whitespace"),
         pytest.param("two  spaces", "two spaces", id="collapses-multiple-spaces"),
         pytest.param("", "", id="empty-string-returns-empty"),
-        pytest.param("><    <", "><" + " " + "<", id="collapses-whitespace-between-tags"),
+        pytest.param(
+            "<div>a</div>   <div>b</div>",
+            "<div>a</div><div>b</div>",
+            id="collapses-whitespace-between-tags",
+        ),
     ],
 )
 def test_minify_html_transforms_html(html: str, expected: str) -> None:
@@ -116,7 +120,7 @@ def test_publish_single_page_adds_space_to_view_model(
     strategy_stub: _StubStrategy,
     publisher_document_builder: Any,
 ) -> None:
-    """Стратегия добавляет ключ _space в view_model перед построением документа."""
+    """Стратегия добавляет ключ space в view_model перед построением документа."""
     strategy_stub._publish_single_page(
         page_title=_PAGE_TITLE,
         template_name=_TEMPLATE_NAME,

@@ -194,7 +194,7 @@ def test_parse_file_invalid_json_returns_empty() -> None:
 @pytest.mark.business_logic
 def test_parse_file_empty_json_object() -> None:
     """parse_file возвращает пустой словарь опций для '{}' без исключений."""
-    channel, cleaned = OptionsParser.parse_file(
+    _, cleaned = OptionsParser.parse_file(
         "{}",
         opt_path=PATH_V2_TECH,
         ci_prefix=CI_PREFIX_V2,
@@ -228,12 +228,19 @@ def test_parse_file_non_string_values_excluded() -> None:
 @pytest.mark.parametrize(
     "repo_data, channel, expected",
     [
-        # канал присутствует среди channels -> используется channel-specific набор, а не global
+        # канал присутствует среди channels -> используется channel-specific набор, а не global;
+        # при наличии нескольких каналов выбирается именно запрошенный (fast), а не slow
         pytest.param(
-            {"global": {"1": ""}, "channels": {"fast": {"1": "", "2": "x=True"}}},
+            {
+                "global": {"1": ""},
+                "channels": {
+                    "fast": {"1": "", "2": "x=True"},
+                    "slow": {"1": "", "2": "y=True"},
+                },
+            },
             "fast",
             {"1": "", "2": "x=True"},
-            id="channel-found-overrides-global",
+            id="channel-found-overrides-global-and-selects-among-multiple",
         ),
         # запрошенный канал отсутствует среди channels -> используется global
         pytest.param(
@@ -284,34 +291,20 @@ def test_parse_file_channel_extraction(
 
 
 @pytest.mark.business_logic
-def test_pick_options_sqlite3_fast_selected_over_slow() -> None:
-    """pick_options с channel='fast' выбирает запись fast, а не slow, когда присутствуют обе."""
-    repo_data = {
-        "global": None,
-        "channels": {
-            "fast": {"1": "", "2": "sqlite3:enable_json1=True"},
-            "slow": {"1": "", "2": "sqlite3:shared=True"},
-        },
-    }
-    result = OptionsParser.pick_options(repo_data, "fast")
-    assert result == {"1": "", "2": "sqlite3:enable_json1=True"}
-
-
-@pytest.mark.business_logic
-def test_pick_options_apr_global_returned_for_any_channel() -> None:
+@pytest.mark.parametrize("channel", ["fast", "slow", "tech", ""])
+def test_pick_options_apr_global_returned_for_any_channel(channel: str) -> None:
     """pick_options возвращает глобальные опции apr независимо от запрошенного канала.
 
     У apr есть только плоский ci-1.6/options.json (без разбивки по каналам),
     поэтому один и тот же набор опций {'1': 'apr:shared=True'} должен
-    возвращаться для 'fast', 'slow' и 'tech'.
+    возвращаться для 'fast', 'slow', 'tech' и пустой строки.
     """
     repo_data = {
         "global": {"1": "apr:shared=True"},
         "channels": {},
     }
-    for channel in ("fast", "slow", "tech", ""):
-        result = OptionsParser.pick_options(repo_data, channel)
-        assert result == {"1": "apr:shared=True"}, f"не совпало для channel={channel!r}"
+    result = OptionsParser.pick_options(repo_data, channel)
+    assert result == {"1": "apr:shared=True"}
 
 
 @pytest.mark.business_logic

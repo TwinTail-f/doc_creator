@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.config.schemas.parser_config import ParserConfigSchema
@@ -23,7 +24,7 @@ _EXIT_FAILURE: int = 1
 
 @pytest.mark.business_logic
 def test_parse_happy_path_writes_parsed_data_and_constructs_parser(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Успешный сценарий сохраняет parsed_data.json и создаёт ComponentParser с загруженным конфигом."""
     write_parser_config(configs_dir)
@@ -87,7 +88,7 @@ def test_parse_config_load_failure_exits_nonzero_with_clean_message(
 def test_parse_skip_flags_control_step_exclusion(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     flags: list[str],
     expected_exclude: list[type] | None,
 ) -> None:
@@ -126,7 +127,7 @@ def test_parse_skip_flags_control_step_exclusion(
     ],
 )
 def test_parse_domain_error_during_parse_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker, exc_cls: type, message: str
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture, exc_cls: type, message: str
 ) -> None:
     """NetworkError/ParsingError, возникающая во время parser.parse(), завершает команду с кодом 1 и понятным сообщением."""
     write_parser_config(configs_dir)
@@ -152,7 +153,7 @@ def test_parse_domain_error_during_parse_exits_nonzero_cleanly(
     ],
 )
 def test_parse_save_intermediate_is_forwarded_to_parser(
-    tmp_path: Path, configs_dir: Path, mocker, flags: list[str], expected: bool
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture, flags: list[str], expected: bool
 ) -> None:
     """--save-intermediate передаётся в parser.parse(save_intermediate=...) в заданном виде."""
     write_parser_config(configs_dir)
@@ -170,7 +171,9 @@ def test_parse_save_intermediate_is_forwarded_to_parser(
 
 
 @pytest.mark.infrastructure
-def test_parse_creates_data_dir_when_missing(tmp_path: Path, configs_dir: Path, mocker) -> None:
+def test_parse_creates_data_dir_when_missing(
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+) -> None:
     """Директория data/ создаётся автоматически, даже если её не было до запуска команды."""
     write_parser_config(configs_dir)
     parsed_result = make_parsed_result()

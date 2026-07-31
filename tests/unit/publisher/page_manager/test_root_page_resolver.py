@@ -8,6 +8,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError, ConfluenceError
@@ -56,7 +57,7 @@ def _config_overrides(section: str, *, name: str | None = None, id_value: str | 
 
 
 def _make_mock_client(
-    mocker: Any,
+    mocker: MockerFixture,
     known_pages: dict[str, str],
     known_ids: set[str] | None = None,
 ) -> Any:
@@ -85,7 +86,7 @@ def _make_mock_client(
 
 
 def _make_resolver(
-    mocker: Any,
+    mocker: MockerFixture,
     minimal_confluence_config: dict,
     known_pages: dict[str, str] | None = None,
     known_ids: set[str] | None = None,
@@ -101,7 +102,7 @@ def _make_resolver(
 
 # _find_page_id / _page_id_exists — сырые обёртки над клиентом, без логики приоритетов.
 @pytest.mark.infrastructure
-def test_find_page_id_found(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_find_page_id_found(mocker: MockerFixture, minimal_confluence_config: dict) -> None:
     """Страница найдена по имени — возвращается её ID."""
     resolver, _ = _make_resolver(
         mocker, minimal_confluence_config, known_pages={"Root Page": "100001"}
@@ -111,7 +112,7 @@ def test_find_page_id_found(mocker: Any, minimal_confluence_config: dict) -> Non
 
 
 @pytest.mark.infrastructure
-def test_find_page_id_not_found_returns_none(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_find_page_id_not_found_returns_none(mocker: MockerFixture, minimal_confluence_config: dict) -> None:
     """Страница не найдена по имени — возвращается None."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_pages={})
 
@@ -119,7 +120,7 @@ def test_find_page_id_not_found_returns_none(mocker: Any, minimal_confluence_con
 
 
 @pytest.mark.infrastructure
-def test_page_id_exists_true_for_known_id(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_page_id_exists_true_for_known_id(mocker: MockerFixture, minimal_confluence_config: dict) -> None:
     """Известный ID — страница считается существующей."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_ids={"100002"})
 
@@ -127,7 +128,7 @@ def test_page_id_exists_true_for_known_id(mocker: Any, minimal_confluence_config
 
 
 @pytest.mark.infrastructure
-def test_page_id_exists_false_for_unknown_id(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_page_id_exists_false_for_unknown_id(mocker: MockerFixture, minimal_confluence_config: dict) -> None:
     """Неизвестный ID — страница считается несуществующей."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config, known_ids=set())
 
@@ -137,7 +138,7 @@ def test_page_id_exists_false_for_unknown_id(mocker: Any, minimal_confluence_con
 # Smoke-тесты _resolve_root_parent напрямую; полная матрица — в TestNameIdPriorityMatrix.
 @pytest.mark.business_logic
 def test_cli_name_resolved_value_passed_through(
-    mocker: Any, minimal_confluence_config: dict
+    mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """CLI-имя резолвится — возвращается найденный ID."""
     resolver, _ = _make_resolver(
@@ -153,7 +154,7 @@ def test_cli_name_resolved_value_passed_through(
 
 @pytest.mark.business_logic
 def test_nothing_set_anywhere_raises_config_error_with_field_label(
-    mocker: Any, minimal_confluence_config: dict
+    mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """Ничего не задано — ConfigError с именем поля."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
@@ -175,7 +176,7 @@ class TestResolveRequiredParent:
     @pytest.mark.business_logic
     def test_cli_name_wins_over_config_id(
         self,
-        mocker: Any,
+        mocker: MockerFixture,
         minimal_confluence_config: dict,
         section: str,
     ) -> None:
@@ -194,7 +195,7 @@ class TestResolveRequiredParent:
     @pytest.mark.business_logic
     def test_cli_name_unresolved_ignores_config_id_entirely(
         self,
-        mocker: Any,
+        mocker: MockerFixture,
         minimal_confluence_config: dict,
         section: str,
     ) -> None:
@@ -215,7 +216,7 @@ class TestResolveRequiredParent:
     @pytest.mark.business_logic
     def test_cli_value_set_silences_conflicting_config_no_warning(
         self,
-        mocker: Any,
+        mocker: MockerFixture,
         minimal_confluence_config: dict,
         caplog: pytest.LogCaptureFixture,
         section: str,
@@ -237,7 +238,7 @@ class TestResolveRequiredParent:
 
 
 def _build_resolver_for_source(
-    mocker: Any,
+    mocker: MockerFixture,
     minimal_confluence_config: dict,
     source: str,
     name: str | None,
@@ -380,7 +381,7 @@ class TestNameIdPriorityMatrix:
     )
     def test_name_id_priority(
         self,
-        mocker: Any,
+        mocker: MockerFixture,
         minimal_confluence_config: dict,
         caplog: pytest.LogCaptureFixture,
         section: str,
@@ -425,7 +426,7 @@ class TestNameIdPriorityMatrix:
 
 @pytest.mark.business_logic
 def test_resolve_single_page_parent_profile_centric_reads_its_own_config_section(
-    mocker: Any, minimal_confluence_config: dict
+    mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """resolve_single_page_parent('profile_centric', ...) читает
     strategies.profile_centric, а не strategies.release."""
@@ -457,7 +458,7 @@ def test_resolve_single_page_parent_profile_centric_reads_its_own_config_section
     ],
 )
 def test_resolve_single_page_parent_rejects_non_single_page_strategy_type(
-    mocker: Any,
+    mocker: MockerFixture,
     minimal_confluence_config: dict,
     strategy_type: str,
 ) -> None:
@@ -471,7 +472,7 @@ def test_resolve_single_page_parent_rejects_non_single_page_strategy_type(
 
 # resolve_root_pages: паспорта + релиз
 @pytest.mark.business_logic
-def test_happy_path_returns_both_resolved_ids(mocker: Any, minimal_confluence_config: dict) -> None:
+def test_happy_path_returns_both_resolved_ids(mocker: MockerFixture, minimal_confluence_config: dict) -> None:
     """Оба значения резолвятся, возвращается кортеж (паспорта, релиз)."""
     resolver, _ = _make_resolver(
         mocker,
@@ -489,7 +490,7 @@ def test_happy_path_returns_both_resolved_ids(mocker: Any, minimal_confluence_co
 
 @pytest.mark.business_logic
 def test_missing_passports_root_propagates_config_error(
-    mocker: Any, minimal_confluence_config: dict
+    mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """Отсутствие корневой страницы паспортов пробрасывает ConfigError."""
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)

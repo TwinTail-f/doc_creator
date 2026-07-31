@@ -14,18 +14,16 @@ UI_URL: str = "https://art.example.com/ui/repos/tree/General/conan2/lib/package"
 _VS_UI_URL_PREFIX: str = "http://art/ui/repos/tree/General/repo"
 
 
-class _MixedClient:
-    """Возвращает 404 для 'dead' и 200 для остальных URL, записывая вызванные URL."""
+class _MixedClient(FakeArtifactoryClient):
+    """Возвращает 404 для 'dead' и 200 для остальных URL, записывая вызванные URL.
 
-    def __init__(self) -> None:
-        self.called_urls: list[str] = []
+    Переиспользует отслеживание called_urls и сборку Response из
+    FakeArtifactoryClient.check_url(), переопределяя только выбор статуса.
+    """
 
-    def check_url(self, url: str) -> requests.Response:
+    def _status_for(self, url: str) -> int:
         """Возвращает 404, если в URL встречается 'dead', иначе 200."""
-        self.called_urls.append(url)
-        resp = requests.Response()
-        resp.status_code = 404 if "dead" in url else 200
-        return resp
+        return 404 if "dead" in url else 200
 
 
 def _make_component_with_variant(

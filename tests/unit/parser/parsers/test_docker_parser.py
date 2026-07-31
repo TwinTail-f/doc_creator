@@ -41,46 +41,38 @@ def test_extract_from_yaml_docker_value_formats(docker_value: object, expected_i
 
 
 @pytest.mark.business_logic
-def test_extract_from_yaml_skips_common_key() -> None:
-    """extract_from_yaml игнорирует записи с зарезервированным ключом 'common'."""
-    content: dict = {
-        "archs": {
-            "common": {"docker": DOCKER_IMAGE},
-        }
-    }
+@pytest.mark.parametrize(
+    "content",
+    [
+        # ключ 'common' зарезервирован и всегда пропускается
+        pytest.param(
+            {"archs": {"common": {"docker": DOCKER_IMAGE}}},
+            id="reserved-common-key",
+        ),
+        # запись arch не содержит поле 'docker'
+        pytest.param(
+            {"archs": {PROFILE_LINUX: {"profile_host": PROFILE_LINUX}}},
+            id="entry-without-docker-field",
+        ),
+        # значение arch не является словарём (ни строка, ни список)
+        pytest.param(
+            {
+                "archs": {
+                    PROFILE_LINUX: "not-a-dict",
+                    "also-bad": ["still", "not", "a", "dict"],
+                }
+            },
+            id="non-dict-arch-value",
+        ),
+        # в content вовсе отсутствует ключ 'archs'
+        pytest.param({}, id="missing-archs-key"),
+    ],
+)
+def test_extract_from_yaml_returns_empty_for_unusable_entries(content: dict) -> None:
+    """extract_from_yaml возвращает пустой маппинг, если ни одна запись 'archs' не
+    даёт docker-образ: зарезервированный ключ 'common', отсутствие поля 'docker',
+    не-словарное значение arch или отсутствие самого ключа 'archs'."""
     links: DockerLinksMap = DockerParser.extract_from_yaml(content)
-    assert links == {}
-
-
-@pytest.mark.business_logic
-def test_extract_from_yaml_skips_entry_without_docker() -> None:
-    """extract_from_yaml пропускает записи arch, не содержащие поле 'docker'."""
-    content: dict = {
-        "archs": {
-            PROFILE_LINUX: {"profile_host": PROFILE_LINUX},
-        }
-    }
-    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
-    assert links == {}
-
-
-@pytest.mark.business_logic
-def test_extract_from_yaml_non_dict_arch_entry_is_skipped() -> None:
-    """extract_from_yaml пропускает запись arch, если её значение не является словарём."""
-    content: dict = {
-        "archs": {
-            PROFILE_LINUX: "not-a-dict",
-            "also-bad": ["still", "not", "a", "dict"],
-        }
-    }
-    links: DockerLinksMap = DockerParser.extract_from_yaml(content)
-    assert links == {}
-
-
-@pytest.mark.business_logic
-def test_extract_from_yaml_missing_archs_key() -> None:
-    """extract_from_yaml не падает и ничего не добавляет, если в content отсутствует ключ 'archs'."""
-    links: DockerLinksMap = DockerParser.extract_from_yaml({})
     assert links == {}
 
 

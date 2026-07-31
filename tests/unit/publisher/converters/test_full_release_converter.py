@@ -135,7 +135,10 @@ def test_header_only_component_has_no_profile_builds_in_view(
     for release_view in comp_view["releases"]:
         assert (
             release_view["profile_builds"] == []
-        ), "header-only компонент не должен иметь profile_builds в view model"@pytest.mark.business_logic
+        ), "header-only компонент не должен иметь profile_builds в view model"
+
+
+@pytest.mark.business_logic
 def test_non_header_only_component_has_profile_builds(
     publisher_parsed_result,
 ) -> None:

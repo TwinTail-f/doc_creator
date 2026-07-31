@@ -2,9 +2,8 @@
 Тесты для autodoc.publisher.clients.confluence_client.ConfluenceClient.
 """
 
-from typing import Any
-
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfluenceError, PublishError
@@ -18,7 +17,7 @@ PARENT_ID: str = "root-001"
 
 
 @pytest.fixture
-def confluence_client(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
+def confluence_client(minimal_confluence_config: dict, mocker: MockerFixture) -> ConfluenceClient:
     """ConfluenceClient с полностью замоканным ConfluenceTransport."""
     config = ConfluenceConfigSchema(**minimal_confluence_config)
     mock_transport = mocker.MagicMock()
@@ -32,7 +31,7 @@ def confluence_client(minimal_confluence_config: dict, mocker: Any) -> Confluenc
 
 
 @pytest.fixture
-def confluence_client_move_policy(minimal_confluence_config: dict, mocker: Any) -> ConfluenceClient:
+def confluence_client_move_policy(minimal_confluence_config: dict, mocker: MockerFixture) -> ConfluenceClient:
     """ConfluenceClient, настроенный с title_conflict_policy='move' через публичный конфиг.
 
     Собирает его через ConfluenceConfigSchema, а не прямой подменой приватного
@@ -428,7 +427,7 @@ def test_resolve_existing_page_id_reraises_confluence_error_on_move_failure(
 
 @pytest.mark.infrastructure
 def test_confluence_client_passes_timeout_to_session(
-    minimal_confluence_config: dict, mocker: Any
+    minimal_confluence_config: dict, mocker: MockerFixture
 ) -> None:
     """ConfluenceClient передаёт confluence_request_timeout в create_bearer_session через ConfluenceTransport."""
     custom_timeout = 99
