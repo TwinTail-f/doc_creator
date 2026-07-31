@@ -104,12 +104,12 @@ def publish_all(
     cli_ctx: CliCtx = ctx.obj
 
     with cli_error_boundary("🚀 Публикация: паспорта + релиз"):
-        publisher, conf_config = make_publisher(cli_ctx)
+        publisher, confluence_config = make_publisher(cli_ctx)
         parsed_data = load_parsed_data(cli_ctx.base_dir)
 
         final_title = (
             release_doc_page_name
-            or conf_config.strategies.release.page_title
+            or confluence_config.strategies.release.page_title
             or DEFAULT_RELEASE_PAGE_TITLE
         )
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pytest_mock import MockerFixture
 
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
@@ -54,7 +55,7 @@ def test_release_strategy_execute_calls_publish_single_page(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """execute() в конечном счёте вызывает client.publish_page с корректным заголовком."""
     mocker.patch.object(PassportPageRegistry, "load", return_value={})
@@ -76,7 +77,7 @@ def test_release_strategy_execute_returns_success_report(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """Успешный execute() возвращает report.success=True и pages_published=1."""
     mocker.patch.object(PassportPageRegistry, "load", return_value={})
@@ -104,7 +105,7 @@ def test_release_strategy_loads_registry_iff_include_links_true(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
     include_passport_links: bool,
     expected_load_calls: int,
 ) -> None:
@@ -127,7 +128,7 @@ def test_release_strategy_execute_returns_failure_on_client_error(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """Если publish_page выбрасывает ConfluenceError, report.success равен False."""
     mocker.patch.object(PassportPageRegistry, "load", return_value={})
@@ -154,7 +155,7 @@ def test_release_make_converter_creates_full_release_converter(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """create_strategy('release', ...) подключает FullReleaseConverter с переданным include_passport_links."""
     mocker.patch.object(PassportPageRegistry, "load", return_value={})
@@ -185,7 +186,7 @@ def test_links_injected_into_view_model_from_registry(
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
-    mocker: Any,
+    mocker: MockerFixture,
 ) -> None:
     """После загрузки реестра ссылки на паспорта внедряются в view-model, чтобы
     шаблон мог отрендерить кликабельные ссылки на каждую страницу паспорта:

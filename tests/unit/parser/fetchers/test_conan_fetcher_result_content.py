@@ -17,7 +17,7 @@ from autodoc.parser.conan.models.conan_enrichment_result import (
 )
 from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
-from tests.unit.parser.fetchers.conftest import _make_mock_ctx, _patch_full_fetch_pipeline
+from tests.unit.parser.fetchers.utils import make_mock_ctx, patch_full_fetch_pipeline
 
 
 def _build_fake_result_cases() -> list:
@@ -100,10 +100,10 @@ def test_conan_fetcher_result_content_passes_through(
     которые мокируют результат целиком: ключи release_data/profile_data,
     вложенную структуру errors и счётчики задач.
     """
-    _, _, _, _, mock_agg_cls = _patch_full_fetch_pipeline(mocker)
+    *_, mock_agg_cls = patch_full_fetch_pipeline(mocker)
     mock_agg_cls.return_value.aggregate.return_value = fake_result
 
-    ctx = _make_mock_ctx(mocker)
+    ctx = make_mock_ctx(mocker)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
     result: FetchResult[ConanEnrichmentResult] = fetcher.fetch([mocker.MagicMock()])

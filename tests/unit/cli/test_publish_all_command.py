@@ -50,14 +50,14 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-def _mock_collaborators(mocker, publish_report=None, conf_config=None):
+def _mock_collaborators(mocker, publish_report=None, confluence_config=None):
     """Подменяет make_publisher и load_parsed_data для `publish all` и возвращает поддельный publisher.
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
         publish_report: Отчёт о публикации, который вернёт publish_all
             (по умолчанию — успешный отчёт).
-        conf_config: Конфиг Confluence, возвращаемый make_publisher
+        confluence_config: Конфиг Confluence, возвращаемый make_publisher
             (по умолчанию — минимальный валидный конфиг).
 
     Returns:
@@ -67,7 +67,7 @@ def _mock_collaborators(mocker, publish_report=None, conf_config=None):
     mock_publisher.publish_all.return_value = publish_report or make_publish_report()
     mocker.patch(
         "autodoc.cli.commands.publish.all.make_publisher",
-        return_value=(mock_publisher, conf_config or make_confluence_config()),
+        return_value=(mock_publisher, confluence_config or make_confluence_config()),
     )
     mocker.patch(
         "autodoc.cli.commands.publish.all.load_parsed_data",
@@ -111,8 +111,8 @@ def test_publish_all_release_page_title_precedence(
     expected: str,
 ) -> None:
     """Приоритет источников заголовка релиза: флаг CLI > поле конфига > значение по умолчанию."""
-    conf_config = make_confluence_config(**strategy_override("release", page_title=config_title))
-    mock_publisher = _mock_collaborators(mocker, conf_config=conf_config)
+    confluence_config = make_confluence_config(**strategy_override("release", page_title=config_title))
+    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     args = ["--release-doc-page-name", cli_title] if cli_title else []
     result = _invoke(tmp_path, configs_dir, *args)

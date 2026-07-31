@@ -13,7 +13,7 @@ from pytest_mock import MockerFixture
 from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
-from tests.unit.parser.fetchers.conftest import _make_mock_ctx, _patch_full_fetch_pipeline
+from tests.unit.parser.fetchers.utils import make_mock_ctx, patch_full_fetch_pipeline
 
 _OVERRIDES_FILE_PATH: str = "/etc/autodoc/profile_overrides.json"
 
@@ -25,7 +25,7 @@ def test_conan_fetcher_raises_if_conan_config_url_not_set(
     mocker: MockerFixture,
 ) -> None:
     """configure() + fetch() выбрасывает RuntimeError, когда conan_config_url пуст."""
-    ctx = _make_mock_ctx(mocker, conan_config_url="")
+    ctx = make_mock_ctx(mocker, conan_config_url="")
 
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
@@ -44,7 +44,7 @@ def test_conan_fetcher_returns_empty_on_empty_component_list(
 
     mock_executor_cls: MagicMock = mocker.patch(f"{_MODULE}.ParallelExecutor")
 
-    ctx = _make_mock_ctx(mocker)
+    ctx = make_mock_ctx(mocker)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
 
@@ -69,7 +69,7 @@ def test_conan_fetcher_cleanup_called_on_setup_failure(
     mock_manager.setup.side_effect = RuntimeError("setup failed")
     mocker.patch(f"{_MODULE}.ConanEnvironmentManager", return_value=mock_manager)
 
-    ctx = _make_mock_ctx(mocker)
+    ctx = make_mock_ctx(mocker)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
 
@@ -97,7 +97,7 @@ def test_conan_fetcher_overrides_loaded_only_when_file_configured(
         return_value=mocker.MagicMock(is_empty=lambda: True),
     )
 
-    ctx = _make_mock_ctx(mocker, overrides_file=overrides_file)
+    ctx = make_mock_ctx(mocker, overrides_file=overrides_file)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
 
@@ -122,14 +122,14 @@ def test_conan_fetcher_parallel_executor_receives_task_list(
         _mock_runner_cls,
         mock_executor_cls,
         _mock_agg_cls,
-    ) = _patch_full_fetch_pipeline(mocker, tasks=expected_tasks)
+    ) = patch_full_fetch_pipeline(mocker, tasks=expected_tasks)
 
     mock_executor_cls.return_value.execute.return_value = [
         mocker.MagicMock(),
         mocker.MagicMock(),
     ]
 
-    ctx = _make_mock_ctx(mocker)
+    ctx = make_mock_ctx(mocker)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
     fetcher.fetch([mocker.MagicMock(name="component")])
@@ -150,7 +150,7 @@ def test_conan_fetcher_aggregation_errors_in_result(
         _mock_runner_cls,
         _mock_executor_cls,
         mock_agg_cls,
-    ) = _patch_full_fetch_pipeline(mocker)
+    ) = patch_full_fetch_pipeline(mocker)
 
     expected_errors: dict = {
         "openssl": {"1.0.0": {"stable": {"hw-linux-x86_64-gcc10_2": ["graph info failed"]}}}
@@ -158,7 +158,7 @@ def test_conan_fetcher_aggregation_errors_in_result(
     enrichment_result_with_errors = ConanEnrichmentResult(errors=expected_errors)
     mock_agg_cls.return_value.aggregate.return_value = enrichment_result_with_errors
 
-    ctx = _make_mock_ctx(mocker)
+    ctx = make_mock_ctx(mocker)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
     result: FetchResult[ConanEnrichmentResult] = fetcher.fetch([mocker.MagicMock(name="component")])
@@ -177,9 +177,9 @@ def test_conan_fetcher_forwards_exact_range_components_to_task_builder(
         _mock_runner_cls,
         _mock_executor_cls,
         _mock_agg_cls,
-    ) = _patch_full_fetch_pipeline(mocker)
+    ) = patch_full_fetch_pipeline(mocker)
 
-    ctx = _make_mock_ctx(mocker)
+    ctx = make_mock_ctx(mocker)
     ctx.config.exact_range_components = ["stunnel", "openssh"]
 
     fetcher = ConanFetcher()
@@ -207,9 +207,9 @@ def test_conan_fetcher_forwards_loaded_overrides_to_task_builder(
         _mock_runner_cls,
         _mock_executor_cls,
         _mock_agg_cls,
-    ) = _patch_full_fetch_pipeline(mocker)
+    ) = patch_full_fetch_pipeline(mocker)
 
-    ctx = _make_mock_ctx(mocker, overrides_file=_OVERRIDES_FILE_PATH)
+    ctx = make_mock_ctx(mocker, overrides_file=_OVERRIDES_FILE_PATH)
     fetcher = ConanFetcher()
     fetcher.configure(ctx)
     fetcher.fetch([mocker.MagicMock(name="component")])

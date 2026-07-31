@@ -123,10 +123,10 @@ def make_publisher(
     Raises:
         ConfigError: Если конфигурацию Confluence не удалось загрузить.
     """
-    conf_config = cli_ctx.config_manager.load_confluence_config(config_file)
-    if conf_config is None:
+    confluence_config = cli_ctx.config_manager.load_confluence_config(config_file)
+    if confluence_config is None:
         raise ConfigError("Не удалось загрузить конфигурацию Confluence.")
-    return DocumentPublisher(conf_config), conf_config
+    return DocumentPublisher(confluence_config), confluence_config
 
 
 def print_publish_result(result: PublishReport) -> None:

@@ -29,28 +29,6 @@ archs:
 """
 
 
-class _ContentFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient, возвращающий настраиваемый ответ из get_file_content."""
-
-    def __init__(self, content: bytes, status_code: int = 200) -> None:
-        """
-        Args:
-            content: Байты, возвращаемые как тело ответа.
-            status_code: HTTP-код статуса ответа.
-        """
-        self._content = content
-        self._status_code = status_code
-
-    def get_file_content(
-        self, items_url: str, path: str, branch: str, version_type=None
-    ) -> requests.Response:
-        """Возвращает ответ с настроенным кодом статуса и содержимым."""
-        resp = requests.Response()
-        resp.status_code = self._status_code
-        resp._content = self._content
-        return resp
-
-
 class _RaisingFakeTFSClient(FakeTFSClient):
     """FakeTFSClient, чей get_file_content вызывает requests.ConnectionError."""
 
@@ -65,13 +43,7 @@ class _TrackingFakeTFSClient(FakeTFSClient):
     """FakeTFSClient, запоминающий ветку, переданную в каждый вызов get_file_content."""
 
     def __init__(self, content: bytes = b"", status_code: int = 200) -> None:
-        """
-        Args:
-            content: Байты, возвращаемые как тело ответа.
-            status_code: HTTP-код статуса ответа.
-        """
-        self._content = content
-        self._status_code = status_code
+        super().__init__(content=content, status_code=status_code)
         self.received_branches: list[str] = []
 
     def get_file_content(
@@ -79,10 +51,7 @@ class _TrackingFakeTFSClient(FakeTFSClient):
     ) -> requests.Response:
         """Запоминает переданную ветку и возвращает настроенный ответ."""
         self.received_branches.append(branch)
-        resp = requests.Response()
-        resp.status_code = self._status_code
-        resp._content = self._content
-        return resp
+        return super().get_file_content(items_url, path, branch, version_type)
 
 
 def _make_context(
@@ -104,7 +73,7 @@ def test_docker_fetcher_extracts_links_from_yaml(
     tmp_path: Path,
 ) -> None:
     """DockerFetcher возвращает docker-ссылку для каждого профиля, найденного в YAML."""
-    tfs_client = _ContentFakeTFSClient(content=YAML_CONTENT.encode())
+    tfs_client = FakeTFSClient(content=YAML_CONTENT.encode())
     ctx = _make_context(parser_config, tfs_client, tmp_path)
     fetcher = DockerFetcher()
     fetcher.configure(ctx)
@@ -140,9 +109,9 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
         # get_file_content выбрасывает сетевое исключение
         _RaisingFakeTFSClient,
         # тело ответа — некорректный YAML
-        lambda: _ContentFakeTFSClient(content=b"[unclosed: mapping: {"),
+        lambda: FakeTFSClient(content=b"[unclosed: mapping: {"),
         # get_file_content вернул не-200 статус без исключения
-        lambda: _ContentFakeTFSClient(content=YAML_CONTENT.encode(), status_code=404),
+        lambda: FakeTFSClient(content=YAML_CONTENT.encode(), status_code=404),
     ],
     ids=["network-error", "invalid-yaml", "http-404"],
 )

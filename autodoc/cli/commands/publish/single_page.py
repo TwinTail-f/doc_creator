@@ -109,8 +109,8 @@ def run_single_page_command(
         parsed_data = load_parsed_data(cli_ctx.base_dir)
         console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
 
-        publisher, conf_config = make_publisher(cli_ctx)
-        strategy_fields = getattr(conf_config.strategies, strategy_type)
+        publisher, confluence_config = make_publisher(cli_ctx)
+        strategy_fields = getattr(confluence_config.strategies, strategy_type)
         final_title = page_title or strategy_fields.page_title or default_title
 
         console.print("🔄 Публикация в Confluence…", style="cyan")

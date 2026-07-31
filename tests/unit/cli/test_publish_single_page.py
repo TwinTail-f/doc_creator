@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import (
@@ -57,7 +58,13 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
     )
 
 
-def _mock_collaborators(mocker, module: str, publish_report=None, conf_config=None, parsed_ok=True):
+def _mock_collaborators(
+    mocker: MockerFixture,
+    module: str,
+    publish_report=None,
+    confluence_config=None,
+    parsed_ok=True,
+):
     """Подменяет make_publisher и load_parsed_data для заданного модуля single-page команды.
 
     Args:
@@ -65,7 +72,7 @@ def _mock_collaborators(mocker, module: str, publish_report=None, conf_config=No
         module: Полный путь модуля команды, в котором нужно подменить зависимости.
         publish_report: Отчёт о публикации, который вернёт publish_single_page
             (по умолчанию — успешный отчёт).
-        conf_config: Конфиг Confluence, возвращаемый make_publisher
+        confluence_config: Конфиг Confluence, возвращаемый make_publisher
             (по умолчанию — минимальный валидный конфиг).
         parsed_ok: Признак того, нужно ли подменять load_parsed_data
             валидным результатом (False имитирует отсутствие parsed_data.json).
@@ -77,7 +84,7 @@ def _mock_collaborators(mocker, module: str, publish_report=None, conf_config=No
     mock_publisher.publish_single_page.return_value = publish_report or make_publish_report()
     mocker.patch(
         f"{module}.make_publisher",
-        return_value=(mock_publisher, conf_config or make_confluence_config()),
+        return_value=(mock_publisher, confluence_config or make_confluence_config()),
     )
     if parsed_ok:
         mocker.patch(f"{module}.load_parsed_data", return_value=make_parsed_result())
@@ -96,14 +103,14 @@ def _mock_collaborators(mocker, module: str, publish_report=None, conf_config=No
 def test_publish_release_page_title_precedence(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     cli_title: str | None,
     config_title: str | None,
     expected: str,
 ) -> None:
     """Приоритет источников заголовка страницы для release: флаг CLI > поле конфига > значение по умолчанию."""
-    conf_config = make_confluence_config(**strategy_override("release", page_title=config_title))
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, conf_config=conf_config)
+    confluence_config = make_confluence_config(**strategy_override("release", page_title=config_title))
+    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, confluence_config=confluence_config)
 
     args = ["--page-title", cli_title] if cli_title else []
     result = _invoke(tmp_path, configs_dir, "release", *args)
@@ -115,7 +122,7 @@ def test_publish_release_page_title_precedence(
 
 @pytest.mark.contract
 def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """--root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
     в publish_single_page как есть; решение о приоритете и конфликте между ними принимает
@@ -140,7 +147,7 @@ def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
 
 @pytest.mark.business_logic
 def test_publish_release_no_passport_links_disables_links(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """--no-passport-links устанавливает include_passport_links=False для release."""
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
@@ -154,7 +161,7 @@ def test_publish_release_no_passport_links_disables_links(
 
 @pytest.mark.business_logic
 def test_publish_release_passes_release_strategy_type(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """publish release передаёт strategy_type='release' и RELEASE_TEMPLATE в publish_single_page."""
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
@@ -169,7 +176,7 @@ def test_publish_release_passes_release_strategy_type(
 
 @pytest.mark.infrastructure
 def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Отсутствующий parsed_data.json (DocGeneratorError из load_parsed_data) завершает команду с кодом 1 без ошибок вывода."""
     _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, parsed_ok=False)
@@ -185,7 +192,7 @@ def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
 
 @pytest.mark.business_logic
 def test_publish_release_publisher_failure_report_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Неуспешный PublishReport от publish_single_page завершает команду с кодом 1 для release."""
     report = make_publish_report(success=False, pages_published=0, errors=["boom"])
@@ -199,7 +206,7 @@ def test_publish_release_publisher_failure_report_exits_nonzero(
 
 @pytest.mark.business_logic
 def test_publish_profile_passes_profile_centric_strategy_type(
-    tmp_path: Path, configs_dir: Path, mocker
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """publish profile передаёт strategy_type='profile_centric' и PROFILE_TEMPLATE."""
     mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
@@ -225,18 +232,18 @@ def test_publish_profile_passes_profile_centric_strategy_type(
 def test_publish_profile_title_source(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     config_title: str | None,
     expected_title: str,
 ) -> None:
     """Источником заголовка по умолчанию для profile служит
-    conf_config.strategies.profile_centric.page_title (а не
-    conf_config.strategies.release.page_title, как у release); при его отсутствии
+    confluence_config.strategies.profile_centric.page_title (а не
+    confluence_config.strategies.release.page_title, как у release); при его отсутствии
     используется DEFAULT_PROFILE_PAGE_TITLE."""
-    conf_config = make_confluence_config(
+    confluence_config = make_confluence_config(
         **strategy_override("profile_centric", page_title=config_title)
     )
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, conf_config=conf_config)
+    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, confluence_config=confluence_config)
 
     result = _invoke(tmp_path, configs_dir, "profile")
 
@@ -258,7 +265,7 @@ def test_publish_profile_title_source(
 def test_run_single_page_command_rejects_invalid_strategy_type(
     tmp_path: Path,
     configs_dir: Path,
-    mocker,
+    mocker: MockerFixture,
     capsys: pytest.CaptureFixture,
     bad_strategy_type: str,
 ) -> None:

@@ -170,15 +170,15 @@ def test_make_publisher_missing_config_raises_config_error(
 def test_make_publisher_valid_config_returns_publisher_and_config(
     tmp_path: Path, configs_dir: Path, mocker
 ) -> None:
-    """Валидный конфиг Confluence возвращает кортеж (DocumentPublisher, conf_config)."""
+    """Валидный конфиг Confluence возвращает кортеж (DocumentPublisher, confluence_config)."""
     mocker.patch("autodoc.publisher.publisher.ConfluenceClient")
     write_confluence_config(configs_dir)
     cli_ctx = CliCtx(tmp_path, configs_dir, verbose=False)
 
-    publisher, conf_config = make_publisher(cli_ctx)
+    publisher, confluence_config = make_publisher(cli_ctx)
 
     assert isinstance(publisher, DocumentPublisher)
-    assert conf_config == make_confluence_config()
+    assert confluence_config == make_confluence_config()
 
 
 @pytest.mark.business_logic

@@ -8,7 +8,6 @@ FakeTFSClient — заглушка-пустышка для реального TF
 
 from pathlib import Path
 import shutil
-import unittest.mock as mock
 
 import pytest
 import requests
@@ -66,7 +65,26 @@ class FakeTFSClient:
 
     Сигнатуры методов зеркалируют реальный TFSClient, поэтому код с проверкой
     типов может использовать FakeTFSClient как замену в тестах.
+
+    Ответ ``get_file_content`` настраивается через конструктор (``content``,
+    ``status_code``): для простых сценариев не нужно писать отдельный
+    подкласс, достаточно ``FakeTFSClient(content=..., status_code=...)``.
+    Значения хранятся как атрибуты класса, поэтому подклассы с собственным
+    ``__init__`` (не вызывающим ``super().__init__()``) по-прежнему получают
+    безопасные значения по умолчанию.
     """
+
+    _content: bytes = b""
+    _status_code: int = 200
+
+    def __init__(self, content: bytes = b"", status_code: int = 200) -> None:
+        """
+        Args:
+            content: Байты, возвращаемые как тело ответа get_file_content.
+            status_code: HTTP-код статуса ответа get_file_content.
+        """
+        self._content = content
+        self._status_code = status_code
 
     def get_file_content(
         self,
@@ -75,12 +93,15 @@ class FakeTFSClient:
         branch: str,
         version_type=None,
     ) -> requests.Response:
-        """Возвращает пустой ответ 200 по умолчанию."""
-        resp = mock.MagicMock(spec=requests.Response)
-        resp.status_code = 200
-        resp.content = b""
-        resp.text = ""
-        resp.raise_for_status.return_value = None
+        """Возвращает ответ с настроенными в конструкторе content/status_code (по умолчанию — пустой 200).
+
+        Собирается как настоящий ``requests.Response`` (а не MagicMock), чтобы
+        ``raise_for_status()`` реально поднимал ``HTTPError`` при status_code >= 400 —
+        как это делает реальный TFSClient.
+        """
+        resp = requests.Response()
+        resp.status_code = self._status_code
+        resp._content = self._content
         return resp
 
     def get_items(
