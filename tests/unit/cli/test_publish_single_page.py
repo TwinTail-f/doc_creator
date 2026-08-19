@@ -66,11 +66,6 @@ def _mock_collaborators(
 ):
     """Подменяет make_publisher и load_parsed_data в модуле single-page команды.
 
-    Подмена всегда выполняется в месте использования (`_SINGLE_PAGE_MODULE`),
-    а не в модуле, где объявлены `make_publisher`/`load_parsed_data`, — так и
-    работает `mocker.patch`. Отдельного параметра под модуль не нужно: все
-    тесты в этом файле бьют по одной и той же команде.
-
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
         publish_report: Отчёт о публикации, который вернёт publish_single_page
