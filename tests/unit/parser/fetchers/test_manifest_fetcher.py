@@ -51,18 +51,16 @@ def _make_context(
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "filename, expected_release_count",
+    "filename",
     [
         # реальный nlohmann_json.properties через CopyingFakeTFSClient даёт ровно 1 компонент
-        pytest.param("nlohmann_json.properties", None, id="nlohmann-json"),
-        # синтетический header-only манифест: 1 компонент / 1 релиз (fetcher-parser связка)
-        pytest.param(
-            "nlohmann_json_fast_only.properties", 1, id="single-version-single-channel-fast"
-        ),
-        # patchelf: несколько версий в одном канале -> 1 компонент / 2 релиза
-        pytest.param("patchelf.properties", 2, id="patchelf-two-versions-one-channel"),
+        pytest.param("nlohmann_json.properties", id="nlohmann-json"),
+        # синтетический header-only манифест: 1 компонент (fetcher-parser связка)
+        pytest.param("nlohmann_json_fast_only.properties", id="single-version-single-channel-fast"),
+        # patchelf: несколько версий в одном канале -> всё равно 1 компонент
+        pytest.param("patchelf.properties", id="patchelf-two-versions-one-channel"),
         # libnetfilter_queue (внешний TFS-проект, не DEP_Components) обрабатывается без ошибок
-        pytest.param("libnetfilter_queue.properties", None, id="external-project-no-error"),
+        pytest.param("libnetfilter_queue.properties", id="external-project-no-error"),
     ],
 )
 def test_manifest_fetcher_single_file_scenarios(
@@ -70,10 +68,9 @@ def test_manifest_fetcher_single_file_scenarios(
     real_manifests_dir: Path,
     tmp_path: Path,
     filename: str,
-    expected_release_count: int | None,
 ) -> None:
-    """Собирает ctx с CopyingFakeTFSClient(<один файл>), вызывает fetch() и проверяет
-    количество компонентов (и, где применимо, релизов) и отсутствие предупреждений."""
+    """Собирает ctx с CopyingFakeTFSClient(<один файл>), вызывает fetch() и проверяет,
+    что каждый .properties-файл даёт ровно один компонент без предупреждений."""
     ctx = _make_context(
         parser_config,
         CopyingFakeTFSClient(real_manifests_dir / filename),
@@ -86,8 +83,47 @@ def test_manifest_fetcher_single_file_scenarios(
     components = result.value
 
     assert len(components) == 1
-    if expected_release_count is not None:
-        assert len(components[0].releases) == expected_release_count
+    assert result.warnings == []
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "filename, expected_release_count",
+    [
+        # синтетический header-only манифест: 1 версия / 1 канал -> 1 релиз (fetcher-parser связка)
+        pytest.param(
+            "nlohmann_json_fast_only.properties", 1, id="single-version-single-channel-fast"
+        ),
+        # patchelf: несколько версий в одном канале -> 1 компонент / 2 релиза
+        pytest.param("patchelf.properties", 2, id="patchelf-two-versions-one-channel"),
+    ],
+)
+def test_manifest_fetcher_release_count(
+    parser_config: ParserConfigSchema,
+    real_manifests_dir: Path,
+    tmp_path: Path,
+    filename: str,
+    expected_release_count: int,
+) -> None:
+    """Для манифестов с предсказуемым числом версий проверяет точное количество
+    releases у единственного полученного компонента.
+
+    Вынесено из test_manifest_fetcher_single_file_scenarios: для nlohmann_json.properties
+    и libnetfilter_queue.properties (реальные многосуффиксные манифесты) точное число
+    releases не является предметом проверки этого теста и туда не подмешивается."""
+    ctx = _make_context(
+        parser_config,
+        CopyingFakeTFSClient(real_manifests_dir / filename),
+        tmp_path,
+    )
+    fetcher = ManifestFetcher()
+    fetcher.configure(ctx)
+
+    result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
+    components = result.value
+
+    assert len(components) == 1
+    assert len(components[0].releases) == expected_release_count
     assert result.warnings == []
 
 

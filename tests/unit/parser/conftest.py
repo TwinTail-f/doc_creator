@@ -67,8 +67,11 @@ class FakeTFSClient:
     типов может использовать FakeTFSClient как замену в тестах.
 
     Ответ ``get_file_content`` настраивается через конструктор (``content``,
-    ``status_code``): для простых сценариев не нужно писать отдельный
-    подкласс, достаточно ``FakeTFSClient(content=..., status_code=...)``.
+    ``status_code``, ``exception``), а список ``get_items`` — через ``items``:
+    для простых сценариев не нужно писать отдельный подкласс, достаточно
+    ``FakeTFSClient(content=..., status_code=...)``,
+    ``FakeTFSClient(exception=...)`` для имитации сетевого сбоя или
+    ``FakeTFSClient(items=[...])`` для настройки списка элементов.
     Значения хранятся как атрибуты класса, поэтому подклассы с собственным
     ``__init__`` (не вызывающим ``super().__init__()``) по-прежнему получают
     безопасные значения по умолчанию.
@@ -76,15 +79,29 @@ class FakeTFSClient:
 
     _content: bytes = b""
     _status_code: int = 200
+    _exception: Exception | None = None
+    _items: list = []
 
-    def __init__(self, content: bytes = b"", status_code: int = 200) -> None:
+    def __init__(
+        self,
+        content: bytes = b"",
+        status_code: int = 200,
+        exception: Exception | None = None,
+        items: list | None = None,
+    ) -> None:
         """
         Args:
             content: Байты, возвращаемые как тело ответа get_file_content.
             status_code: HTTP-код статуса ответа get_file_content.
+            exception: Если задано, get_file_content поднимает это исключение
+                вместо возврата ответа (имитация сетевого сбоя).
+            items: Список item-словарей, возвращаемых get_items. По умолчанию
+                пустой список.
         """
         self._content = content
         self._status_code = status_code
+        self._exception = exception
+        self._items = items if items is not None else []
 
     def get_file_content(
         self,
@@ -93,12 +110,15 @@ class FakeTFSClient:
         branch: str,
         version_type=None,
     ) -> requests.Response:
-        """Возвращает ответ с настроенными в конструкторе content/status_code (по умолчанию — пустой 200).
+        """Возвращает ответ с настроенными в конструкторе content/status_code (по умолчанию — пустой 200)
+        либо поднимает настроенное в конструкторе исключение.
 
         Собирается как настоящий ``requests.Response`` (а не MagicMock), чтобы
         ``raise_for_status()`` реально поднимал ``HTTPError`` при status_code >= 400 —
         как это делает реальный TFSClient.
         """
+        if self._exception is not None:
+            raise self._exception
         resp = requests.Response()
         resp.status_code = self._status_code
         resp._content = self._content
@@ -111,8 +131,8 @@ class FakeTFSClient:
         recursion=None,
         version_type=None,
     ) -> list:
-        """Возвращает пустой список элементов по умолчанию."""
-        return []
+        """Возвращает список элементов, настроенный в конструкторе (по умолчанию — пустой)."""
+        return self._items
 
     def download_properties(
         self,

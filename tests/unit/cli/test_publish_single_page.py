@@ -60,16 +60,19 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
 
 def _mock_collaborators(
     mocker: MockerFixture,
-    module: str,
     publish_report=None,
     confluence_config=None,
     parsed_ok=True,
 ):
-    """Подменяет make_publisher и load_parsed_data для заданного модуля single-page команды.
+    """Подменяет make_publisher и load_parsed_data в модуле single-page команды.
+
+    Подмена всегда выполняется в месте использования (`_SINGLE_PAGE_MODULE`),
+    а не в модуле, где объявлены `make_publisher`/`load_parsed_data`, — так и
+    работает `mocker.patch`. Отдельного параметра под модуль не нужно: все
+    тесты в этом файле бьют по одной и той же команде.
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
-        module: Полный путь модуля команды, в котором нужно подменить зависимости.
         publish_report: Отчёт о публикации, который вернёт publish_single_page
             (по умолчанию — успешный отчёт).
         confluence_config: Конфиг Confluence, возвращаемый make_publisher
@@ -83,11 +86,11 @@ def _mock_collaborators(
     mock_publisher = mocker.MagicMock()
     mock_publisher.publish_single_page.return_value = publish_report or make_publish_report()
     mocker.patch(
-        f"{module}.make_publisher",
+        f"{_SINGLE_PAGE_MODULE}.make_publisher",
         return_value=(mock_publisher, confluence_config or make_confluence_config()),
     )
     if parsed_ok:
-        mocker.patch(f"{module}.load_parsed_data", return_value=make_parsed_result())
+        mocker.patch(f"{_SINGLE_PAGE_MODULE}.load_parsed_data", return_value=make_parsed_result())
     return mock_publisher
 
 
@@ -110,7 +113,7 @@ def test_publish_release_page_title_precedence(
 ) -> None:
     """Приоритет источников заголовка страницы для release: флаг CLI > поле конфига > значение по умолчанию."""
     confluence_config = make_confluence_config(**strategy_override("release", page_title=config_title))
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, confluence_config=confluence_config)
+    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     args = ["--page-title", cli_title] if cli_title else []
     result = _invoke(tmp_path, configs_dir, "release", *args)
@@ -127,7 +130,7 @@ def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
     """--root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
     в publish_single_page как есть; решение о приоритете и конфликте между ними принимает
     RootPageResolver, а не эта команда."""
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(
         tmp_path,
@@ -150,7 +153,7 @@ def test_publish_release_no_passport_links_disables_links(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """--no-passport-links устанавливает include_passport_links=False для release."""
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, "release", "--no-passport-links")
 
@@ -164,7 +167,7 @@ def test_publish_release_passes_release_strategy_type(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """publish release передаёт strategy_type='release' и RELEASE_TEMPLATE в publish_single_page."""
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, "release")
 
@@ -179,7 +182,7 @@ def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """Отсутствующий parsed_data.json (DocGeneratorError из load_parsed_data) завершает команду с кодом 1 без ошибок вывода."""
-    _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, parsed_ok=False)
+    _mock_collaborators(mocker, parsed_ok=False)
     # data/parsed_data.json намеренно не записывается в tmp_path, поэтому
     # реальный load_parsed_data() вызывает DocGeneratorError.
 
@@ -196,7 +199,7 @@ def test_publish_release_publisher_failure_report_exits_nonzero(
 ) -> None:
     """Неуспешный PublishReport от publish_single_page завершает команду с кодом 1 для release."""
     report = make_publish_report(success=False, pages_published=0, errors=["boom"])
-    _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, publish_report=report)
+    _mock_collaborators(mocker, publish_report=report)
 
     result = _invoke(tmp_path, configs_dir, "release")
 
@@ -209,7 +212,7 @@ def test_publish_profile_passes_profile_centric_strategy_type(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """publish profile передаёт strategy_type='profile_centric' и PROFILE_TEMPLATE."""
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, "profile")
 
@@ -243,7 +246,7 @@ def test_publish_profile_title_source(
     confluence_config = make_confluence_config(
         **strategy_override("profile_centric", page_title=config_title)
     )
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE, confluence_config=confluence_config)
+    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     result = _invoke(tmp_path, configs_dir, "profile")
 
@@ -282,7 +285,7 @@ def test_run_single_page_command_rejects_invalid_strategy_type(
     from autodoc.cli.commands.publish.single_page import run_single_page_command
     from autodoc.cli.context import CliCtx
 
-    mock_publisher = _mock_collaborators(mocker, _SINGLE_PAGE_MODULE)
+    mock_publisher = _mock_collaborators(mocker)
     cli_ctx = CliCtx(base_dir=tmp_path, configs_dir=configs_dir, verbose=False)
     ctx = click.Context(click.Command("test"))
     ctx.obj = cli_ctx

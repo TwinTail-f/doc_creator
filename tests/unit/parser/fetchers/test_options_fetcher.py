@@ -27,28 +27,9 @@ def _make_items_response(paths: list[str]) -> list[dict]:
     return [{"path": p, "isFolder": False} for p in paths]
 
 
-class _OptionsFileFakeTFSClient(FakeTFSClient):
-    """Отдаёт фиксированные байты options.json на каждый вызов get_file_content."""
-
-    def __init__(self, items: list[dict], content_bytes: bytes) -> None:
-        """
-        Args:
-            items: Список item-словарей, возвращаемых get_items.
-            content_bytes: Сырые байты, возвращаемые как тело ответа.
-        """
-        self._items = items
-        self._bytes = content_bytes
-
-    def get_items(self, items_url, branch, recursion=None, version_type=None):
-        """Возвращает предварительно настроенный список items."""
-        return self._items
-
-    def get_file_content(self, items_url, path, branch, version_type=None):
-        """Возвращает ответ 200 с предварительно настроенными байтами содержимого."""
-        resp = requests.Response()
-        resp.status_code = 200
-        resp._content = self._bytes
-        return resp
+def _fake_options_client(items: list[dict], content_bytes: bytes) -> FakeTFSClient:
+    """FakeTFSClient, отдающий заданные items и байты options.json на любой get_file_content."""
+    return FakeTFSClient(items=items, content=content_bytes)
 
 
 def _make_component(name, repo, version, channel, project="DEP_Components"):
@@ -135,7 +116,7 @@ def test_options_fetcher_maps_release_to_real_options_file(
     Конкретные значения опций покрыты test_options_parser.py.
     """
     content = _load_options_bytes(resources_dir, options_file)
-    client = _OptionsFileFakeTFSClient(
+    client = _fake_options_client(
         items=_make_items_response([tfs_path]),
         content_bytes=content,
     )
@@ -160,7 +141,7 @@ def test_options_fetcher_patchelf_two_versions_share_options(
     """
     patchelf_bytes = _load_options_bytes(resources_dir, "patchelf_options.json")
     path = "/conan/ci-2.0/options.json"
-    client = _OptionsFileFakeTFSClient(
+    client = _fake_options_client(
         items=[{"path": path, "isFolder": False}],
         content_bytes=patchelf_bytes,
     )
@@ -233,7 +214,7 @@ def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
     """
     icu_bytes = _load_options_bytes(resources_dir, "icu_slow_options.json")
     path = "/conan/ci-1.6/options.json"
-    client = _OptionsFileFakeTFSClient(
+    client = _fake_options_client(
         items=_make_items_response([path]),
         content_bytes=icu_bytes,
     )
@@ -302,45 +283,13 @@ class _RaisingOnGetItemsFakeTFSClient(FakeTFSClient):
         raise NetworkError("simulated network failure on get_items")
 
 
-class _RaisingOnGetFileContentFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient, чей get_items отдаёт один путь, а get_file_content выбрасывает NetworkError."""
+def _single_item_client(path: str = "/conan/ci-2.0/options.json", **kwargs) -> FakeTFSClient:
+    """FakeTFSClient, чей get_items отдаёт единственный элемент options.json по заданному path.
 
-    def __init__(self, path: str = "/conan/ci-2.0/options.json") -> None:
-        """
-        Args:
-            path: Путь к options.json, возвращаемый из get_items.
-        """
-        self._path = path
-
-    def get_items(self, items_url, branch, recursion=None, version_type=None):
-        """Возвращает единственный элемент options.json."""
-        return [{"path": self._path, "isFolder": False}]
-
-    def get_file_content(self, items_url, path, branch, version_type=None):
-        """Имитирует сетевой сбой при скачивании содержимого файла."""
-        raise NetworkError("simulated network failure on get_file_content")
-
-
-class _NotFoundFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient, чей get_file_content отвечает 404 на единственный путь options.json."""
-
-    def __init__(self, path: str = "/conan/ci-2.0/options.json") -> None:
-        """
-        Args:
-            path: Путь к options.json, возвращаемый из get_items.
-        """
-        self._path = path
-
-    def get_items(self, items_url, branch, recursion=None, version_type=None):
-        """Возвращает единственный элемент options.json."""
-        return [{"path": self._path, "isFolder": False}]
-
-    def get_file_content(self, items_url, path, branch, version_type=None):
-        """Возвращает ответ 404 с пустым JSON-телом."""
-        resp = requests.Response()
-        resp.status_code = 404
-        resp._content = b"{}"
-        return resp
+    Остальное поведение (content/status_code/exception) настраивается через kwargs,
+    как у обычного FakeTFSClient.
+    """
+    return FakeTFSClient(items=[{"path": path, "isFolder": False}], **kwargs)
 
 
 @pytest.mark.business_logic
@@ -348,10 +297,10 @@ class _NotFoundFakeTFSClient(FakeTFSClient):
     "make_client",
     [
         _RaisingOnGetItemsFakeTFSClient,
-        _RaisingOnGetFileContentFakeTFSClient,
-        _NotFoundFakeTFSClient,
-        lambda: _OptionsFileFakeTFSClient(items=[], content_bytes=b"{}"),
-        lambda: _OptionsFileFakeTFSClient(
+        lambda: _single_item_client(exception=NetworkError("simulated network failure on get_file_content")),
+        lambda: _single_item_client(status_code=404, content=b"{}"),
+        lambda: _fake_options_client(items=[], content_bytes=b"{}"),
+        lambda: _fake_options_client(
             items=_make_items_response(["/conan/ci-2.0/tech/options.json"]),
             content_bytes=b"NOT JSON",
         ),

@@ -303,7 +303,7 @@ def test_profile_overrides_multiple_entries_merged(tmp_path: Path) -> None:
                     },
                 ]
             },
-            None,
+            "   ",
             {"os": "Linux"},
             id="blank-profile-in-list",
         ),

@@ -29,16 +29,6 @@ archs:
 """
 
 
-class _RaisingFakeTFSClient(FakeTFSClient):
-    """FakeTFSClient, чей get_file_content вызывает requests.ConnectionError."""
-
-    def get_file_content(
-        self, items_url: str, path: str, branch: str, version_type=None
-    ) -> requests.Response:
-        """Имитирует сетевой сбой (перехватывается DockerFetcher)."""
-        raise requests.ConnectionError("simulated connection error")
-
-
 class _TrackingFakeTFSClient(FakeTFSClient):
     """FakeTFSClient, запоминающий ветку, переданную в каждый вызов get_file_content."""
 
@@ -107,7 +97,7 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
     "make_client",
     [
         # get_file_content выбрасывает сетевое исключение
-        _RaisingFakeTFSClient,
+        lambda: FakeTFSClient(exception=requests.ConnectionError("simulated connection error")),
         # тело ответа — некорректный YAML
         lambda: FakeTFSClient(content=b"[unclosed: mapping: {"),
         # get_file_content вернул не-200 статус без исключения
