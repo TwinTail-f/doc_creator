@@ -94,11 +94,16 @@ def test_strategies_config_release_section_with_root_parent_keeps_default_page_t
     section_fields: dict,
 ) -> None:
     """Секция release с заданным root_parent_name или root_parent_id (без явного
-    page_title) — валидна, а дефолт page_title не теряется при частично заданной
-    секции (см. раздел 2.3 спеки)."""
+    page_title) — валидна, заданное поле сохраняется как есть, второе из пары
+    (root_parent_name/root_parent_id) остаётся None, а дефолт page_title не
+    теряется при частично заданной секции (см. раздел 2.3 спеки)."""
     payload = {**valid_confluence_config, "strategies": {"release": section_fields}}
     config = ConfluenceConfigSchema(**payload)
-    assert config.strategies.release.page_title == "Сборки компонентов Платформы"
+
+    release = config.strategies.release
+    assert release.page_title == "Сборки компонентов Платформы"
+    for field_name in ("root_parent_name", "root_parent_id"):
+        assert getattr(release, field_name) == section_fields.get(field_name)
 
 
 @pytest.mark.contract
