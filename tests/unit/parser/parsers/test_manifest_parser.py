@@ -43,9 +43,9 @@ def test_parser_returns_correct_component_count(
     all_real_properties: list[Path],
 ) -> None:
     """parse() со всеми реальными файлами возвращает по одному компоненту на каждый
-    из 7 файлов resources/manifests/ (у каждого есть релиз для платформы 2.0)."""
+    файл resources/manifests/ (у каждого есть релиз для платформы 2.0)."""
     components, _ = parser_20.parse(all_real_properties, component_names=[], filter_mode="exclude")
-    assert len(components) == 7
+    assert len(components) == len(all_real_properties)
     assert {c.name for c in components} == {
         "apr",
         "libnetfilter_queue",

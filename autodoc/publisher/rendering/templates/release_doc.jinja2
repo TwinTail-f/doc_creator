@@ -86,17 +86,14 @@
                                                         <div style="clear:both"></div>
                                                     </div>
 
-                                                    {%- if comp.passport_versions -%}
+                                                    {%- set page_info = comp.passport_versions.get(release.version) if comp.passport_versions else none -%}
+                                                    {%- if page_info -%}
                                                     <div style="padding:12px 16px;background:var(--ds-surface-sunken,#F4F5F7);border:1px solid var(--ds-border,#DFE1E6);border-radius:8px;margin-bottom:16px">
                                                         <div class="autodoc-section-label" style="margin-bottom:10px">Документация компонента</div>
                                                         <div style="display:flex;flex-wrap:wrap;gap:8px">
-                                                            {%- for version, page_info in comp.passport_versions.items() -%}
-                                                            {%- if version == release.version -%}
                                                             <a href="{{ page_info.url }}" class="autodoc-passport-btn-lg">
-                                                                {{ comp.name }} v{{ version }}
+                                                                {{ comp.name }} v{{ release.version }}
                                                             </a>
-                                                            {%- endif -%}
-                                                            {%- endfor -%}
                                                         </div>
                                                     </div>
                                                     {%- endif -%}

@@ -128,12 +128,15 @@ def test_manifest_fetcher_release_count(
 
 
 @pytest.mark.integration
-def test_manifest_fetcher_all_five_components(
+def test_manifest_fetcher_all_components(
     parser_config: ParserConfigSchema,
     real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """Все реальные .properties-файлы через CopyingAllFakeTFSClient дают не менее 5 компонентов."""
+    """Все реальные .properties-файлы через CopyingAllFakeTFSClient дают ровно
+    по одному компоненту на файл (у каждого файла своё уникальное имя компонента)."""
+    expected_component_count = len(list(real_manifests_dir.glob("*.properties")))
+
     ctx = _make_context(
         parser_config,
         CopyingAllFakeTFSClient(real_manifests_dir),
@@ -144,7 +147,7 @@ def test_manifest_fetcher_all_five_components(
 
     result = fetcher.fetch(tmp_dir=ctx.tmp_dir, component_names=[], filter_mode="exclude")
 
-    assert len(result.value) >= 5
+    assert len(result.value) == expected_component_count
 
 
 @pytest.mark.integration
