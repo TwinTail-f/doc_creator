@@ -9,17 +9,20 @@
 
 from pathlib import Path
 
+import click
 import pytest
 from click.testing import CliRunner
 from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
+from autodoc.cli.commands.publish.single_page import run_single_page_command
 from autodoc.cli.constants import (
     DEFAULT_PROFILE_PAGE_TITLE,
     DEFAULT_RELEASE_PAGE_TITLE,
     PROFILE_TEMPLATE,
     RELEASE_TEMPLATE,
 )
+from autodoc.cli.context import CliCtx
 from tests.unit.cli.utils import (
     make_confluence_config,
     make_parsed_result,
@@ -275,11 +278,6 @@ def test_run_single_page_command_rejects_invalid_strategy_type(
     ``autodoc.publisher.strategies.registry.STRATEGIES``, и strategy_type
     зарегистрирован, но не поддерживает одностраничную публикацию (``passports``).
     """
-    import click
-
-    from autodoc.cli.commands.publish.single_page import run_single_page_command
-    from autodoc.cli.context import CliCtx
-
     mock_publisher = _mock_collaborators(mocker)
     cli_ctx = CliCtx(base_dir=tmp_path, configs_dir=configs_dir, verbose=False)
     ctx = click.Context(click.Command("test"))

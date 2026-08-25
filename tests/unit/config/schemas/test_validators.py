@@ -87,6 +87,7 @@ def test_strategies_config_absent_uses_defaults_for_all_sections(
     [
         pytest.param({"root_parent_name": "X"}, id="name-only"),
         pytest.param({"root_parent_id": "123"}, id="id-only"),
+        pytest.param({"root_parent_name": "X", "root_parent_id": "123"}, id="both"),
     ],
 )
 def test_strategies_config_release_section_with_root_parent_keeps_default_page_title(
@@ -102,8 +103,8 @@ def test_strategies_config_release_section_with_root_parent_keeps_default_page_t
 
     release = config.strategies.release
     assert release.page_title == "Сборки компонентов Платформы"
-    for field_name in ("root_parent_name", "root_parent_id"):
-        assert getattr(release, field_name) == section_fields.get(field_name)
+    assert release.root_parent_name == section_fields.get("root_parent_name")
+    assert release.root_parent_id == section_fields.get("root_parent_id")
 
 
 @pytest.mark.contract

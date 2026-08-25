@@ -154,6 +154,4 @@ def make_publish_report(
         "pages_published": pages_published,
         **overrides,
     }
-    if not success and "errors" not in data:
-        data["errors"] = ["boom"]
     return PublishReport(**data)
