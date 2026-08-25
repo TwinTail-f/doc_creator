@@ -86,6 +86,7 @@ class PipelineContext:
             "components_count": len(self.components),
             "intermediate_keys": list(self.intermediate.keys()),
             "components": [c.model_dump() for c in self.components],
+            "profile_definitions": [pd.model_dump() for pd in self.profile_definitions],
             "intermediate": serialized_intermediate,
             "docker_links_count": len(self.intermediate.get(self._DOCKER_LINKS_KEY, {})),
         }

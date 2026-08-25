@@ -2,6 +2,7 @@
 
 import pytest
 
+from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 
@@ -37,6 +38,30 @@ def test_pipeline_context_snapshot_includes_components_count(
     ctx.components = [manifest_component]
     snapshot = ctx.to_snapshot_dict()
     assert snapshot["components_count"] == 1
+
+
+@pytest.mark.business_logic
+def test_pipeline_context_snapshot_includes_profile_definitions(
+    parser_config,
+    tmp_path,
+) -> None:
+    """to_snapshot_dict включает ctx.profile_definitions (он терялся, зафиксируем)."""
+    ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
+    ctx.profile_definitions = [
+        ProfileDefinition(
+            profile_name="linux-x64",
+            conan_settings={"os": "Linux"},
+            docker_image="registry.example.com/linux-x64:latest",
+        )
+    ]
+    snapshot = ctx.to_snapshot_dict()
+    assert snapshot["profile_definitions"] == [
+        {
+            "profile_name": "linux-x64",
+            "conan_settings": {"os": "Linux"},
+            "docker_image": "registry.example.com/linux-x64:latest",
+        }
+    ]
 
 
 @pytest.mark.business_logic
