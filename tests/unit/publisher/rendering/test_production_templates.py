@@ -19,6 +19,8 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.release import Release
 from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.publisher.converters.kit_fixed_converter import KitFixedConverter
+from autodoc.publisher.converters.kit_latest_converter import KitLatestConverter
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
@@ -183,3 +185,57 @@ def test_profile_centric_template_renders_without_error(
     output: str = builder.build("profile_centric.jinja2", view_model)
 
     assert output.strip(), "Отрендеренный вывод profile_centric.jinja2 пуст"
+
+
+_EMBEDDING_KIT_TEMPLATE: str = "embedding_kit.jinja2"
+
+
+@pytest.mark.integration
+def test_embedding_kit_template_renders_kit_fixed_converter_output(
+    builder: DocumentBuilder, publisher_multi_component_result: ParsedResult
+) -> None:
+    """embedding_kit.jinja2 рендерит реальный вывод KitFixedConverter: точные Conan-ссылки,
+    сгруппированные по каналам, с заголовком колонки 'Фиксированная версия'."""
+    view_model: dict[str, Any] = KitFixedConverter().convert(publisher_multi_component_result)
+
+    output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
+
+    assert output.strip(), "Отрендеренный вывод embedding_kit.jinja2 пуст"
+    assert "Фиксированная версия" in output
+    assert "openssl/1.0.0@platform/2.0-tech" in output
+    assert "zlib/1.2.11@platform/2.0-tech" in output
+    assert "Канал tech" in output
+    assert "Канал stable" in output
+
+
+@pytest.mark.integration
+def test_embedding_kit_template_renders_kit_latest_converter_output(
+    builder: DocumentBuilder, publisher_multi_component_result: ParsedResult
+) -> None:
+    """embedding_kit.jinja2 рендерит реальный вывод KitLatestConverter: диапазонные
+    ссылки [,include_prerelease], сгруппированные по каналам, с заголовком колонки
+    'Последняя сборка'."""
+    view_model: dict[str, Any] = KitLatestConverter().convert(publisher_multi_component_result)
+
+    output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
+
+    assert output.strip(), "Отрендеренный вывод embedding_kit.jinja2 пуст"
+    assert "Последняя сборка" in output
+    assert "openssl/[,include_prerelease]@platform-2.0/tech" in output
+    assert "zlib/[,include_prerelease]@platform-2.0/tech" in output
+    assert "1.0.0" not in output, "Страница последних сборок не должна содержать пиннированных версий"
+
+
+@pytest.mark.infrastructure
+def test_embedding_kit_template_renders_without_error_on_empty_channels(
+    builder: DocumentBuilder,
+) -> None:
+    """embedding_kit.jinja2 не падает и возвращает пустой (без таблиц) вывод, если
+    channels пуст — например, для ParsedResult без компонентов."""
+    view_model: dict[str, Any] = {
+        "platform_version": "2.0",
+        "version_column_title": "Фиксированная версия",
+        "channels": [],
+    }
+    output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
+    assert output.strip() == "", "При отсутствии каналов таблиц быть не должно"

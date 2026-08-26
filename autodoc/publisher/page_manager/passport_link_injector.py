@@ -72,6 +72,25 @@ def inject_links_for_profiles(
                 comp["passport_link"] = _build_passport_url(space, page_id) if page_id else None
 
 
+def inject_links_noop(
+    view_model: dict[str, Any],
+    passport_pages: dict[str, Any],
+) -> None:
+    """
+    Заглушка ``link_injector`` для стратегий, у которых нет понятия «ссылка на паспорт»
+    (например, страницы «комплекта встраивания» — простые списки Conan-ссылок).
+
+    Ничего не делает. Существует, чтобы такие стратегии могли использовать
+    общий поток ``SinglePagePublishStrategy`` (который всегда ожидает
+    callable ``link_injector``), не завися от паспортов вовсе.
+
+    Args:
+        view_model: Не используется.
+        passport_pages: Не используется.
+    """
+    return
+
+
 def inject_links(
     view_model: dict[str, Any],
     passport_pages: dict[str, Any],

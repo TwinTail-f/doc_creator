@@ -19,6 +19,20 @@
     "passports": {
       "root_parent_name": "Паспорта компонентов",
       "_comment_passports_id": "Или используйте root_parent_id как запасной вариант"
+    },
+
+    "_comment_kit": "Ниже — секции для `publish kit-fixed`/`publish kit-latest`. Оба справочных списка ссылок Conan по каналам; раскомментируйте и заполните root_parent_name при необходимости.",
+
+    "kit_fixed": {
+      "root_parent_name": "Комплект для встраивания компонентов platform",
+      "_comment_kit_fixed_id": "Или используйте root_parent_id как запасной вариант",
+      "page_title": "Комплект для встраивания компонентов platform"
+    },
+
+    "kit_latest": {
+      "root_parent_name": "Встраивание последних версий компонентов платформы",
+      "_comment_kit_latest_id": "Или используйте root_parent_id как запасной вариант",
+      "page_title": "Встраивание последних версий компонентов платформы"
     }
   },
 

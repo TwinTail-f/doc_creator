@@ -79,6 +79,18 @@ def test_strategies_config_absent_uses_defaults_for_all_sections(
     assert config.strategies.profile_centric.root_parent_name is None
     assert config.strategies.passports.root_parent_id is None
     assert config.strategies.passports.root_parent_name is None
+    assert (
+        config.strategies.kit_fixed.page_title
+        == "Комплект для встраивания компонентов platform"
+    )
+    assert config.strategies.kit_fixed.root_parent_id is None
+    assert config.strategies.kit_fixed.root_parent_name is None
+    assert (
+        config.strategies.kit_latest.page_title
+        == "Встраивание последних версий компонентов платформы"
+    )
+    assert config.strategies.kit_latest.root_parent_id is None
+    assert config.strategies.kit_latest.root_parent_name is None
 
 
 @pytest.mark.business_logic
@@ -113,17 +125,54 @@ def test_strategies_config_release_section_with_root_parent_keeps_default_page_t
     [
         pytest.param("release", id="release"),
         pytest.param("profile_centric", id="profile_centric"),
+        pytest.param("kit_fixed", id="kit_fixed"),
+        pytest.param("kit_latest", id="kit_latest"),
     ],
 )
 def test_strategies_config_section_without_root_parent_raises(
     valid_confluence_config: dict,
     section_name: str,
 ) -> None:
-    """Секция release/profile_centric, присутствующая в конфиге без root_parent_name
-    и root_parent_id (хотя бы с одним полем, например page_title) — невалидна."""
+    """Секция release/profile_centric/kit_fixed/kit_latest, присутствующая в
+    конфиге без root_parent_name и root_parent_id (хотя бы с одним полем,
+    например page_title) — невалидна."""
     payload = {**valid_confluence_config, "strategies": {section_name: {"page_title": "X"}}}
     with pytest.raises(ValidationError, match=f"strategies.{section_name}"):
         ConfluenceConfigSchema(**payload)
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "section_name, default_title",
+    [
+        pytest.param(
+            "kit_fixed",
+            "Комплект для встраивания компонентов platform",
+            id="kit_fixed",
+        ),
+        pytest.param(
+            "kit_latest",
+            "Встраивание последних версий компонентов платформы",
+            id="kit_latest",
+        ),
+    ],
+)
+def test_strategies_config_kit_sections_with_root_parent_keep_default_page_title(
+    valid_confluence_config: dict,
+    section_name: str,
+    default_title: str,
+) -> None:
+    """Секция kit_fixed/kit_latest с заданным root_parent_name (без явного
+    page_title) — валидна, дефолт page_title сохраняется."""
+    payload = {
+        **valid_confluence_config,
+        "strategies": {section_name: {"root_parent_name": "X"}},
+    }
+    config = ConfluenceConfigSchema(**payload)
+
+    section = getattr(config.strategies, section_name)
+    assert section.page_title == default_title
+    assert section.root_parent_name == "X"
 
 
 @pytest.mark.contract

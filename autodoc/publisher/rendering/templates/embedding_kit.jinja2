@@ -1,0 +1,22 @@
+{%- for channel in data.channels -%}
+<p><strong>Канал {{ channel.name }}</strong></p>
+<table class="wrapped" data-snooker-col-series="numbers" data-snooker-locked-cols="0">
+    <colgroup>
+        <col />
+        <col />
+    </colgroup>
+    <tbody>
+        <tr>
+            <th class="numberingColumn" contenteditable="false" data-mce-resize="false"><br /></th>
+            <th>{{ data.version_column_title }}</th>
+        </tr>
+        {%- for reference in channel.references -%}
+        <tr>
+            <td class="numberingColumn" contenteditable="false" data-mce-resize="false">{{ loop.index }}</td>
+            <td><span style="color:var(--ds-text,#172b4d);">{{ reference }}</span></td>
+        </tr>
+        {%- endfor -%}
+    </tbody>
+</table>
+<p><br /></p>
+{%- endfor -%}

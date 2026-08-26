@@ -48,12 +48,14 @@ def test_create_strategy_passports_returns_passports_strategy_instance(
 
 
 @pytest.mark.contract
-def test_all_three_strategy_types_registered() -> None:
-    """available_strategies() включает 'release', 'profile_centric' и 'passports'."""
+def test_all_five_strategy_types_registered() -> None:
+    """available_strategies() включает все пять зарегистрированных стратегий."""
     strategies = available_strategies()
     assert "release" in strategies
     assert "profile_centric" in strategies
     assert "passports" in strategies
+    assert "kit_fixed" in strategies
+    assert "kit_latest" in strategies
 
 
 @pytest.mark.contract
@@ -63,6 +65,8 @@ def test_all_three_strategy_types_registered() -> None:
         pytest.param("release", True, id="release"),
         pytest.param("profile_centric", True, id="profile_centric"),
         pytest.param("passports", False, id="passports"),
+        pytest.param("kit_fixed", True, id="kit_fixed"),
+        pytest.param("kit_latest", True, id="kit_latest"),
     ],
 )
 def test_is_single_page_flag_matches_strategy_kind(
@@ -70,3 +74,34 @@ def test_is_single_page_flag_matches_strategy_kind(
 ) -> None:
     """IS_SINGLE_PAGE верно проставлен для каждой зарегистрированной стратегии."""
     assert STRATEGIES[strategy_type].IS_SINGLE_PAGE is expected_is_single_page
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "strategy_type",
+    [
+        pytest.param("kit_fixed", id="kit_fixed"),
+        pytest.param("kit_latest", id="kit_latest"),
+    ],
+)
+def test_create_strategy_kit_pages_return_correct_instance_type(
+    strategy_type: str,
+    publisher_confluence_client: FakeConfluenceClient,
+    publisher_document_builder: FakeDocumentBuilder,
+    publisher_parsed_result: ParsedResult,
+    tmp_path: Path,
+) -> None:
+    """create_strategy('kit_fixed'|'kit_latest', ...) собирает экземпляр
+    зарегистрированного класса стратегии."""
+    strategy = create_strategy(
+        strategy_type,
+        confluence_client=publisher_confluence_client,
+        document_builder=publisher_document_builder,
+        parsed_data=publisher_parsed_result,
+        space=_SPACE,
+        page_title="Test",
+        template_name="embedding_kit.jinja2",
+        parent_id="parent-001",
+        data_dir=tmp_path,
+    )
+    assert isinstance(strategy, STRATEGIES[strategy_type])

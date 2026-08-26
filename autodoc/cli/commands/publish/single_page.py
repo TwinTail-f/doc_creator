@@ -60,6 +60,114 @@ def single_page_options(f: Callable) -> Callable:
     return functools.reduce(lambda fn, dec: dec(fn), reversed(decorators), f)
 
 
+def kit_page_options(f: Callable) -> Callable:
+    """Декоратор: добавляет к команде набор Click-опций для страниц «комплекта
+    встраивания» (``kit-fixed``, ``kit-latest``).
+
+    В отличие от ``single_page_options``, здесь нет флага ``--no-passport-links``:
+    эти страницы — простые списки Conan-ссылок и не имеют понятия ссылок на
+    паспорта компонентов.
+
+    Args:
+        f: Функция Click-команды, к которой применяются опции.
+
+    Returns:
+        Та же функция, обёрнутая декораторами ``click.option``.
+    """
+    decorators = [
+        click.option(
+            "--page-title",
+            default=None,
+            help="Заголовок страницы (переопределяет strategies.<strategy_type>.page_title из конфига)",
+        ),
+        click.option(
+            "--root-page-id",
+            "cli_root_page_id",
+            default=None,
+            help="ID корневой родительской страницы (переопределяет конфиг)",
+        ),
+        click.option(
+            "--root-page-name",
+            "cli_root_page_name",
+            default=None,
+            help=(
+                "Название корневой родительской страницы (переопределяет конфиг). "
+                'Если содержит пробелы — заключите в кавычки: --root-page-name "Моя страница"'
+            ),
+        ),
+    ]
+    return functools.reduce(lambda fn, dec: dec(fn), reversed(decorators), f)
+
+
+def run_kit_page_command(
+    ctx: click.Context,
+    *,
+    strategy_type: str,
+    template_name: str,
+    default_title: str,
+    panel_header: str,
+    page_title: str | None,
+    cli_root_page_id: str | None,
+    cli_root_page_name: str | None,
+) -> None:
+    """Общая логика команд kit-fixed и kit-latest.
+
+    Аналог ``run_single_page_command``, но без параметра ``include_passport_links``
+    (у этих стратегий он всегда ``False`` — см. ``KitFixedPageStrategy``/
+    ``KitLatestPageStrategy``).
+
+    Args:
+        ctx: Контекст Click-команды.
+        strategy_type: Тип стратегии публикации (``'kit_fixed'`` или ``'kit_latest'``).
+        template_name: Имя Jinja2-шаблона.
+        default_title: Заголовок страницы по умолчанию, если он не задан ни флагом,
+                       ни конфигурацией.
+        panel_header: Текст заголовка панели, отображаемой при запуске команды.
+        page_title: Заголовок страницы, заданный через CLI, либо ``None``.
+        cli_root_page_id: ID корневой родительской страницы, заданный через CLI.
+        cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
+
+    Raises:
+        DocGeneratorError: Если ``strategy_type`` не зарегистрирован в
+            ``registry.STRATEGIES``, либо зарегистрирован, но
+            ``IS_SINGLE_PAGE`` у него ``False``.
+    """
+    cli_ctx: CliCtx = ctx.obj
+
+    with cli_error_boundary(panel_header):
+        strategy_cls = registry.STRATEGIES.get(strategy_type)
+        if strategy_cls is None or not strategy_cls.IS_SINGLE_PAGE:
+            single_page_strategies = sorted(
+                key for key, cls in registry.STRATEGIES.items() if cls.IS_SINGLE_PAGE
+            )
+            raise DocGeneratorError(
+                f"Внутренняя ошибка: неизвестный тип стратегии публикации {strategy_type!r}. "
+                f"Поддерживаются: {single_page_strategies}. "
+                "Публикация остановлена, чтобы не создать страницу не в том режиме. "
+                "Сообщите об этом разработчику."
+            )
+
+        parsed_data = load_parsed_data(cli_ctx.base_dir)
+        console.print(f"✅ Данных: {len(parsed_data.components)} компонентов", style="green")
+
+        publisher, confluence_config = make_publisher(cli_ctx)
+        strategy_fields = getattr(confluence_config.strategies, strategy_type)
+        final_title = page_title or strategy_fields.page_title or default_title
+
+        console.print("🔄 Публикация в Confluence…", style="cyan")
+        result = publisher.publish_single_page(
+            strategy_type=strategy_type,
+            parsed_data=parsed_data,
+            page_title=final_title,
+            template_name=template_name,
+            root_page_name=cli_root_page_name,
+            root_page_id=cli_root_page_id,
+            include_passport_links=False,
+        )
+
+        print_publish_result(result)
+
+
 def run_single_page_command(
     ctx: click.Context,
     *,

@@ -23,6 +23,8 @@
   - [publish release](#publish-release)
   - [publish profile](#publish-profile)
   - [publish passports](#publish-passports)
+  - [publish kit-fixed](#publish-kit-fixed)
+  - [publish kit-latest](#publish-kit-latest)
   - [publish all](#publish-all)
   - [config](#config)
   - [info](#info)
@@ -269,6 +271,10 @@ overrides:
 | `strategies.profile_centric.root_parent_id` | ID корневой родительской страницы документации от профилей |
 | `strategies.passports.root_parent_name` | Название корневой страницы иерархии паспортов |
 | `strategies.passports.root_parent_id` | ID корневой страницы иерархии паспортов |
+| `strategies.kit_fixed.root_parent_name` | Название корневой родительской страницы «комплекта для встраивания» (фиксированные версии) |
+| `strategies.kit_fixed.root_parent_id` | ID корневой родительской страницы «комплекта для встраивания» (фиксированные версии) |
+| `strategies.kit_latest.root_parent_name` | Название корневой родительской страницы последних сборок (без фиксации версии) |
+| `strategies.kit_latest.root_parent_id` | ID корневой родительской страницы последних сборок (без фиксации версии) |
 
 Все три пары задают **родителя**, под которым публикуемые страницы будут созданы в дереве
 Confluence — сам инструмент эти страницы не создаёт, только ищет их по названию (или ID (число в url у страницы) )
@@ -313,6 +319,8 @@ strategies:
 | `verify_ssl` | `true` | Проверять SSL-сертификаты |
 | `strategies.release.page_title` | `"Сборки компонентов Платформы"` | Заголовок корневой страницы релизной документации |
 | `strategies.profile_centric.page_title` | — | Заголовок страницы профиль-центричной документации |
+| `strategies.kit_fixed.page_title` | `"Комплект для встраивания компонентов platform"` | Заголовок страницы фиксированных версий компонентов по каналам |
+| `strategies.kit_latest.page_title` | `"Встраивание последних версий компонентов платформы"` | Заголовок страницы ссылок на последние сборки компонентов по каналам |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -491,6 +499,58 @@ python autodoc publish passports --passports-root-parent-name "Паспорта 
 
 # Переопределить через ID (альтернатива)
 python autodoc publish passports --passports-root-parent-id 987654321
+```
+
+### `publish kit-fixed`
+
+Публикует одностраничный «комплект для встраивания компонентов platform» — простой
+справочный список точных Conan-ссылок (`имя/версия@platform-{версия}/{канал}`),
+сгруппированных по каналам (`tech`, `trusted`, `slow`, `fast`, в этом порядке). Если у
+компонента в одном канале несколько зафиксированных версий, каждая выводится отдельной
+строкой. В отличие от `publish release`/`publish profile`, у этой страницы нет ссылок на
+паспорта компонентов — флага `--no-passport-links` у команды нет.
+
+| Флаг | Описание |
+|------|----------|
+| `--page-title` | Заголовок страницы. Переопределяет `strategies.kit_fixed.page_title` из конфига |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.kit_fixed.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.kit_fixed.root_parent_id`). Можно указывать вместе с `--root-page-name` |
+
+```bash
+# Использовать параметры из конфига
+python autodoc publish kit-fixed
+
+# Переопределить заголовок страницы
+python autodoc publish kit-fixed --page-title "Комплект platform-2.2"
+
+# Переопределить родительскую страницу через название
+python autodoc publish kit-fixed --root-page-name "Документация платформы 2.2"
+```
+
+### `publish kit-latest`
+
+Публикует одностраничный список ссылок на последние сборки компонентов по каналам, без
+фиксации версии: вместо неё подставляется литеральный Conan-диапазон
+`[,include_prerelease]` (`имя/[,include_prerelease]@platform-{версия}/{канал}`). В
+отличие от `publish kit-fixed`, здесь одна строка на компонент в канале — несколько
+зафиксированных версий одного компонента схлопываются в одну ссылку, поскольку версия
+всё равно не фиксируется.
+
+| Флаг | Описание |
+|------|----------|
+| `--page-title` | Заголовок страницы. Переопределяет `strategies.kit_latest.page_title` из конфига |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.kit_latest.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.kit_latest.root_parent_id`). Можно указывать вместе с `--root-page-name` |
+
+```bash
+# Использовать параметры из конфига
+python autodoc publish kit-latest
+
+# Переопределить заголовок страницы
+python autodoc publish kit-latest --page-title "Последние сборки platform-2.2"
+
+# Переопределить родительскую страницу через название
+python autodoc publish kit-latest --root-page-name "Документация платформы 2.2"
 ```
 
 ### `publish all`
@@ -675,5 +735,6 @@ autodoc/publisher/rendering/templates/
 ├── release_doc.jinja2        — страница релиза (компонентный вид)
 ├── profile_centric.jinja2    — профиль-центричный вид
 ├── component_passport.jinja2 — паспорт компонента
+├── embedding_kit.jinja2      — комплект для встраивания (kit-fixed / kit-latest)
 └── _platform_intro.jinja2    — вспомогательный partial (вводный блок платформы)
 ```

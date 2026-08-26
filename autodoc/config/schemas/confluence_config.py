@@ -44,18 +44,39 @@ class ProfileCentricDocsFields(SinglePageDocsFields):
     третьей single-page стратегии её собственный дефолт заголовка."""
 
 
+class KitFixedDocsFields(SinglePageDocsFields):
+    """Поля стратегии kit_fixed — со своим дефолтным заголовком."""
+
+    page_title: str | None = Field(
+        default="Комплект для встраивания компонентов platform",
+        description="Заголовок страницы фиксированных версий компонентов по каналам.",
+    )
+
+
+class KitLatestDocsFields(SinglePageDocsFields):
+    """Поля стратегии kit_latest — со своим дефолтным заголовком."""
+
+    page_title: str | None = Field(
+        default="Встраивание последних версий компонентов платформы",
+        description="Заголовок страницы ссылок на последние сборки компонентов по каналам.",
+    )
+
+
 class StrategiesConfig(BaseModel):
     """Настройки публикации, сгруппированные по типу стратегии.
 
     Имена полей класса дословно совпадают с ключами ``registry.STRATEGIES``
-    (``"release"``, ``"profile_centric"``, ``"passports"``) — это специально, чтобы
-    резолвинг ``strategy_type -> секция конфига`` был просто ``getattr(strategies,
-    strategy_type)``, без отдельной таблицы соответствия где-либо в коде.
+    (``"release"``, ``"profile_centric"``, ``"passports"``, ``"kit_fixed"``,
+    ``"kit_latest"``) — это специально, чтобы резолвинг ``strategy_type ->
+    секция конфига`` был просто ``getattr(strategies, strategy_type)``, без
+    отдельной таблицы соответствия где-либо в коде.
     """
 
     release: ReleaseDocsFields = Field(default_factory=ReleaseDocsFields)
     profile_centric: ProfileCentricDocsFields = Field(default_factory=ProfileCentricDocsFields)
     passports: RootParentFields = Field(default_factory=RootParentFields)
+    kit_fixed: KitFixedDocsFields = Field(default_factory=KitFixedDocsFields)
+    kit_latest: KitLatestDocsFields = Field(default_factory=KitLatestDocsFields)
 
     @model_validator(mode="after")
     def _require_root_parent_for_explicit_sections(self) -> "StrategiesConfig":
@@ -63,7 +84,13 @@ class StrategiesConfig(BaseModel):
         и/или root_parent_id. Секция, которую пользователь вообще не упомянул в файле
         (полагается целиком на CLI-флаги на каждый вызов) — легальна, для неё эта
         проверка не запускается. См. раздел 2.3 спеки."""
-        for section_name in self.model_fields_set & {"release", "profile_centric", "passports"}:
+        for section_name in self.model_fields_set & {
+            "release",
+            "profile_centric",
+            "passports",
+            "kit_fixed",
+            "kit_latest",
+        }:
             section: RootParentFields = getattr(self, section_name)
             if not section.root_parent_id and not section.root_parent_name:
                 raise ValueError(

@@ -3,6 +3,8 @@
 from typing import Any
 
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
+from autodoc.publisher.strategies.kit_fixed_strategy import KitFixedPageStrategy
+from autodoc.publisher.strategies.kit_latest_strategy import KitLatestPageStrategy
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
 from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
@@ -11,6 +13,8 @@ STRATEGIES: dict[str, type[BasePublishStrategy]] = {
     "passports": PassportsStrategy,
     "release": ReleasePageStrategy,
     "profile_centric": ProfileCentricStrategy,
+    "kit_fixed": KitFixedPageStrategy,
+    "kit_latest": KitLatestPageStrategy,
 }
 """Явное сопоставление ключа стратегии её классу.
 
@@ -23,7 +27,8 @@ def create_strategy(strategy_type: str, **kwargs: Any) -> BasePublishStrategy:
     Создаёт экземпляр стратегии публикации по её типу.
 
     Args:
-        strategy_type: Ключ стратегии (``'passports'``, ``'release'`` или ``'profile_centric'``).
+        strategy_type: Ключ стратегии (``'passports'``, ``'release'``,
+            ``'profile_centric'``, ``'kit_fixed'`` или ``'kit_latest'``).
         **kwargs: Аргументы конструктора выбранной стратегии.
 
     Returns:
