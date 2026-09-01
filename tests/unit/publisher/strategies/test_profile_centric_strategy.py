@@ -1,8 +1,8 @@
 """
-Тесты для autodoc.publisher.strategies.profile_strategy.ProfileCentricStrategy.
+Тесты для autodoc.publisher.strategies.profile_centric_strategy.ProfileCentricPageStrategy.
 
 Стратегия тестирования:
-- ProfileCentricStrategy делегирует работу _publish_single_page (проверяется по результату).
+- ProfileCentricPageStrategy делегирует работу _publish_single_page (проверяется по результату).
 - PassportPageRegistry.load() мокается, когда include_passport_links=True.
 - FakeConfluenceClient / FakeDocumentBuilder обеспечивают детерминированный ввод-вывод.
 """
@@ -16,7 +16,7 @@ from pytest_mock import MockerFixture
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.page_manager.passport_registry import PassportPageRegistry
-from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
+from autodoc.publisher.strategies.profile_centric_strategy import ProfileCentricPageStrategy
 from tests.unit.publisher.conftest import FakeConfluenceClient
 from tests.unit.publisher.strategies.conftest import FakeDocumentBuilder
 
@@ -32,9 +32,9 @@ def make_profile_strategy(
     data: ParsedResult,
     tmp_path: Path,
     include_passport_links: bool = True,
-) -> ProfileCentricStrategy:
-    """Создаёт ProfileCentricStrategy с разумными значениями по умолчанию для юнит-тестов."""
-    return ProfileCentricStrategy(
+) -> ProfileCentricPageStrategy:
+    """Создаёт ProfileCentricPageStrategy с разумными значениями по умолчанию для юнит-тестов."""
+    return ProfileCentricPageStrategy(
         confluence_client=client,
         document_builder=builder,
         parsed_data=data,
@@ -47,7 +47,7 @@ def make_profile_strategy(
     )
 
 
-# ProfileCentricStrategy.execute()
+# ProfileCentricPageStrategy.execute()
 @pytest.mark.business_logic
 def test_profile_centric_strategy_execute_returns_success_report(
     publisher_confluence_client: FakeConfluenceClient,
@@ -156,8 +156,9 @@ def test_profile_links_injected_into_view_model_from_registry(
 ) -> None:
     """
     Правило: после загрузки реестра паспортов ссылки на паспорта внедряются в
-    view-model профиль-центричной документации через inject_links_for_profiles,
-    чтобы шаблон мог отрендерить кликабельную ссылку для каждого компонента.
+    view-model профиль-центричной документации через
+    ProfileCentricConverter.enrich_with_passport_links(), чтобы шаблон мог
+    отрендерить кликабельную ссылку для каждого компонента.
     """
     pages_map = {
         "openssl": {
@@ -170,7 +171,7 @@ def test_profile_links_injected_into_view_model_from_registry(
     }
     mocker.patch.object(PassportPageRegistry, "load", return_value=pages_map)
 
-    strategy = ProfileCentricStrategy(
+    strategy = ProfileCentricPageStrategy(
         confluence_client=FakeConfluenceClient(),
         document_builder=publisher_capturing_document_builder,
         parsed_data=publisher_parsed_result,

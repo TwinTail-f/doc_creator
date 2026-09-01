@@ -3,7 +3,7 @@
 
 Инкапсулирует весь файловый ввод-вывод, связанный с передачей данных
 между стратегиями публикации. ``PassportsStrategy`` записывает карту ID,
-``ReleasePageStrategy`` и ``ProfileCentricStrategy`` её читают.
+``ReleasePageStrategy`` и ``ProfileCentricPageStrategy`` её читают.
 """
 
 import json

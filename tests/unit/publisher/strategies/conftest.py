@@ -48,7 +48,7 @@ class CapturingDocumentBuilder:
 
     Нужна тестам, где стратегия публикует несколько страниц за один execute()
     (например, PassportsStrategy для нескольких компонентов) или где важен
-    view_model, а не HTML-результат: test_profile_strategy.py и
+    view_model, а не HTML-результат: test_profile_centric_strategy.py и
     test_passports_strategy.py дублировали идентичный локальный класс
     CapturingBuilder для этой цели.
     """

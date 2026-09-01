@@ -296,8 +296,8 @@ def test_top_level_flag_reflects_constructor_arg_while_passport_link_stays_none(
     (его читает шаблон, решая, рендерить ли блок ссылки на паспорт).
     Сам convert() при этом ключ passport_link каждой записи компонента
     всегда инициализирует None независимо от флага — реальный URL
-    подставляется позже, в PassportPageRegistry.inject_links_for_profiles()
-    (см. test_passport_registry.py), а не в convert().
+    подставляется позже, в ProfileCentricConverter.enrich_with_passport_links()
+    (см. тесты test_enrich_with_passport_links_* ниже), а не в convert().
 
     Предусловия:
         - publisher_multi_channel_result с comp_alpha (не header-only).
@@ -362,3 +362,95 @@ def test_profile_centric_convert_all_header_only_gives_empty_profiles(
     result = ProfileCentricConverter().convert(patched_result)
 
     assert result["profiles"] == []
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "component_name, passport_pages, expected_link",
+    [
+        pytest.param(
+            "mylib",
+            {"mylib": {"1.0": {"page_id": "42"}}},
+            "/spaces/TEST/pages/42",
+            id="known-component-with-page-id",
+        ),
+        pytest.param(
+            "unknown-lib",
+            {"other-lib": {"1.0": {"page_id": "1"}}},
+            None,
+            id="unknown-component",
+        ),
+        pytest.param(
+            "mylib",
+            {"mylib": {"1.0": {"page_id": None}}},
+            None,
+            id="known-component-missing-page-id",
+        ),
+    ],
+)
+def test_enrich_with_passport_links_sets_passport_link(
+    component_name: str,
+    passport_pages: dict,
+    expected_link: str | None,
+) -> None:
+    """enrich_with_passport_links проставляет passport_link в зависимости от того,
+    найден ли компонент/версия в реестре паспортов и задан ли у записи page_id."""
+    view_model: dict = {
+        "space": "TEST",
+        "profiles": [
+            {"channels": {"fast": [{"name": component_name, "version": "1.0"}]}},
+        ],
+    }
+
+    ProfileCentricConverter().enrich_with_passport_links(view_model, passport_pages)
+
+    comp = view_model["profiles"][0]["channels"]["fast"][0]
+    assert comp["passport_link"] == expected_link
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_noop_when_registry_empty() -> None:
+    """enrich_with_passport_links не мутирует view_model, если реестр паспортов пуст."""
+    view_model: dict = {
+        "space": "TEST",
+        "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],
+    }
+
+    ProfileCentricConverter().enrich_with_passport_links(view_model, {})
+
+    assert view_model == {
+        "space": "TEST",
+        "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],
+    }
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_noop_when_profiles_key_absent() -> None:
+    """enrich_with_passport_links ничего не делает, если в view_model нет ключа
+    'profiles'."""
+    view_model: dict = {"space": "TEST", "components": []}
+    passport_pages = {"mylib": {"1.0": {"page_id": "1"}}}
+
+    ProfileCentricConverter().enrich_with_passport_links(view_model, passport_pages)
+
+    assert view_model == {"space": "TEST", "components": []}
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_noop_when_include_passport_links_false() -> None:
+    """enrich_with_passport_links ничего не делает, если ссылки на паспорта
+    отключены в конструкторе конвертера — даже при непустом реестре и наличии
+    ключа 'profiles'. Это гейт, который раньше жил на уровне стратегии."""
+    view_model: dict = {
+        "space": "TEST",
+        "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],
+    }
+
+    ProfileCentricConverter(include_passport_links=False).enrich_with_passport_links(
+        view_model, {"mylib": {"1.0": {"page_id": "1"}}}
+    )
+
+    assert view_model == {
+        "space": "TEST",
+        "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],
+    }

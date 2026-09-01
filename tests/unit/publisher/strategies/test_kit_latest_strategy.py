@@ -109,14 +109,15 @@ def test_execute_returns_failure_on_client_error(
 
 
 @pytest.mark.contract
-def test_include_passport_links_always_false_even_if_requested(
+def test_include_passport_links_kwarg_has_no_effect(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
     publisher_multi_component_result: ParsedResult,
     tmp_path: Path,
 ) -> None:
-    """Явная попытка передать include_passport_links=True игнорируется — у этой
-    страницы нет понятия ссылок на паспорта."""
+    """Явная попытка передать include_passport_links=True тихо отбрасывается —
+    у KitLatestConverter нет понятия ссылок на паспорта (wants_passport_links
+    всегда False), сколько бы это ни просил вызывающий."""
     strategy = KitLatestPageStrategy(
         confluence_client=publisher_confluence_client,
         document_builder=publisher_document_builder,
@@ -128,7 +129,7 @@ def test_include_passport_links_always_false_even_if_requested(
         include_passport_links=True,
         data_dir=tmp_path,
     )
-    assert strategy._include_passport_links is False
+    assert strategy._converter.wants_passport_links is False
 
 
 @pytest.mark.contract

@@ -1,4 +1,4 @@
-"""Трансформер для полного вида документации релиза."""
+"""Трансформер для полного вида документации релиза, сгруппированного по компонентам."""
 
 from typing import Any
 
@@ -8,12 +8,19 @@ from autodoc.publisher.converters.base_data_converter import _VariantOpts
 from autodoc.publisher.converters.base_release_converter import BaseReleaseConverter
 
 
-class FullReleaseConverter(BaseReleaseConverter):
+class ComponentCentricConverter(BaseReleaseConverter):
     """
-    Конвертер для полного вида документации релиза.
+    Конвертер для полного вида документации релиза: иерархия
+    ``Компонент → Релиз → Профиль сборки → Вариант``.
 
-    Включает все компоненты со всеми профилями, вариантами и зависимостями.
-    Опционально добавляет ссылки на паспорта компонентов.
+    Название и структура — прямая пара к ``ProfileCentricConverter``, который
+    строит ту же исходную выборку данных релиза в другой иерархии
+    (``Профиль → Канал → Компонент``). Обе формы существуют ровно потому, что
+    одни и те же данные релиза читают по-разному: «что входит в этот
+    компонент» (эта форма) и «что входит в этот профиль сборки»
+    (``ProfileCentricConverter``). Включает все компоненты со всеми
+    профилями, вариантами и зависимостями. Опционально добавляет ссылки на
+    паспорта компонентов через ``enrich_with_passport_links()``.
     """
 
     def _build_profile_build_entry(
@@ -114,3 +121,37 @@ class FullReleaseConverter(BaseReleaseConverter):
                 for comp in components_sorted
             ],
         }
+
+    def enrich_with_passport_links(
+        self,
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
+    ) -> None:
+        """
+        Вставляет ссылки на страницы паспортов во view-model полного вида релиза.
+
+        Для каждого компонента добавляет ключ ``passport_versions`` с теми
+        версиями, что присутствуют в реестре. Не изменяет view-model, если
+        ссылки на паспорта отключены (``include_passport_links=False``),
+        реестр пуст или ключ ``'components'`` отсутствует.
+
+        Args:
+            view_model: Словарь, созданный ``convert()``. Изменяется на месте.
+            passport_pages: Карта, загруженная через ``PassportPageRegistry.load()``.
+        """
+        if not self._include_passport_links or not passport_pages or "components" not in view_model:
+            return
+
+        space = view_model.get("space", "")
+
+        for comp in view_model.get("components", []):
+            comp_name = comp.get("name")
+            if not comp_name or comp_name not in passport_pages:
+                continue
+            release_versions = {rel.get("version") for rel in comp.get("releases", [])}
+            comp["passport_versions"] = {
+                version: {**entry, "url": self._build_passport_url(space, entry.get("page_id", ""))}
+                for version in release_versions
+                if (entry := self._lookup_passport_entry(passport_pages, comp_name, version))
+                is not None
+            }

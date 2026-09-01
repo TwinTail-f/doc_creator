@@ -13,9 +13,9 @@ class ProfileCentricConverter(BaseReleaseConverter):
 
     Перестраивает иерархию ``Компонент → Релиз → Профиль``
     в ``Профиль → Канал → Компонент`` для удобного анализа по профилям.
-    Поле ``passport_link`` каждого компонента заполняется реальной ссылкой
-    в ``ProfileCentricStrategy`` через ``PassportPageRegistry.inject_links_for_profiles()``
-    после публикации паспортов.
+    Поле ``passport_link`` каждого компонента изначально ``None`` и
+    заполняется реальной ссылкой в ``enrich_with_passport_links()`` — этот
+    метод стратегия вызывает после публикации паспортов.
     """
 
     def _collect_profile_meta(
@@ -138,3 +138,44 @@ class ProfileCentricConverter(BaseReleaseConverter):
             **self._base_view_model(data),
             "profiles": profiles,
         }
+
+    def enrich_with_passport_links(
+        self,
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
+    ) -> None:
+        """
+        Вставляет ссылки на страницы паспортов во view-model профиль-центричного вида.
+
+        Для компонентов, отсутствующих в реестре, поле ``passport_link``
+        остаётся ``None``. Не изменяет view-model, если ссылки на паспорта
+        отключены (``include_passport_links=False``), реестр пуст или ключ
+        ``'profiles'`` отсутствует.
+
+        Args:
+            view_model: Словарь, созданный ``convert()``. Изменяется на месте.
+                        Должен содержать ключ ``'space'``.
+            passport_pages: Карта, загруженная через ``PassportPageRegistry.load()``.
+        """
+        if not self._include_passport_links or not passport_pages or "profiles" not in view_model:
+            return
+
+        space = view_model.get("space", "")
+
+        for profile in view_model.get("profiles", []):
+            for channel_comps in profile.get("channels", {}).values():
+                for comp in channel_comps:
+                    comp_name = comp.get("name")
+                    version = str(comp.get("version", ""))
+                    info = (
+                        self._lookup_passport_entry(passport_pages, comp_name, version)
+                        if comp_name
+                        else None
+                    )
+                    if not info:
+                        comp["passport_link"] = None
+                        continue
+                    page_id = info.get("page_id")
+                    comp["passport_link"] = (
+                        self._build_passport_url(space, page_id) if page_id else None
+                    )

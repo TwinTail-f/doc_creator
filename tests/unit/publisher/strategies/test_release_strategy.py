@@ -150,14 +150,14 @@ def test_release_strategy_execute_returns_failure_on_client_error(
 
 # Фабрика и подключение конвертера
 @pytest.mark.contract
-def test_release_make_converter_creates_full_release_converter(
+def test_release_make_converter_creates_component_centric_converter(
     publisher_confluence_client: FakeConfluenceClient,
     publisher_document_builder: FakeDocumentBuilder,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """create_strategy('release', ...) подключает FullReleaseConverter с переданным include_passport_links."""
+    """create_strategy('release', ...) подключает ComponentCentricConverter с переданным include_passport_links."""
     mocker.patch.object(PassportPageRegistry, "load", return_value={})
     strategy = create_strategy(
         "release",
@@ -176,7 +176,7 @@ def test_release_make_converter_creates_full_release_converter(
     view_model = publisher_document_builder.last_call["view_model"]
     assert (
         "components" in view_model
-    ), "форма view_model должна соответствовать FullReleaseConverter"
+    ), "форма view_model должна соответствовать ComponentCentricConverter"
     assert view_model["include_passport_links"] is False
 
 

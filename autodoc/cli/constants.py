@@ -5,7 +5,7 @@ from importlib.metadata import PackageNotFoundError, version
 from autodoc.publisher.strategies.kit_fixed_strategy import KitFixedPageStrategy
 from autodoc.publisher.strategies.kit_latest_strategy import KitLatestPageStrategy
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
-from autodoc.publisher.strategies.profile_strategy import ProfileCentricStrategy
+from autodoc.publisher.strategies.profile_centric_strategy import ProfileCentricPageStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
 
 # Текущая версия утилиты autodoc
@@ -16,7 +16,7 @@ except PackageNotFoundError:
 
 # Имена Jinja2-шаблонов — единственный источник истины в классах стратегий
 RELEASE_TEMPLATE: str = ReleasePageStrategy.DEFAULT_TEMPLATE
-PROFILE_TEMPLATE: str = ProfileCentricStrategy.DEFAULT_TEMPLATE
+PROFILE_TEMPLATE: str = ProfileCentricPageStrategy.DEFAULT_TEMPLATE
 PASSPORT_TEMPLATE: str = PassportsStrategy.DEFAULT_TEMPLATE
 KIT_FIXED_TEMPLATE: str = KitFixedPageStrategy.DEFAULT_TEMPLATE
 KIT_LATEST_TEMPLATE: str = KitLatestPageStrategy.DEFAULT_TEMPLATE

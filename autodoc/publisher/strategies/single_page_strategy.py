@@ -1,7 +1,6 @@
 """Промежуточный базовый класс для стратегий, публикующих одну страницу Confluence."""
 
 from abc import abstractmethod
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -20,8 +19,11 @@ class SinglePagePublishStrategy(BasePublishStrategy):
     Промежуточный базовый класс для стратегий, публикующих одну страницу Confluence.
 
     Управляет общими атрибутами и шаблонным потоком выполнения
-    (inject → publish), который разделяют ReleasePageStrategy
-    и ProfileCentricStrategy.
+    (convert → enrich → publish), который разделяют ReleasePageStrategy,
+    ProfileCentricPageStrategy, KitFixedPageStrategy и KitLatestPageStrategy.
+    Обогащение ссылками на паспорта (``enrich_with_passport_links()``)
+    вызывается всегда — сам конвертер решает, есть ли у него что вставлять
+    (см. ``BaseDataConverter.enrich_with_passport_links``).
     """
 
     IS_SINGLE_PAGE: ClassVar[bool] = True
@@ -35,10 +37,8 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         space: str,
         page_title: str,
         converter: BaseDataConverter,
-        link_injector: Callable[[dict[str, Any], dict[str, Any]], None],
         template_name: str,
         parent_id: str | None = None,
-        include_passport_links: bool = True,
         data_dir: Path | None = None,
     ) -> None:
         """
@@ -50,11 +50,11 @@ class SinglePagePublishStrategy(BasePublishStrategy):
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
             page_title: Заголовок публикуемой страницы Confluence.
-            converter: Конвертер данных парсера во view-model для шаблона.
-            link_injector: Callable, вставляющий ссылки на паспорта во view-model.
+            converter: Конвертер данных парсера во view-model для шаблона. Сам решает
+                       (через ``enrich_with_passport_links()``), нужны ли ему вообще
+                       ссылки на паспорта — стратегии об этом знать не обязательно.
             template_name: Имя Jinja2-шаблона.
             parent_id: ID родительской страницы. ``None`` означает отсутствие родителя.
-            include_passport_links: Вставлять ли ссылки на паспорта компонентов.
             data_dir: Директория для ``passport_pages.json``.
 
         Raises:
@@ -66,9 +66,7 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         self._page_title: str = page_title
         self._template_name: str = template_name
         self._converter: BaseDataConverter = converter
-        self._link_injector: Callable[[dict[str, Any], dict[str, Any]], None] = link_injector
         self._parent_id: str | None = parent_id
-        self._include_passport_links: bool = include_passport_links
         self._passport_page_registry: PassportPageRegistry = PassportPageRegistry(data_dir)
 
     @staticmethod
@@ -93,41 +91,27 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         """
         return self._converter.convert(self._data)
 
-    def _inject_passport_links(
-        self, view_model: dict[str, Any], passport_pages: dict[str, Any]
-    ) -> None:
-        """
-        Вставляет ссылки на паспорта во view-model на месте.
-
-        Args:
-            view_model: Словарь view-model для мутации.
-            passport_pages: Карта страниц паспортов из реестра.
-        """
-        self._link_injector(view_model, passport_pages)
-
     def execute(self) -> PublishReport:
         """
-        Трансформирует данные, опционально вставляет ссылки на паспорта,
-        рендерит и публикует одну страницу.
+        Трансформирует данные, обогащает view-model ссылками на паспорта
+        (если конвертер это поддерживает), рендерит и публикует одну страницу.
 
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
         """
         logger.info(f"Публикация {self._page_title}")
 
-        inject_fn: Callable[[dict[str, Any]], None] | None = None
-        if self._include_passport_links:
-            passport_pages = self._passport_page_registry.load()
+        passport_pages = (
+            self._passport_page_registry.load() if self._converter.wants_passport_links else {}
+        )
 
-            def _inject_passport_links_fn(vm: dict[str, Any]) -> None:
-                self._inject_passport_links(vm, passport_pages)
-
-            inject_fn = _inject_passport_links_fn
+        def _enrich(view_model: dict[str, Any]) -> None:
+            self._converter.enrich_with_passport_links(view_model, passport_pages)
 
         return self._publish_single_page(
             page_title=self._page_title,
             template_name=self._template_name,
             transform_fn=self._build_view_model,
             parent_id=self._parent_id or "",
-            inject_links=inject_fn,
+            inject_links=_enrich,
         )

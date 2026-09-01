@@ -1,10 +1,10 @@
-"""Юнит-тесты для FullReleaseConverter."""
+"""Юнит-тесты для ComponentCentricConverter."""
 
 import pytest
 
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult, ProfileDefinition
-from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.publisher.converters.component_centric_converter import ComponentCentricConverter
 from tests.unit.publisher.converters.conftest import COMPONENT_NAME as COMP_NAME
 
 UNKNOWN_PROFILE: str = "ghost"
@@ -31,7 +31,7 @@ def test_full_release_convert_contains_all_components(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
     """result['components'] содержит по одной записи для каждого компонента входных данных."""
-    result = FullReleaseConverter().convert(publisher_multi_component_result)
+    result = ComponentCentricConverter().convert(publisher_multi_component_result)
 
     assert len(result["components"]) == 2
 
@@ -41,7 +41,7 @@ def test_full_release_convert_component_has_releases(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
     """Запись компонента openssl содержит оба его релиза."""
-    result = FullReleaseConverter().convert(publisher_multi_component_result)
+    result = ComponentCentricConverter().convert(publisher_multi_component_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     assert len(openssl_entry["releases"]) == 2
@@ -53,7 +53,7 @@ def test_full_release_convert_profile_build_has_docker_image(
     publisher_profile_definition: ProfileDefinition,
 ) -> None:
     """Сборки профиля обогащаются docker_image из соответствующего ProfileDefinition."""
-    result = FullReleaseConverter().convert(publisher_multi_component_result)
+    result = ComponentCentricConverter().convert(publisher_multi_component_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     first_release = openssl_entry["releases"][0]
@@ -68,7 +68,7 @@ def test_full_release_convert_profile_build_unknown_profile_gives_empty_fields(
     multi_result_with_unknown_profile: ParsedResult,
 ) -> None:
     """ProfileBuild с отсутствующим profile_name даёт docker_image='' и conan_settings={}."""
-    result = FullReleaseConverter().convert(multi_result_with_unknown_profile)
+    result = ComponentCentricConverter().convert(multi_result_with_unknown_profile)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     ghost_pb = next(
@@ -93,7 +93,7 @@ def test_full_release_convert_header_only_flag_comes_from_component(
             "components": [patched_comp] + list(publisher_multi_component_result.components[1:])
         }
     )
-    result = FullReleaseConverter().convert(patched_result)
+    result = ComponentCentricConverter().convert(patched_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     # Все релизы header-only компонента несут is_header_only=True
@@ -105,7 +105,7 @@ def test_full_release_convert_release_with_no_profile_builds_has_empty_list(
     publisher_multi_component_result: ParsedResult,
 ) -> None:
     """Релиз без profile_builds даёт пустой список profile_builds в view-model."""
-    result = FullReleaseConverter().convert(publisher_multi_component_result)
+    result = ComponentCentricConverter().convert(publisher_multi_component_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     empty_pb_release = next(r for r in openssl_entry["releases"] if not r["profile_builds"])
@@ -127,7 +127,7 @@ def test_header_only_component_has_no_profile_builds_in_view(
         components=[publisher_header_only_component],
     )
 
-    converter = FullReleaseConverter(include_passport_links=False)
+    converter = ComponentCentricConverter(include_passport_links=False)
     view = converter.convert(parsed)
 
     comp_view = view["components"][0]
@@ -150,7 +150,7 @@ def test_non_header_only_component_has_profile_builds(
         len(comp.releases[0].profile_builds) > 0
     ), "У фикстуры должен быть непустой profile_builds"
 
-    converter = FullReleaseConverter(include_passport_links=False)
+    converter = ComponentCentricConverter(include_passport_links=False)
     view = converter.convert(publisher_parsed_result)
 
     comp_view = view["components"][0]
@@ -170,7 +170,7 @@ def test_components_sorted_alphabetically_in_view(
     reversed_result = publisher_multi_component_result.model_copy(
         update={"components": list(reversed(publisher_multi_component_result.components))}
     )
-    converter = FullReleaseConverter(include_passport_links=False)
+    converter = ComponentCentricConverter(include_passport_links=False)
     view = converter.convert(reversed_result)
 
     names = [c["name"] for c in view["components"]]
@@ -180,27 +180,128 @@ def test_components_sorted_alphabetically_in_view(
 
 
 @pytest.mark.business_logic
-def test_no_passport_link_field_added_by_converter_itself(
+def test_no_passport_link_field_added_by_convert_itself(
     publisher_parsed_result,
 ) -> None:
-    """FullReleaseConverter.convert() сам по себе не добавляет поле passport_link /
+    """ComponentCentricConverter.convert() сам по себе не добавляет поле passport_link /
     passport_versions ни в release_view, ни в comp_view, даже при
-    include_passport_links=True: согласно докстрингу BaseReleaseConverter, эта
-    ответственность полностью лежит на inject_links(), который применяется позже
-    слоем стратегии (см. tests/unit/publisher/page_manager/test_passport_registry.py)."""
-    converter = FullReleaseConverter(include_passport_links=True)
+    include_passport_links=True: эта ответственность лежит на отдельном методе
+    enrich_with_passport_links(), который применяется позже стратегией
+    публикации, уже после того, как паспорта опубликованы (см. тесты
+    test_enrich_with_passport_links_* ниже)."""
+    converter = ComponentCentricConverter(include_passport_links=True)
     view = converter.convert(publisher_parsed_result)
 
     for comp_view in view["components"]:
         assert "passport_versions" not in comp_view, (
-            "passport_versions не должен устанавливаться конвертером; "
-            "он добавляется позже через inject_links()"
+            "passport_versions не должен устанавливаться в convert(); "
+            "он добавляется позже через enrich_with_passport_links()"
         )
         for release_view in comp_view["releases"]:
             assert "passport_link" not in release_view, (
-                "passport_link не должен устанавливаться конвертером; "
-                "он добавляется позже через inject_links()"
+                "passport_link не должен устанавливаться в convert(); "
+                "он добавляется позже через enrich_with_passport_links()"
             )
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_adds_passport_versions_for_known_component() -> None:
+    """enrich_with_passport_links добавляет passport_versions с URL для компонента,
+    найденного в реестре, сохраняя остальные поля записи реестра (например,
+    page_id) через слияние словарей."""
+    view_model: dict = {
+        "space": "TEST",
+        "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
+    }
+    passport_pages = {"mylib": {"1.0": {"page_id": "42"}}}
+
+    ComponentCentricConverter().enrich_with_passport_links(view_model, passport_pages)
+
+    entry = view_model["components"][0]["passport_versions"]["1.0"]
+    assert entry["url"] == "/spaces/TEST/pages/42"
+    assert entry["page_id"] == "42"
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_skips_versions_not_in_component_releases() -> None:
+    """enrich_with_passport_links включает в passport_versions только те версии
+    реестра, которые присутствуют среди релизов компонента в view-model."""
+    view_model: dict = {
+        "space": "TEST",
+        "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
+    }
+    passport_pages: dict = {"mylib": {"1.0": {"page_id": "p1"}, "2.0": {"page_id": "p2"}}}
+
+    ComponentCentricConverter().enrich_with_passport_links(view_model, passport_pages)
+
+    passport_versions = view_model["components"][0]["passport_versions"]
+    assert "1.0" in passport_versions
+    assert "2.0" not in passport_versions
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_skips_component_not_in_registry() -> None:
+    """enrich_with_passport_links пропускает компонент через continue, если его
+    имени нет в реестре паспортов вовсе, — ключ passport_versions для него не
+    добавляется."""
+    view_model: dict = {
+        "space": "TEST",
+        "components": [{"name": "unknown-lib", "releases": [{"version": "1.0"}]}],
+    }
+
+    ComponentCentricConverter().enrich_with_passport_links(
+        view_model, {"other-lib": {"1.0": {"page_id": "1"}}}
+    )
+
+    comp = view_model["components"][0]
+    assert "passport_versions" not in comp
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_noop_when_components_key_absent() -> None:
+    """enrich_with_passport_links ничего не делает, если в view_model нет ключа
+    'components'."""
+    view_model: dict = {"space": "TEST"}
+
+    ComponentCentricConverter().enrich_with_passport_links(
+        view_model, {"mylib": {"1.0": {"page_id": "1"}}}
+    )
+
+    assert view_model == {"space": "TEST"}
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_noop_when_passport_pages_empty() -> None:
+    """enrich_with_passport_links не мутирует view_model, если реестр паспортов пуст."""
+    view_model: dict = {
+        "space": "TEST",
+        "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
+    }
+
+    ComponentCentricConverter().enrich_with_passport_links(view_model, {})
+
+    assert view_model == {
+        "space": "TEST",
+        "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
+    }
+
+
+@pytest.mark.business_logic
+def test_enrich_with_passport_links_noop_when_include_passport_links_false() -> None:
+    """enrich_with_passport_links ничего не делает, если ссылки на паспорта
+    отключены в конструкторе конвертера — даже при непустом реестре и наличии
+    ключа 'components'. Это гейт, который раньше жил на уровне стратегии."""
+    view_model: dict = {
+        "space": "TEST",
+        "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
+    }
+
+    ComponentCentricConverter(include_passport_links=False).enrich_with_passport_links(
+        view_model, {"mylib": {"1.0": {"page_id": "1"}}}
+    )
+
+    comp = view_model["components"][0]
+    assert "passport_versions" not in comp
 
 
 @pytest.mark.business_logic
@@ -221,7 +322,7 @@ def test_full_release_convert_variant_with_unknown_options_ref_has_empty_conan_o
     components = [patched_comp] + list(publisher_multi_component_result.components[1:])
     patched_result = publisher_multi_component_result.model_copy(update={"components": components})
 
-    result = FullReleaseConverter().convert(patched_result)
+    result = ComponentCentricConverter().convert(patched_result)
 
     openssl_entry = next(c for c in result["components"] if c["name"] == COMP_NAME)
     variant_view = openssl_entry["releases"][0]["profile_builds"][0]["variants"][0]
@@ -233,6 +334,6 @@ def test_full_release_convert_empty_components_gives_empty_list(publisher_parsed
     """Пустой список компонентов даёт пустой список components в результирующей view-model."""
     patched = publisher_parsed_result.model_copy(update={"components": []})
 
-    result = FullReleaseConverter().convert(patched)
+    result = ComponentCentricConverter().convert(patched)
 
     assert result["components"] == []

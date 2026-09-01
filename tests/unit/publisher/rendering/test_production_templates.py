@@ -5,7 +5,7 @@
 вывода (имя компонента, conan-референс, маркеры макросов os_style/docker_note,
 CSS-классы из _styles_base.jinja2/_styles_passport.jinja2) — как на
 минимальном самодельном контексте, так и на реальном выводе
-FullReleaseConverter/ProfileCentricConverter. Реальное подключение к
+ComponentCentricConverter/ProfileCentricConverter. Реальное подключение к
 Confluence не выполняется.
 """
 
@@ -18,7 +18,7 @@ from autodoc.models.component import Component
 from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.release import Release
-from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
+from autodoc.publisher.converters.component_centric_converter import ComponentCentricConverter
 from autodoc.publisher.converters.kit_fixed_converter import KitFixedConverter
 from autodoc.publisher.converters.kit_latest_converter import KitLatestConverter
 from autodoc.publisher.converters.passport_converter import PassportConverter
@@ -74,7 +74,7 @@ def test_macros_template_renders_without_error(
     patched_comp = original_comp.model_copy(update={"releases": [patched_rel]})
     patched_result = publisher_parsed_result.model_copy(update={"components": [patched_comp]})
 
-    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).convert(
+    view_model: dict[str, Any] = ComponentCentricConverter(include_passport_links=False).convert(
         patched_result
     )
     output: str = builder.build(_RELEASE_DOC_TEMPLATE, view_model)
@@ -151,11 +151,11 @@ def test_main_component_template_contains_component_name(
 
 
 @pytest.mark.integration
-def test_release_doc_template_renders_full_release_converter_output_with_real_release(
+def test_release_doc_template_renders_component_centric_converter_output_with_real_release(
     builder: DocumentBuilder, publisher_parsed_result: ParsedResult
 ) -> None:
-    """release_doc.jinja2 рендерит реальный вывод FullReleaseConverter.convert() над непустым релизом с профилями и вариантами."""
-    view_model: dict[str, Any] = FullReleaseConverter(include_passport_links=False).convert(
+    """release_doc.jinja2 рендерит реальный вывод ComponentCentricConverter.convert() над непустым релизом с профилями и вариантами."""
+    view_model: dict[str, Any] = ComponentCentricConverter(include_passport_links=False).convert(
         publisher_parsed_result
     )
 

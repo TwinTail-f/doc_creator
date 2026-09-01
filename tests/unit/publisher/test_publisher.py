@@ -138,9 +138,9 @@ def test_publisher_publish_all_runs_passports_then_release(
     Порядок важен не сам по себе: ReleasePageStrategy при рендеринге читает
     passport_pages.json, записанный предшествующим запуском PassportsStrategy,
     чтобы вставить ссылки на паспорта компонентов (см. докстринг
-    ReleasePageStrategy и link_injector/inject_links). Без порядка
-    "паспорта → релиз" релизная страница будет опубликована без ссылок на
-    паспорта или со ссылками на несуществующие/устаревшие страницы.
+    ReleasePageStrategy и ComponentCentricConverter.enrich_with_passport_links). Без
+    порядка "паспорта → релиз" релизная страница будет опубликована без ссылок
+    на паспорта или со ссылками на несуществующие/устаревшие страницы.
     """
     mocker.patch.object(
         publisher_document_publisher._page_resolver,

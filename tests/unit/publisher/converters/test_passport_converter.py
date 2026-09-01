@@ -5,7 +5,7 @@ import pytest
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.converters.passport_converter import PassportConverter
-from autodoc.publisher.view_models.passports import ConanVariantView
+from autodoc.publisher.view_models.conan_variant import ConanVariantView
 from tests.unit.publisher.converters.conftest import CI_BUILD_URL
 
 COMP_NAME: str = "openssl"

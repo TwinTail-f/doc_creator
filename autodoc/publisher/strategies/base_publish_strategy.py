@@ -105,15 +105,18 @@ class BasePublishStrategy(ABC):
         inject_links: Callable[[dict[str, Any]], None] | None = None,
     ) -> PublishReport:
         """
-        Инкапсулирует общий поток публикации одной страницы для стратегий
-        release и profile-centric.
+        Инкапсулирует общий поток публикации одной страницы для всех
+        стратегий-наследников ``SinglePagePublishStrategy`` (release,
+        profile-centric, kit_fixed, kit_latest).
 
         Args:
             page_title: Заголовок страницы Confluence для создания или обновления.
             template_name: Имя файла Jinja2-шаблона.
             transform_fn: Callable без аргументов, возвращающий словарь view-model.
             parent_id: ID родительской страницы Confluence (пустая строка = без родителя).
-            inject_links: Опциональный callable, мутирующий view-model на месте.
+            inject_links: Опциональный callable, мутирующий view-model на месте
+                (в частности, обогащающий его ссылками на паспорта компонентов —
+                см. ``BaseDataConverter.enrich_with_passport_links``).
 
         Returns:
             ``PublishReport`` с результатом попытки публикации.

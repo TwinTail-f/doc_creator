@@ -20,7 +20,7 @@ def publisher_header_only_component(publisher_release: Release) -> Component:
     Component с is_header_only=True (поле теперь на Component, а не на Release).
 
     profile_builds сохраняются на вложенном release, чтобы проверить, что
-    FullReleaseConverter скрывает их в view model.
+    ComponentCentricConverter скрывает их в view model.
     """
     return Component(
         name="eigen",

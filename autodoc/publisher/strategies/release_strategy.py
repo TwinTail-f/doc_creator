@@ -3,8 +3,7 @@
 from typing import Any
 
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
-from autodoc.publisher.converters.full_release_converter import FullReleaseConverter
-from autodoc.publisher.page_manager.passport_link_injector import inject_links
+from autodoc.publisher.converters.component_centric_converter import ComponentCentricConverter
 from autodoc.publisher.strategies.single_page_strategy import SinglePagePublishStrategy
 
 
@@ -29,15 +28,17 @@ class ReleasePageStrategy(SinglePagePublishStrategy):
         Инициализирует стратегию публикации документации релиза.
 
         Args:
-            converter: Конвертер данных. Если не передан, создаётся ``FullReleaseConverter``.
+            converter: Конвертер данных. Если не передан, создаётся ``ComponentCentricConverter``.
             **kwargs: Остальные параметры для ``SinglePagePublishStrategy``.
+                ``include_passport_links``, если передан, потребляется здесь и
+                уходит в конструктор конвертера — сама стратегия об этом флаге
+                ничего не знает (см. ``ComponentCentricConverter.enrich_with_passport_links``).
         """
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
-        kwargs.setdefault("link_injector", inject_links)
+        include_passport_links = kwargs.pop("include_passport_links", True)
         super().__init__(
-            converter=converter
-            or self._make_converter(
-                {"include_passport_links": kwargs.get("include_passport_links", True)}
+            converter=converter or self._make_converter(
+                {"include_passport_links": include_passport_links}
             ),
             **kwargs,
         )
@@ -45,14 +46,14 @@ class ReleasePageStrategy(SinglePagePublishStrategy):
     @staticmethod
     def _make_converter(kwargs: dict[str, Any]) -> BaseDataConverter:
         """
-        Создаёт ``FullReleaseConverter`` из аргументов конструктора.
+        Создаёт ``ComponentCentricConverter`` из аргументов конструктора.
 
         Args:
             kwargs: Словарь с ключом ``include_passport_links``.
 
         Returns:
-            Готовый ``FullReleaseConverter``.
+            Готовый ``ComponentCentricConverter``.
         """
-        return FullReleaseConverter(
+        return ComponentCentricConverter(
             include_passport_links=kwargs.get("include_passport_links", True),
         )

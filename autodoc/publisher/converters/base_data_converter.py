@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any
 
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.publisher.view_models.passports import ConanVariantView
+from autodoc.publisher.view_models.conan_variant import ConanVariantView
 
 
 class BadgeClass(str, Enum):
@@ -207,3 +207,45 @@ class BaseDataConverter(ABC):
         Returns:
             Словарь с иерархической структурой, готовый для шаблонизатора.
         """
+
+    def enrich_with_passport_links(
+        self,
+        view_model: dict[str, Any],
+        passport_pages: dict[str, Any],
+    ) -> None:
+        """
+        Дополняет view-model ссылками на страницы паспортов компонентов.
+
+        Вызывается стратегией публикации одной страницы после того, как
+        view-model построена, но до рендеринга шаблона. Базовая реализация
+        ничего не делает — для конвертеров, у которых нет понятия «ссылка на
+        паспорт» (``KitFixedConverter``, ``KitLatestConverter``,
+        ``PassportConverter``), это ровно то поведение, которое нужно, и
+        переопределять метод не требуется.
+
+        Конвертеры, для которых ссылки на паспорта имеют смысл
+        (``ComponentCentricConverter``, ``ProfileCentricConverter``), переопределяют
+        этот метод и сами решают, что именно и как вставлять во view-model
+        конкретно их формы — они, а не вызывающая сторона, знают структуру
+        своей view-model.
+
+        Args:
+            view_model: Словарь, созданный ``convert()``. Изменяется на месте.
+            passport_pages: Карта страниц паспортов из
+                ``PassportPageRegistry.load()`` (``{comp_name: {version: {...}}}``).
+        """
+        return
+
+    @property
+    def wants_passport_links(self) -> bool:
+        """
+        Стоит ли стратегии вообще загружать ``PassportPageRegistry`` для этого
+        конвертера — используется исключительно как признак для пропуска
+        лишнего чтения с диска, на семантику ``enrich_with_passport_links()``
+        не влияет (она в любом случае безопасна для пустой карты).
+
+        Базовая реализация — ``False``: для конвертеров без понятия «ссылка на
+        паспорт» реестр можно вообще не трогать. ``BaseReleaseConverter``
+        переопределяет это свойство значением своего ``include_passport_links``.
+        """
+        return False
