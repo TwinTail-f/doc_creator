@@ -12,6 +12,7 @@ from autodoc.models.types import OptionsMap
 from autodoc.parser.fetchers.options_fetcher import OptionsFetcher
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.options_step import OptionsResolveStep
+from tests.unit.parser.conftest import RESOURCES_DIR
 
 
 def _make_release(version: str, channel: str) -> Release:
@@ -106,13 +107,12 @@ def test_options_step_component_not_in_options_map_left_untouched(
 def test_options_step_sqlite3_twelve_options_applied(
     parser_config,
     tmp_path: Path,
-    resources_dir: Path,
     make_fake_fetcher,
 ) -> None:
     """FakeFetcher с 12 опциями для sqlite3/slow применяет все 12 к build_option_sets."""
     sqlite3_opts: OptionsMap = {
         ("sqlite3", "3.34.1", "slow"): json.loads(
-            (resources_dir / "options" / "sqlite3_slow_options.json").read_text()
+            (RESOURCES_DIR / "options" / "sqlite3_slow_options.json").read_text()
         )
     }
     comp = _make_component("sqlite3", [_make_release("3.34.1", "slow")])
@@ -132,11 +132,10 @@ def test_options_step_sqlite3_twelve_options_applied(
 def test_options_step_patchelf_both_versions_get_options(
     parser_config,
     tmp_path: Path,
-    resources_dir: Path,
     make_fake_fetcher,
 ) -> None:
     """FakeFetcher с опциями для двух релизов patchelf заполняет build_option_sets у обоих."""
-    patchelf_opts = json.loads((resources_dir / "options" / "patchelf_options.json").read_text())
+    patchelf_opts = json.loads((RESOURCES_DIR / "options" / "patchelf_options.json").read_text())
     options_map: OptionsMap = {
         ("patchelf", "0.16.1", "tech"): patchelf_opts,
         ("patchelf", "0.18.0", "tech"): patchelf_opts,
@@ -230,12 +229,11 @@ def test_options_step_configure_called_before_fetch(
 def test_options_step_sqlite3_fast_and_slow_get_different_option_counts(
     parser_config,
     tmp_path: Path,
-    resources_dir: Path,
     make_fake_fetcher,
 ) -> None:
     """sqlite3 с релизами fast (5 опций) и slow (12 опций) — каждый получает свой набор опций."""
-    fast_opts = json.loads((resources_dir / "options" / "sqlite3_fast_options.json").read_text())
-    slow_opts = json.loads((resources_dir / "options" / "sqlite3_slow_options.json").read_text())
+    fast_opts = json.loads((RESOURCES_DIR / "options" / "sqlite3_fast_options.json").read_text())
+    slow_opts = json.loads((RESOURCES_DIR / "options" / "sqlite3_slow_options.json").read_text())
     options_map: OptionsMap = {
         ("sqlite3", "3.51.2", "fast"): fast_opts,
         ("sqlite3", "3.34.1", "slow"): slow_opts,

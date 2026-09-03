@@ -14,12 +14,12 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.fetchers.options_fetcher import OptionsFetcher
 from autodoc.parser.pipeline.context import PipelineContext
-from tests.unit.parser.conftest import FakeTFSClient
+from tests.unit.parser.conftest import FakeTFSClient, RESOURCES_DIR
 
 
-def _load_options_bytes(resources_dir: Path, filename: str) -> bytes:
+def _load_options_bytes(filename: str) -> bytes:
     """Загружает реальный файл options JSON из resources/options/ как байты."""
-    return (resources_dir / "options" / filename).read_bytes()
+    return (RESOURCES_DIR / "options" / filename).read_bytes()
 
 
 def _make_items_response(paths: list[str]) -> list[dict]:
@@ -103,7 +103,6 @@ def _make_context(parser_config: ParserConfigSchema, tfs_client, tmp_path: Path)
 def test_options_fetcher_maps_release_to_real_options_file(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
-    resources_dir: Path,
     comp_name: str,
     repo: str,
     version: str,
@@ -115,7 +114,7 @@ def test_options_fetcher_maps_release_to_real_options_file(
 
     Конкретные значения опций покрыты test_options_parser.py.
     """
-    content = _load_options_bytes(resources_dir, options_file)
+    content = _load_options_bytes(options_file)
     client = _fake_options_client(
         items=_make_items_response([tfs_path]),
         content_bytes=content,
@@ -133,13 +132,12 @@ def test_options_fetcher_maps_release_to_real_options_file(
 def test_options_fetcher_patchelf_two_versions_share_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
-    resources_dir: Path,
 ) -> None:
     """Обе версии patchelf в одном репозитории получают опции; фетчер дедуплицирует скачивание.
 
     Конкретные значения опций покрыты test_options_parser.py.
     """
-    patchelf_bytes = _load_options_bytes(resources_dir, "patchelf_options.json")
+    patchelf_bytes = _load_options_bytes("patchelf_options.json")
     path = "/conan/ci-2.0/options.json"
     client = _fake_options_client(
         items=[{"path": path, "isFolder": False}],
@@ -206,13 +204,12 @@ class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
 def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
-    resources_dir: Path,
 ) -> None:
     """Фетчер использует фоллбек ci-1.6 для icu, когда путь ci-2.0 в TFS отсутствует.
 
     Конкретные количества опций покрыты test_options_parser.py.
     """
-    icu_bytes = _load_options_bytes(resources_dir, "icu_slow_options.json")
+    icu_bytes = _load_options_bytes("icu_slow_options.json")
     path = "/conan/ci-1.6/options.json"
     client = _fake_options_client(
         items=_make_items_response([path]),
@@ -231,7 +228,6 @@ def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
 def test_options_fetcher_sqlite3_fast_channel_specific_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
-    resources_dir: Path,
 ) -> None:
     """Фетчер разрешает опции sqlite3 из поддиректорий канала (ci-2.0/fast и ci-1.6/slow).
 
@@ -240,8 +236,8 @@ def test_options_fetcher_sqlite3_fast_channel_specific_options(
     присутствовать в результате. Конкретные количества записей покрыты
     test_options_parser.py.
     """
-    fast_text = _load_options_bytes(resources_dir, "sqlite3_fast_options.json").decode()
-    slow_text = _load_options_bytes(resources_dir, "sqlite3_slow_options.json").decode()
+    fast_text = _load_options_bytes("sqlite3_fast_options.json").decode()
+    slow_text = _load_options_bytes("sqlite3_slow_options.json").decode()
     client = _BranchAwareOptionsFakeTFSClient(
         {
             "release_3.51.2": {"/conan/ci-2.0/fast/options.json": fast_text},

@@ -305,12 +305,12 @@ def test_aggregator_merges_dependencies_across_profiles_of_same_release() -> Non
 @pytest.mark.business_logic
 def test_aggregator_records_version_range_error_message() -> None:
     """Агрегатор сохраняет полный текст ошибки неразрешённого version range в result.errors."""
-    error_msg = (
-        "ERROR: Package 'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' not resolved: "
-        "Version range '~5.77,include_prerelease' from requirement "
-        "'stunnel/[~5.77,include_prerelease]@platform-2.0/fast' required by 'None' "
-        "could not be resolved. Required by 'cli'"
-    )
+    # Синтетический, но реалистичный по форме текст ошибки — сознательно не
+    # копия вывода конкретной версии conan. conan меняет точную формулировку
+    # между версиями, а тест обязан оставаться валидным при любой из них:
+    # он проверяет, что аггрегатор сохраняет ошибку с этими двумя маркерами
+    # (см. assert ниже), а не то, что conan выводит именно эти слова.
+    error_msg = "ERROR: stunnel/[~5.77]: Version range could not be resolved: not resolved"
     release = Release(version="5.77", platform="2.0", channel="fast")
     pb = ProfileBuild(profile_name="crypto_default_gcc_x86_64.jinja")
     task = ConanTask(

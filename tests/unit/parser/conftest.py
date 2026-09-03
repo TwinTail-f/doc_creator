@@ -25,16 +25,18 @@ def parser_config(valid_parser_config: dict) -> ParserConfigSchema:
     return ParserConfigSchema(**valid_parser_config)
 
 
-@pytest.fixture
-def resources_dir() -> Path:
-    """Путь к общим тестовым ресурсам в tests/unit/parser/resources/."""
-    return Path(__file__).parent / "resources"
+#: Путь к общим тестовым ресурсам в tests/unit/parser/resources/.
+#: Не фикстура: путь чисто детерминирован (Path(__file__).parent) и не
+#: нуждается ни в изоляции между тестами, ни в переопределении — таскать
+#: такое значение через параметры функций pytest незачем, проще импортировать
+#: константу напрямую (см. NULL_PACKAGE_ID ниже — тот же принцип).
+RESOURCES_DIR: Path = Path(__file__).parent / "resources"
 
 
 @pytest.fixture
-def real_manifests_dir(resources_dir: Path) -> Path:
+def real_manifests_dir() -> Path:
     """Path to real .properties files under tests/unit/parser/resources/manifests/."""
-    return resources_dir / "manifests"
+    return RESOURCES_DIR / "manifests"
 
 
 # Фикстуры Component / Release (общие для steps/, enrichment/, test_pipeline.py)

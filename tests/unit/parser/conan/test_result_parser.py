@@ -4,12 +4,11 @@
 Охватывает Conan2ResultParser.parse() — успешный путь (patchelf, nlohmann_json,
 sqlite3, libnetfilter_queue), бинарник Missing (poco), отсутствующий узел,
 пропуск корневого узла и извлечение полей.
-JSON-фикстуры загружаются через общую фикстуру resources_dir.
+JSON-фикстуры загружаются через константу RESOURCES_DIR (tests.unit.parser.conftest).
 """
 
 import dataclasses
 import json
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -18,7 +17,7 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.release import Release
 from autodoc.parser.conan.conan2_result_parser import Conan2ResultParser
 from autodoc.parser.conan.models.conan_task import ConanTask
-from tests.unit.parser.conftest import NULL_PACKAGE_ID
+from tests.unit.parser.conftest import NULL_PACKAGE_ID, RESOURCES_DIR
 
 
 @pytest.fixture
@@ -122,39 +121,39 @@ def poco_task() -> ConanTask:
 
 
 @pytest.fixture
-def success_json(resources_dir: Path) -> dict[str, Any]:
+def success_json() -> dict[str, Any]:
     """Содержимое graph_info_success.json (patchelf, канал tech)."""
-    return json.loads((resources_dir / "conan" / "graph_info_success.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_success.json").read_text())
 
 
 @pytest.fixture
-def missing_json(resources_dir: Path) -> dict[str, Any]:
+def missing_json() -> dict[str, Any]:
     """Содержимое graph_info_missing.json (libyang с binary=Missing)."""
-    return json.loads((resources_dir / "conan" / "graph_info_missing.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_missing.json").read_text())
 
 
 @pytest.fixture
-def nlohmann_json_graph(resources_dir: Path) -> dict[str, Any]:
+def nlohmann_json_graph() -> dict[str, Any]:
     """Содержимое graph_info_nlohmann_json.json (header-only, NULL_PACKAGE_ID)."""
-    return json.loads((resources_dir / "conan" / "graph_info_nlohmann_json.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_nlohmann_json.json").read_text())
 
 
 @pytest.fixture
-def sqlite3_deps_graph(resources_dir: Path) -> dict[str, Any]:
+def sqlite3_deps_graph() -> dict[str, Any]:
     """Содержимое graph_info_sqlite3_with_deps.json (sqlite3 с зависимостью tcl)."""
-    return json.loads((resources_dir / "conan" / "graph_info_sqlite3_with_deps.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_sqlite3_with_deps.json").read_text())
 
 
 @pytest.fixture
-def libnetfilter_queue_graph(resources_dir: Path) -> dict[str, Any]:
+def libnetfilter_queue_graph() -> dict[str, Any]:
     """Содержимое graph_info_libnetfilter_queue.json (зависимости libmnl + libnfnetlink)."""
-    return json.loads((resources_dir / "conan" / "graph_info_libnetfilter_queue.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_libnetfilter_queue.json").read_text())
 
 
 @pytest.fixture
-def poco_missing_graph(resources_dir: Path) -> dict[str, Any]:
+def poco_missing_graph() -> dict[str, Any]:
     """Содержимое graph_info_poco_missing.json (poco с binary=Missing)."""
-    return json.loads((resources_dir / "conan" / "graph_info_poco_missing.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_poco_missing.json").read_text())
 
 
 @pytest.mark.business_logic
@@ -593,9 +592,9 @@ def apr_task() -> ConanTask:
 
 
 @pytest.fixture
-def apr_graph(resources_dir: Path) -> dict[str, Any]:
+def apr_graph() -> dict[str, Any]:
     """Содержимое graph_info_apr.json (apr 1.7.6, канал fast, без зависимостей)."""
-    return json.loads((resources_dir / "conan" / "graph_info_apr.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_apr.json").read_text())
 
 
 @pytest.mark.business_logic
@@ -649,9 +648,9 @@ def test_result_parser_libnetfilter_queue_deps_are_plain_names(
 
 
 @pytest.fixture
-def stunnel_error_graph(resources_dir: Path) -> dict[str, Any]:
+def stunnel_error_graph() -> dict[str, Any]:
     """Содержимое graph_info_stunnel_error.json (version range не удалось разрешить)."""
-    return json.loads((resources_dir / "conan" / "graph_info_stunnel_error.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_stunnel_error.json").read_text())
 
 
 @pytest.fixture
@@ -685,9 +684,9 @@ def test_result_parser_stunnel_error_graph_returns_none(
 
 
 @pytest.fixture
-def patch_files_graph(resources_dir: Path) -> dict[str, Any]:
+def patch_files_graph() -> dict[str, Any]:
     """Содержимое graph_info_patch_files.json (patchelf с несколькими патчами в conandata)."""
-    return json.loads((resources_dir / "conan" / "graph_info_patch_files.json").read_text())
+    return json.loads((RESOURCES_DIR / "conan" / "graph_info_patch_files.json").read_text())
 
 
 @pytest.mark.business_logic

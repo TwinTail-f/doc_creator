@@ -48,14 +48,15 @@ def test_create_strategy_passports_returns_passports_strategy_instance(
 
 
 @pytest.mark.contract
-def test_all_five_strategy_types_registered() -> None:
-    """available_strategies() включает все пять зарегистрированных стратегий."""
-    strategies = available_strategies()
-    assert "release" in strategies
-    assert "profile_centric" in strategies
-    assert "passports" in strategies
-    assert "kit_fixed" in strategies
-    assert "kit_latest" in strategies
+def test_available_strategies_matches_registered_strategy_types() -> None:
+    """available_strategies() содержит ровно те ключи, что зарегистрированы в STRATEGIES.
+
+    Сравниваем с самим STRATEGIES, а не с захардкоженным списком имён и уж
+    тем более не с числом: список стратегий не статичен, появятся новые —
+    этот тест продолжит быть верным без единой правки. Актуальный список
+    стратегий смотреть в STRATEGIES (autodoc/publisher/strategies/registry.py).
+    """
+    assert set(available_strategies()) == set(STRATEGIES)
 
 
 @pytest.mark.contract

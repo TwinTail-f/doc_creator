@@ -9,17 +9,15 @@ from pathlib import Path
 import pytest
 
 from autodoc.parser.parsers.options_parser import OptionsParser
+from tests.unit.parser.conftest import RESOURCES_DIR
 
 CI_PREFIX_V2: str = "/ci-2.0/"
 CI_PREFIX_V16: str = "/ci-1.6/"
 
 PATH_V2_TECH: str = "/repo/ci-2.0/tech/options.json"
 
-
-@pytest.fixture
-def options_dir(resources_dir: Path) -> Path:
-    """Путь к директории resources/options/ содержащей реальные JSON файлы опций."""
-    return resources_dir / "options"
+#: Директория resources/options/ с реальными JSON-файлами опций.
+OPTIONS_DIR: Path = RESOURCES_DIR / "options"
 
 
 @pytest.mark.business_logic
@@ -161,7 +159,6 @@ def test_select_ci_prefix(paths: list[str], expected: str) -> None:
     ],
 )
 def test_parse_file_real_options_files(
-    options_dir: Path,
     filename: str,
     opt_path: str,
     ci_prefix: str,
@@ -169,7 +166,7 @@ def test_parse_file_real_options_files(
     expected_cleaned: dict[str, str],
 ) -> None:
     """parse_file на реальных options.json из resources/options/ возвращает ожидаемые channel и cleaned."""
-    text = (options_dir / filename).read_text(encoding="utf-8")
+    text = (OPTIONS_DIR / filename).read_text(encoding="utf-8")
     channel, cleaned = OptionsParser.parse_file(text, opt_path=opt_path, ci_prefix=ci_prefix)
     assert channel == expected_channel
     assert cleaned == expected_cleaned

@@ -6,7 +6,7 @@
 import json
 from pathlib import Path
 import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -71,28 +71,32 @@ def conan2_runner(tmp_path: Path) -> Conan2Runner:
 
 @pytest.mark.infrastructure
 def test_conan2_runner_returns_failure_on_timeout(
-    conan2_runner: Conan2Runner, conan_task: ConanTask
+    conan2_runner: Conan2Runner,
+    conan_task: ConanTask,
+    mocker: MockerFixture,
 ) -> None:
     """Conan2Runner.run() возвращает success=False при истечении времени ожидания subprocess.
 
     TimeoutExpired не должен пробрасываться — runner перехватывает его и возвращает
     результат-ошибку, чтобы вызывающий код мог накапливать ошибки вместо падения.
     """
-    with (
-        patch("shutil.which", return_value="/usr/bin/conan"),
-        patch(
-            "subprocess.run",
-            side_effect=subprocess.TimeoutExpired(cmd="conan", timeout=_TIMEOUT_SEC),
-        ),
-    ):
-        result: ConanRawResult = conan2_runner.run(conan_task)
+    mocker.patch("shutil.which", return_value="/usr/bin/conan")
+    mocker.patch(
+        "subprocess.run",
+        side_effect=subprocess.TimeoutExpired(cmd="conan", timeout=_TIMEOUT_SEC),
+    )
+
+    result: ConanRawResult = conan2_runner.run(conan_task)
+
     assert result.success is False
     assert result.error  # сообщение об ошибке непустое
 
 
 @pytest.mark.infrastructure
 def test_conan2_runner_clean_cache_success(
-    conan2_runner: Conan2Runner, tmp_path: Path, mocker: MockerFixture
+    conan2_runner: Conan2Runner,
+    tmp_path: Path,
+    mocker: MockerFixture,
 ) -> None:
     """clean_cache() не бросает исключений при успешном завершении и использует шаблонный CONAN_HOME напрямую."""
     mock_run = mocker.patch(
@@ -143,7 +147,9 @@ def test_conan2_runner_clean_cache_swallows_failures(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
-    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker: MockerFixture
+    conan2_runner: Conan2Runner,
+    conan_task: ConanTask,
+    mocker: MockerFixture,
 ) -> None:
     """run() при returncode=0 и валидном JSON на stdout возвращает
     ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
@@ -164,7 +170,9 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
-    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker: MockerFixture
+    conan2_runner: Conan2Runner,
+    conan_task: ConanTask,
+    mocker: MockerFixture,
 ) -> None:
     """run() при не-JSON stdout возвращает success=False с сообщением, включающим превью исходного stdout."""
     fake_stdout = "<warning>not actually json this time</warning>"
@@ -184,7 +192,9 @@ def test_conan2_runner_run_non_json_stdout_returns_failure_with_preview(
 
 @pytest.mark.infrastructure
 def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message(
-    conan2_runner: Conan2Runner, conan_task: ConanTask, mocker: MockerFixture
+    conan2_runner: Conan2Runner,
+    conan_task: ConanTask,
+    mocker: MockerFixture,
 ) -> None:
     """run() при ненулевом returncode передаёт stderr в _extract_error_message и
     возвращает его результат: _extract_error_message обрезает stderr до
@@ -228,7 +238,8 @@ def test_conan_environment_manager_setup_copies_config(mocker: MockerFixture) ->
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_cleanup_removes_directory(
-    tmp_path: Path, mocker: MockerFixture
+    tmp_path: Path,
+    mocker: MockerFixture,
 ) -> None:
     """cleanup() удаляет каталог настройки, созданный setup().
 
@@ -258,21 +269,29 @@ def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
 
     Свежий ConanEnvironmentManager не имеет каталога настройки; cleanup() должен
     обрабатывать это корректно, чтобы вызывающий код мог использовать его безопасно
-    в блоках finally без дополнительных проверок.
+    в блоках finally без дополнительных проверок. Идемпотентность здесь проверяется
+    буквально — двумя подряд вызовами: одного вызова недостаточно, чтобы отличить
+    "безопасно один раз" от "безопасно повторно".
     """
     manager = ConanEnvironmentManager(_CONFIG_URL, _USERNAME, _PASSWORD)
-    # Не должно бросать исключение
+    # Не должно бросать исключение — ни при первом, ни при повторном вызове
+    manager.cleanup()
     manager.cleanup()
 
 
 @pytest.mark.infrastructure
-def test_conan_environment_manager_setup_is_idempotent_on_double_call(
-    tmp_path: Path, mocker: MockerFixture
+def test_conan_environment_manager_setup_can_be_called_twice_without_raising(
+    tmp_path: Path,
+    mocker: MockerFixture,
 ) -> None:
-    """Повторный вызов setup() на одном и том же ConanEnvironmentManager завершается без ошибок.
+    """Повторный вызов setup() на одном и том же ConanEnvironmentManager не бросает исключение.
 
-    ConanEnvironmentManager не вызывает исключение при повторном setup() — второй
-    вызов создаёт новый временный каталог, и именно его путь возвращается вызывающему коду.
+    Это НЕ идемпотентность в строгом смысле (f(f(x)) == f(x)): второй вызов
+    создаёт совершенно новый временный каталог и возвращает его путь, а
+    старый каталог (first_dir) при этом остаётся на диске — менеджер теряет
+    на него ссылку, ничего не удаляя. Тест сознательно проверяет и фиксирует
+    именно это (см. assert first_dir.exists() ниже) — что реального
+    повторного использования/чистки тут нет, только отсутствие исключения.
     """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mock_run = mocker.patch("subprocess.run")
@@ -295,11 +314,17 @@ def test_conan_environment_manager_setup_is_idempotent_on_double_call(
     second_home = manager.setup()
     # После второго setup() возвращённый путь указывает на второй каталог
     assert second_home == second_dir
+    # А первый каталог никуда не делся — это утечка, а не идемпотентность.
+    # Если это поведение когда-нибудь исправят (например, setup() станет
+    # сначала звать self.cleanup()), этот assert упадёт и тест придётся
+    # обновить осознанно, а не молча.
+    assert first_dir.exists()
 
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_raises_when_remote_list_fails(
-    tmp_path: Path, mocker: MockerFixture
+    tmp_path: Path,
+    mocker: MockerFixture,
 ) -> None:
     """Если получение списка remotes завершилось ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
@@ -329,7 +354,8 @@ def test_conan_environment_manager_setup_raises_when_remote_list_fails(
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_raises_when_remote_login_fails(
-    tmp_path: Path, mocker: MockerFixture
+    tmp_path: Path,
+    mocker: MockerFixture,
 ) -> None:
     """Если логин в один из remotes завершился ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
@@ -401,7 +427,8 @@ def test_conan_environment_manager_setup_raises_when_conan_not_in_path(
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_install_config_cleans_up_before_raising_on_subprocess_failure(
-    tmp_path: Path, mocker: MockerFixture
+    tmp_path: Path,
+    mocker: MockerFixture,
 ) -> None:
     """Если сама команда 'conan config install' завершилась ненулевым кодом,
     _install_config вызывает self.cleanup() (удаляет временный CONAN_HOME) перед
