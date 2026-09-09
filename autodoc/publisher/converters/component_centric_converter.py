@@ -1,4 +1,4 @@
-"""Трансформер для полного вида документации релиза, сгруппированного по компонентам."""
+"""Конвертер для полного вида документации релиза, сгруппированного по компонентам."""
 
 from typing import Any
 
@@ -104,7 +104,7 @@ class ComponentCentricConverter(BaseReleaseConverter):
         Returns:
             Словарь view-model для шаблона полного релиза.
         """
-        logger.debug("Трансформация в полный вид")
+        logger.debug("Конвертация в полный вид")
         pd_map: dict[str, Any] = self._build_profile_definition_map(data)
         components_sorted = sorted(data.components, key=lambda comp: comp.name)
         return {
@@ -145,6 +145,9 @@ class ComponentCentricConverter(BaseReleaseConverter):
         space = view_model.get("space", "")
 
         for comp in view_model.get("components", []):
+            # comp_name всегда непустая строка (см. Component.name — обязательное
+            # поле без значения по умолчанию), проверка на пустоту — защита от
+            # некорректно сконфигурированных данных, а не от None.
             comp_name = comp.get("name")
             if not comp_name or comp_name not in passport_pages:
                 continue

@@ -12,6 +12,7 @@
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -63,13 +64,24 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_save_on_os_error_does_not_raise(tmp_path: Path, mocker: MockerFixture) -> None:
-    """save() поглощает OSError и не пробрасывает исключение наружу."""
+def test_save_on_os_error_does_not_raise(
+    tmp_path: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    """save() поглощает OSError и не пробрасывает исключение наружу.
+
+    Сам факт, что вызов ниже не бросает исключение, уже проверяется pytest:
+    непойманный OSError внутри теста провалил бы его автоматически. Дополнительно
+    убеждаемся, что ошибка не проглатывается молча, а логируется через
+    ``logger.warning`` — иначе поглощение исключения было бы неотличимо от
+    отсутствия проблемы вовсе.
+    """
     registry = _make_registry(tmp_path)
     mocker.patch("pathlib.Path.write_text", side_effect=OSError("disk full"))
 
-    # Не должно бросать исключение
-    registry.save(_PAGES_MAP)
+    with caplog.at_level(logging.WARNING, logger="doc_parser"):
+        registry.save(_PAGES_MAP)
+
+    assert any("disk full" in record.message for record in caplog.records)
 
 
 @pytest.mark.infrastructure

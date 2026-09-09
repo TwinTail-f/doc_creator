@@ -293,7 +293,7 @@ def test_run_single_page_command_rejects_invalid_strategy_type(
             page_title=None,
             cli_root_page_id=None,
             cli_root_page_name=None,
-            no_passport_links=False,
+            include_passport_links=True,
         )
 
     assert exc_info.value.code == _EXIT_FAILURE

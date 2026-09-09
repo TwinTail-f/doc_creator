@@ -42,7 +42,7 @@ _COMMON_SINGLE_PAGE_OPTIONS: list[Callable] = [
 ]
 
 
-def single_page_options(f: Callable) -> Callable:
+def single_page_options(func: Callable) -> Callable:
     """Декоратор: добавляет к команде общий набор Click-опций для публикации одной страницы.
 
     Команды ``publish release`` и ``publish profile`` принимают одинаковый
@@ -50,7 +50,7 @@ def single_page_options(f: Callable) -> Callable:
     показывать ссылки на паспорта компонентов, и это поведение можно отключить.
 
     Args:
-        f: Функция Click-команды, к которой применяются опции.
+        func: Функция Click-команды, к которой применяются опции.
 
     Returns:
         Та же функция, обёрнутая декораторами ``click.option``.
@@ -63,10 +63,10 @@ def single_page_options(f: Callable) -> Callable:
             help="Отключить ссылки на паспорта компонентов",
         ),
     ]
-    return functools.reduce(lambda fn, dec: dec(fn), reversed(decorators), f)
+    return functools.reduce(lambda fn, dec: dec(fn), reversed(decorators), func)
 
 
-def kit_page_options(f: Callable) -> Callable:
+def kit_page_options(func: Callable) -> Callable:
     """Декоратор: добавляет к команде набор Click-опций для страниц «комплекта
     встраивания» (``kit-fixed``, ``kit-latest``).
 
@@ -76,15 +76,15 @@ def kit_page_options(f: Callable) -> Callable:
     у которых ``wants_passport_links`` всегда ``False``).
 
     Args:
-        f: Функция Click-команды, к которой применяются опции.
+        func: Функция Click-команды, к которой применяются опции.
 
     Returns:
         Та же функция, обёрнутая декораторами ``click.option``.
     """
-    return functools.reduce(lambda fn, dec: dec(fn), reversed(_COMMON_SINGLE_PAGE_OPTIONS), f)
+    return functools.reduce(lambda fn, dec: dec(fn), reversed(_COMMON_SINGLE_PAGE_OPTIONS), func)
 
 
-def _run_publish_single_page_command(
+def run_single_page_command(
     ctx: click.Context,
     *,
     strategy_type: str,
@@ -119,6 +119,8 @@ def _run_publish_single_page_command(
         cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
         include_passport_links: Вставлять ли ссылки на паспорта компонентов
             (для strategy_type, которые их не поддерживают, значение игнорируется).
+            Команды ``publish release``/``publish profile`` передают сюда
+            ``not no_passport_links``; ``publish kit-*`` — жёстко ``False``.
 
     Raises:
         DocGeneratorError: Если ``strategy_type`` не зарегистрирован в
@@ -157,47 +159,6 @@ def _run_publish_single_page_command(
         print_publish_result(result)
 
 
-def run_single_page_command(
-    ctx: click.Context,
-    *,
-    strategy_type: str,
-    template_name: str,
-    default_title: str,
-    panel_header: str,
-    page_title: str | None,
-    cli_root_page_id: str | None,
-    cli_root_page_name: str | None,
-    no_passport_links: bool,
-) -> None:
-    """Точка входа команд ``publish release`` и ``publish profile``.
-
-    Тонкая обёртка над ``_run_publish_single_page_command``: переводит флаг
-    CLI ``--no-passport-links`` в ``include_passport_links``.
-
-    Args:
-        ctx: Контекст Click-команды.
-        strategy_type: Тип стратегии публикации (``'release'`` или ``'profile_centric'``).
-        template_name: Имя Jinja2-шаблона.
-        default_title: Заголовок страницы по умолчанию.
-        panel_header: Текст заголовка панели, отображаемой при запуске команды.
-        page_title: Заголовок страницы, заданный через CLI, либо ``None``.
-        cli_root_page_id: ID корневой родительской страницы, заданный через CLI.
-        cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
-        no_passport_links: Если ``True`` — отключает вставку ссылок на паспорта.
-    """
-    _run_publish_single_page_command(
-        ctx,
-        strategy_type=strategy_type,
-        template_name=template_name,
-        default_title=default_title,
-        panel_header=panel_header,
-        page_title=page_title,
-        cli_root_page_id=cli_root_page_id,
-        cli_root_page_name=cli_root_page_name,
-        include_passport_links=not no_passport_links,
-    )
-
-
 def run_kit_page_command(
     ctx: click.Context,
     *,
@@ -211,7 +172,7 @@ def run_kit_page_command(
 ) -> None:
     """Точка входа команд ``publish kit-fixed`` и ``publish kit-latest``.
 
-    Тонкая обёртка над ``_run_publish_single_page_command``: у этих команд
+    Тонкая обёртка над ``run_single_page_command``: у этих команд
     нет флага ``--no-passport-links`` (см. ``kit_page_options``), поэтому
     ``include_passport_links`` жёстко ``False`` — впрочем, для этих
     strategy_type значение всё равно ни на что не влияет.
@@ -226,7 +187,7 @@ def run_kit_page_command(
         cli_root_page_id: ID корневой родительской страницы, заданный через CLI.
         cli_root_page_name: Название корневой родительской страницы, заданное через CLI.
     """
-    _run_publish_single_page_command(
+    run_single_page_command(
         ctx,
         strategy_type=strategy_type,
         template_name=template_name,

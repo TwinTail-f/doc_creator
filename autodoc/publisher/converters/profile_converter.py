@@ -1,5 +1,6 @@
-"""Трансформер для профиль-центричного вида документации."""
+"""Конвертер для профиль-центричного вида документации."""
 
+from collections import defaultdict
 from typing import Any
 
 from autodoc.common.logger import logger
@@ -79,7 +80,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
             "compiler": settings.get("compiler", "—"),
             "compiler_version": settings.get("compiler.version", "—"),
             "docker_url": profile_meta[profile_name]["docker_url"],
-            "channels": {},
+            "channels": defaultdict(list),
         }
 
         for comp in data.components:
@@ -90,8 +91,6 @@ class ProfileCentricConverter(BaseReleaseConverter):
                 is_relevant_for_profile = comp.is_header_only or has_profile_build
                 if not is_relevant_for_profile:
                     continue
-                if rel.channel not in entry["channels"]:
-                    entry["channels"][rel.channel] = []
                 entry["channels"][rel.channel].append(
                     {
                         "name": comp.name,
@@ -102,11 +101,9 @@ class ProfileCentricConverter(BaseReleaseConverter):
                     }
                 )
 
-        for channel in entry["channels"]:
-            entry["channels"][channel].sort(key=lambda x: x["name"])
-
         entry["channels"] = {
-            channel: entry["channels"][channel] for channel in sorted(entry["channels"])
+            channel: sorted(entries, key=lambda ch: ch["name"])
+            for channel, entries in sorted(entry["channels"].items())
         }
 
         return entry
@@ -124,7 +121,7 @@ class ProfileCentricConverter(BaseReleaseConverter):
         Returns:
             Словарь с профилями как верхним уровнем иерархии.
         """
-        logger.debug("Трансформация в профиль-центричный вид")
+        logger.debug("Конвертация в профиль-центричный вид")
 
         pd_map: dict[str, Any] = self._build_profile_definition_map(data)
         profile_meta = self._collect_profile_meta(data, pd_map)

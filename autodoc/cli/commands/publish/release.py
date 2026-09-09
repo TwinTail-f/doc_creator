@@ -29,5 +29,5 @@ def publish_release(
         page_title=page_title,
         cli_root_page_id=cli_root_page_id,
         cli_root_page_name=cli_root_page_name,
-        no_passport_links=no_passport_links,
+        include_passport_links=not no_passport_links,
     )

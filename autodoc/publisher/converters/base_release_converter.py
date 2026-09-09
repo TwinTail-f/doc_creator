@@ -24,7 +24,7 @@ class BaseReleaseConverter(BaseDataConverter):
         """
         Args:
             include_passport_links: Включать ли ссылки на паспорта компонентов —
-                                    и в view-model шаблона (флаг отображения),
+                                    и во view-model шаблона (флаг отображения),
                                     и при вызове ``enrich_with_passport_links()``.
         """
         self._include_passport_links: bool = include_passport_links

@@ -78,7 +78,7 @@ class BaseKitConverter(BaseDataConverter):
             Словарь с полями ``platform_version``, ``version_column_title``
             и ``channels`` (список каналов с их строками).
         """
-        logger.debug(f"Трансформация в вид {self.__class__.__name__}")
+        logger.debug(f"Конвертация в вид {self.__class__.__name__}")
 
         channels: dict[str, list[str]] = {}
         seen: dict[str, set[str]] = {}
