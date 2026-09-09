@@ -65,7 +65,7 @@ class PassportPageRegistry:
         except OSError as e:
             logger.warning(f"Не удалось сохранить файл: {e}")
 
-    def upsert(self, pages_map: dict[str, Any]) -> None:
+    def update(self, pages_map: dict[str, Any]) -> None:
         """
         Объединяет переданную карту страниц с уже сохранённой на диске и сохраняет результат.
 

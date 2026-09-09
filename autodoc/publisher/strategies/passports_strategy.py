@@ -154,7 +154,7 @@ class PassportsStrategy(BasePublishStrategy):
         pages_failed = len(failed_pages)
 
         pages_map = self._build_pages_map(details)
-        self._page_registry.upsert(pages_map)
+        self._page_registry.update(pages_map)
 
         logger.info(
             f"Завершено — {pages_published} опубликовано, "

@@ -145,11 +145,8 @@ class ComponentCentricConverter(BaseReleaseConverter):
         space = view_model.get("space", "")
 
         for comp in view_model.get("components", []):
-            # comp_name всегда непустая строка (см. Component.name — обязательное
-            # поле без значения по умолчанию), проверка на пустоту — защита от
-            # некорректно сконфигурированных данных, а не от None.
             comp_name = comp.get("name")
-            if not comp_name or comp_name not in passport_pages:
+            if comp_name not in passport_pages:
                 continue
             release_versions = {rel.get("version") for rel in comp.get("releases", [])}
             comp["passport_versions"] = {
