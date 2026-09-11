@@ -1,4 +1,5 @@
-"""Unit-тесты для extract_for_platform (legacy_service).
+"""
+Unit-тесты для extract_for_platform (legacy_service).
 
 Покрывает:
 - Возвращает {} при пустом existing_html.

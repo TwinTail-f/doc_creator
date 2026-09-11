@@ -17,7 +17,8 @@ _MODULE = "autodoc.cli.commands.publish.passports"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
-    """Вызывает `publish passports` с переданными дополнительными аргументами командной строки.
+    """
+    Вызывает `publish passports` с переданными дополнительными аргументами командной строки.
 
     Args:
         tmp_path: Базовая директория проекта.
@@ -42,7 +43,8 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
 
 
 def _mock_collaborators(mocker: MockerFixture, publish_report=None, parsed_ok=True):
-    """Подменяет make_publisher и load_parsed_data для `publish passports`.
+    """
+    Подменяет make_publisher и load_parsed_data для `publish passports`.
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
@@ -82,7 +84,8 @@ def test_publish_passports_root_parent_name_forwarded(
     cli_name: str | None,
     expected_name: str | None,
 ) -> None:
-    """--passports-root-parent-name передаётся в publish_passports без изменений;
+    """
+    --passports-root-parent-name передаётся в publish_passports без изменений;
     без флага уходит None (наравне с passports_root_parent_id)."""
     mock_publisher = _mock_collaborators(mocker)
 
@@ -100,7 +103,8 @@ def test_publish_passports_root_parent_name_forwarded(
 def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
-    """--passports-root-parent-name и --passports-root-parent-id можно указывать вместе —
+    """
+    --passports-root-parent-name и --passports-root-parent-id можно указывать вместе —
     CLI пробрасывает оба значения в publish_passports без изменений и без проверки
     конфликта (это делает RootPageResolver)."""
     mock_publisher = _mock_collaborators(mocker)

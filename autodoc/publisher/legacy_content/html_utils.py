@@ -22,7 +22,8 @@ HtmlOrSoup = str | BeautifulSoup
 
 
 def _to_bs_obj(html: HtmlOrSoup) -> BeautifulSoup:
-    """Преобразует строку в объект BeautifulSoup или возвращает переданный объект.
+    """
+    Преобразует строку в объект BeautifulSoup или возвращает переданный объект.
 
     Args:
         html: Строка с HTML-разметкой или уже созданный объект BeautifulSoup.
@@ -34,7 +35,8 @@ def _to_bs_obj(html: HtmlOrSoup) -> BeautifulSoup:
 
 
 def _html_until(nodes: Iterable[PageElement], stop: Tag | None) -> str:
-    """Объединяет строковые представления элементов до указанного тега.
+    """
+    Объединяет строковые представления элементов до указанного тега.
 
     Args:
         nodes: Последовательность элементов страницы для сериализации.
@@ -48,7 +50,8 @@ def _html_until(nodes: Iterable[PageElement], stop: Tag | None) -> str:
 
 
 def find_h1_sections(html: HtmlOrSoup) -> list[Tag]:
-    """Находит все теги заголовков h1 в документе.
+    """
+    Находит все теги заголовков h1 в документе.
 
     Args:
         html: Строка с HTML-разметкой или объект BeautifulSoup.
@@ -60,7 +63,8 @@ def find_h1_sections(html: HtmlOrSoup) -> list[Tag]:
 
 
 def extract_platform_h1_sections(html: HtmlOrSoup) -> dict[str, str]:
-    """Извлекает секции версий платформы по заголовкам h1.
+    """
+    Извлекает секции версий платформы по заголовкам h1.
 
     Args:
         html: Строка с HTML-разметкой или объект BeautifulSoup.
@@ -80,7 +84,8 @@ def extract_platform_h1_sections(html: HtmlOrSoup) -> dict[str, str]:
 
 
 def extract_tab_sections(html: HtmlOrSoup) -> dict[str, str]:
-    """Извлекает контент из вкладок Confluence.
+    """
+    Извлекает контент из вкладок Confluence.
 
     Args:
         html: Строка с HTML-разметкой или объект BeautifulSoup.
@@ -111,7 +116,8 @@ def extract_tab_sections(html: HtmlOrSoup) -> dict[str, str]:
 
 
 def _parse_h2_version_sections(html: HtmlOrSoup) -> dict[str, str]:
-    """Извлекает секции версий по заголовкам h2 и h3.
+    """
+    Извлекает секции версий по заголовкам h2 и h3.
 
     Args:
         html: Строка с HTML-разметкой или объект BeautifulSoup.
@@ -144,7 +150,8 @@ def _parse_h2_version_sections(html: HtmlOrSoup) -> dict[str, str]:
 
 
 def parse_page_sections(html: str) -> dict[str, str]:
-    """Разбирает страницу Confluence на именованные секции.
+    """
+    Разбирает страницу Confluence на именованные секции.
 
     Args:
         html: Исходный HTML-код страницы.

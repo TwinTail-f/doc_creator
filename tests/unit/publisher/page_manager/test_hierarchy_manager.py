@@ -1,4 +1,5 @@
-"""Unit-тесты для PageHierarchyManager.
+"""
+Unit-тесты для PageHierarchyManager.
 
 Покрывает:
 - ensure_hierarchy_exists выполняет ровно два вызова create_page (если страницы ещё не существуют).
@@ -109,7 +110,9 @@ def test_ensure_hierarchy_reuses_existing_pages_without_recreating(
 @pytest.mark.parametrize(
     ("failing_method", "error_message"),
     [
-        pytest.param("resolve_existing_page_id", "Не удалось найти страницу", id="resolve_existing_page_id"),
+        pytest.param(
+            "resolve_existing_page_id", "Не удалось найти страницу", id="resolve_existing_page_id"
+        ),
         pytest.param("create_page", "Не удалось создать страницу", id="create_page"),
     ],
 )

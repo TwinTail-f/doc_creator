@@ -118,7 +118,8 @@ def test_include_passport_links_kwarg_has_no_effect(
     publisher_multi_component_result: ParsedResult,
     tmp_path: Path,
 ) -> None:
-    """Явная попытка передать include_passport_links=True тихо отбрасывается —
+    """
+    Явная попытка передать include_passport_links=True тихо отбрасывается —
     у KitFixedConverter нет понятия ссылок на паспорта (wants_passport_links
     всегда False), сколько бы это ни просил вызывающий."""
     strategy = KitFixedPageStrategy(
@@ -143,7 +144,8 @@ def test_passport_registry_load_never_called(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """execute() не обращается к PassportPageRegistry.load() — этой странице
+    """
+    execute() не обращается к PassportPageRegistry.load() — этой странице
     паспорта не нужны."""
     mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
     strategy = make_kit_fixed_strategy(
@@ -163,7 +165,8 @@ def test_make_converter_creates_kit_fixed_converter(
     publisher_multi_component_result: ParsedResult,
     tmp_path: Path,
 ) -> None:
-    """create_strategy('kit_fixed', ...) подключает KitFixedConverter — view_model
+    """
+    create_strategy('kit_fixed', ...) подключает KitFixedConverter — view_model
     имеет форму channels/version_column_title, а не components (как у release)."""
     strategy = create_strategy(
         "kit_fixed",
@@ -191,7 +194,8 @@ def test_view_model_contains_exact_conan_references_from_data(
     publisher_multi_component_result: ParsedResult,
     tmp_path: Path,
 ) -> None:
-    """Отрендеренный view_model содержит точные Conan-ссылки из ParsedResult (не
+    """
+    Отрендеренный view_model содержит точные Conan-ссылки из ParsedResult (не
     диапазоны/wildcard'ы — это отличает kit_fixed от kit_latest)."""
     strategy = make_kit_fixed_strategy(
         publisher_confluence_client,

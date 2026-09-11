@@ -1,4 +1,5 @@
-"""Тесты для autodoc/cli/commands/publish/kit_fixed.py и kit_latest.py.
+"""
+Тесты для autodoc/cli/commands/publish/kit_fixed.py и kit_latest.py.
 
 Обе команды проходят через общий `run_kit_page_command` (аналог
 `run_single_page_command`, но без `--no-passport-links` — у страниц
@@ -35,7 +36,8 @@ _SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
-    """Вызывает `publish <command>` с переданными дополнительными аргументами командной строки.
+    """
+    Вызывает `publish <command>` с переданными дополнительными аргументами командной строки.
 
     Args:
         tmp_path: Базовая директория проекта.
@@ -66,7 +68,8 @@ def _mock_collaborators(
     confluence_config=None,
     parsed_ok=True,
 ):
-    """Подменяет make_publisher и load_parsed_data в модуле single-page команды
+    """
+    Подменяет make_publisher и load_parsed_data в модуле single-page команды
     (обе команды kit-* используют те же коллабораторы через single_page.py).
 
     Args:
@@ -111,7 +114,8 @@ def test_publish_kit_fixed_passes_strategy_type_and_template(
 def test_publish_kit_fixed_include_passport_links_always_false(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
-    """publish kit-fixed всегда передаёт include_passport_links=False — у команды
+    """
+    publish kit-fixed всегда передаёт include_passport_links=False — у команды
     нет флага, управляющего этим (в отличие от release/profile)."""
     mock_publisher = _mock_collaborators(mocker)
 
@@ -123,9 +127,7 @@ def test_publish_kit_fixed_include_passport_links_always_false(
 
 
 @pytest.mark.contract
-def test_publish_kit_fixed_has_no_passport_links_flag(
-    tmp_path: Path, configs_dir: Path
-) -> None:
+def test_publish_kit_fixed_has_no_passport_links_flag(tmp_path: Path, configs_dir: Path) -> None:
     """--no-passport-links не является опцией kit-fixed (в отличие от release/profile)."""
     result = _invoke(tmp_path, configs_dir, "kit-fixed", "--no-passport-links")
     assert result.exit_code != _EXIT_SUCCESS
@@ -149,7 +151,8 @@ def test_publish_kit_fixed_page_title_precedence(
     config_title: str | None,
     expected: str,
 ) -> None:
-    """Приоритет источников заголовка страницы для kit-fixed: флаг CLI > поле
+    """
+    Приоритет источников заголовка страницы для kit-fixed: флаг CLI > поле
     конфига > значение по умолчанию (аналогично release/profile)."""
     confluence_config = make_confluence_config(
         **strategy_override("kit_fixed", page_title=config_title)
@@ -245,7 +248,8 @@ def test_publish_kit_latest_title_source(
     config_title: str | None,
     expected_title: str,
 ) -> None:
-    """Источником заголовка по умолчанию для kit-latest служит
+    """
+    Источником заголовка по умолчанию для kit-latest служит
     confluence_config.strategies.kit_latest.page_title, а не kit_fixed."""
     confluence_config = make_confluence_config(
         **strategy_override("kit_latest", page_title=config_title)

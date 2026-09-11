@@ -1,4 +1,5 @@
-"""Юнит-тесты для autodoc/parser/fetchers/conan_fetcher.py — содержимое результата.
+"""
+Юнит-тесты для autodoc/parser/fetchers/conan_fetcher.py — содержимое результата.
 
 Проверяется, что release_data, profile_data, errors и счётчики задач
 доходят до ConanEnrichmentResult без искажений через ConanFetcher.fetch() —
@@ -21,7 +22,8 @@ from tests.unit.parser.fetchers.utils import make_mock_ctx, patch_full_fetch_pip
 
 
 def _build_fake_result_cases() -> list:
-    """Строит параметризованные кейсы для test_conan_fetcher_result_content_passes_through.
+    """
+    Строит параметризованные кейсы для test_conan_fetcher_result_content_passes_through.
 
     Каждый кейс — это отдельное поле ConanEnrichmentResult, которое агрегатор
     мог бы заполнить (release_data, profile_data, errors, счётчики задач), и
@@ -94,7 +96,8 @@ def test_conan_fetcher_result_content_passes_through(
     fake_result: ConanEnrichmentResult,
     check,
 ) -> None:
-    """Содержимое, возвращённое ConanResultAggregator.aggregate(), доходит до FetchResult.value без искажений.
+    """
+    Содержимое, возвращённое ConanResultAggregator.aggregate(), доходит до FetchResult.value без искажений.
 
     Покрывает поля, невидимые в чисто оркестрационных тестах test_conan_fetcher.py,
     которые мокируют результат целиком: ключи release_data/profile_data,

@@ -2,6 +2,8 @@
 
 import pytest
 
+from autodoc.models.parsed_result import ProfileDefinition
+from autodoc.parser.fetchers.docker_fetcher import DockerFetcher
 from autodoc.parser.steps.docker_step import DockerResolveStep
 
 DockerLinksMap = dict[str, str]
@@ -48,7 +50,8 @@ def test_docker_step_empty_links_does_not_clear_profile_definitions(
     manifest_component,
     make_fake_fetcher,
 ) -> None:
-    """Пустой словарь docker links не удаляет уже существующую запись ProfileDefinition
+    """
+    Пустой словарь docker links не удаляет уже существующую запись ProfileDefinition
     для профиля, реально присутствующего среди компонентов контекста.
 
     manifest_component имеет profile_name="hw-linux-x86_64-gcc10_2" — то же имя,
@@ -57,8 +60,6 @@ def test_docker_step_empty_links_does_not_clear_profile_definitions(
     в DataEnricher.apply_docker_links() не выполнился бы, и проверка была бы
     тривиально истинной вне зависимости от корректности обработки пустого словаря).
     """
-    from autodoc.models.parsed_result import ProfileDefinition
-
     parser_pipeline_context.components = [manifest_component]
     pre_existing = ProfileDefinition(profile_name="hw-linux-x86_64-gcc10_2")
     parser_pipeline_context.profile_definitions = [pre_existing]
@@ -73,8 +74,6 @@ def test_docker_step_empty_links_does_not_clear_profile_definitions(
 @pytest.mark.contract
 def test_docker_step_default_fetcher_is_docker_fetcher() -> None:
     """DockerResolveStep() без аргумента fetcher создаёт по умолчанию реальный DockerFetcher."""
-    from autodoc.parser.fetchers.docker_fetcher import DockerFetcher
-
     step = DockerResolveStep()
     assert isinstance(step._fetcher, DockerFetcher)
 

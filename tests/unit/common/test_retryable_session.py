@@ -1,4 +1,5 @@
-"""Модульные тесты для autodoc/common/retryable_session.py.
+"""
+Модульные тесты для autodoc/common/retryable_session.py.
 
 RetryableSession оборачивает сеанс HTTP с автоматической логикой повторных попыток
 для временных ошибок сервера с экспоненциальной задержкой.
@@ -33,7 +34,8 @@ _TEST_URL: str = "https://example.com/api"
 
 
 def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock:
-    """Подменяет ``HTTPConnectionPool._make_request`` фальшивым транспортом.
+    """
+    Подменяет ``HTTPConnectionPool._make_request`` фальшивым транспортом.
 
     Args:
         mocker: Фикстура pytest-mock для патчинга.
@@ -70,7 +72,8 @@ def _fake_transport(mocker: MockerFixture, statuses: Iterator[int]) -> MagicMock
 @pytest.mark.parametrize("retryable_status", _RETRY_STATUS_CODES)
 @responses.activate
 def test_retryable_session_retries_on_every_configured_status(retryable_status: int) -> None:
-    """После одного ответа с любым статусом из ``_RETRY_STATUS_CODES`` сессия
+    """
+    После одного ответа с любым статусом из ``_RETRY_STATUS_CODES`` сессия
     автоматически повторяет запрос и возвращает результат второй, успешной
     попытки.
 
@@ -90,7 +93,8 @@ def test_retryable_session_retries_on_every_configured_status(retryable_status: 
 @pytest.mark.infrastructure
 @responses.activate
 def test_retryable_session_raises_after_exhausting_retries() -> None:
-    """Если транспорт неизменно отвечает 429, сессия делает не более
+    """
+    Если транспорт неизменно отвечает 429, сессия делает не более
     ``max_retries`` повторов, после чего пробрасывает ``RetryError``, а не
     зацикливается бесконечно."""
     max_retries: int = 2
@@ -107,8 +111,7 @@ def test_retryable_session_raises_after_exhausting_retries() -> None:
 
 @pytest.mark.infrastructure
 def test_retryable_session_backs_off_between_retries(mocker: MockerFixture) -> None:
-    """Пауза между повторными попытками растёт от повтора к повтору.
-    """
+    """Пауза между повторными попытками растёт от повтора к повтору."""
     mock_sleep = mocker.patch("time.sleep")
     # urllib3 не спит перед самым первым повтором (backoff=0 при одном подряд
     # сбое), поэтому нужны три неудачи подряд, чтобы получить два ненулевых,
@@ -147,7 +150,8 @@ def test_retryable_session_timeout_forwarded_to_request(
 @pytest.mark.business_logic
 @responses.activate
 def test_create_bearer_session_sends_bearer_authorization_header() -> None:
-    """create_bearer_session(token=...) фактически отправляет заголовок
+    """
+    create_bearer_session(token=...) фактически отправляет заголовок
     'Authorization: Bearer <token>' в исходящем запросе — это единственный
     наблюдаемый эффект настройки Bearer-аутентификации."""
     responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
@@ -181,7 +185,8 @@ def test_create_bearer_session_no_token_sends_no_authorization_header() -> None:
 def test_create_retryable_session_delegates_to_matching_auth_builder(
     mocker: MockerFixture, bearer: bool, delegate_target: str, sentinel_name: str
 ) -> None:
-    """create_retryable_session(bearer=...) не собирает сессию сама, а делегирует
+    """
+    create_retryable_session(bearer=...) не собирает сессию сама, а делегирует
     её создание create_bearer_session()/create_pat_session() (в зависимости
     от ``bearer``)
     """
@@ -203,7 +208,8 @@ def test_create_retryable_session_delegates_to_matching_auth_builder(
 @pytest.mark.business_logic
 @responses.activate
 def test_create_pat_session_sends_basic_auth_with_empty_username() -> None:
-    """create_pat_session(token=...) настраивает Basic-аутентификацию с пустым
+    """
+    create_pat_session(token=...) настраивает Basic-аутентификацию с пустым
     именем пользователя и токеном в качестве пароля (PAT-паттерн)."""
 
     responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)

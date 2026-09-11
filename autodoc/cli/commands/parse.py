@@ -14,7 +14,8 @@ from autodoc.cli.helpers import console
 
 
 def _load_config(cli_ctx: CliCtx, config: str | None) -> ParserConfigSchema:
-    """Загружает конфигурацию парсера. Завершает процесс при ошибке.
+    """
+    Загружает конфигурацию парсера. Завершает процесс при ошибке.
 
     Args:
         cli_ctx: Контекст CLI с доступом к менеджеру конфигураций.
@@ -45,7 +46,8 @@ def _build_parser(
     skip_conan: bool = False,
     skip_validation: bool = False,
 ) -> ComponentParser:
-    """Собирает пайплайн парсера, опционально исключая шаги Conan и валидации.
+    """
+    Собирает пайплайн парсера, опционально исключая шаги Conan и валидации.
 
     ``ComponentParser`` всегда создаётся обычным конструктором со стандартным
     набором шагов; при наличии флагов пропуска лишние шаги убираются через

@@ -1,4 +1,5 @@
-"""Модульные тесты для autodoc/common/logger.py.
+"""
+Модульные тесты для autodoc/common/logger.py.
 
 Тестируем только собственный код модуля: единственную условную логику
 setup_logging (``if not log.handlers: ...`` — настройка происходит один раз
@@ -20,7 +21,8 @@ from autodoc.common.logger import clear_logs_dir, setup_logging
 
 @pytest.fixture
 def isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Изолирует реестр логгеров ``logging.Logger.manager.loggerDict`` на время теста.
+    """
+    Изолирует реестр логгеров ``logging.Logger.manager.loggerDict`` на время теста.
 
     ``logging.getLogger(name)`` кеширует инстансы в этом реестре (обычный
     dict) на уровне процесса. Подменяем его копией через ``monkeypatch`` —
@@ -35,7 +37,8 @@ def isolated_logger_registry(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.infrastructure
 @pytest.mark.usefixtures("isolated_logger_registry")
 def test_setup_logging_configures_console_handler_only_once() -> None:
-    """setup_logging() навешивает ровно один консольный обработчик уровня
+    """
+    setup_logging() навешивает ровно один консольный обработчик уровня
     INFO на логгер уровня DEBUG при первом вызове; повторный вызов для того
     же имени не добавляет второй обработчик.
 
@@ -60,7 +63,8 @@ def test_setup_logging_replaces_stale_file_handler(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Повторный вызов setup_logging с module_name/logs_dir на одном логгере не
+    """
+    Повторный вызов setup_logging с module_name/logs_dir на одном логгере не
     копит файловые обработчики: старый снимается перед добавлением нового,
     лог пишется только в актуальный файл. Консольный обработчик при этом не
     трогается и не дублируется.
@@ -89,10 +93,13 @@ def test_setup_logging_replaces_stale_file_handler(
 
     file_handlers = [h for h in log.handlers if isinstance(h, logging.FileHandler)]
     assert len(file_handlers) == 1, "старый файловый обработчик должен быть снят"
-    assert sum(
-        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
-        for h in log.handlers
-    ) == 1, "консольный обработчик не должен дублироваться"
+    assert (
+        sum(
+            isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+            for h in log.handlers
+        )
+        == 1
+    ), "консольный обработчик не должен дублироваться"
 
     log.info("marker message")
     log_files = sorted(tmp_path.glob("*.log"))
@@ -104,7 +111,8 @@ def test_setup_logging_replaces_stale_file_handler(
 
 @pytest.mark.infrastructure
 def test_clear_logs_dir_deletes_log_files_and_returns_their_paths(tmp_path: Path) -> None:
-    """clear_logs_dir() удаляет все *.log файлы из существующей директории
+    """
+    clear_logs_dir() удаляет все *.log файлы из существующей директории
     и возвращает список фактически удалённых путей."""
     log1 = tmp_path / "a.log"
     log2 = tmp_path / "b.log"
@@ -123,7 +131,8 @@ def test_clear_logs_dir_deletes_log_files_and_returns_their_paths(tmp_path: Path
 
 @pytest.mark.infrastructure
 def test_clear_logs_dir_missing_directory_returns_empty_list(tmp_path: Path) -> None:
-    """clear_logs_dir() для несуществующей директории возвращает пустой список,
+    """
+    clear_logs_dir() для несуществующей директории возвращает пустой список,
     а не бросает исключение — вызывающий код может передавать директорию логов,
     ещё не созданную setup_logging() при первом запуске."""
     missing_dir = tmp_path / "does_not_exist"

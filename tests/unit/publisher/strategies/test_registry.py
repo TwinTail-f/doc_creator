@@ -49,7 +49,8 @@ def test_create_strategy_passports_returns_passports_strategy_instance(
 
 @pytest.mark.contract
 def test_available_strategies_matches_registered_strategy_types() -> None:
-    """available_strategies() содержит ровно те ключи, что зарегистрированы в STRATEGIES.
+    """
+    available_strategies() содержит ровно те ключи, что зарегистрированы в STRATEGIES.
 
     Сравниваем с самим STRATEGIES, а не с захардкоженным списком имён и уж
     тем более не с числом: список стратегий не статичен, появятся новые —
@@ -92,7 +93,8 @@ def test_create_strategy_kit_pages_return_correct_instance_type(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
 ) -> None:
-    """create_strategy('kit_fixed'|'kit_latest', ...) собирает экземпляр
+    """
+    create_strategy('kit_fixed'|'kit_latest', ...) собирает экземпляр
     зарегистрированного класса стратегии."""
     strategy = create_strategy(
         strategy_type,

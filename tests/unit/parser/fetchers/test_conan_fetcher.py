@@ -1,4 +1,5 @@
-"""Юнит-тесты для autodoc/parser/fetchers/conan_fetcher.py.
+"""
+Юнит-тесты для autodoc/parser/fetchers/conan_fetcher.py.
 
 ConanFetcher оркестрирует полный пайплайн обогащения Conan: установка
 окружения → построение задач → параллельное выполнение → агрегация

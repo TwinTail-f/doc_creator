@@ -21,7 +21,8 @@ _OPTS_REF: str = "opt-set-1"
 def _convert_with_total_options(
     publisher_parsed_result: ParsedResult, options: dict[str, Any]
 ) -> Any:
-    """Патчит total_option_sets[0].options единственного релиза и вызывает convert().
+    """
+    Патчит total_option_sets[0].options единственного релиза и вызывает convert().
 
     build_option_sets намеренно очищается, чтобы install_options строился из
     conan_options (fallback-путь ``_build_install_options``), а не из строки
@@ -89,7 +90,8 @@ def test_install_options_from_conan_options(
     conan_options: dict[str, str],
     expected: str,
 ) -> None:
-    """install_options варианта форматирует опции из total_option_sets в флаги '-o' по правилам квалификации ключей.
+    """
+    install_options варианта форматирует опции из total_option_sets в флаги '-o' по правилам квалификации ключей.
 
     Покрывает ``BaseDataConverter._build_install_options`` (используется как fallback,
     когда для варианта нет соответствующего build_option_sets) через публичный
@@ -128,8 +130,7 @@ def test_install_options_from_conan_options(
         ),
         # ведущие/замыкающие пробелы вокруг каждого токена опции корректно обрезаются
         pytest.param(
-            f"  {COMP_NAME}/*:{OPT_KEY_SHARED}=True  ,"
-            f"  {COMP_NAME}/*:{OPT_KEY_FPIC}=True  ",
+            f"  {COMP_NAME}/*:{OPT_KEY_SHARED}=True  ," f"  {COMP_NAME}/*:{OPT_KEY_FPIC}=True  ",
             _MULTI_OPTION_RESULT,
             id="strips-whitespace-between-options",
         ),
@@ -146,7 +147,8 @@ def test_install_options_from_build_option_string(
     options_str: str,
     expected: str,
 ) -> None:
-    """install_options варианта парсит строку опций конфига (build_option_sets) в флаги '-o'.
+    """
+    install_options варианта парсит строку опций конфига (build_option_sets) в флаги '-o'.
 
     Покрывает ``BaseDataConverter._build_install_options_from_string`` через
     публичный ``PassportConverter.convert()``.
@@ -181,7 +183,8 @@ def test_option_badge_classification(
     has_default: bool,
     expected_badge: str,
 ) -> None:
-    """option_badges варианта отражает CSS-класс бейджа по сочетанию значения/дефолта/наличия дефолта.
+    """
+    option_badges варианта отражает CSS-класс бейджа по сочетанию значения/дефолта/наличия дефолта.
 
     Покрывает ``PassportConverter._classify_option_badge`` через публичный
     ``PassportConverter.convert()``: значение опции берётся из total_option_sets,

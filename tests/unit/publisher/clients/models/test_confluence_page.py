@@ -38,7 +38,8 @@ from autodoc.publisher.clients.models.confluence_page import ConfluencePage
     ],
 )
 def test_from_api_resolves_version_number(data: dict, expected_version: int) -> None:
-    """from_api разбирает version.number, откатываясь на 0 при отсутствии ключа
+    """
+    from_api разбирает version.number, откатываясь на 0 при отсутствии ключа
     'version' (страница запрошена без expand=version) или при нечисловом/None
     значении number (перехват TypeError/ValueError при int(...))."""
     page = ConfluencePage.from_api(data)
@@ -48,7 +49,8 @@ def test_from_api_resolves_version_number(data: dict, expected_version: int) -> 
 
 @pytest.mark.contract
 def test_from_api_defaults_ancestors_and_body_when_absent() -> None:
-    """from_api возвращает пустые ancestor_ids/body_html, если соответствующие
+    """
+    from_api возвращает пустые ancestor_ids/body_html, если соответствующие
     ключи в ответе API отсутствуют вовсе (не запрошены через expand)."""
     page = ConfluencePage.from_api({"id": "123", "title": "My Page"})
 

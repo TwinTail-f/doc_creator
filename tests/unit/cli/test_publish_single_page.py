@@ -1,4 +1,5 @@
-"""Тесты для autodoc/cli/commands/publish/single_page.py.
+"""
+Тесты для autodoc/cli/commands/publish/single_page.py.
 
 И `publish release`, и `publish profile` проходят через общий
 `run_single_page_command`. Полный набор сценариев проверяется один раз на
@@ -36,7 +37,8 @@ _SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
-    """Вызывает `publish <command>` с переданными дополнительными аргументами командной строки.
+    """
+    Вызывает `publish <command>` с переданными дополнительными аргументами командной строки.
 
     Args:
         tmp_path: Базовая директория проекта.
@@ -67,7 +69,8 @@ def _mock_collaborators(
     confluence_config=None,
     parsed_ok=True,
 ):
-    """Подменяет make_publisher и load_parsed_data в модуле single-page команды.
+    """
+    Подменяет make_publisher и load_parsed_data в модуле single-page команды.
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
@@ -110,7 +113,9 @@ def test_publish_release_page_title_precedence(
     expected: str,
 ) -> None:
     """Приоритет источников заголовка страницы для release: флаг CLI > поле конфига > значение по умолчанию."""
-    confluence_config = make_confluence_config(**strategy_override("release", page_title=config_title))
+    confluence_config = make_confluence_config(
+        **strategy_override("release", page_title=config_title)
+    )
     mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     args = ["--page-title", cli_title] if cli_title else []
@@ -125,7 +130,8 @@ def test_publish_release_page_title_precedence(
 def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
-    """--root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
+    """
+    --root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
     в publish_single_page как есть; решение о приоритете и конфликте между ними принимает
     RootPageResolver, а не эта команда."""
     mock_publisher = _mock_collaborators(mocker)
@@ -237,7 +243,8 @@ def test_publish_profile_title_source(
     config_title: str | None,
     expected_title: str,
 ) -> None:
-    """Источником заголовка по умолчанию для profile служит
+    """
+    Источником заголовка по умолчанию для profile служит
     confluence_config.strategies.profile_centric.page_title (а не
     confluence_config.strategies.release.page_title, как у release); при его отсутствии
     используется DEFAULT_PROFILE_PAGE_TITLE."""
@@ -270,7 +277,8 @@ def test_run_single_page_command_rejects_invalid_strategy_type(
     capsys: pytest.CaptureFixture,
     bad_strategy_type: str,
 ) -> None:
-    """Некорректный strategy_type останавливает публикацию с понятной ошибкой,
+    """
+    Некорректный strategy_type останавливает публикацию с понятной ошибкой,
     вместо того чтобы молча выбрать один из известных режимов через else-фоллбек
     (это баг в коде, вызывающем run_single_page_command, а не ошибка пользователя).
 

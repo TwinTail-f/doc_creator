@@ -1,4 +1,5 @@
-"""Прямые unit-тесты для html_utils.py.
+"""
+Прямые unit-тесты для html_utils.py.
 
 Покрывает find_h1_sections, extract_platform_h1_sections, extract_tab_sections
 и parse_page_sections — публичный API модуля, построенного поверх bs4
@@ -130,7 +131,8 @@ def test_extract_tab_sections_deduplicates_identical_names_first_wins() -> None:
 
 @pytest.mark.business_logic
 def test_extract_tab_sections_ignores_title_attribute() -> None:
-    """ac:name="title" не распознаётся как имя вкладки — поддерживается только ac:name="name".
+    """
+    ac:name="title" не распознаётся как имя вкладки — поддерживается только ac:name="name".
 
     Атрибут title= принадлежит expand-макросам, а не вкладкам. Его ошибочное
     распознавание как имени вкладки приводило к ложным срабатываниям при
@@ -160,7 +162,8 @@ def test_extract_tab_sections_does_not_treat_tabs_group_as_tab() -> None:
 
 @pytest.mark.business_logic
 def test_extract_tab_sections_preserves_nested_rich_text_body() -> None:
-    """Вложенный <ac:rich-text-body> (например, внутри таблицы) не обрезает контент вкладки.
+    """
+    Вложенный <ac:rich-text-body> (например, внутри таблицы) не обрезает контент вкладки.
 
     Ищется только прямой (не рекурсивный) дочерний <ac:rich-text-body>
     макроса вкладки, но его содержимое включает вложенные rich-text-body
@@ -224,7 +227,8 @@ def test_parse_page_sections_h2_fallback_keeps_preamble_under_unknown_key() -> N
 
 @pytest.mark.business_logic
 def test_parse_page_sections_h2_fallback_skips_non_version_header_and_empty_section() -> None:
-    """h2/h3-fallback: заголовок без версии в тексте не создаёт отдельную
+    """
+    h2/h3-fallback: заголовок без версии в тексте не создаёт отдельную
     секцию (уходит в преамбулу под ключом 'unknown'), а версионный заголовок,
     сразу за которым следует другой заголовок (без контента между ними),
     всё равно получает свой ключ — секция включает только сам тег заголовка,
@@ -243,7 +247,8 @@ def test_parse_page_sections_h2_fallback_skips_non_version_header_and_empty_sect
 def test_parse_page_sections_wraps_whole_document_under_unknown_key_when_no_version_headers() -> (
     None
 ):
-    """Если нет ни вкладок, ни h1 Platform, ни версионных h2/h3, весь документ
+    """
+    Если нет ни вкладок, ни h1 Platform, ни версионных h2/h3, весь документ
     попадает под ключ 'unknown' — пустой результат возможен только когда сам
     HTML пуст (см. test_parse_page_sections_empty_html_returns_empty_dict).
     """

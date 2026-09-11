@@ -117,7 +117,8 @@ def test_header_only_component_has_no_profile_builds_in_view(
     publisher_header_only_component,
     publisher_profile_definition,
 ) -> None:
-    """У компонента с is_header_only=True все его релизы получают profile_builds=[]
+    """
+    У компонента с is_header_only=True все его релизы получают profile_builds=[]
     в view-model, даже если у вложенного release они непустые: это поле по смыслу
     принадлежит Component, а не Release."""
     parsed = ParsedResult(
@@ -142,7 +143,8 @@ def test_header_only_component_has_no_profile_builds_in_view(
 def test_non_header_only_component_has_profile_builds(
     publisher_parsed_result,
 ) -> None:
-    """У компонента с is_header_only=False profile_builds в view-model остаётся
+    """
+    У компонента с is_header_only=False profile_builds в view-model остаётся
     непустым, если у соответствующего release есть хотя бы один ProfileBuild."""
     comp = publisher_parsed_result.components[0]
     assert comp.is_header_only is False, "У фикстуры должно быть is_header_only=False"
@@ -164,7 +166,8 @@ def test_non_header_only_component_has_profile_builds(
 def test_components_sorted_alphabetically_in_view(
     publisher_multi_component_result,
 ) -> None:
-    """Компоненты в view-model отсортированы по имени в алфавитном порядке. Входные
+    """
+    Компоненты в view-model отсортированы по имени в алфавитном порядке. Входные
     данные предварительно переставляются в обратном порядке, иначе тест не отличит
     настоящую сортировку от порядка вставки, случайно совпадающего с алфавитным."""
     reversed_result = publisher_multi_component_result.model_copy(
@@ -183,7 +186,8 @@ def test_components_sorted_alphabetically_in_view(
 def test_no_passport_link_field_added_by_convert_itself(
     publisher_parsed_result,
 ) -> None:
-    """ComponentCentricConverter.convert() сам по себе не добавляет поле passport_link /
+    """
+    ComponentCentricConverter.convert() сам по себе не добавляет поле passport_link /
     passport_versions ни в release_view, ни в comp_view, даже при
     include_passport_links=True: эта ответственность лежит на отдельном методе
     enrich_with_passport_links(), который применяется позже стратегией
@@ -206,7 +210,8 @@ def test_no_passport_link_field_added_by_convert_itself(
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_adds_passport_versions_for_known_component() -> None:
-    """enrich_with_passport_links добавляет passport_versions с URL для компонента,
+    """
+    enrich_with_passport_links добавляет passport_versions с URL для компонента,
     найденного в реестре, сохраняя остальные поля записи реестра (например,
     page_id) через слияние словарей."""
     view_model: dict = {
@@ -224,7 +229,8 @@ def test_enrich_with_passport_links_adds_passport_versions_for_known_component()
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_skips_versions_not_in_component_releases() -> None:
-    """enrich_with_passport_links включает в passport_versions только те версии
+    """
+    enrich_with_passport_links включает в passport_versions только те версии
     реестра, которые присутствуют среди релизов компонента в view-model."""
     view_model: dict = {
         "space": "TEST",
@@ -241,7 +247,8 @@ def test_enrich_with_passport_links_skips_versions_not_in_component_releases() -
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_skips_component_not_in_registry() -> None:
-    """enrich_with_passport_links пропускает компонент через continue, если его
+    """
+    enrich_with_passport_links пропускает компонент через continue, если его
     имени нет в реестре паспортов вовсе, — ключ passport_versions для него не
     добавляется."""
     view_model: dict = {
@@ -259,7 +266,8 @@ def test_enrich_with_passport_links_skips_component_not_in_registry() -> None:
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_noop_when_components_key_absent() -> None:
-    """enrich_with_passport_links ничего не делает, если в view_model нет ключа
+    """
+    enrich_with_passport_links ничего не делает, если в view_model нет ключа
     'components'."""
     view_model: dict = {"space": "TEST"}
 
@@ -288,7 +296,8 @@ def test_enrich_with_passport_links_noop_when_passport_pages_empty() -> None:
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_noop_when_include_passport_links_false() -> None:
-    """enrich_with_passport_links ничего не делает, если ссылки на паспорта
+    """
+    enrich_with_passport_links ничего не делает, если ссылки на паспорта
     отключены в конструкторе конвертера — даже при непустом реестре и наличии
     ключа 'components'. Это гейт, который раньше жил на уровне стратегии."""
     view_model: dict = {

@@ -19,7 +19,8 @@ def parser_pipeline_context(parser_config: ParserConfigSchema, tmp_path: Path) -
 
 # Фейковый клиент Artifactory (используется в тестах validation_step)
 class FakeArtifactoryClient:
-    """Минимальная заглушка клиента Artifactory, записывающая вызовы check_url().
+    """
+    Минимальная заглушка клиента Artifactory, записывающая вызовы check_url().
 
     Код статуса по умолчанию фиксирован (``status_code``), но определяется через
     переопределяемый ``_status_for()``, чтобы подклассы с URL-зависимой логикой

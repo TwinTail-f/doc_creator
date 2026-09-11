@@ -40,7 +40,9 @@ def make_release(
     return r
 
 
-def _make_component_with_releases(name: str = "mylib", releases: list[Release] | None = None) -> Component:
+def _make_component_with_releases(
+    name: str = "mylib", releases: list[Release] | None = None
+) -> Component:
     """Создаёт Component с необязательным списком релизов."""
     return Component(name=name, releases=releases or [])
 
@@ -98,7 +100,8 @@ def test_task_builder_cmd_contains_requires_flag() -> None:
 def test_task_builder_normalizes_option_to_wildcard_form(
     raw_option: str, expected_normalized: str
 ) -> None:
-    """_normalize_option() приводит одиночную опцию к форме 'pkg/*:key=val'; уже
+    """
+    _normalize_option() приводит одиночную опцию к форме 'pkg/*:key=val'; уже
     нормализованная опция не подставляется повторно (без двойного '/*/*')."""
     release = make_release(opts={"1": raw_option})
     comp = _make_component_with_releases(name="mylib", releases=[release])
@@ -163,9 +166,7 @@ def test_no_option_sets_produces_one_default_task() -> None:
     [
         # версии с буквенным суффиксом (например '8.4p1') всегда используют точный
         # диапазон [>=X <X+1], а не '~'
-        pytest.param(
-            "8.4p1", None, "[>=8.4 <8.5]", ["~"], id="lettered-version-uses-exact-range"
-        ),
+        pytest.param("8.4p1", None, "[>=8.4 <8.5]", ["~"], id="lettered-version-uses-exact-range"),
         # версия без числового префикса (например 'latest') подставляется как есть,
         # без диапазона '~' или '[>=X <Y]'
         pytest.param(
@@ -210,7 +211,8 @@ def test_task_builder_requires_flag_version_formatting(
     expected_substring: str,
     forbidden_substrings: list[str],
 ) -> None:
-    """--requires= формирует диапазон версии в зависимости от формата версии и наличия
+    """
+    --requires= формирует диапазон версии в зависимости от формата версии и наличия
     компонента в exact_range_components: буквенный суффикс версии или явный
     exact_range_components всегда дают точный диапазон [>=X <Y]; версия без числового
     префикса подставляется как есть; чисто числовая версия без exact_range_components

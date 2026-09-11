@@ -1,4 +1,5 @@
-"""Фабрики и константы для тестов пакета tests/unit/cli.
+"""
+Фабрики и константы для тестов пакета tests/unit/cli.
 
 Обычные функции и константы (в отличие от fixtures) не должны жить в
 conftest.py — вынесены сюда и импортируются явно там, где нужны.
@@ -30,7 +31,8 @@ def write_parser_config(
     filename: str = "parser_config.json",
     **overrides: Any,
 ) -> Path:
-    """Записывает минимальный валидный конфиг парсера в JSON-файл.
+    """
+    Записывает минимальный валидный конфиг парсера в JSON-файл.
 
     Args:
         directory: Директория, в которую записывается файл.
@@ -53,7 +55,8 @@ def write_confluence_config(
     filename: str = "confluence_config.json",
     **overrides: Any,
 ) -> Path:
-    """Записывает минимальный валидный конфиг Confluence в JSON-файл.
+    """
+    Записывает минимальный валидный конфиг Confluence в JSON-файл.
 
     Args:
         directory: Директория, в которую записывается файл.
@@ -70,7 +73,8 @@ def write_confluence_config(
 
 
 def make_confluence_config(**overrides: Any) -> ConfluenceConfigSchema:
-    """Создаёт валидный экземпляр ConfluenceConfigSchema в памяти, без записи на диск.
+    """
+    Создаёт валидный экземпляр ConfluenceConfigSchema в памяти, без записи на диск.
 
     Args:
         **overrides: Поля, переопределяющие значения из ``VALID_CONFLUENCE_CONFIG``.
@@ -83,7 +87,8 @@ def make_confluence_config(**overrides: Any) -> ConfluenceConfigSchema:
 
 
 def strategy_override(section: str, **fields: Any) -> dict[str, Any]:
-    """Собирает overrides для make_confluence_config() с валидной секцией
+    """
+    Собирает overrides для make_confluence_config() с валидной секцией
     strategies.<section>: если вызывающий не передал ни root_parent_id, ни
     root_parent_name явно, подставляет заглушку root_parent_id, чтобы секция
     прошла валидацию ConfluenceConfigSchema (см. StrategiesConfig._require_root_parent_for_explicit_sections).
@@ -97,7 +102,8 @@ def strategy_override(section: str, **fields: Any) -> dict[str, Any]:
 
 
 def make_parsed_result(**overrides: Any) -> ParsedResult:
-    """Создаёт минимальный валидный экземпляр ParsedResult.
+    """
+    Создаёт минимальный валидный экземпляр ParsedResult.
 
     Args:
         **overrides: Поля, переопределяющие значения по умолчанию
@@ -115,7 +121,8 @@ def make_parsed_result(**overrides: Any) -> ParsedResult:
 
 
 def write_parsed_data(base_dir: Path, parsed_result: ParsedResult) -> Path:
-    """Сохраняет ParsedResult в ``<base_dir>/data/parsed_data.json``.
+    """
+    Сохраняет ParsedResult в ``<base_dir>/data/parsed_data.json``.
 
     Использует тот же путь, который читает ``load_parsed_data()`` из
     ``autodoc/cli/helpers.py``.
@@ -139,7 +146,8 @@ def make_publish_report(
     pages_published: int = 3,
     **overrides: Any,
 ) -> PublishReport:
-    """Создаёт PublishReport для успешного или неуспешного сценария публикации.
+    """
+    Создаёт PublishReport для успешного или неуспешного сценария публикации.
 
     Args:
         success: Признак успешного завершения публикации.

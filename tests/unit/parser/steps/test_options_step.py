@@ -33,7 +33,8 @@ def _make_component(name: str, releases: list[Release]) -> Component:
 def _make_ctx_with_components(
     parser_config, tmp_path: Path, components: list[Component]
 ) -> PipelineContext:
-    """Строит PipelineContext, предзаполненный переданными компонентами.
+    """
+    Строит PipelineContext, предзаполненный переданными компонентами.
 
     Args:
         parser_config: Схема конфигурации парсера.

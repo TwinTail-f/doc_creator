@@ -1,4 +1,5 @@
-"""Юнит-тесты для autodoc.parser.parsers.options_parser.OptionsParser.
+"""
+Юнит-тесты для autodoc.parser.parsers.options_parser.OptionsParser.
 
 Охватывает: select_ci_prefix, parse_file (реальные JSON файлы), pick_options.
 Реальные JSON файлы опций загружаются из директории фикстур resources/options/.
@@ -174,7 +175,8 @@ def test_parse_file_real_options_files(
 
 @pytest.mark.business_logic
 def test_parse_file_invalid_json_returns_empty() -> None:
-    """parse_file возвращает (None, {}), если текст JSON не может быть разобран.
+    """
+    parse_file возвращает (None, {}), если текст JSON не может быть разобран.
 
     Маркер business_logic: некорректный options.json — это домен-специфичный
     сценарий (повреждённый файл в репозитории компонента), а не сбой
@@ -258,7 +260,8 @@ def test_parse_file_non_string_values_excluded() -> None:
 def test_pick_options_channel_selection_and_global_fallback(
     repo_data: dict, channel: str, expected: dict[str, str]
 ) -> None:
-    """pick_options возвращает channel-specific набор, если запрошенный канал есть
+    """
+    pick_options возвращает channel-specific набор, если запрошенный канал есть
     среди channels, и падает обратно на global, если такого канала нет."""
     assert OptionsParser.pick_options(repo_data, channel) == expected
 
@@ -290,7 +293,8 @@ def test_parse_file_channel_extraction(
 @pytest.mark.business_logic
 @pytest.mark.parametrize("channel", ["fast", "slow", "tech", ""])
 def test_pick_options_apr_global_returned_for_any_channel(channel: str) -> None:
-    """pick_options возвращает глобальные опции apr независимо от запрошенного канала.
+    """
+    pick_options возвращает глобальные опции apr независимо от запрошенного канала.
 
     У apr есть только плоский ci-1.6/options.json (без разбивки по каналам),
     поэтому один и тот же набор опций {'1': 'apr:shared=True'} должен
@@ -306,7 +310,8 @@ def test_pick_options_apr_global_returned_for_any_channel(channel: str) -> None:
 
 @pytest.mark.business_logic
 def test_parse_file_ci_prefix_not_in_path_raises_or_is_guarded() -> None:
-    """parse_file поднимает IndexError, если ci_prefix отсутствует в opt_path (текущее поведение кода).
+    """
+    parse_file поднимает IndexError, если ci_prefix отсутствует в opt_path (текущее поведение кода).
 
     Найденный баг (не исправлен по гарантийным условиям задачи): в
     OptionsParser.parse_file выражение opt_path.split(ci_prefix)[1] не

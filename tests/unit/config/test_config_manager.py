@@ -1,4 +1,5 @@
-"""Тесты для autodoc/config/manager.py.
+"""
+Тесты для autodoc/config/manager.py.
 
 ConfigManager загружает и валидирует конфиги в форматах JSON/YAML. Тесты
 покрывают определение формата, валидацию по схеме и оборачивание ошибок.
@@ -29,7 +30,8 @@ def _dump(fmt: str, data: dict) -> str:
 
 @pytest.mark.contract
 def test_config_manager_loads_valid_config_by_extension(parser_config_file: Path) -> None:
-    """ConfigManager успешно загружает и валидирует парсер-конфиг из любого
+    """
+    ConfigManager успешно загружает и валидирует парсер-конфиг из любого
     поддерживаемого расширения (.json, .yaml, .yml), возвращая экземпляр
     ParserConfigSchema, а не «сырой» dict.
 
@@ -58,7 +60,8 @@ def test_config_manager_loads_valid_config_by_extension(parser_config_file: Path
 def test_config_manager_loads_real_resource_files_json_and_yaml_agree(
     loader_name: str, schema_class: type, stem: str
 ) -> None:
-    """ConfigManager грузит настоящие файлы из tests/unit/config/resources/ напрямую —
+    """
+    ConfigManager грузит настоящие файлы из tests/unit/config/resources/ напрямую —
     и для парсер-, и для confluence-конфига одним и тем же способом.
     """
     manager = ConfigManager(configs_dir=CONFIG_RESOURCES_DIR)
@@ -88,7 +91,8 @@ def test_config_manager_raises_config_error_on_invalid_schema(
 
 @pytest.mark.business_logic
 def test_config_manager_raises_on_invalid_configs_dir(bad_configs_dir: Path) -> None:
-    """load_raw() поднимает ConfigError, если configs_dir не указывает на существующую
+    """
+    load_raw() поднимает ConfigError, если configs_dir не указывает на существующую
     директорию — будь то отсутствующий путь или путь, указывающий на файл.
 
     Оба варианта "плохого пути" параметризованы фикстурой ``bad_configs_dir``
@@ -116,7 +120,8 @@ def test_config_manager_load_confluence_config_returns_correct_type(
     fmt: str,
     valid_confluence_config: dict,
 ) -> None:
-    """load_confluence_config() при успехе возвращает экземпляр ConfluenceConfigSchema
+    """
+    load_confluence_config() при успехе возвращает экземпляр ConfluenceConfigSchema
     независимо от расширения файла (.json, .yaml, .yml) — симметрично
     test_config_manager_loads_valid_config_by_extension для парсер-конфига.
 
@@ -148,7 +153,8 @@ def test_config_manager_autodiscover_prefers_yaml_but_falls_back_to_json(
     present_formats: tuple[str, ...],
     expected_marker: str,
 ) -> None:
-    """Автопоиск конфига по базовому имени (без явного расширения):
+    """
+    Автопоиск конфига по базовому имени (без явного расширения):
     при наличии обоих файлов побеждает YAML (SUPPORTED_FORMATS ставит его
     перед JSON), а если YAML-файла нет вовсе - автопоиск не ломается и
     находит JSON.
@@ -174,7 +180,8 @@ def test_config_manager_autodiscover_prefers_yaml_but_falls_back_to_json(
 def test_list_available_configs_excludes_examples_subdir(
     tmp_path: Path, valid_parser_config: dict
 ) -> None:
-    """list_available_configs() не включает файлы из подпапки examples/.
+    """
+    list_available_configs() не включает файлы из подпапки examples/.
 
     Примеры — это отдельная категория; смешивать их с рабочими конфигами нельзя.
     """
@@ -198,7 +205,8 @@ def test_list_available_configs_excludes_examples_subdir(
 def test_list_example_configs_returns_files_when_examples_dir_populated(
     tmp_path: Path, valid_parser_config: dict
 ) -> None:
-    """list_example_configs() возвращает файлы из configs/examples/, если она
+    """
+    list_example_configs() возвращает файлы из configs/examples/, если она
     существует и содержит конфиги."""
     examples_dir = tmp_path / "examples"
     examples_dir.mkdir()
@@ -223,7 +231,8 @@ def test_list_example_configs_returns_files_when_examples_dir_populated(
 def test_list_example_configs_returns_empty_lists_without_examples(
     tmp_path: Path, create_empty_examples_dir: bool
 ) -> None:
-    """list_example_configs() возвращает пустые списки по каждому формату и
+    """
+    list_example_configs() возвращает пустые списки по каждому формату и
     когда examples/ вовсе нет, и когда она есть, но пуста — оба случая
     означают "примеров нет" и должны давать одинаковый результат, поэтому
     объединены в один параметризованный тест."""
@@ -260,7 +269,8 @@ def test_list_example_configs_returns_empty_lists_without_examples(
 def test_config_manager_wraps_malformed_content_in_config_error(
     tmp_path: Path, filename: str, content: str, match: str
 ) -> None:
-    """_parse_file() оборачивает разные виды «плохого» содержимого файла в ConfigError
+    """
+    _parse_file() оборачивает разные виды «плохого» содержимого файла в ConfigError
     с сообщением: синтаксически невалидный YAML — с именем файла в
     тексте ошибки, а структурно невалидный (не-dict) контент — с явным
     упоминанием "dict", а не пропускает исходное исключение PyYAML/json наружу как есть.
@@ -283,8 +293,6 @@ def test_config_manager_wraps_oserror_in_config_error(
     config_file = tmp_path / "parser_config.json"
     config_file.write_text(json.dumps(valid_parser_config), encoding="utf-8")
 
-    import autodoc.config.manager as manager_module
-
     original_open = Path.open
 
     def _raise_oserror(self: Path, *args: Any, **kwargs: Any) -> Any:
@@ -292,7 +300,7 @@ def test_config_manager_wraps_oserror_in_config_error(
             raise OSError("permission denied")
         return original_open(self, *args, **kwargs)
 
-    monkeypatch.setattr(manager_module.Path, "open", _raise_oserror)
+    monkeypatch.setattr(Path, "open", _raise_oserror)
 
     manager = ConfigManager(configs_dir=tmp_path)
     with pytest.raises(ConfigError, match="parser_config.json"):
@@ -312,7 +320,8 @@ def test_config_manager_wraps_oserror_in_config_error(
 def test_config_manager_validate_config_file_rejects_bad_path(
     tmp_path: Path, create_unsupported_file: bool, match: str
 ) -> None:
-    """validate_config_file() поднимает ConfigError для двух разных «плохих путей» —
+    """
+    validate_config_file() поднимает ConfigError для двух разных «плохих путей» —
     неподдерживаемого расширения и отсутствующего файла - каждый раз со своим,
     специфичным для причины сообщением, не пытаясь прочитать и разобрать
     содержимое там, где в этом нет смысла.

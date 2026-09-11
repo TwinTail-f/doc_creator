@@ -119,7 +119,8 @@ def test_profile_overrides_from_file_returns_empty_instance(
     tmp_path: Path,
     make_path: Callable[[Path], Path],
 ) -> None:
-    """from_file() возвращает пустой экземпляр при разных дефектах входа:
+    """
+    from_file() возвращает пустой экземпляр при разных дефектах входа:
     отсутствующий файл, некорректный JSON, валидный JSON не-объект,
     отсутствующая или некорректная по типу секция 'overrides'."""
     path = make_path(tmp_path)
@@ -130,7 +131,8 @@ def test_profile_overrides_from_file_returns_empty_instance(
 
 @pytest.mark.business_logic
 def test_profile_overrides_resolve_basename_fallback(tmp_path: Path) -> None:
-    """resolve() использует сопоставление по basename, когда полный путь используется как имя профиля.
+    """
+    resolve() использует сопоставление по basename, когда полный путь используется как имя профиля.
 
     Исходный код выполняет поиск по basename (Path.name) в качестве вторичного шага.
     Профиль, хранящийся как 'hw-linux-x86_64.jinja', должен находиться при запросе
@@ -315,7 +317,8 @@ def test_profile_overrides_malformed_entry_skipped_others_resolved(
     bad_profile_name: str | None,
     expected_good_settings: dict,
 ) -> None:
-    """При различных дефектах отдельной записи overrides или отдельного имени
+    """
+    При различных дефектах отдельной записи overrides или отдельного имени
     профиля внутри неё (не-объект, опечатка в ключе, 'profiles' не список,
     пустой список профилей, отсутствующий или пустой 'settings', не-строковое
     или пустое/пробельное имя профиля в списке) дефектная часть пропускается,
@@ -353,4 +356,3 @@ def test_profile_overrides_partial_corruption_final_state_correct(tmp_path: Path
     assert overrides.resolve("profile-one.jinja") == {"compiler": "gcc"}
     assert overrides.resolve("profile-two.jinja") == {"compiler": "clang"}
     assert overrides.is_empty() is False
-

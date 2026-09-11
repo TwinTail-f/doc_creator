@@ -43,7 +43,8 @@ _COMMON_SINGLE_PAGE_OPTIONS: list[Callable] = [
 
 
 def single_page_options(func: Callable) -> Callable:
-    """Декоратор: добавляет к команде общий набор Click-опций для публикации одной страницы.
+    """
+    Декоратор: добавляет к команде общий набор Click-опций для публикации одной страницы.
 
     Команды ``publish release`` и ``publish profile`` принимают одинаковый
     набор флагов, включая ``--no-passport-links`` — их конвертеры умеют
@@ -67,7 +68,8 @@ def single_page_options(func: Callable) -> Callable:
 
 
 def kit_page_options(func: Callable) -> Callable:
-    """Декоратор: добавляет к команде набор Click-опций для страниц «комплекта
+    """
+    Декоратор: добавляет к команде набор Click-опций для страниц «комплекта
     встраивания» (``kit-fixed``, ``kit-latest``).
 
     В отличие от ``single_page_options``, здесь нет флага ``--no-passport-links``:
@@ -96,7 +98,8 @@ def run_single_page_command(
     cli_root_page_name: str | None,
     include_passport_links: bool,
 ) -> None:
-    """Общая логика всех команд публикации одной страницы (release, profile,
+    """
+    Общая логика всех команд публикации одной страницы (release, profile,
     kit-fixed, kit-latest).
 
     Загружает данные, резолвит финальный заголовок страницы и публикует её
@@ -170,7 +173,8 @@ def run_kit_page_command(
     cli_root_page_id: str | None,
     cli_root_page_name: str | None,
 ) -> None:
-    """Точка входа команд ``publish kit-fixed`` и ``publish kit-latest``.
+    """
+    Точка входа команд ``publish kit-fixed`` и ``publish kit-latest``.
 
     Тонкая обёртка над ``run_single_page_command``: у этих команд
     нет флага ``--no-passport-links`` (см. ``kit_page_options``), поэтому

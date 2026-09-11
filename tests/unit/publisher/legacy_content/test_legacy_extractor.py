@@ -1,4 +1,5 @@
-"""Unit-тесты для функций legacy_extractor.
+"""
+Unit-тесты для функций legacy_extractor.
 
 Покрывает:
 - extract_platform_versions() возвращает {} на пустом HTML.
@@ -28,7 +29,8 @@ TAB_HTML_MULTI = _html("tab_multi.html")
 
 @pytest.mark.business_logic
 def test_extract_platform_versions_returns_all_tabs() -> None:
-    """Возвращает словарь с одним ключом на каждое отдельное имя вкладки в HTML
+    """
+    Возвращает словарь с одним ключом на каждое отдельное имя вкладки в HTML
     (делегирует разбор в parse_page_sections())."""
     result = extract_platform_versions(TAB_HTML_MULTI)
 

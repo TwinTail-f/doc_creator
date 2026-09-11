@@ -10,7 +10,8 @@ from autodoc.publisher.view_models.conan_variant import ConanVariantView
 
 
 class BadgeClass(str, Enum):
-    """CSS-классы бейджей опций, используемые конвертерами и шаблонами.
+    """
+    CSS-классы бейджей опций, используемые конвертерами и шаблонами.
 
     Значения совпадают с классами, определёнными в ``_styles_base.jinja2``.
     """
@@ -44,7 +45,8 @@ class BaseDataConverter(ABC):
 
     @staticmethod
     def _qualify_package_ref(pkg: str) -> str:
-        """Добавляет суффикс '/*' к ссылке на пакет, если он отсутствует.
+        """
+        Добавляет суффикс '/*' к ссылке на пакет, если он отсутствует.
 
         Args:
             pkg: Имя пакета или ссылка на него.
@@ -111,7 +113,8 @@ class BaseDataConverter(ABC):
 
     @staticmethod
     def _build_profile_definition_map(data: ParsedResult) -> dict[str, Any]:
-        """Строит словарь определений профилей, индексированный по имени профиля.
+        """
+        Строит словарь определений профилей, индексированный по имени профиля.
 
         Args:
             data: Результат парсинга с полем profile_definitions.

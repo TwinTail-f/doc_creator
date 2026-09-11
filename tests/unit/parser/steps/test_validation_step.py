@@ -15,7 +15,8 @@ _VS_UI_URL_PREFIX: str = "http://art/ui/repos/tree/General/repo"
 
 
 class _MixedClient(FakeArtifactoryClient):
-    """Возвращает 404 для 'dead' и 200 для остальных URL, записывая вызванные URL.
+    """
+    Возвращает 404 для 'dead' и 200 для остальных URL, записывая вызванные URL.
 
     Переиспользует отслеживание called_urls и сборку Response из
     FakeArtifactoryClient.check_url(), переопределяя только выбор статуса.
@@ -215,7 +216,9 @@ def test_ui_url_converted_to_api_url_before_head(
     assert (
         "/ui/repos/tree/General/" not in called
     ), f"UI-путь не должен встречаться в HEAD-URL: {called}"
-    assert "/artifactory/" in called, f"API-путь '/artifactory/' должен встречаться в HEAD-URL: {called}"
+    assert (
+        "/artifactory/" in called
+    ), f"API-путь '/artifactory/' должен встречаться в HEAD-URL: {called}"
 
 
 @pytest.mark.business_logic
@@ -316,7 +319,8 @@ def test_validation_step_mixed_alive_and_dead_variants_partial_removal(
 def test_validation_step_removes_two_consecutive_dead_variants(
     parser_pipeline_context,
 ) -> None:
-    """Удаление двух подряд идущих в списке мёртвых (404) вариантов не пропускает
+    """
+    Удаление двух подряд идущих в списке мёртвых (404) вариантов не пропускает
     ни один из них: _remove_dead_variants удаляет по значению из dead_variants,
     а не по индексу while перебирает pb.variants, поэтому сдвиг индексов после
     первого remove() не приводит к пропуску следующего элемента."""
@@ -375,7 +379,8 @@ def test_validation_step_non_404_error_status_keeps_variant(
 
 
 class _UnexpectedErrorClient:
-    """Фейковый клиент Artifactory, чей check_url() бросает ValueError —
+    """
+    Фейковый клиент Artifactory, чей check_url() бросает ValueError —
     ParallelExecutor перехватывает такие ошибки домена задач и подставляет
     None на место результата, вместо падения check_one()."""
 
@@ -388,7 +393,8 @@ class _UnexpectedErrorClient:
 def test_check_one_unexpected_exception_swallowed_by_executor_keeps_variant(
     parser_pipeline_context,
 ) -> None:
-    """Если check_url() бросает исключение, не являющееся requests.RequestException
+    """
+    Если check_url() бросает исключение, не являющееся requests.RequestException
     (например ValueError), ParallelExecutor перехватывает его и возвращает
     None вместо результата — execute() не должен падать, а вариант должен
     остаться (ветка `result is None: continue` в _check_urls_parallel)."""
@@ -405,7 +411,8 @@ def test_check_one_unexpected_exception_swallowed_by_executor_keeps_variant(
 
 @pytest.mark.business_logic
 def test_remove_dead_variants_skips_variant_already_absent() -> None:
-    """_remove_dead_variants не падает и не выполняет повторное удаление,
+    """
+    _remove_dead_variants не падает и не выполняет повторное удаление,
     если один и тот же вариант дважды попал в список мёртвых (например,
     из-за дублирующегося build_url у двух записей) — вторая попытка должна
     молча пропускаться веткой `if variant in pb.variants`."""

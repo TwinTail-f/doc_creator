@@ -1,4 +1,5 @@
-"""Тесты для autodoc/cli/commands/config.py.
+"""
+Тесты для autodoc/cli/commands/config.py.
 
 Тесты вызывают команду ``config`` через CliRunner,
 конфиги пишутся во временную директорию.
@@ -63,7 +64,8 @@ def test_cli_config_validate_exits_zero_on_valid_config(
 def test_cli_config_validate_exits_nonzero_on_invalid_config(
     configs_dir: Path,
 ) -> None:
-    """Подкоманда validate завершается с ненулевым кодом, если файл — невалидный JSON.
+    """
+    Подкоманда validate завершается с ненулевым кодом, если файл — невалидный JSON.
 
     Гарантирует, что CLI показывает ошибку вызывающей стороне, а не проглатывает её.
     """
@@ -82,7 +84,8 @@ def test_cli_config_validate_exits_nonzero_on_invalid_config(
 def test_cli_config_validate_error_is_human_readable(
     configs_dir: Path,
 ) -> None:
-    """Вывод ошибки подкоманды validate не должен содержать «сырой» Python-трейсбек.
+    """
+    Вывод ошибки подкоманды validate не должен содержать «сырой» Python-трейсбек.
 
     Трейсбек в пользовательском выводе — это UX-дефект: сообщение об ошибке
     должно быть понятной диагностикой, а не внутренним стеком вызовов.
@@ -142,7 +145,8 @@ def test_cli_config_list_shows_config_filenames(
 def test_cli_config_list_on_empty_dir_exits_zero(
     configs_dir: Path,
 ) -> None:
-    """Подкоманда config list завершается с кодом 0, даже если конфигов нет.
+    """
+    Подкоманда config list завершается с кодом 0, даже если конфигов нет.
 
     Пустая директория конфигов — валидное состояние (первый запуск); CLI не должен падать.
     """
@@ -173,16 +177,17 @@ def test_cli_config_list_shows_examples_section(configs_dir: Path) -> None:
 def test_cli_config_validate_reports_when_no_schema_matches(
     configs_dir: Path,
 ) -> None:
-    """validate печатает предупреждение и выходит с 0, если файл валиден,
+    """
+    validate печатает предупреждение и выходит с 0, если файл валиден,
     но не проходит ни ParserConfigSchema, ни ConfluenceConfigSchema."""
     _write_json(configs_dir, "unknown_schema.json", {})
     result = CliRunner().invoke(
         cli,
         ["--configs-dir", str(configs_dir), "config", "validate", "unknown_schema.json"],
     )
-    assert result.exit_code == _EXIT_SUCCESS, (
-        f"exit={result.exit_code}, output={result.output}, exc={result.exception}"
-    )
+    assert (
+        result.exit_code == _EXIT_SUCCESS
+    ), f"exit={result.exit_code}, output={result.output}, exc={result.exception}"
     assert "не соответствует" in result.output
     assert "схема parser" in result.output
     assert "схема confluence" in result.output

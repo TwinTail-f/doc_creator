@@ -1,4 +1,5 @@
-"""Юнит-тесты для PassportPageRegistry.
+"""
+Юнит-тесты для PassportPageRegistry.
 
 Покрывает:
 - save() записывает JSON в data_dir/passport_pages.json.
@@ -29,7 +30,8 @@ _REGISTRY_FILE: str = "passport_pages.json"
 
 
 def _make_registry(data_dir: Path) -> PassportPageRegistry:
-    """Создаёт PassportPageRegistry с заданной директорией данных.
+    """
+    Создаёт PassportPageRegistry с заданной директорией данных.
 
     Args:
         data_dir: Директория, в которой будет храниться реестр.
@@ -67,7 +69,8 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
 def test_save_on_os_error_does_not_raise(
     tmp_path: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """save() поглощает OSError и не пробрасывает исключение наружу.
+    """
+    save() поглощает OSError и не пробрасывает исключение наружу.
 
     Сам факт, что вызов ниже не бросает исключение, уже проверяется pytest:
     непойманный OSError внутри теста провалил бы его автоматически. Дополнительно

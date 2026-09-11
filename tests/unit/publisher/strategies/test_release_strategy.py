@@ -188,7 +188,8 @@ def test_links_injected_into_view_model_from_registry(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """После загрузки реестра ссылки на паспорта внедряются в view-model, чтобы
+    """
+    После загрузки реестра ссылки на паспорта внедряются в view-model, чтобы
     шаблон мог отрендерить кликабельные ссылки на каждую страницу паспорта:
     view_model компонента 'openssl' получает непустую 'passport_versions',
     полученную из pages_map реестра."""

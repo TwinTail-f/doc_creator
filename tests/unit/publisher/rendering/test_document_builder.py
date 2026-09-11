@@ -21,7 +21,8 @@ SYNTAX_ERROR_TEMPLATE_CONTENT: str = "{% if data.flag %}unclosed"
 
 
 def make_rendering_dir(tmp_path: Path, templates: dict[str, str]) -> Path:
-    """Создаёт структуру rendering_dir/templates/ с заданными шаблонами.
+    """
+    Создаёт структуру rendering_dir/templates/ с заданными шаблонами.
 
     Args:
         tmp_path: Временная директория, используемая как rendering_dir.
@@ -92,7 +93,8 @@ def test_build_raises_template_not_found(tmp_path: Path) -> None:
 
 @pytest.mark.infrastructure
 def test_build_xmlattr_filter_escapes_special_chars(tmp_path: Path) -> None:
-    """Кастомный фильтр xmlattr экранирует '&' и '"' в значении атрибута
+    """
+    Кастомный фильтр xmlattr экранирует '&' и '"' в значении атрибута
     ровно один раз, без двойного экранирования."""
     rendering_dir = make_rendering_dir(tmp_path, {XMLATTR_TEMPLATE_NAME: XMLATTR_TEMPLATE_CONTENT})
     builder = DocumentBuilder(rendering_dir=rendering_dir)

@@ -30,7 +30,8 @@ class PublishReport:
 
     @staticmethod
     def merge(*reports: "PublishReport") -> "PublishReport":
-        """Объединяет несколько отчётов о публикации в один сводный.
+        """
+        Объединяет несколько отчётов о публикации в один сводный.
 
         Args:
             *reports: Отчёты для объединения.

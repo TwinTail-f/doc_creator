@@ -15,12 +15,15 @@ from autodoc.publisher.converters.kit_latest_converter import KitLatestConverter
 
 
 def _release(version: str, channel: str, conan_reference: str = "") -> Release:
-    return Release(version=version, platform="2.0", channel=channel, conan_reference=conan_reference)
+    return Release(
+        version=version, platform="2.0", channel=channel, conan_reference=conan_reference
+    )
 
 
 @pytest.mark.business_logic
 def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() -> None:
-    """Ссылка строится как name/[,include_prerelease]@platform-{version}/{channel},
+    """
+    Ссылка строится как name/[,include_prerelease]@platform-{version}/{channel},
     независимо от реального conan_reference релиза (версия не фиксируется)."""
     comp = Component(
         name="openssl",
@@ -38,7 +41,8 @@ def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() 
 
 @pytest.mark.business_logic
 def test_convert_dedupes_multiple_versions_of_same_component_into_one_row() -> None:
-    """Несколько версий одного компонента в одном канале схлопываются в одну строку
+    """
+    Несколько версий одного компонента в одном канале схлопываются в одну строку
     (в отличие от KitFixedConverter)."""
     comp = Component(
         name="patchelf",
@@ -59,7 +63,8 @@ def test_convert_dedupes_multiple_versions_of_same_component_into_one_row() -> N
 
 @pytest.mark.business_logic
 def test_convert_same_component_in_different_channels_gets_separate_rows() -> None:
-    """Один и тот же компонент в разных каналах — отдельная строка в каждом канале
+    """
+    Один и тот же компонент в разных каналах — отдельная строка в каждом канале
     (дедупликация работает только внутри канала)."""
     comp = Component(
         name="nginx",
@@ -88,7 +93,9 @@ def test_convert_orders_known_channels_tech_trusted_slow_fast() -> None:
         Component(name="c", releases=[_release("1.0", "trusted")]),
         Component(name="d", releases=[_release("1.0", "tech")]),
     ]
-    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps)
+    data = ParsedResult(
+        generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
+    )
 
     view_model = KitLatestConverter().convert(data)
 
@@ -103,7 +110,9 @@ def test_convert_preserves_component_order_within_channel() -> None:
         Component(name="gtest", releases=[_release("1.17.0", "tech")]),
         Component(name="cmake", releases=[_release("4.2.2", "tech")]),
     ]
-    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps)
+    data = ParsedResult(
+        generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
+    )
 
     view_model = KitLatestConverter().convert(data)
 

@@ -1,4 +1,5 @@
-"""Юнит-тесты для классов Conan runner.
+"""
+Юнит-тесты для классов Conan runner.
 
 Охватывает: Conan2Runner, ConanEnvironmentManager.
 """
@@ -75,7 +76,8 @@ def test_conan2_runner_returns_failure_on_timeout(
     conan_task: ConanTask,
     mocker: MockerFixture,
 ) -> None:
-    """Conan2Runner.run() возвращает success=False при истечении времени ожидания subprocess.
+    """
+    Conan2Runner.run() возвращает success=False при истечении времени ожидания subprocess.
 
     TimeoutExpired не должен пробрасываться — runner перехватывает его и возвращает
     результат-ошибку, чтобы вызывающий код мог накапливать ошибки вместо падения.
@@ -138,7 +140,8 @@ def test_conan2_runner_clean_cache_swallows_failures(
     mocker: MockerFixture,
     run_kwargs: dict,
 ) -> None:
-    """clean_cache() не бросает исключений ни при ненулевом коде возврата
+    """
+    clean_cache() не бросает исключений ни при ненулевом коде возврата
     conan, ни при истечении времени ожидания subprocess."""
     mocker.patch("subprocess.run", **run_kwargs)
 
@@ -151,7 +154,8 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
     conan_task: ConanTask,
     mocker: MockerFixture,
 ) -> None:
-    """run() при returncode=0 и валидном JSON на stdout возвращает
+    """
+    run() при returncode=0 и валидном JSON на stdout возвращает
     ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
     в проде путь (returncode=0)."""
     parsed_payload = {"graph": {"nodes": {"0": {"name": "zlib"}}}}
@@ -196,7 +200,8 @@ def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message
     conan_task: ConanTask,
     mocker: MockerFixture,
 ) -> None:
-    """run() при ненулевом returncode передаёт stderr в _extract_error_message и
+    """
+    run() при ненулевом returncode передаёт stderr в _extract_error_message и
     возвращает его результат: _extract_error_message обрезает stderr до
     среза, начинающегося с первого вхождения маркера "error:" (регистронезависимо),
     отбрасывая предшествующий preamble-вывод."""
@@ -216,7 +221,8 @@ def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_setup_copies_config(mocker: MockerFixture) -> None:
-    """Успешный setup() выполняет установку конфигурации Conan через 'conan config install'.
+    """
+    Успешный setup() выполняет установку конфигурации Conan через 'conan config install'.
     Здесь проверяется реальное поведение setup(): установка конфигурации через CLI-команду
     'conan config install' (в дополнение к последующему логину в remotes).
     """
@@ -241,7 +247,8 @@ def test_conan_environment_manager_cleanup_removes_directory(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """cleanup() удаляет каталог настройки, созданный setup().
+    """
+    cleanup() удаляет каталог настройки, созданный setup().
 
     Проверяет, что временный домашний каталог Conan удаляется после использования,
     что важно для предотвращения накопления больших каталогов на агентах CI.
@@ -265,7 +272,8 @@ def test_conan_environment_manager_cleanup_removes_directory(
 
 @pytest.mark.infrastructure
 def test_conan_environment_manager_cleanup_safe_if_setup_never_called() -> None:
-    """cleanup() идемпотентен и не вызывает исключений, если setup() никогда не вызывался.
+    """
+    cleanup() идемпотентен и не вызывает исключений, если setup() никогда не вызывался.
 
     Свежий ConanEnvironmentManager не имеет каталога настройки; cleanup() должен
     обрабатывать это корректно, чтобы вызывающий код мог использовать его безопасно
@@ -284,7 +292,8 @@ def test_conan_environment_manager_setup_can_be_called_twice_without_raising(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """Повторный вызов setup() на одном и том же ConanEnvironmentManager не бросает исключение.
+    """
+    Повторный вызов setup() на одном и том же ConanEnvironmentManager не бросает исключение.
 
     Это НЕ идемпотентность в строгом смысле (f(f(x)) == f(x)): второй вызов
     создаёт совершенно новый временный каталог и возвращает его путь, а
@@ -326,7 +335,8 @@ def test_conan_environment_manager_setup_raises_when_remote_list_fails(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """Если получение списка remotes завершилось ошибкой, setup() пробрасывает исключение и выполняет очистку.
+    """
+    Если получение списка remotes завершилось ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
     Установка конфигурации к этому моменту уже прошла успешно, поэтому setup()
     обязан удалить созданный временный каталог перед тем, как пробросить ошибку.
@@ -357,7 +367,8 @@ def test_conan_environment_manager_setup_raises_when_remote_login_fails(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """Если логин в один из remotes завершился ошибкой, setup() пробрасывает исключение и выполняет очистку.
+    """
+    Если логин в один из remotes завершился ошибкой, setup() пробрасывает исключение и выполняет очистку.
 
     Установка конфигурации и получение списка remotes к этому моменту уже прошли
     успешно, поэтому setup() обязан удалить созданный временный каталог перед тем,
@@ -389,7 +400,8 @@ def test_conan_environment_manager_setup_raises_when_remote_login_fails(
 def test_conan_environment_manager_install_config_raises_on_invalid_url(
     mocker: MockerFixture,
 ) -> None:
-    """setup() отклоняет config_url без схемы и хоста ещё до обращения к conan CLI.
+    """
+    setup() отклоняет config_url без схемы и хоста ещё до обращения к conan CLI.
 
     URL конфигурации всегда должен содержать схему и хост, поскольку в него
     встраиваются учётные данные для скачивания архива из Artifactory; заведомо
@@ -410,7 +422,8 @@ def test_conan_environment_manager_install_config_raises_on_invalid_url(
 def test_conan_environment_manager_setup_raises_when_conan_not_in_path(
     mocker: MockerFixture,
 ) -> None:
-    """setup() пробрасывает RuntimeError, если утилита 'conan' не найдена в PATH,
+    """
+    setup() пробрасывает RuntimeError, если утилита 'conan' не найдена в PATH,
     и не пытается создавать временную директорию или обращаться к conan CLI."""
     mocker.patch("shutil.which", return_value=None)
     mock_mkdtemp = mocker.patch("tempfile.mkdtemp")
@@ -430,7 +443,8 @@ def test_conan_environment_manager_install_config_cleans_up_before_raising_on_su
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> None:
-    """Если сама команда 'conan config install' завершилась ненулевым кодом,
+    """
+    Если сама команда 'conan config install' завершилась ненулевым кодом,
     _install_config вызывает self.cleanup() (удаляет временный CONAN_HOME) перед
     тем, как пробросить RuntimeError — иначе временная директория осталась бы
     на диске навсегда, так как вызывающий код (setup()) выполнить cleanup()
@@ -472,7 +486,8 @@ def test_conan_environment_manager_install_config_cleans_up_before_raising_on_su
     ],
 )
 def test_extract_error_message(stderr: str, expected: str, tmp_path: Path) -> None:
-    """_extract_error_message возвращает срез stderr с маркера 'error:',
+    """
+    _extract_error_message возвращает срез stderr с маркера 'error:',
     либо весь stderr (обрезанный), если маркера нет."""
     runner = Conan2Runner(timeout=_TIMEOUT_SEC, conan_home_template=tmp_path)
     assert runner._extract_error_message(stderr) == expected

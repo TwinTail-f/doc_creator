@@ -1,70 +1,18 @@
 """Юнит-тесты для autodoc/parser/parser.py (ComponentParser)."""
 
-import datetime
-from pathlib import Path
-
 import pytest
 from pytest_mock import MockerFixture
 
 from autodoc.exceptions import ParsingError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.parser import ComponentParser
-from autodoc.parser.pipeline.context import PipelineContext
-from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from autodoc.parser.steps.docker_step import DockerResolveStep
 from autodoc.parser.steps.finalize_step import FinalizeStep
 from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
-from tests.unit.parser.conftest import FakeTFSClient
-
-
-# Фейковые шаги пайплайна
-class FakeStep(BaseParseStep):
-    """Фейковый шаг пайплайна, записывающий порядок выполнения и опционально вызывающий исключение."""
-
-    name = "fake_step"
-    is_critical = True
-
-    def __init__(self, side_effect: Exception | None = None) -> None:
-        """
-        Args:
-            side_effect: Исключение для вызова при execute(). None → нет действий.
-        """
-        self._side_effect = side_effect
-
-    def execute(self, ctx: PipelineContext) -> None:
-        """Выполняет фейковый шаг; опционально вызывает настроенное исключение."""
-        if self._side_effect:
-            raise self._side_effect
-
-
-class FakeFinalize(BaseParseStep):
-    """Фейковый FinalizeStep, заполняющий ctx.result минимальным ParsedResult."""
-
-    name = "fake_finalize"
-    is_critical = True
-
-    def execute(self, ctx: PipelineContext) -> None:
-        """Заполняет ctx.result минимальным корректным ParsedResult."""
-        ctx.result = ParsedResult(
-            generated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            platform_version=ctx.config.platform_version,
-            profile_definitions=[],
-            components=[],
-        )
-
-
-class NonCriticalStep(BaseParseStep):
-    """Некритичный шаг, всегда вызывающий ParsingError."""
-
-    name = "non_critical"
-    is_critical = False
-
-    def execute(self, ctx: PipelineContext) -> None:
-        """Всегда вызывает исключение для имитации некритичного сбоя."""
-        raise ParsingError("non-critical boom")
+from tests.unit.parser.conftest import CallbackStep, FailingStep, FakeTFSClient, FinalizeOnlyStep
 
 
 @pytest.mark.business_logic
@@ -72,11 +20,11 @@ def test_component_parser_parse_returns_parsed_result(
     parser_config,
     tmp_path,
 ) -> None:
-    """Успешный путь: parse() возвращает ParsedResult, когда FakeFinalize заполняет ctx.result."""
+    """Успешный путь: parse() возвращает ParsedResult, когда FinalizeOnlyStep заполняет ctx.result."""
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FakeStep(), FakeFinalize()],
+        steps=[CallbackStep(is_critical=True), FinalizeOnlyStep()],
     )
     result = parser.parse()
     assert isinstance(result, ParsedResult)
@@ -91,7 +39,7 @@ def test_component_parser_non_critical_step_failure_continues(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[NonCriticalStep(), FakeFinalize()],
+        steps=[FailingStep(ParsingError("non-critical boom")), FinalizeOnlyStep()],
     )
     result = parser.parse()  # не должно вызывать исключений
     assert isinstance(result, ParsedResult)
@@ -110,7 +58,7 @@ def test_component_parser_cleans_up_tmp_dir_on_success(
     parser = ComponentParser(
         config=parser_config,
         data_dir=data_dir,
-        steps=[FakeFinalize()],
+        steps=[FinalizeOnlyStep()],
     )
     parser.parse()
     assert not tmp_dir.exists()
@@ -129,7 +77,7 @@ def test_component_parser_cleans_up_tmp_dir_on_failure(
     parser = ComponentParser(
         config=parser_config,
         data_dir=data_dir,
-        steps=[FakeStep(side_effect=ParsingError("boom"))],
+        steps=[FailingStep(ParsingError("boom"), is_critical=True)],
     )
     with pytest.raises(ParsingError):
         parser.parse()
@@ -145,7 +93,7 @@ def test_component_parser_raises_if_result_not_set(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FakeStep()],
+        steps=[CallbackStep(is_critical=True)],
     )
     with pytest.raises(ParsingError):
         parser.parse()
@@ -165,7 +113,7 @@ def test_component_parser_uses_injected_tfs_client(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FakeFinalize()],
+        steps=[FinalizeOnlyStep()],
         tfs_client=FakeTFSClient(),
     )
     parser.parse()
@@ -181,7 +129,7 @@ def test_component_parser_save_intermediate_writes_files(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FakeFinalize()],
+        steps=[FinalizeOnlyStep()],
     )
     parser.parse(save_intermediate=True)
     intermediate_dir = tmp_path / "intermediate"
@@ -203,7 +151,7 @@ def test_component_parser_save_intermediate_oserror_logged_not_raised(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FakeFinalize()],
+        steps=[FinalizeOnlyStep()],
     )
     result = parser.parse(save_intermediate=True)  # не должно вызывать исключений
     assert isinstance(result, ParsedResult)
@@ -242,7 +190,7 @@ def test_component_parser_uses_injected_artifactory_client(
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FakeFinalize()],
+        steps=[FinalizeOnlyStep()],
         artifactory_client=mocker.MagicMock(),
     )
     parser.parse()

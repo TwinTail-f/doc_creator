@@ -56,7 +56,8 @@ def test_conan_input_options_parsed_options_priority(
     explicit_parsed: dict[str, str] | None,
     expected: dict[str, str],
 ) -> None:
-    """ConanInputOptions.parsed_options: явное значение имеет приоритет над
+    """
+    ConanInputOptions.parsed_options: явное значение имеет приоритет над
     автозаполнением из options; без явного значения parsed_options
     вычисляется из строки options (а пустая options даёт пустой словарь).
     """

@@ -26,7 +26,8 @@ def test_pipeline_context_snapshot_includes_components_count(
     tmp_path,
     manifest_component,
 ) -> None:
-    """to_snapshot_dict включает components_count, равный len(ctx.components).
+    """
+    to_snapshot_dict включает components_count, равный len(ctx.components).
 
     Отмечено как ``business_logic`` для согласованности с соседним тестом
     ``test_pipeline_context_snapshot_excludes_docker_links`` в этом же файле:

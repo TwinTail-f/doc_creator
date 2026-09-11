@@ -20,7 +20,9 @@ from autodoc.publisher.clients.models.page_result import PageResult
 def _random_generated_at() -> str:
     """Возвращает случайную дату/время в ISO 8601 (без привязки к конкретному дню)."""
     start = datetime(2020, 1, 1)
-    random_offset = timedelta(seconds=random.randint(0, int(timedelta(days=365 * 5).total_seconds())))
+    random_offset = timedelta(
+        seconds=random.randint(0, int(timedelta(days=365 * 5).total_seconds()))
+    )
     return (start + random_offset).isoformat()
 
 

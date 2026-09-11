@@ -160,9 +160,7 @@ def test_data_restructured_from_component_to_profile_axis(
     converter = ProfileCentricConverter(include_passport_links=False)
     view = converter.convert(publisher_multi_channel_result)
 
-    profile = next(
-        p for p in view["profiles"] if p["profile_name"] == "hw-linux-x86_64-gcc10"
-    )
+    profile = next(p for p in view["profiles"] if p["profile_name"] == "hw-linux-x86_64-gcc10")
     channels = profile["channels"]
     for channel_name in ("fast", "stable"):
         names_in_channel = {entry["name"] for entry in channels[channel_name]}
@@ -393,7 +391,8 @@ def test_enrich_with_passport_links_sets_passport_link(
     passport_pages: dict,
     expected_link: str | None,
 ) -> None:
-    """enrich_with_passport_links проставляет passport_link в зависимости от того,
+    """
+    enrich_with_passport_links проставляет passport_link в зависимости от того,
     найден ли компонент/версия в реестре паспортов и задан ли у записи page_id."""
     view_model: dict = {
         "space": "TEST",
@@ -426,7 +425,8 @@ def test_enrich_with_passport_links_noop_when_registry_empty() -> None:
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_noop_when_profiles_key_absent() -> None:
-    """enrich_with_passport_links ничего не делает, если в view_model нет ключа
+    """
+    enrich_with_passport_links ничего не делает, если в view_model нет ключа
     'profiles'."""
     view_model: dict = {"space": "TEST", "components": []}
     passport_pages = {"mylib": {"1.0": {"page_id": "1"}}}
@@ -438,7 +438,8 @@ def test_enrich_with_passport_links_noop_when_profiles_key_absent() -> None:
 
 @pytest.mark.business_logic
 def test_enrich_with_passport_links_noop_when_include_passport_links_false() -> None:
-    """enrich_with_passport_links ничего не делает, если ссылки на паспорта
+    """
+    enrich_with_passport_links ничего не делает, если ссылки на паспорта
     отключены в конструкторе конвертера — даже при непустом реестре и наличии
     ключа 'profiles'. Это гейт, который раньше жил на уровне стратегии."""
     view_model: dict = {

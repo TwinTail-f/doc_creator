@@ -23,7 +23,8 @@ console = Console()
 
 @contextmanager
 def cli_error_boundary(panel_header: str) -> Generator[None, None, None]:
-    """Контекстный менеджер для единообразной обработки ошибок CLI-команды.
+    """
+    Контекстный менеджер для единообразной обработки ошибок CLI-команды.
 
     Выводит заголовок панели, перехватывает доменные исключения,
     печатает сообщение об ошибке и завершает процесс с кодом 1.
@@ -56,7 +57,8 @@ def cli_error_boundary(panel_header: str) -> Generator[None, None, None]:
 
 
 def load_parsed_data(base_dir: Path) -> ParsedResult:
-    """Загружает parsed_data.json и десериализует в ParsedResult.
+    """
+    Загружает parsed_data.json и десериализует в ParsedResult.
 
     Args:
         base_dir: Базовая директория проекта; файл ищется в ``<base_dir>/data/parsed_data.json``.
@@ -107,7 +109,8 @@ def make_publisher(
     cli_ctx: CliCtx,
     config_file: str | None = None,
 ) -> tuple[DocumentPublisher, ConfluenceConfigSchema]:
-    """Создаёт DocumentPublisher для публикации в Confluence.
+    """
+    Создаёт DocumentPublisher для публикации в Confluence.
 
     Загружает конфигурацию Confluence через ``cli_ctx.config_manager`` и
     оборачивает её в готовый к использованию ``DocumentPublisher``, чтобы
@@ -130,7 +133,8 @@ def make_publisher(
 
 
 def print_publish_result(result: PublishReport) -> None:
-    """Выводит результат публикации в консоль в едином для всех команд формате.
+    """
+    Выводит результат публикации в консоль в едином для всех команд формате.
 
     При неуспехе или если ни одна страница не была опубликована — завершает
     процесс с кодом 1, чтобы CI/скрипты, вызывающие CLI, могли отличить

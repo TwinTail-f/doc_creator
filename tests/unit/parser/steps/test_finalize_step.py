@@ -20,7 +20,8 @@ def _null_variant() -> ConanVariant:
 
 
 def _make_release(profile_builds: list[ProfileBuild]) -> Release:
-    """Строит минимальный Release с заданными profile_builds.
+    """
+    Строит минимальный Release с заданными profile_builds.
 
     Args:
         profile_builds: Список ProfileBuild, которые нужно поместить в релиз.
@@ -37,7 +38,8 @@ def _make_release(profile_builds: list[ProfileBuild]) -> Release:
 
 
 def _make_component(name: str, release: Release) -> Component:
-    """Строит минимальный Component, оборачивающий один Release.
+    """
+    Строит минимальный Component, оборачивающий один Release.
 
     Args:
         name: Имя компонента.
@@ -50,7 +52,8 @@ def _make_component(name: str, release: Release) -> Component:
 
 
 def _make_comp_with_variant(name: str, package_id: str) -> Component:
-    """Строит компонент с одним релизом, одним профилем и одним вариантом.
+    """
+    Строит компонент с одним релизом, одним профилем и одним вариантом.
 
     Используется для тестов, где is_header_only зависит только от переданного
     package_id.
@@ -124,7 +127,8 @@ def test_finalize_step_sets_header_only_true(
     parser_pipeline_context,
     component_factory,
 ) -> None:
-    """Если у всех вариантов профиля package_id нулевой (header-only признак),
+    """
+    Если у всех вариантов профиля package_id нулевой (header-only признак),
     FinalizeStep выставляет is_header_only=True — как на синтетических
     данных, так и на реальном компоненте nlohmann_json."""
     comp = component_factory()
@@ -163,7 +167,8 @@ def test_finalize_step_removes_non_existing_profiles(
     parser_pipeline_context,
     release_factory,
 ) -> None:
-    """ProfileBuild с exists=False удаляется из итогового результата,
+    """
+    ProfileBuild с exists=False удаляется из итогового результата,
     ProfileBuild с exists=True остаётся — независимо от общего числа
     профилей на входе."""
     release = release_factory()
@@ -205,7 +210,8 @@ def test_finalize_step_populates_ctx_result(
 def test_finalize_step_raises_parsing_error_on_invalid_platform_version(
     parser_pipeline_context,
 ) -> None:
-    """FinalizeStep оборачивает реальный Pydantic ValidationError в ParsingError.
+    """
+    FinalizeStep оборачивает реальный Pydantic ValidationError в ParsingError.
 
     platform_version — единственное обязательное строковое поле ParsedResult,
     заполняемое напрямую из конфига, а не из данных, накопленных пайплайном.
@@ -225,7 +231,8 @@ def test_finalize_step_execute_wraps_validation_error_from_build_result(
     parser_pipeline_context,
     mocker: MockerFixture,
 ) -> None:
-    """execute() оборачивает в ParsingError PydanticValidationError, долетевший
+    """
+    execute() оборачивает в ParsingError PydanticValidationError, долетевший
     из _build_result напрямую (в обход её собственного except) — это внешний
     try/except в execute, отдельный от уже покрытого внутреннего в _build_result."""
     validation_error = PydanticValidationError.from_exception_data("ParsedResult", [])
@@ -240,7 +247,8 @@ def test_finalize_step_execute_applies_steps_in_order(
     parser_pipeline_context,
     mocker: MockerFixture,
 ) -> None:
-    """execute() применяет фильтрацию, дедупликацию и сборку результата в этом порядке.
+    """
+    execute() применяет фильтрацию, дедупликацию и сборку результата в этом порядке.
 
     Порядок не наблюдаем одним ассертом через публичный API: обёртки-шпионы
     вокруг приватных методов сохраняют оригинальное поведение (вызывают
@@ -470,7 +478,8 @@ def test_header_only_without_evidence_is_false(
     parser_pipeline_context,
     profile_builds: list[ProfileBuild],
 ) -> None:
-    """Без вариантов, доказывающих header-only (нет профилей вовсе, либо
+    """
+    Без вариантов, доказывающих header-only (нет профилей вовсе, либо
     профиль есть, но у него пустой variants), итоговый флаг остаётся
     False — при отсутствии профилей и при профиле без вариантов это одно
     и то же бизнес-правило "нет доказательств -> False"."""
@@ -533,7 +542,8 @@ def test_filter_empty_profiles(
     parser_pipeline_context,
     make_profile_builds,
 ) -> None:
-    """FinalizeStep удаляет из release.profile_builds все записи с exists=False,
+    """
+    FinalizeStep удаляет из release.profile_builds все записи с exists=False,
     сохраняя записи с exists=True в исходном порядке и точном составе —
     независимо от соотношения живых и мёртвых профилей, в том числе когда
     живых не остаётся вовсе (Release при этом остаётся в компоненте)."""

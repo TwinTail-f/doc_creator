@@ -38,7 +38,8 @@ class ReleaseDocsFields(SinglePageDocsFields):
 
 
 class ProfileCentricDocsFields(SinglePageDocsFields):
-    """Поля стратегии profile_centric. Отдельный класс — по аналогии с ReleaseDocsFields,
+    """
+    Поля стратегии profile_centric. Отдельный класс — по аналогии с ReleaseDocsFields,
     хотя дефолт page_title тот же (None), что и в SinglePageDocsFields; так пара
     (release, profile_centric) выглядит симметрично и в схему легко добавить
     третьей single-page стратегии её собственный дефолт заголовка."""
@@ -63,7 +64,8 @@ class KitLatestDocsFields(SinglePageDocsFields):
 
 
 class StrategiesConfig(BaseModel):
-    """Настройки публикации, сгруппированные по типу стратегии.
+    """
+    Настройки публикации, сгруппированные по типу стратегии.
 
     Имена полей класса дословно совпадают с ключами ``registry.STRATEGIES``
     (``"release"``, ``"profile_centric"``, ``"passports"``, ``"kit_fixed"``,
@@ -80,7 +82,8 @@ class StrategiesConfig(BaseModel):
 
     @model_validator(mode="after")
     def _require_root_parent_for_explicit_sections(self) -> "StrategiesConfig":
-        """Секция, явно присутствующая в конфиге, обязана задавать root_parent_name
+        """
+        Секция, явно присутствующая в конфиге, обязана задавать root_parent_name
         и/или root_parent_id. Секция, которую пользователь вообще не упомянул в файле
         (полагается целиком на CLI-флаги на каждый вызов) — легальна, для неё эта
         проверка не запускается. См. раздел 2.3 спеки."""

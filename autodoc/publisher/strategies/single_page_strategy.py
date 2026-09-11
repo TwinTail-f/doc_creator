@@ -1,6 +1,7 @@
 """Промежуточный базовый класс для стратегий, публикующих одну страницу Confluence."""
 
 from abc import abstractmethod
+from functools import partial
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -71,12 +72,13 @@ class SinglePagePublishStrategy(BasePublishStrategy):
 
     @staticmethod
     @abstractmethod
-    def _make_converter(kwargs: dict[str, Any]) -> BaseDataConverter:
+    def _make_converter(include_passport_links: bool = True) -> BaseDataConverter:
         """
         Создаёт конвертер данных из аргументов конструктора.
 
         Args:
-            kwargs: Словарь с параметрами для инициализации конвертера.
+            include_passport_links: Включать ли ссылки на паспорта компонентов.
+                Конвертеры, у которых нет такого понятия, значение игнорируют.
 
         Returns:
             Готовый экземпляр ``BaseDataConverter``.
@@ -105,13 +107,12 @@ class SinglePagePublishStrategy(BasePublishStrategy):
             self._passport_page_registry.load() if self._converter.wants_passport_links else {}
         )
 
-        def _enrich(view_model: dict[str, Any]) -> None:
-            self._converter.enrich_with_passport_links(view_model, passport_pages)
-
         return self._publish_single_page(
             page_title=self._page_title,
             template_name=self._template_name,
             transform_fn=self._build_view_model,
             parent_id=self._parent_id or "",
-            inject_links=_enrich,
+            inject_links=partial(
+                self._converter.enrich_with_passport_links, passport_pages=passport_pages
+            ),
         )

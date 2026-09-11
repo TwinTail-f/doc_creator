@@ -69,7 +69,8 @@ def test_manifest_fetcher_single_file_scenarios(
     tmp_path: Path,
     filename: str,
 ) -> None:
-    """Собирает ctx с CopyingFakeTFSClient(<один файл>), вызывает fetch() и проверяет,
+    """
+    Собирает ctx с CopyingFakeTFSClient(<один файл>), вызывает fetch() и проверяет,
     что каждый .properties-файл даёт ровно один компонент без предупреждений."""
     ctx = _make_context(
         parser_config,
@@ -105,7 +106,8 @@ def test_manifest_fetcher_release_count(
     filename: str,
     expected_release_count: int,
 ) -> None:
-    """Для манифестов с предсказуемым числом версий проверяет точное количество
+    """
+    Для манифестов с предсказуемым числом версий проверяет точное количество
     releases у единственного полученного компонента.
 
     Вынесено из test_manifest_fetcher_single_file_scenarios: для nlohmann_json.properties
@@ -133,7 +135,8 @@ def test_manifest_fetcher_all_components(
     real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """Все реальные .properties-файлы через CopyingAllFakeTFSClient дают ровно
+    """
+    Все реальные .properties-файлы через CopyingAllFakeTFSClient дают ровно
     по одному компоненту на файл (у каждого файла своё уникальное имя компонента)."""
     expected_component_count = len(list(real_manifests_dir.glob("*.properties")))
 
@@ -208,7 +211,8 @@ def test_manifest_fetcher_no_files_raises_parsing_error(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """ManifestFetcher выбрасывает ParsingError, если download_properties не записал ни одного файла.
+    """
+    ManifestFetcher выбрасывает ParsingError, если download_properties не записал ни одного файла.
 
     ManifestParser при этом не вызывается (ошибка возникает раньше), поэтому
     это собственное правило ManifestFetcher, а не путь двух коллабораторов."""

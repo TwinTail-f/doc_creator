@@ -1,4 +1,5 @@
-"""Юнит-тесты для autodoc/parser/utils/properties_reader.py.
+"""
+Юнит-тесты для autodoc/parser/utils/properties_reader.py.
 
 Покрывают продолжение строк, определение разделителя и граничные случаи,
 незаметные при тестировании через ManifestParser.

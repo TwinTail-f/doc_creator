@@ -35,7 +35,8 @@ class BaseReleaseConverter(BaseDataConverter):
         return self._include_passport_links
 
     def _base_view_model(self, data: ParsedResult) -> dict[str, Any]:
-        """Строит общие для всех видов релиза поля view-model.
+        """
+        Строит общие для всех видов релиза поля view-model.
 
         Args:
             data: Полный набор данных парсера.
@@ -54,7 +55,8 @@ class BaseReleaseConverter(BaseDataConverter):
         comp_name: str,
         version: str,
     ) -> dict[str, Any] | None:
-        """Возвращает запись реестра паспортов для компонента и версии или None.
+        """
+        Возвращает запись реестра паспортов для компонента и версии или None.
 
         Args:
             passport_pages: Реестр страниц паспортов.

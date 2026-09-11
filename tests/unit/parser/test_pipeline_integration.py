@@ -1,4 +1,5 @@
-"""Интеграционные тесты для полного пайплайна парсера autodoc.
+"""
+Интеграционные тесты для полного пайплайна парсера autodoc.
 
 Подключает все реальные экземпляры шагов (ManifestStep → OptionsResolveStep → ConanEnrichStep →
 DockerResolveStep → ArtifactoryValidationStep → FinalizeStep) с заглушками внешнего ввода-вывода.
@@ -6,6 +7,7 @@ DockerResolveStep → ArtifactoryValidationStep → FinalizeStep) с заглу�
 которое было невидимо для отдельных модульных тестов.
 """
 
+from functools import partial
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -16,16 +18,20 @@ from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ParsingError
 from autodoc.models.conan_variant import ConanVariant
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.parser.conan.models.conan_enrichment_result import (
-    ConanEnrichmentResult,
-    ProfileConanData,
-)
+from autodoc.parser.conan.models.conan_enrichment_result import ConanEnrichmentResult
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.parser import ComponentParser
 from autodoc.parser.pipeline.context import PipelineContext
-from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.manifest_step import ManifestStep
-from tests.unit.parser.conftest import CopyingAllFakeTFSClient, FakeTFSClient, NULL_PACKAGE_ID
+from tests.unit.parser.conftest import (
+    CallbackStep,
+    CopyingAllFakeTFSClient,
+    FakeTFSClient,
+    NULL_PACKAGE_ID,
+    build_conan_enrichment_for,
+    record_option_counts,
+    record_profile_build_states,
+)
 
 _EMPTY_CONAN_RESULT = FetchResult(value=ConanEnrichmentResult(), warnings=[])
 
@@ -40,12 +46,24 @@ class _AlwaysOkArtifactoryClient:
         return resp
 
 
+class _NotFoundForDeadUrlArtifactoryClient(_AlwaysOkArtifactoryClient):
+    """Заглушка: HTTP 404 для URL, содержащих 'patchelf/dead', иначе 200 (см. базовый класс)."""
+
+    def check_url(self, url: str) -> requests.Response:
+        if "patchelf/dead" in url:
+            resp = requests.Response()
+            resp.status_code = 404
+            return resp
+        return super().check_url(url)
+
+
 def _make_real_pipeline(
     real_manifests_dir: Path,
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> ComponentParser:
-    """Создаёт ComponentParser с реальными экземплярами шагов и заглушками внешнего ввода-вывода.
+    """
+    Создаёт ComponentParser с реальными экземплярами шагов и заглушками внешнего ввода-вывода.
 
     - TFS: ``CopyingAllFakeTFSClient`` копирует реальные фикстуры ``.properties``.
     - Artifactory: всегда возвращает HTTP 200.
@@ -68,7 +86,8 @@ def test_full_pipeline_runs_without_raising(
     real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """Полный пайплайн завершается без вызова исключений и выдаёт ParsedResult.
+    """
+    Полный пайплайн завершается без вызова исключений и выдаёт ParsedResult.
 
     Подключает все реальные экземпляры шагов с заглушками внешнего ввода-вывода. Сбой здесь
     указывает на регрессию в проводке шагов, использовании ключей контекста или интерфейсе шага.
@@ -90,7 +109,8 @@ def test_manifest_step_populates_ctx_components(
     real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """ManifestStep заполняет ctx.components непустым списком.
+    """
+    ManifestStep заполняет ctx.components непустым списком.
 
     Регрессия здесь означала бы, что переименование ключа контекста в
     ManifestStep незаметно очистило список компонентов до того, как
@@ -105,8 +125,7 @@ def test_manifest_step_populates_ctx_components(
     )
     ManifestStep().execute(ctx)
     assert len(ctx.components) >= 1, (
-        f"ManifestStep должен заполнить хотя бы 1 компонент(ов); "
-        f"получено {len(ctx.components)}"
+        f"ManifestStep должен заполнить хотя бы 1 компонент(ов); " f"получено {len(ctx.components)}"
     )
 
 
@@ -116,7 +135,8 @@ def test_finalize_step_output_length_matches_input(
     real_manifests_dir: Path,
     tmp_path: Path,
 ) -> None:
-    """Количество компонентов в ctx.result.components не превышает число входных компонентов.
+    """
+    Количество компонентов в ctx.result.components не превышает число входных компонентов.
 
     Передаёт полный пайплайн с N компонентами. После завершения пайплайна
     компоненты могут быть отфильтрованы ValidationStep, но никогда искусственно добавлены.
@@ -145,7 +165,8 @@ def test_pipeline_patchelf_has_two_releases_after_full_run(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """patchelf имеет ровно 2 релиза после полного прохода пайплайна.
+    """
+    patchelf имеет ровно 2 релиза после полного прохода пайплайна.
 
     Бизнес-сценарий:
         фикстур ``patchelf.properties`` объявляет две версии компонента
@@ -187,7 +208,8 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """nlohmann_json помечена is_header_only=True после обогащения.
+    """
+    nlohmann_json помечена is_header_only=True после обогащения.
 
     Бизнес-сценарий:
         ``FinalizeStep._compute_header_only_flags`` устанавливает
@@ -213,34 +235,19 @@ def test_pipeline_header_only_component_marked_after_conan_enrich(
         - nlohmann_json присутствует (у него есть варианты, поэтому FinalizeStep оставляет его).
         - ``nlohmann.is_header_only`` равна ``True``.
     """
-    def _build_nlohmann_enrich(components):
-        """Построить ConanEnrichmentResult, дав каждому профилю nlohmann вариант с NULL_PACKAGE_ID.
-
-        Вызывается во время fetch(), поэтому живые объекты ProfileBuild (созданные
-        ManifestStep) доступны и id(pb) может быть использован как ключ словаря,
-        ожидаемый DataEnricher.apply_conan_results().
-        """
-        result = ConanEnrichmentResult()
-        for comp in components:
-            if "nlohmann" not in comp.name.lower():
-                continue
-            for release in comp.releases:
-                for pb in release.profile_builds:
-                    result.profile_data[id(pb)] = ProfileConanData(
-                        conan_settings={},
-                        exists=True,
-                        variants=[
-                            ConanVariant(
-                                package_id=NULL_PACKAGE_ID,
-                                build_url="",
-                                build_date="2024-01-01",
-                                options_ref="1",
-                            )
-                        ],
-                    )
-        return FetchResult(value=result, warnings=[])
-
-    mock_conan_fetch.side_effect = _build_nlohmann_enrich
+    # side_effect вызывается во время fetch() с живыми ctx.components (созданными
+    # ManifestStep), поэтому build_conan_enrichment_for привязывается частично
+    # применённым (name_predicate/variant заданы заранее, components передаёт мок).
+    mock_conan_fetch.side_effect = partial(
+        build_conan_enrichment_for,
+        name_predicate=lambda comp: "nlohmann" in comp.name.lower(),
+        variant=ConanVariant(
+            package_id=NULL_PACKAGE_ID,
+            build_url="",
+            build_date="2024-01-01",
+            options_ref="1",
+        ),
+    )
     parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
 
     result: ParsedResult = parser.parse()
@@ -265,7 +272,8 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """После ManifestStep все компоненты имеют скелеты ProfileBuild.
+    """
+    После ManifestStep все компоненты имеют скелеты ProfileBuild.
 
     Бизнес-сценарий:
         После того как выполняется ``ManifestStep``, каждый Release в каждом
@@ -289,18 +297,14 @@ def test_pipeline_profile_builds_populated_after_manifest_step(
 
     observed_states: list[tuple[str, bool, int]] = []
 
-    class _ObserveAfterManifest(BaseParseStep):
-        name = "observe_after_manifest"
-        is_critical = False
-
-        def execute(self, ctx: PipelineContext) -> None:
-            for comp in ctx.components:
-                for release in comp.releases:
-                    for pb in release.profile_builds:
-                        observed_states.append((comp.name, pb.exists, len(pb.variants)))
-
     parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
-    parser._steps.insert(1, _ObserveAfterManifest())
+    parser._steps.insert(
+        1,
+        CallbackStep(
+            partial(record_profile_build_states, record=observed_states),
+            name="observe_after_manifest",
+        ),
+    )
 
     parser.parse()
 
@@ -325,7 +329,8 @@ def test_pipeline_options_step_wired_without_breaking_data_flow(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """OptionsResolveStep выполняется по месту в пайплайне и не ломает проводку данных.
+    """
+    OptionsResolveStep выполняется по месту в пайплайне и не ломает проводку данных.
 
     Бизнес-сценарий:
         ``OptionsResolveStep`` должен быть вызван в правильной позиции пайплайна
@@ -351,19 +356,15 @@ def test_pipeline_options_step_wired_without_breaking_data_flow(
 
     options_by_release: dict[tuple, int] = {}
 
-    class _ObserveAfterOptions(BaseParseStep):
-        name = "observe_after_options"
-        is_critical = False
-
-        def execute(self, ctx: PipelineContext) -> None:
-            for comp in ctx.components:
-                for release in comp.releases:
-                    key = (comp.name, release.version, release.channel)
-                    options_by_release[key] = len(release.build_option_sets)
-
     parser = _make_real_pipeline(real_manifests_dir, tmp_path, parser_config)
     # Вставить observer сразу после OptionsResolveStep (индекс 2 в стандартном пайплайне)
-    parser._steps.insert(2, _ObserveAfterOptions())
+    parser._steps.insert(
+        2,
+        CallbackStep(
+            partial(record_option_counts, record=options_by_release),
+            name="observe_after_options",
+        ),
+    )
 
     parser.parse()
 
@@ -381,7 +382,8 @@ def test_pipeline_result_components_sorted_alphabetically(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """Компоненты в ParsedResult.components отсортированы в алфавитном порядке.
+    """
+    Компоненты в ParsedResult.components отсортированы в алфавитном порядке.
 
     Бизнес-сценарий:
         ``FinalizeStep`` сортирует финальный список компонентов по имени
@@ -421,7 +423,8 @@ def test_pipeline_non_existing_profiles_removed_after_finalize(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """Финальный ParsedResult не содержит записей ProfileBuild с exists=False.
+    """
+    Финальный ParsedResult не содержит записей ProfileBuild с exists=False.
 
     Бизнес-сценарий:
         ``ManifestStep`` создаёт скелеты ``ProfileBuild`` с ``exists=False``.
@@ -461,7 +464,8 @@ def test_full_pipeline_raises_parsing_error_when_no_manifests_found(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Реальный ManifestFetcher без .properties-файлов останавливает пайплайн с ParsingError.
+    """
+    Реальный ManifestFetcher без .properties-файлов останавливает пайплайн с ParsingError.
 
     Заменяет прежние синтетические тесты сбоя (фейковые шаги, лишь названные
     в честь реальных), которые не добавляли покрытия сверх модульных тестов
@@ -490,7 +494,8 @@ def test_full_pipeline_save_intermediate_writes_real_files(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """save_intermediate=True записывает JSON-снимок для каждого шага реального пайплайна.
+    """
+    save_intermediate=True записывает JSON-снимок для каждого шага реального пайплайна.
 
     До этого теста ``save_intermediate`` проверялся только с фейковыми
     шагами (``test_component_parser_save_intermediate_writes_files`` в
@@ -518,7 +523,8 @@ def test_full_pipeline_removes_dead_variant_on_404(
     tmp_path: Path,
     parser_config: ParserConfigSchema,
 ) -> None:
-    """Вариант, для которого Artifactory возвращает HTTP 404, удаляется реальной валидацией.
+    """
+    Вариант, для которого Artifactory возвращает HTTP 404, удаляется реальной валидацией.
 
     Заглушка Artifactory в этом файле всегда возвращает 200, поэтому ветка
     удаления мёртвых вариантов в ``ArtifactoryValidationStep`` не покрывалась
@@ -529,39 +535,16 @@ def test_full_pipeline_removes_dead_variant_on_404(
     """
     _DEAD_URL: str = "https://art.example.com/ui/repos/tree/General/patchelf/dead"
 
-    def _build_patchelf_enrich(components):
-        """Дать одному профилю patchelf вариант с build_url, ведущим к 404."""
-        result = ConanEnrichmentResult()
-        for comp in components:
-            if comp.name != "patchelf":
-                continue
-            for release in comp.releases:
-                for pb in release.profile_builds:
-                    result.profile_data[id(pb)] = ProfileConanData(
-                        conan_settings={},
-                        exists=True,
-                        variants=[
-                            ConanVariant(
-                                package_id="abc123",
-                                build_url=_DEAD_URL,
-                                build_date="2024-01-01",
-                                options_ref="1",
-                            )
-                        ],
-                    )
-        return FetchResult(value=result, warnings=[])
-
-    class _NotFoundForDeadUrlArtifactoryClient(_AlwaysOkArtifactoryClient):
-        """Заглушка: HTTP 404 для _DEAD_URL (после преобразования в API-путь), иначе 200 (см. базовый класс)."""
-
-        def check_url(self, url: str) -> requests.Response:
-            if "patchelf/dead" in url:
-                resp = requests.Response()
-                resp.status_code = 404
-                return resp
-            return super().check_url(url)
-
-    mock_conan_fetch.side_effect = _build_patchelf_enrich
+    mock_conan_fetch.side_effect = partial(
+        build_conan_enrichment_for,
+        name_predicate=lambda comp: comp.name == "patchelf",
+        variant=ConanVariant(
+            package_id="abc123",
+            build_url=_DEAD_URL,
+            build_date="2024-01-01",
+            options_ref="1",
+        ),
+    )
 
     parser = ComponentParser(
         config=parser_config,

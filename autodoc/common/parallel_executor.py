@@ -124,7 +124,7 @@ class ParallelExecutor:
         results: list[R | None] = []
 
         for batch_num, batch_start in enumerate(range(0, total, self._batch_size), start=1):
-            batch_items = items[batch_start:batch_start + self._batch_size]
+            batch_items = items[batch_start : batch_start + self._batch_size]
             logger.debug(f"Пакет {batch_num}/{total_batches}: {len(batch_items)} {task_label}")
 
             batch_results = self._execute_pool(fn, batch_items, task_label)

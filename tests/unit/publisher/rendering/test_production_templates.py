@@ -1,4 +1,5 @@
-"""Тесты для production Jinja2-шаблонов в autodoc/publisher/rendering/.
+"""
+Тесты для production Jinja2-шаблонов в autodoc/publisher/rendering/.
 
 Каждый тест рендерит шаблон и проверяет, что рендеринг не бросает исключение,
 а вывод непуст. Часть тестов дополнительно проверяет конкретное содержимое
@@ -37,7 +38,8 @@ _OS_BADGE_MARKER: str = "autodoc-os-badge"  # результат работы м
 
 
 def _make_parsed_result(component_name: str = "testlib") -> ParsedResult:
-    """Строит минимальный ParsedResult с одним именованным компонентом для рендеринга шаблонов.
+    """
+    Строит минимальный ParsedResult с одним именованным компонентом для рендеринга шаблонов.
 
     Args:
         component_name: Имя единственного компонента результата.
@@ -194,7 +196,8 @@ _EMBEDDING_KIT_TEMPLATE: str = "embedding_kit.jinja2"
 def test_embedding_kit_template_renders_kit_fixed_converter_output(
     builder: DocumentBuilder, publisher_multi_component_result: ParsedResult
 ) -> None:
-    """embedding_kit.jinja2 рендерит реальный вывод KitFixedConverter: точные Conan-ссылки,
+    """
+    embedding_kit.jinja2 рендерит реальный вывод KitFixedConverter: точные Conan-ссылки,
     сгруппированные по каналам, с заголовком колонки 'Фиксированная версия'."""
     view_model: dict[str, Any] = KitFixedConverter().convert(publisher_multi_component_result)
 
@@ -212,7 +215,8 @@ def test_embedding_kit_template_renders_kit_fixed_converter_output(
 def test_embedding_kit_template_renders_kit_latest_converter_output(
     builder: DocumentBuilder, publisher_multi_component_result: ParsedResult
 ) -> None:
-    """embedding_kit.jinja2 рендерит реальный вывод KitLatestConverter: диапазонные
+    """
+    embedding_kit.jinja2 рендерит реальный вывод KitLatestConverter: диапазонные
     ссылки [,include_prerelease], сгруппированные по каналам, с заголовком колонки
     'Последняя сборка'."""
     view_model: dict[str, Any] = KitLatestConverter().convert(publisher_multi_component_result)
@@ -223,14 +227,17 @@ def test_embedding_kit_template_renders_kit_latest_converter_output(
     assert "Последняя сборка" in output
     assert "openssl/[,include_prerelease]@platform-2.0/tech" in output
     assert "zlib/[,include_prerelease]@platform-2.0/tech" in output
-    assert "1.0.0" not in output, "Страница последних сборок не должна содержать пиннированных версий"
+    assert (
+        "1.0.0" not in output
+    ), "Страница последних сборок не должна содержать пиннированных версий"
 
 
 @pytest.mark.infrastructure
 def test_embedding_kit_template_renders_without_error_on_empty_channels(
     builder: DocumentBuilder,
 ) -> None:
-    """embedding_kit.jinja2 не падает и возвращает пустой (без таблиц) вывод, если
+    """
+    embedding_kit.jinja2 не падает и возвращает пустой (без таблиц) вывод, если
     channels пуст — например, для ParsedResult без компонентов."""
     view_model: dict[str, Any] = {
         "platform_version": "2.0",

@@ -138,7 +138,8 @@ def test_passports_strategy_execute_saves_registry_after_publish(
     mocker: MockerFixture,
     make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
-    """После execute() файл passport_pages.json существует в data_dir.
+    """
+    После execute() файл passport_pages.json существует в data_dir.
 
     Более строгая проверка семантики save() (вызван ровно один раз, после
     публикации всех страниц) — в test_registry_saved_after_all_pages_published
@@ -207,7 +208,8 @@ def test_publish_one_continues_when_get_page_body_raises(
     mocker: MockerFixture,
     make_passports_strategy: Callable[..., PassportsStrategy],
 ) -> None:
-    """Если получение тела существующей страницы падает с ConfluenceError,
+    """
+    Если получение тела существующей страницы падает с ConfluenceError,
     публикация паспорта всё равно продолжается и завершается успешно
     (устойчивость _fetch_existing_body: страница публикуется без legacy-контента)."""
     mocker.patch.object(

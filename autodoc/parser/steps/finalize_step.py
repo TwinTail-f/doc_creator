@@ -113,7 +113,8 @@ class FinalizeStep(BaseParseStep):
         self,
         definitions: list[ProfileDefinition],
     ) -> list[ProfileDefinition]:
-        """Возвращает список ProfileDefinition без дубликатов; при совпадении побеждает последняя запись.
+        """
+        Возвращает список ProfileDefinition без дубликатов; при совпадении побеждает последняя запись.
 
         Если два объекта ``ProfileDefinition`` имеют одинаковый ``profile_name``,
         сохраняется тот, что встречается позже во входном списке. Это соответствует

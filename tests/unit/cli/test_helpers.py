@@ -50,7 +50,8 @@ def test_cli_error_boundary_no_exception_completes_normally() -> None:
     ],
 )
 def test_cli_error_boundary_catches_any_exception_as_system_exit(exc_cls: type) -> None:
-    """Любое исключение, возникшее внутри блока with, перехватывается cli_error_boundary
+    """
+    Любое исключение, возникшее внутри блока with, перехватывается cli_error_boundary
     и превращается в SystemExit(1) — как доменные (ConfigError, DocGeneratorError,
     PublishError), так и любые прочие."""
     with pytest.raises(SystemExit) as exc_info:
@@ -119,7 +120,8 @@ def test_load_parsed_data_valid_file_returns_matching_parsed_result(tmp_path: Pa
 def test_load_parsed_data_bad_encoding_raises_validation_error_mentioning_utf8(
     tmp_path: Path,
 ) -> None:
-    """parsed_data.json с содержимым не в кодировке UTF-8 приводит к ValidationError,
+    """
+    parsed_data.json с содержимым не в кодировке UTF-8 приводит к ValidationError,
     а не к необработанному UnicodeDecodeError — файл считается повреждённым."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
@@ -136,18 +138,17 @@ def test_load_parsed_data_bad_encoding_raises_validation_error_mentioning_utf8(
 def test_load_parsed_data_oserror_on_read_raises_doc_generator_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """OSError при чтении существующего parsed_data.json (например нет прав доступа)
+    """
+    OSError при чтении существующего parsed_data.json (например нет прав доступа)
     оборачивается в DocGeneratorError, а не пробрасывается как есть."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     (data_dir / "parsed_data.json").write_text("{}", encoding="utf-8")
 
-    import autodoc.cli.helpers as helpers_module
-
     def _raise_oserror(self: Path, *args: object, **kwargs: object) -> str:
         raise OSError("permission denied")
 
-    monkeypatch.setattr(helpers_module.Path, "read_text", _raise_oserror)
+    monkeypatch.setattr(Path, "read_text", _raise_oserror)
 
     with pytest.raises(DocGeneratorError) as exc_info:
         load_parsed_data(tmp_path)

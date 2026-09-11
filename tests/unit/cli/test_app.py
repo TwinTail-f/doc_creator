@@ -28,7 +28,8 @@ def _plain(text: str) -> str:
 def test_cli_exits_with_error_when_configs_dir_missing(tmp_path: Path) -> None:
     missing_configs_dir = tmp_path / "configs"  # намеренно не создаём
     result = CliRunner().invoke(
-        cli, ["--base-dir", str(tmp_path), "--configs-dir", str(missing_configs_dir), "info"],
+        cli,
+        ["--base-dir", str(tmp_path), "--configs-dir", str(missing_configs_dir), "info"],
     )
     plain_output = _plain(result.output)
     assert result.exit_code == _EXIT_CONFIG_ERROR

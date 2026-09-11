@@ -1,4 +1,5 @@
-"""Юнит-тесты для autodoc.parser.parsers.docker_parser.DockerParser.
+"""
+Юнит-тесты для autodoc.parser.parsers.docker_parser.DockerParser.
 
 Охватывает: extract_from_yaml, extract_docker_image, add_aliases.
 """
@@ -26,7 +27,8 @@ PROFILE_LINUX: str = "linux-x86_64-gcc10_2"
     ],
 )
 def test_extract_from_yaml_docker_value_formats(docker_value: object, expected_image: str) -> None:
-    """extract_from_yaml сопоставляет ключ arch с URL docker-образа независимо
+    """
+    extract_from_yaml сопоставляет ключ arch с URL docker-образа независимо
     от того, задан ли docker простой строкой или словарём с ключом 'image'."""
     content: dict = {
         "archs": {
@@ -69,7 +71,8 @@ def test_extract_from_yaml_docker_value_formats(docker_value: object, expected_i
     ],
 )
 def test_extract_from_yaml_returns_empty_for_unusable_entries(content: dict) -> None:
-    """extract_from_yaml возвращает пустой маппинг, если ни одна запись 'archs' не
+    """
+    extract_from_yaml возвращает пустой маппинг, если ни одна запись 'archs' не
     даёт docker-образ: зарезервированный ключ 'common', отсутствие поля 'docker',
     не-словарное значение arch или отсутствие самого ключа 'archs'."""
     links: DockerLinksMap = DockerParser.extract_from_yaml(content)
@@ -123,7 +126,8 @@ def test_extract_from_yaml_profile_host_list_adds_all_aliases() -> None:
     ],
 )
 def test_add_aliases_registers_expected_keys(name: str, expected_keys: set[str]) -> None:
-    """add_aliases регистрирует полный путь, имя файла, stem и (при наличии
+    """
+    add_aliases регистрирует полный путь, имя файла, stem и (при наличии
     родительской директории) parent/stem — все под одним и тем же docker-образом."""
     links: DockerLinksMap = {}
     DockerParser.add_aliases(name, "img:tag", links)

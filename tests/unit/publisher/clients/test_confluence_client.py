@@ -31,8 +31,11 @@ def confluence_client(minimal_confluence_config: dict, mocker: MockerFixture) ->
 
 
 @pytest.fixture
-def confluence_client_move_policy(minimal_confluence_config: dict, mocker: MockerFixture) -> ConfluenceClient:
-    """ConfluenceClient, настроенный с title_conflict_policy='move' через публичный конфиг.
+def confluence_client_move_policy(
+    minimal_confluence_config: dict, mocker: MockerFixture
+) -> ConfluenceClient:
+    """
+    ConfluenceClient, настроенный с title_conflict_policy='move' через публичный конфиг.
 
     Собирает его через ConfluenceConfigSchema, а не прямой подменой приватного
     атрибута _title_conflict_policy, чтобы тест проверял реальный путь, управляемый
@@ -94,7 +97,9 @@ def test_create_page_reraises_confluence_error(confluence_client: ConfluenceClie
     """create_page пробрасывает ConfluenceError от транспорта без подавления."""
     confluence_client._mock_transport.create_content.side_effect = ConfluenceError("HTTP 400")
     with pytest.raises(ConfluenceError):
-        confluence_client.create_page(space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY)
+        confluence_client.create_page(
+            space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE, body_html=PAGE_BODY
+        )
 
 
 @pytest.mark.contract
@@ -408,7 +413,8 @@ def test_resolve_existing_page_id_moves_page_and_preserves_body_when_conflict(
 def test_resolve_existing_page_id_reraises_confluence_error_on_move_failure(
     confluence_client_move_policy: ConfluenceClient,
 ) -> None:
-    """resolve_existing_page_id пробрасывает ConfluenceError, если разрешение конфликта переносом падает.
+    """
+    resolve_existing_page_id пробрасывает ConfluenceError, если разрешение конфликта переносом падает.
 
     policy="move" + body_html=None → внутри _resolve_title_conflict вызывается
     get_page(), который и падает; это заодно честно нагружает и except в get_page.
@@ -420,9 +426,13 @@ def test_resolve_existing_page_id_reraises_confluence_error_on_move_failure(
         "ancestors": [{"id": "wrong-parent-404"}],
     }
     confluence_client_move_policy._mock_transport.search_content.return_value = [existing_page]
-    confluence_client_move_policy._mock_transport.get_content.side_effect = ConfluenceError("HTTP 500")
+    confluence_client_move_policy._mock_transport.get_content.side_effect = ConfluenceError(
+        "HTTP 500"
+    )
     with pytest.raises(ConfluenceError):
-        confluence_client_move_policy.resolve_existing_page_id(space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE)
+        confluence_client_move_policy.resolve_existing_page_id(
+            space=SPACE, parent_id=PARENT_ID, title=PAGE_TITLE
+        )
 
 
 @pytest.mark.infrastructure

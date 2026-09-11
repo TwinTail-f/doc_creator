@@ -14,7 +14,8 @@ OptionType = Literal["bool", "enum", "ANY", "string"]
 
 
 def _parse_option_str(option_str: str) -> dict[str, str]:
-    """Преобразует строку 'pkg:shared=True, pkg:fPIC=False' в {'shared': 'True', 'fPIC': 'False'}.
+    """
+    Преобразует строку 'pkg:shared=True, pkg:fPIC=False' в {'shared': 'True', 'fPIC': 'False'}.
 
     Пакетные префиксы (например ``mylib:``) удаляются, чтобы результат
     соответствовал структуре ``TotalOptionsSet.options`` и ``DefaultOptionsSet``.
@@ -39,7 +40,8 @@ class DefaultOptionsSet(BaseModel):
 
 
 class ConanInputOptions(BaseModel):
-    """Один набор входных опций сборки Conan (id + строка опций + разобранный словарь).
+    """
+    Один набор входных опций сборки Conan (id + строка опций + разобранный словарь).
 
     ``options`` хранит исходную строку опций (используется при передаче в CLI).
     ``parsed_options`` — те же опции в виде словаря ``{name: value}``,
@@ -66,7 +68,8 @@ class ConanInputOptions(BaseModel):
 
 
 class TotalOptionsSet(BaseModel):
-    """Именованный набор разрешённых опций сборки Conan из поля ``options`` вывода ``conan graph info``,
+    """
+    Именованный набор разрешённых опций сборки Conan из поля ``options`` вывода ``conan graph info``,
     привязанный к идентификатору ``ConanInputOptions.id``."""
 
     id: str = Field(

@@ -14,7 +14,8 @@ _LOGS_MODULE = "autodoc.cli.commands.logs"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
-    """Вызывает cli с переданными дополнительными аргументами командной строки.
+    """
+    Вызывает cli с переданными дополнительными аргументами командной строки.
 
     Args:
         tmp_path: Базовая директория проекта.
@@ -56,7 +57,8 @@ def test_logs_clear_yes_shows_result_message(
     filenames: list[str],
     expected_substring: str,
 ) -> None:
-    """logs clear --yes завершается с кодом 0 и показывает количество удалённых файлов либо
+    """
+    logs clear --yes завершается с кодом 0 и показывает количество удалённых файлов либо
     сообщение о том, что удалять нечего — в зависимости от результата clear_logs_dir."""
     deleted = [tmp_path / "logs" / name for name in filenames]
     mocker.patch(f"{_LOGS_MODULE}.clear_logs_dir", return_value=deleted)

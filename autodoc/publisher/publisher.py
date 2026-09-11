@@ -224,7 +224,8 @@ class DocumentPublisher:
         profile_title: str | None = None,
         profile_template_name: str | None = None,
     ) -> PublishReport:
-        """Публикует паспорта, страницу релизной документации и (опционально)
+        """
+        Публикует паспорта, страницу релизной документации и (опционально)
         профильную страницу за один вызов.
 
         Args:

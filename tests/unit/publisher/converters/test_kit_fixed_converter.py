@@ -18,7 +18,9 @@ from autodoc.publisher.converters.kit_fixed_converter import KitFixedConverter
 
 
 def _release(version: str, channel: str, conan_reference: str = "") -> Release:
-    return Release(version=version, platform="2.0", channel=channel, conan_reference=conan_reference)
+    return Release(
+        version=version, platform="2.0", channel=channel, conan_reference=conan_reference
+    )
 
 
 @pytest.mark.business_logic
@@ -33,7 +35,9 @@ def test_convert_groups_references_by_channel() -> None:
             name="boost", releases=[_release("1.74.0", "slow", "boost/1.74.0@platform-2.0/slow")]
         ),
     ]
-    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps)
+    data = ParsedResult(
+        generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
+    )
 
     view_model = KitFixedConverter().convert(data)
 
@@ -44,7 +48,8 @@ def test_convert_groups_references_by_channel() -> None:
 
 @pytest.mark.business_logic
 def test_convert_orders_known_channels_tech_trusted_slow_fast() -> None:
-    """Известные каналы выводятся в фиксированном порядке tech, trusted, slow, fast,
+    """
+    Известные каналы выводятся в фиксированном порядке tech, trusted, slow, fast,
     независимо от порядка их появления в данных."""
     comps = [
         Component(name="a", releases=[_release("1.0", "fast", "a/1.0@platform-2.0/fast")]),
@@ -52,7 +57,9 @@ def test_convert_orders_known_channels_tech_trusted_slow_fast() -> None:
         Component(name="c", releases=[_release("1.0", "trusted", "c/1.0@platform-2.0/trusted")]),
         Component(name="d", releases=[_release("1.0", "tech", "d/1.0@platform-2.0/tech")]),
     ]
-    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps)
+    data = ParsedResult(
+        generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
+    )
 
     view_model = KitFixedConverter().convert(data)
 
@@ -67,7 +74,9 @@ def test_convert_unknown_channel_appended_after_known_ones_sorted() -> None:
         Component(name="b", releases=[_release("1.0", "fast", "b/1.0@platform-2.0/fast")]),
         Component(name="c", releases=[_release("1.0", "alpha", "c/1.0@platform-2.0/alpha")]),
     ]
-    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps)
+    data = ParsedResult(
+        generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
+    )
 
     view_model = KitFixedConverter().convert(data)
 
@@ -78,11 +87,20 @@ def test_convert_unknown_channel_appended_after_known_ones_sorted() -> None:
 def test_convert_preserves_component_order_within_channel() -> None:
     """Строки внутри канала сохраняют порядок ParsedResult.components — без сортировки."""
     comps = [
-        Component(name="benchmark", releases=[_release("1.9.5", "tech", "benchmark/1.9.5@platform-2.0/tech")]),
-        Component(name="gtest", releases=[_release("1.17.0", "tech", "gtest/1.17.0@platform-2.0/tech")]),
-        Component(name="cmake", releases=[_release("4.2.2", "tech", "cmake/4.2.2@platform-2.0/tech")]),
+        Component(
+            name="benchmark",
+            releases=[_release("1.9.5", "tech", "benchmark/1.9.5@platform-2.0/tech")],
+        ),
+        Component(
+            name="gtest", releases=[_release("1.17.0", "tech", "gtest/1.17.0@platform-2.0/tech")]
+        ),
+        Component(
+            name="cmake", releases=[_release("4.2.2", "tech", "cmake/4.2.2@platform-2.0/tech")]
+        ),
     ]
-    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps)
+    data = ParsedResult(
+        generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
+    )
 
     view_model = KitFixedConverter().convert(data)
 
@@ -119,7 +137,8 @@ def test_convert_keeps_every_version_of_same_component_in_same_channel() -> None
 
 @pytest.mark.business_logic
 def test_convert_falls_back_to_built_reference_when_conan_reference_empty() -> None:
-    """Если conan_reference не заполнен (пустая строка) — ссылка строится по шаблону
+    """
+    Если conan_reference не заполнен (пустая строка) — ссылка строится по шаблону
     name/version@platform-{platform_version}/channel."""
     comp = Component(name="zlib", releases=[_release("1.2.11", "slow", conan_reference="")])
     data = ParsedResult(

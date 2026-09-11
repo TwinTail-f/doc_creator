@@ -311,7 +311,9 @@ def test_profile_builds_ordered_by_profile_name(
     view = converter.convert(publisher_two_profile_parsed_result)
 
     names = [pb["profile_name"] for pb in view["releases"][0]["profile_builds"]]
-    assert names == sorted(names), f"profile_builds должны быть отсортированы по имени, получено: {names}"
+    assert names == sorted(
+        names
+    ), f"profile_builds должны быть отсортированы по имени, получено: {names}"
     assert (
         names[0] == "hw-linux-arm64-gcc10"
     ), "arm64 должен идти первым (по алфавиту раньше x86_64)"

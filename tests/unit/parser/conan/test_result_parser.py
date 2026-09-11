@@ -178,7 +178,8 @@ def test_result_parser_returns_enrich_data_with_package_id(
     task_fixture: str,
     expected_package_id: str,
 ) -> None:
-    """parse() для разных компонентов (patchelf, libnetfilter_queue, apr)
+    """
+    parse() для разных компонентов (patchelf, libnetfilter_queue, apr)
     возвращает ConanEnrichData с ожидаемым package_id."""
     graph = request.getfixturevalue(graph_fixture)
     task = request.getfixturevalue(task_fixture)
@@ -211,7 +212,8 @@ def test_result_parser_patchelf_conan_settings_has_os_distro(
 def test_result_parser_no_default_options(
     request: pytest.FixtureRequest, graph_fixture: str, task_fixture: str
 ) -> None:
-    """default_options возвращается пустым списком и когда ключ default_options
+    """
+    default_options возвращается пустым списком и когда ключ default_options
     отсутствует в JSON (patchelf), и когда он присутствует, но пуст (nlohmann_json)."""
     graph = request.getfixturevalue(graph_fixture)
     task = request.getfixturevalue(task_fixture)
@@ -226,7 +228,8 @@ def test_result_parser_nlohmann_json_null_package_id(
     nlohmann_json_graph: dict[str, Any],
     nlohmann_task: ConanTask,
 ) -> None:
-    """nlohmann_json возвращает SHA1 NULL_PACKAGE_ID, характерный для header-only библиотек.
+    """
+    nlohmann_json возвращает SHA1 NULL_PACKAGE_ID, характерный для header-only библиотек.
 
     NULL_PACKAGE_ID — это SHA1 пустой строки; Conan использует его как package_id
     для header-only компонентов, у которых нет бинарного пакета для конкретного профиля.
@@ -296,7 +299,8 @@ def test_result_parser_sqlite3_dependency_nodes_not_matched(
     sqlite3_deps_graph: dict[str, Any],
     sqlite3_task: ConanTask,
 ) -> None:
-    """parse() находит целевой узел по имени компонента ('sqlite3'), поэтому package_id
+    """
+    parse() находит целевой узел по имени компонента ('sqlite3'), поэтому package_id
     в результате соответствует узлу '1' (sqlite3), а не узлу '2' (tcl), несмотря на то,
     что оба присутствуют в графе."""
     result = Conan2ResultParser().parse(sqlite3_deps_graph, sqlite3_task)
@@ -361,7 +365,8 @@ def test_result_parser_returns_none_on_missing_binary(
 def test_result_parser_malformed_target_ref_returns_empty_base_ref(
     conan_task: ConanTask,
 ) -> None:
-    """parse() перехватывает ConanException при разборе кривого поля 'ref' целевого узла
+    """
+    parse() перехватывает ConanException при разборе кривого поля 'ref' целевого узла
     (RecipeReference.loads не распознаёт формат) и возвращает base_ref='', не падая."""
     minimal_json: dict[str, Any] = {
         "graph": {
@@ -388,7 +393,8 @@ def test_result_parser_malformed_target_ref_returns_empty_base_ref(
 def test_result_parser_missing_ref_returns_empty_base_ref(
     conan_task: ConanTask,
 ) -> None:
-    """parse() возвращает base_ref='', если у узла нет поля 'ref' вовсе
+    """
+    parse() возвращает base_ref='', если у узла нет поля 'ref' вовсе
     (ранний выход до RecipeReference.loads, отдельно от кейса с кривым ref)."""
     minimal_json: dict[str, Any] = {
         "graph": {
@@ -417,7 +423,8 @@ def test_result_parser_missing_ref_returns_empty_base_ref(
 def test_result_parser_short_ref_without_user_uses_ref_revision(
     conan_task: ConanTask,
 ) -> None:
-    """Короткий ref без @user/channel ('name/version#rrev'): rrev берётся из
+    """
+    Короткий ref без @user/channel ('name/version#rrev'): rrev берётся из
     ref, если node['rrev'] пуст, а full_version НЕ переопределяется —
     переопределение версии срабатывает только когда у ref есть user."""
     minimal_json: dict[str, Any] = {
@@ -446,7 +453,8 @@ def test_result_parser_short_ref_without_user_uses_ref_revision(
 def test_result_parser_malformed_dependency_ref_is_skipped(
     conan_task: ConanTask,
 ) -> None:
-    """_extract_dependencies перехватывает ConanException для кривого 'ref' узла-зависимости
+    """
+    _extract_dependencies перехватывает ConanException для кривого 'ref' узла-зависимости
     и пропускает эту зависимость, не прерывая сбор остальных."""
     minimal_json: dict[str, Any] = {
         "graph": {
@@ -544,7 +552,8 @@ def test_result_parser_handles_null_default_options(conan_task: ConanTask) -> No
 def test_result_parser_patchelf_016_version_uses_same_channel(
     success_json: dict[str, Any],
 ) -> None:
-    """ConanResultParser обрабатывает patchelf 0.16.1/tech так же, как 0.18.0/tech.
+    """
+    ConanResultParser обрабатывает patchelf 0.16.1/tech так же, как 0.18.0/tech.
 
     Повторно использует graph_info_success.json (содержащий узел patchelf), но с задачей
     с версией '0.16.1'. Парсер сопоставляет по имени, а не по версии, поэтому
@@ -621,7 +630,8 @@ def test_result_parser_base_ref_format(
     expected_prefix: str,
     expected_channel_part: str,
 ) -> None:
-    """base_ref начинается с '<comp_name>/', содержит канал вида '@platform-2.0/<channel>' и
+    """
+    base_ref начинается с '<comp_name>/', содержит канал вида '@platform-2.0/<channel>' и
     никогда не содержит символ '#' (хэш ревизии) — единый строгий набор ассертов для
     patchelf (tech), sqlite3 (fast) и apr (fast)."""
     graph = request.getfixturevalue(graph_fixture)
@@ -733,7 +743,8 @@ def test_result_parser_extracts_patch_file_names(
 def test_result_parser_extract_patches_guards_against_malformed_conandata(
     conan_task: ConanTask, conandata: dict[str, Any], expected_patches: list[str]
 ) -> None:
-    """_extract_patches возвращает только валидные patch_file при неожиданной форме
+    """
+    _extract_patches возвращает только валидные patch_file при неожиданной форме
     conandata.patches: не-dict/не-list контейнеры, не-dict элементы списка,
     отсутствующий/пустой patch_file — без AttributeError/TypeError."""
     graph_json: dict[str, Any] = {
@@ -787,7 +798,8 @@ def test_result_parser_build_url_empty_when_artifactory_base_url_missing(
 def test_build_artifactory_url_without_package_id_suffix(
     conan_task: ConanTask,
 ) -> None:
-    """_build_artifactory_url не добавляет суффикс '/package/<id>' без package_id.
+    """
+    _build_artifactory_url не добавляет суффикс '/package/<id>' без package_id.
     Метод вызывается напрямую: через parse() эта ветка недостижима, т.к. вызов
     там уже обёрнут условием 'if package_id'."""
     url = Conan2ResultParser()._build_artifactory_url(

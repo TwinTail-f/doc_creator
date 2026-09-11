@@ -115,7 +115,8 @@ def test_apply_docker_links_upserts_profile_definition(
     link_present: bool,
     expected_docker_image: str,
 ) -> None:
-    """apply_docker_links() создаёт или обновляет ровно одну запись ProfileDefinition
+    """
+    apply_docker_links() создаёт или обновляет ровно одну запись ProfileDefinition
     по имени профиля, записывая пустую строку при отсутствии совпадения в docker_links —
     даже если запись уже существовала с непустым docker_image."""
     comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
@@ -126,9 +127,7 @@ def test_apply_docker_links_upserts_profile_definition(
                 profile_name="hw-linux-x86_64-gcc10_2", docker_image=existing_docker_image
             )
         )
-    docker_links = (
-        {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"} if link_present else {}
-    )
+    docker_links = {"hw-linux-x86_64-gcc10_2": "harbor.example.com/img:tag"} if link_present else {}
 
     DataEnricher.apply_docker_links([comp], docker_links, profile_definitions)
 
@@ -151,7 +150,8 @@ def test_apply_docker_links_partial_match_does_not_apply() -> None:
 
 @pytest.mark.business_logic
 def test_apply_docker_links_profile_definitions_none_skips_upsert() -> None:
-    """При profile_definitions=None (по умолчанию) apply_docker_links() не пытается
+    """
+    При profile_definitions=None (по умолчанию) apply_docker_links() не пытается
     создавать или обновлять ProfileDefinition — ветка upsert выполняется только
     когда список explicit передан вызывающим кодом."""
     comp = make_component("mylib", profiles=["hw-linux-x86_64"])
@@ -241,7 +241,8 @@ def _make_enrich_result(
     conan_settings: dict | None = None,
     variants: "list[ConanVariant] | None" = None,
 ) -> "ConanEnrichmentResult":
-    """Строит минимальный ``ConanEnrichmentResult`` для одной пары release/profile.
+    """
+    Строит минимальный ``ConanEnrichmentResult`` для одной пары release/profile.
 
     Args:
         comp_name: Имя компонента — часть ключа в ``release_data``.
@@ -280,7 +281,8 @@ def _make_enrich_result(
 
 
 def _minimal_release_data() -> "ReleaseConanData":
-    """Минимальный ``ReleaseConanData`` с пустыми необязательными полями.
+    """
+    Минимальный ``ReleaseConanData`` с пустыми необязательными полями.
 
     Используется в тестах, проверяющих обогащение на уровне профиля, для
     которых поля уровня релиза (patches, dependencies и т.п.) не важны.
@@ -396,7 +398,8 @@ def test_apply_options_replaces_build_option_sets_idempotently() -> None:
 
 @pytest.mark.business_logic
 def test_apply_conan_results_conan_reference_format_no_revision_hash() -> None:
-    """DataEnricher копирует rel_data.base_ref как есть в release.conan_reference,
+    """
+    DataEnricher копирует rel_data.base_ref как есть в release.conan_reference,
     не выполняя над ним никакой обработки (отсутствие суффикса #rrev — гарантия
     продюсера base_ref, а не DataEnricher)."""
     comp = make_component("mylib", "1.0", "fast")

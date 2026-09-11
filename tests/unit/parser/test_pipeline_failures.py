@@ -1,4 +1,5 @@
-"""Тесты для поведения накопления ошибок в пайплайне парсера autodoc.
+"""
+Тесты для поведения накопления ошибок в пайплайне парсера autodoc.
 
 Пайплайн должен накапливать ошибки от сбоев некритичных шагов и
 выводить их все вместе, а не останавливаться на первом сбое.
@@ -11,104 +12,51 @@ import pytest
 
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import DocGeneratorError, ParsingError
-from autodoc.models.component import Component
-from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
-from autodoc.models.release import Release
 from autodoc.parser.parser import ComponentParser
-from autodoc.parser.pipeline.context import PipelineContext
-from autodoc.parser.steps.base_parse_step import BaseParseStep
 from autodoc.parser.steps.conan_step import ConanEnrichStep
+from tests.unit.parser.conftest import CallbackStep, FailingStep, FakeManifestStep, FinalizeOnlyStep
 
 # Сообщения об ошибках, встроенные в отказывающие шаги — используются для утверждения, что оба сообщаются.
 _ERROR_MSG_FIRST: str = "first non-critical failure"
 _ERROR_MSG_SECOND: str = "second non-critical failure"
 
 
-class _FailingNonCriticalStep(BaseParseStep):
-    """Тестовый двойник: некритичный шаг, который всегда вызывает DocGeneratorError."""
-
-    name = "_FailingNonCriticalStep"
-    is_critical = False
-
-    def __init__(self, error_message: str) -> None:
-        """Args: error_message — текст, встроенный в вызываемый DocGeneratorError."""
-        self._error_message = error_message
-
-    def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Вызывает DocGeneratorError без условий."""
-        raise DocGeneratorError(self._error_message)
-
-
-class _FailingCriticalStep(BaseParseStep):
-    """Тестовый двойник: критичный шаг, который всегда вызывает DocGeneratorError."""
-
-    name = "_FailingCriticalStep"
-    is_critical = True
-
-    def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Вызвать DocGeneratorError без условий."""
-        raise DocGeneratorError("critical step failure")
-
-
-class _FinalizeOnlyStep(BaseParseStep):
-    """Тестовый двойник: критичный шаг, который устанавливает ctx.result на минимальный ParsedResult."""
-
-    name = "_FinalizeOnlyStep"
-    is_critical = True
-
-    def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-        """Заполнить ctx.result, чтобы ComponentParser.parse() не вызывал исключение на отсутствие результата."""
-        ctx.result = ParsedResult(
-            generated_at="2024-01-01T00:00:00",
-            platform_version="2.0",
-        )
-
-
 @pytest.mark.business_logic
 def test_two_non_critical_failures_both_reported(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Два некритичных отказывающих шага должны быть залогированы; пайплайн не должен остановиться.
+    """
+    Два некритичных отказывающих шага должны быть залогированы; пайплайн не должен остановиться.
 
     ComponentParser логирует (и не пробрасывает заново) DocGeneratorError из
     некритичных шагов, поэтому пайплайн должен выполнить все шаги.  Тест
     подтверждает завершение, проверяя, что последующий FinalizeOnlyStep всё ещё работает.
     """
-    warning_messages: list[str] = []
-
-    class _CapturingHandler(logging.Handler):
-        def emit(self, record: logging.LogRecord) -> None:
-            warning_messages.append(self.format(record))
-
-    logger = logging.getLogger("doc_parser")
-    handler = _CapturingHandler()
-    monkeypatch.setattr(logger, "handlers", [*logger.handlers, handler])
-
     steps = [
-        _FailingNonCriticalStep(_ERROR_MSG_FIRST),
-        _FailingNonCriticalStep(_ERROR_MSG_SECOND),
-        _FinalizeOnlyStep(),
+        FailingStep(DocGeneratorError(_ERROR_MSG_FIRST)),
+        FailingStep(DocGeneratorError(_ERROR_MSG_SECOND)),
+        FinalizeOnlyStep(),
     ]
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
         steps=steps,
     )
-    result = parser.parse()
+    with caplog.at_level(logging.WARNING, logger="doc_parser"):
+        result = parser.parse()
     # Пайплайн завершён: result заполнен FinalizeOnlyStep
     assert isinstance(result, ParsedResult)
 
     # Оба сообщения об ошибке должны быть залогированы
-    all_messages: str = "\n".join(warning_messages)
     assert (
-        _ERROR_MSG_FIRST in all_messages
-    ), f"Ожидалось сообщение '{_ERROR_MSG_FIRST}' в логе предупреждений, получено: {all_messages}"
+        _ERROR_MSG_FIRST in caplog.text
+    ), f"Ожидалось сообщение '{_ERROR_MSG_FIRST}' в логе предупреждений, получено: {caplog.text}"
     assert (
-        _ERROR_MSG_SECOND in all_messages
-    ), f"Ожидалось сообщение '{_ERROR_MSG_SECOND}' в логе предупреждений, получено: {all_messages}"
+        _ERROR_MSG_SECOND in caplog.text
+    ), f"Ожидалось сообщение '{_ERROR_MSG_SECOND}' в логе предупреждений, получено: {caplog.text}"
 
 
 @pytest.mark.business_logic
@@ -119,27 +67,9 @@ def test_non_critical_failure_does_not_block_next_step(
     """Сбой некритичного шага не должен предотвратить запуск следующего шага."""
     executed_steps: list[str] = []
 
-    class _TrackingFail(_FailingNonCriticalStep):
-        """Записывает, что этот шаг был попытан перед отказом."""
-
-        name = "_TrackingFail"
-
-        def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-            executed_steps.append("fail")
-            super().execute(ctx)
-
-    class _TrackingFinalize(_FinalizeOnlyStep):
-        """Записывает, что этот шаг был выполнен."""
-
-        name = "_TrackingFinalize"
-
-        def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-            executed_steps.append("finalize")
-            super().execute(ctx)
-
     steps = [
-        _TrackingFail(_ERROR_MSG_FIRST),
-        _TrackingFinalize(),
+        FailingStep(DocGeneratorError(_ERROR_MSG_FIRST), record=executed_steps, record_as="fail"),
+        FinalizeOnlyStep(record=executed_steps, record_as="finalize"),
     ]
     parser = ComponentParser(
         config=parser_config,
@@ -157,25 +87,17 @@ def test_critical_failure_stops_pipeline(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Сбой критичного шага должен остановить пайплайн немедленно.
+    """
+    Сбой критичного шага должен остановить пайплайн немедленно.
 
     Дозорный шаг, зарегистрированный после отказывающего критичного шага, НЕ ДОЛЖЕН выполниться.
     Пайплайн должен вызвать ParsingError.
     """
     executed_after: list[str] = []
 
-    class _TrackingStep(BaseParseStep):
-        """Записывает выполнение и записывает дозор — НЕ ДОЛЖЕН работать после критичного сбоя."""
-
-        name = "_TrackingStep"
-        is_critical = False
-
-        def execute(self, ctx: PipelineContext) -> None:  # type: ignore[override]
-            executed_after.append("ran")
-
     steps = [
-        _FailingCriticalStep(),
-        _TrackingStep(),
+        FailingStep(DocGeneratorError("critical step failure"), is_critical=True),
+        CallbackStep(lambda ctx: executed_after.append("ran"), name="tracking_step"),
     ]
     parser = ComponentParser(
         config=parser_config,
@@ -190,45 +112,13 @@ def test_critical_failure_stops_pipeline(
     ), "Шаг после критичного сбоя не должен выполниться, но он работал"
 
 
-class _FakeManifestStep(BaseParseStep):
-    """Устанавливает ctx.components с одним минимальным компонентом для BL-PP тестов.
-
-    Имитирует ManifestStep, чтобы последующие шаги, которые ожидают
-    ctx.components быть заполненным, могли функционировать без реального TFS ввода-вывода.
-    """
-
-    name = "fake_manifest_step"
-    is_critical = True
-
-    def execute(self, ctx: PipelineContext) -> None:
-        """Заполнить ctx.components одним минимальным компонентом."""
-        pb = ProfileBuild(profile_name="hw-linux-x86_64")
-        release = Release(
-            version="1.0",
-            platform="2.0",
-            channel="fast",
-            conan_reference="",
-            artifactory_url="",
-            profile_builds=[pb],
-        )
-        comp = Component(
-            name="mylib",
-            description="",
-            git_project="P",
-            git_repo="r",
-            git_url="",
-            is_header_only=False,
-            releases=[release],
-        )
-        ctx.components = [comp]
-
-
 @pytest.mark.business_logic
 def test_context_components_empty_before_manifest_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """ctx.components пусто в самом начале пайплайна.
+    """
+    ctx.components пусто в самом начале пайплайна.
 
     Бизнес-правило:
         Начальный ``PipelineContext`` должен начинаться с пустого списка компонентов.
@@ -237,7 +127,7 @@ def test_context_components_empty_before_manifest_step(
         предыдущего запуска пайплайна.
 
     Предусловия:
-        - Пайплайн: [_ObservingStep (критичный), _FinalizeOnlyStep].
+        - Пайплайн: [_ObservingStep (критичный), FinalizeOnlyStep].
         - ``_ObservingStep`` читает ``len(ctx.components)`` перед написанием чего-либо.
 
     Шаги:
@@ -248,17 +138,18 @@ def test_context_components_empty_before_manifest_step(
     """
     observed_counts: list[int] = []
 
-    class _ObservingStep(BaseParseStep):
-        name = "observing_step"
-        is_critical = True
-
-        def execute(self, ctx: PipelineContext) -> None:
-            observed_counts.append(len(ctx.components))
-
+    steps = [
+        CallbackStep(
+            lambda ctx: observed_counts.append(len(ctx.components)),
+            name="observing_step",
+            is_critical=True,
+        ),
+        FinalizeOnlyStep(),
+    ]
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[_ObservingStep(), _FinalizeOnlyStep()],
+        steps=steps,
     )
     parser.parse()
 
@@ -274,15 +165,16 @@ def test_context_result_none_before_finalize_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """ctx.result равен None перед запуском FinalizeStep.
+    """
+    ctx.result равен None перед запуском FinalizeStep.
 
     Бизнес-правило:
         Только FinalizeStep отвечает за установку ``ctx.result``.  Все
         шаги, которые выполняются перед ним, должны наблюдать ``ctx.result is None``.
 
     Предусловия:
-        - Пайплайн: [_FakeManifestStep, _CheckResultStep (некритичный),
-          _FinalizeOnlyStep].
+        - Пайплайн: [FakeManifestStep, _CheckResultStep (некритичный),
+          FinalizeOnlyStep].
 
     Шаги:
         1. Вызвать ``parser.parse()``.
@@ -292,17 +184,15 @@ def test_context_result_none_before_finalize_step(
     """
     observed_results: list = []
 
-    class _CheckResultStep(BaseParseStep):
-        name = "check_result_step"
-        is_critical = False
-
-        def execute(self, ctx: PipelineContext) -> None:
-            observed_results.append(ctx.result)
-
+    steps = [
+        FakeManifestStep(),
+        CallbackStep(lambda ctx: observed_results.append(ctx.result), name="check_result_step"),
+        FinalizeOnlyStep(),
+    ]
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[_FakeManifestStep(), _CheckResultStep(), _FinalizeOnlyStep()],
+        steps=steps,
     )
     parser.parse()
 
@@ -317,7 +207,8 @@ def test_exclude_removes_class_not_instance(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """exclude() удаляет шаги по типу класса, не по строке имени.
+    """
+    exclude() удаляет шаги по типу класса, не по строке имени.
 
     Бизнес-правило:
         ``parser.exclude(ConanEnrichStep)`` фильтрует ``self._steps``, используя
@@ -342,9 +233,7 @@ def test_exclude_removes_class_not_instance(
     returned = parser.exclude(ConanEnrichStep)
 
     step_classes = [type(s) for s in parser._steps]
-    assert (
-        ConanEnrichStep not in step_classes
-    ), "ConanEnrichStep должен быть исключён из пайплайна"
+    assert ConanEnrichStep not in step_classes, "ConanEnrichStep должен быть исключён из пайплайна"
     assert len(parser._steps) == default_count - 1, (
         f"После exclude() пайплайн должен иметь {default_count - 1} шагов, "
         f"получили {len(parser._steps)}"

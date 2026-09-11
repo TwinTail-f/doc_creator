@@ -92,7 +92,8 @@ def test_parse_skip_flags_control_step_exclusion(
     flags: list[str],
     expected_exclude: list[type] | None,
 ) -> None:
-    """Флаги --skip-conan/--skip-validation исключают соответствующие шаги пайплайна через
+    """
+    Флаги --skip-conan/--skip-validation исключают соответствующие шаги пайплайна через
     parser.exclude(...); ComponentParser в любом случае создаётся обычным конструктором."""
     write_parser_config(configs_dir)
     parsed_result = make_parsed_result()

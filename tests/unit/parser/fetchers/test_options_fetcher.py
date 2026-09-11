@@ -110,7 +110,8 @@ def test_options_fetcher_maps_release_to_real_options_file(
     tfs_path: str,
     options_file: str,
 ) -> None:
-    """OptionsFetcher сопоставляет релиз с записью опций из реального файла options.json.
+    """
+    OptionsFetcher сопоставляет релиз с записью опций из реального файла options.json.
 
     Конкретные значения опций покрыты test_options_parser.py.
     """
@@ -133,7 +134,8 @@ def test_options_fetcher_patchelf_two_versions_share_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Обе версии patchelf в одном репозитории получают опции; фетчер дедуплицирует скачивание.
+    """
+    Обе версии patchelf в одном репозитории получают опции; фетчер дедуплицирует скачивание.
 
     Конкретные значения опций покрыты test_options_parser.py.
     """
@@ -172,7 +174,8 @@ def test_options_fetcher_patchelf_two_versions_share_options(
 
 
 class _BranchAwareOptionsFakeTFSClient(FakeTFSClient):
-    """Отдаёт разные соответствия путь→содержимое в зависимости от запрошенной ветки.
+    """
+    Отдаёт разные соответствия путь→содержимое в зависимости от запрошенной ветки.
 
     Каждая ветка релиза одного репозитория имеет свой набор файлов
     опций (например, ветка fast — ci-2.0/fast/options.json; ветка slow —
@@ -205,7 +208,8 @@ def test_options_fetcher_icu_ci16_fallback_no_ci20_present(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Фетчер использует фоллбек ci-1.6 для icu, когда путь ci-2.0 в TFS отсутствует.
+    """
+    Фетчер использует фоллбек ci-1.6 для icu, когда путь ci-2.0 в TFS отсутствует.
 
     Конкретные количества опций покрыты test_options_parser.py.
     """
@@ -229,7 +233,8 @@ def test_options_fetcher_sqlite3_fast_channel_specific_options(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Фетчер разрешает опции sqlite3 из поддиректорий канала (ci-2.0/fast и ci-1.6/slow).
+    """
+    Фетчер разрешает опции sqlite3 из поддиректорий канала (ci-2.0/fast и ci-1.6/slow).
 
     У sqlite3 два релиза на разных ветках, каждая со своим options.json,
     специфичным для канала. После скачивания оба ключа релиза должны
@@ -280,7 +285,8 @@ class _RaisingOnGetItemsFakeTFSClient(FakeTFSClient):
 
 
 def _single_item_client(path: str = "/conan/ci-2.0/options.json", **kwargs) -> FakeTFSClient:
-    """FakeTFSClient, чей get_items отдаёт единственный элемент options.json по заданному path.
+    """
+    FakeTFSClient, чей get_items отдаёт единственный элемент options.json по заданному path.
 
     Остальное поведение (content/status_code/exception) настраивается через kwargs,
     как у обычного FakeTFSClient.
@@ -293,7 +299,9 @@ def _single_item_client(path: str = "/conan/ci-2.0/options.json", **kwargs) -> F
     "make_client",
     [
         _RaisingOnGetItemsFakeTFSClient,
-        lambda: _single_item_client(exception=NetworkError("simulated network failure on get_file_content")),
+        lambda: _single_item_client(
+            exception=NetworkError("simulated network failure on get_file_content")
+        ),
         lambda: _single_item_client(status_code=404, content=b"{}"),
         lambda: _fake_options_client(items=[], content_bytes=b"{}"),
         lambda: _fake_options_client(
@@ -314,7 +322,8 @@ def test_options_fetcher_failure_modes_return_placeholder(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """При любой ошибке доступа к TFS или разбора options.json (сеть на get_items, сеть
+    """
+    При любой ошибке доступа к TFS или разбора options.json (сеть на get_items, сеть
     на get_file_content, 404, отсутствие файлов options.json, невалидный JSON)
     OptionsFetcher возвращает плейсхолдер {'1': ''} вместо падения."""
     client = make_client()

@@ -18,7 +18,8 @@ _LOG_PROGRESS_INTERVAL: int = 100
 
 
 class ArtifactoryValidationStep(BaseParseStep):
-    """Шаг 5: Проверяет доступность ссылок на сборки в Artifactory (HTTP HEAD).
+    """
+    Шаг 5: Проверяет доступность ссылок на сборки в Artifactory (HTTP HEAD).
 
     Варианты, вернувшие 404, удаляются из ``ProfileBuild.variants``.
     При сетевых ошибках вариант считается живым — чтобы не удалять данные

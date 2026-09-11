@@ -78,7 +78,8 @@ def test_docker_fetcher_empty_urls_returns_empty_links(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """DockerFetcher.fetch с пустым списком URL возвращает пустую карту ссылок.
+    """
+    DockerFetcher.fetch с пустым списком URL возвращает пустую карту ссылок.
 
     TFS и DockerParser не вызываются вовсе — это собственное правило
     DockerFetcher на пустом входе, а не путь двух коллабораторов."""
@@ -110,7 +111,8 @@ def test_docker_fetcher_skips_url_on_fetch_failure(
     tmp_path: Path,
     make_client,
 ) -> None:
-    """DockerFetcher пропускает URL при сетевой ошибке, некорректном YAML или не-200
+    """
+    DockerFetcher пропускает URL при сетевой ошибке, некорректном YAML или не-200
     статусе ответа; в этих сценариях DockerParser не вызывается (ошибка перехватывается
     раньше), поэтому это не путь двух коллабораторов, а собственное правило DockerFetcher.
     Ошибка только логируется — FetchResult.warnings при этом не заполняется."""

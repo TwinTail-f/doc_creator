@@ -23,7 +23,8 @@ class _ConsoleColorFormatter(logging.Formatter):
     _RESET = "\033[0m"
 
     def format(self, record: logging.LogRecord) -> str:
-        """Форматирует запись лога, окрашивая WARNING/ERROR/CRITICAL при выводе в TTY.
+        """
+        Форматирует запись лога, окрашивая WARNING/ERROR/CRITICAL при выводе в TTY.
 
         Args:
             record: Запись лога, переданная стандартным механизмом logging.
@@ -42,7 +43,8 @@ class _ConsoleColorFormatter(logging.Formatter):
 
 
 def _get_stream_handler() -> logging.StreamHandler:
-    """Создаёт консольный обработчик уровня INFO с цветным форматированием.
+    """
+    Создаёт консольный обработчик уровня INFO с цветным форматированием.
 
     Returns:
         Настроенный StreamHandler.
@@ -54,7 +56,8 @@ def _get_stream_handler() -> logging.StreamHandler:
 
 
 def _get_file_handler(module_name: ModuleName, logs_dir: Path) -> logging.FileHandler:
-    """Создаёт файловый обработчик уровня DEBUG для текущей сессии запуска.
+    """
+    Создаёт файловый обработчик уровня DEBUG для текущей сессии запуска.
 
     Args:
         module_name: Имя модуля ("parser" или "publisher") — используется в имени файла.
@@ -76,7 +79,8 @@ def setup_logging(
     module_name: ModuleName | None = None,
     logs_dir: Path | None = None,
 ) -> logging.Logger:
-    """Настраивает логгер с консольным обработчиком и опционально файловым логом сессии.
+    """
+    Настраивает логгер с консольным обработчиком и опционально файловым логом сессии.
 
     Консольный обработчик добавляется один раз на имя логгера. Если переданы
     module_name и logs_dir, дополнительно подключается файловый DEBUG-обработчик
@@ -107,7 +111,8 @@ def setup_logging(
 
 
 def clear_logs_dir(logs_dir: Path) -> list[Path]:
-    """Удаляет все файлы логов из директории логов.
+    """
+    Удаляет все файлы логов из директории логов.
 
     Args:
         logs_dir: Директория с логами.

@@ -11,6 +11,7 @@ from autodoc.parser.conan.models.conan_enrichment_result import (
     ProfileConanData,
     ReleaseConanData,
 )
+from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
 from autodoc.parser.fetchers.models.fetch_result import FetchResult
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from tests.unit.parser.conftest import NULL_PACKAGE_ID
@@ -176,7 +177,8 @@ def test_conan_step_applies_conan_results_to_components(
     deps: list[str] | None,
     expected_dependencies: list[str],
 ) -> None:
-    """После execute целевой релиз обогащён данными Conan: conan_reference установлен,
+    """
+    После execute целевой релиз обогащён данными Conan: conan_reference установлен,
     variants сохранены в ProfileBuild, а dependencies соответствуют данным из fetcher.
 
     Конкретные значения полей обогащения проверяются в test_data_enricher.py —
@@ -212,7 +214,8 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
     parser_pipeline_context,
     make_fake_fetcher,
 ) -> None:
-    """ConanEnrichStep не падает, если агрегатор сообщает об ошибке разрешения диапазона версий.
+    """
+    ConanEnrichStep не падает, если агрегатор сообщает об ошибке разрешения диапазона версий.
 
     FakeFetcher возвращает ConanEnrichmentResult, чей словарь errors содержит
     запись для 'stunnel' (диапазон версий не удалось разрешить).
@@ -242,7 +245,5 @@ def test_conan_step_error_does_not_raise_and_stores_in_report(
 @pytest.mark.contract
 def test_conan_step_default_fetcher_is_conan_fetcher() -> None:
     """ConanEnrichStep() без аргумента fetcher создаёт по умолчанию реальный ConanFetcher."""
-    from autodoc.parser.fetchers.conan_fetcher import ConanFetcher
-
     step = ConanEnrichStep()
     assert isinstance(step._fetcher, ConanFetcher)

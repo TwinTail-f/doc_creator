@@ -47,17 +47,18 @@ class EmbeddingKitPageStrategy(SinglePagePublishStrategy):
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
         kwargs.pop("include_passport_links", None)
         super().__init__(
-            converter=converter or self._make_converter({}),
+            converter=converter or self._make_converter(),
             **kwargs,
         )
 
     @classmethod
-    def _make_converter(cls, kwargs: dict[str, Any]) -> BaseDataConverter:
+    def _make_converter(cls, include_passport_links: bool = True) -> BaseDataConverter:
         """
         Создаёт экземпляр ``CONVERTER_CLS``.
 
         Args:
-            kwargs: Не используется (страница не принимает параметров конвертера).
+            include_passport_links: Не используется (страница не принимает
+                параметров конвертера).
 
         Returns:
             Готовый экземпляр конвертера, объявленного в ``CONVERTER_CLS``.

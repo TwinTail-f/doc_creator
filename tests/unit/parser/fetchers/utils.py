@@ -1,4 +1,5 @@
-"""Общие тестовые хелперы для юнит-тестов autodoc/parser/fetchers/.
+"""
+Общие тестовые хелперы для юнит-тестов autodoc/parser/fetchers/.
 
 Содержит функции, используемые более чем одним тестовым модулем в этом
 пакете (test_conan_fetcher.py и test_conan_fetcher_result_content.py).
@@ -28,7 +29,8 @@ def make_mock_ctx(
     conan_config_url: str = _CONAN_CONFIG_URL,
     overrides_file: str | None = None,
 ) -> MagicMock:
-    """Строит минимальный mock PipelineContext с заданным conan_config_url.
+    """
+    Строит минимальный mock PipelineContext с заданным conan_config_url.
 
     Задаёт разумные значения по умолчанию для всех атрибутов, которые
     читает ``ConanFetcher.configure()``.
@@ -57,7 +59,8 @@ def patch_full_fetch_pipeline(
     mocker: MockerFixture,
     tasks: list[Any] | None = None,
 ) -> tuple[MagicMock, MagicMock, MagicMock, MagicMock, MagicMock]:
-    """Патчит всех внешних коллабораторов, используемых внутри ConanFetcher.fetch().
+    """
+    Патчит всех внешних коллабораторов, используемых внутри ConanFetcher.fetch().
 
     Каждый mock класса заранее настроен разумными значениями по умолчанию,
     так что тестам достаточно переопределить только нужный им атрибут.

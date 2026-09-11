@@ -37,23 +37,19 @@ class ReleasePageStrategy(SinglePagePublishStrategy):
         kwargs.setdefault("template_name", self.DEFAULT_TEMPLATE)
         include_passport_links = kwargs.pop("include_passport_links", True)
         super().__init__(
-            converter=converter or self._make_converter(
-                {"include_passport_links": include_passport_links}
-            ),
+            converter=converter or self._make_converter(include_passport_links),
             **kwargs,
         )
 
     @staticmethod
-    def _make_converter(kwargs: dict[str, Any]) -> BaseDataConverter:
+    def _make_converter(include_passport_links: bool = True) -> BaseDataConverter:
         """
         Создаёт ``ComponentCentricConverter`` из аргументов конструктора.
 
         Args:
-            kwargs: Словарь с ключом ``include_passport_links``.
+            include_passport_links: Включать ли ссылки на паспорта компонентов.
 
         Returns:
             Готовый ``ComponentCentricConverter``.
         """
-        return ComponentCentricConverter(
-            include_passport_links=kwargs.get("include_passport_links", True),
-        )
+        return ComponentCentricConverter(include_passport_links=include_passport_links)

@@ -18,7 +18,8 @@ from tests.conftest import CONFIG_RESOURCES_DIR
 
 @pytest.fixture(params=["nonexistent-dir", "file-instead-of-dir"])
 def bad_configs_dir(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
-    """Путь к ``configs_dir``, который не является валидной директорией.
+    """
+    Путь к ``configs_dir``, который не является валидной директорией.
 
     Параметризовано двумя вариантами того, что значит "плохой путь":
     ``nonexistent-dir`` — путь, которого никогда не было на диске, и
@@ -35,7 +36,8 @@ def bad_configs_dir(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
 
 @pytest.fixture(params=["json", "yaml", "yml"])
 def parser_config_file(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
-    """Копия канонического parser-конфига во временной директории в одном
+    """
+    Копия канонического parser-конфига во временной директории в одном
     из поддерживаемых форматов.
 
     Вместо пути dict -> сериализация -> файл копирует уже готовый файл

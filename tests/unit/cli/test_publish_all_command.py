@@ -27,7 +27,8 @@ _EXIT_FAILURE: int = 1
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
-    """Вызывает `publish all` с переданными дополнительными аргументами командной строки.
+    """
+    Вызывает `publish all` с переданными дополнительными аргументами командной строки.
 
     Args:
         tmp_path: Базовая директория проекта.
@@ -51,10 +52,9 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-def _mock_collaborators(
-    mocker: MockerFixture, publish_report=None, confluence_config=None
-):
-    """Подменяет make_publisher и load_parsed_data для `publish all` и возвращает поддельный publisher.
+def _mock_collaborators(mocker: MockerFixture, publish_report=None, confluence_config=None):
+    """
+    Подменяет make_publisher и load_parsed_data для `publish all` и возвращает поддельный publisher.
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
@@ -116,7 +116,9 @@ def test_publish_all_release_page_title_precedence(
     expected: str,
 ) -> None:
     """Приоритет источников заголовка релиза: флаг CLI > поле конфига > значение по умолчанию."""
-    confluence_config = make_confluence_config(**strategy_override("release", page_title=config_title))
+    confluence_config = make_confluence_config(
+        **strategy_override("release", page_title=config_title)
+    )
     mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     args = ["--release-doc-page-name", cli_title] if cli_title else []
@@ -144,7 +146,8 @@ def test_publish_all_with_additional_page_profile_title(
     extra_args: list[str],
     expected_profile_title: str,
 ) -> None:
-    """--with-additional-page-profile использует заголовок профиля по умолчанию, если
+    """
+    --with-additional-page-profile использует заголовок профиля по умолчанию, если
     --additional-page-profile-name не задан, и переопределённое значение, если задан;
     шаблон профиля в обоих случаях — PROFILE_TEMPLATE."""
     mock_publisher = _mock_collaborators(mocker)
@@ -201,7 +204,8 @@ def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
     name_kwarg: str,
     id_kwarg: str,
 ) -> None:
-    """Название и ID родительской страницы (для паспортов и отдельно для релиза) можно
+    """
+    Название и ID родительской страницы (для паспортов и отдельно для релиза) можно
     указывать вместе: CLI их не проверяет и не отклоняет, а просто пробрасывает оба
     значения дальше без изменений. Приоритет между названием и id страницы CLI не
     определяет — это происходит позже, при резолве родительской страницы

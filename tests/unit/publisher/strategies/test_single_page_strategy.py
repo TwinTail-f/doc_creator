@@ -27,7 +27,8 @@ def test_empty_page_title_raises_value_error(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
 ) -> None:
-    """SinglePagePublishStrategy.__init__ поднимает ValueError на пустой page_title —
+    """
+    SinglePagePublishStrategy.__init__ поднимает ValueError на пустой page_title —
     пустой заголовок страницы Confluence публиковать бессмысленно и небезопасно."""
     with pytest.raises(ValueError, match="page_title"):
         ReleasePageStrategy(

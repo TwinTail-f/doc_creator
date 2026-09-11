@@ -1,4 +1,5 @@
-"""Модульные тесты для autodoc/common/parallel_executor.py.
+"""
+Модульные тесты для autodoc/common/parallel_executor.py.
 
 ParallelExecutor запускает список вызываемых объектов одновременно с использованием пула потоков.
 Тесты проверяют упорядочение результатов, изоляцию исключений и граничные случаи.
@@ -23,7 +24,8 @@ _MAX_WORKERS_PARALLEL: int = 8
 
 @pytest.mark.business_logic
 def test_parallel_executor_results_in_submission_order() -> None:
-    """Результаты возвращаются в порядке отправки, а не в порядке завершения.
+    """
+    Результаты возвращаются в порядке отправки, а не в порядке завершения.
 
     Задача 0 спит дольше всех, поэтому заканчивается последней; задача 3 спит меньше всех, поэтому
     заканчивается первой. Исполнитель должен сохранить исходное сопоставление индексов.
@@ -57,7 +59,8 @@ def test_parallel_executor_results_in_submission_order() -> None:
 
 @pytest.mark.business_logic
 def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> None:
-    """Исключения в отдельных задачах изолированы; другие задачи всё ещё выдают результаты.
+    """
+    Исключения в отдельных задачах изолированы; другие задачи всё ещё выдают результаты.
 
     Если одна задача вызывает исключение, её слот становится None, а остальные задачи
     выполняются до конца. Исключение не распространяется на вызывающий код.
@@ -79,7 +82,8 @@ def test_parallel_executor_exception_in_one_task_does_not_cancel_others() -> Non
 
 @pytest.mark.business_logic
 def test_parallel_executor_all_tasks_failing_returns_all_none() -> None:
-    """Если ValueError падает в каждой задаче, execute() возвращает [None, None, None].
+    """
+    Если ValueError падает в каждой задаче, execute() возвращает [None, None, None].
 
     здесь падают все задачи, а не одна, — то есть в пуле нет ни одного
     успешного результата, который мог бы замаскировать ошибку агрегации.
@@ -96,7 +100,8 @@ def test_parallel_executor_all_tasks_failing_returns_all_none() -> None:
 
 @pytest.mark.business_logic
 def test_parallel_executor_max_workers_one_is_sequential() -> None:
-    """С max_workers=1 задачи выполняются последовательно в порядке отправки.
+    """
+    С max_workers=1 задачи выполняются последовательно в порядке отправки.
 
     Один рабочий предотвращает любой параллелизм; результаты должны быть в порядке отправки
     и могут быть проверены путём добавления в простой список без блокировки.
@@ -166,7 +171,8 @@ def test_parallel_executor_negative_constructor_arg_warns_and_falls_back_to_defa
     expected_batch_delay: float,
     match: str,
 ) -> None:
-    """Отрицательные batch_size/batch_delay не обрывают публикацию: конструктор логирует
+    """
+    Отрицательные batch_size/batch_delay не обрывают публикацию: конструктор логирует
     WARNING и откатывается на дефолт (0 / 0.0), а не поднимает исключение.
     """
     with caplog.at_level(logging.WARNING):
@@ -216,7 +222,8 @@ def test_parallel_executor_batch_size_boundary_behavior(
     expect_batches_called: bool,
     expected_sleep_calls: int,
 ) -> None:
-    """Поведение на границах и в общем случае batch_size (0, 1 и обычное
+    """
+    Поведение на границах и в общем случае batch_size (0, 1 и обычное
     значение > 1) проверяется не по итоговому списку результатов (он
     одинаков во всех режимах), а по фактическим вызовам: попал ли путь
     выполнения в ``_execute_in_batches`` и сколько раз реально была вызвана
