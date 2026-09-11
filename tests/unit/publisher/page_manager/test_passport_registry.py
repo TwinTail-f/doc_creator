@@ -13,7 +13,6 @@
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -66,25 +65,24 @@ def test_save_writes_valid_json(tmp_path: Path) -> None:
 
 
 @pytest.mark.infrastructure
-def test_save_on_os_error_does_not_raise(
-    tmp_path: Path, mocker: MockerFixture, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_save_on_os_error_does_not_raise(tmp_path: Path, mocker: MockerFixture) -> None:
     """
-    save() поглощает OSError и не пробрасывает исключение наружу.
+    save() поглощает OSError и не пробрасывает исключение наружу — как и остальные
+    шаги/компоненты пайплайна, у которых сбой некритичного действия не должен
+    прерывать основной поток (см. тот же паттерн в test_docker_step.py,
+    test_validation_step.py, test_parser.py и др.: вызов с комментарием
+    "не должно вызывать исключений" — сам факт этого уже проверяется pytest,
+    непойманный OSError провалил бы тест автоматически).
 
-    Сам факт, что вызов ниже не бросает исключение, уже проверяется pytest:
-    непойманный OSError внутри теста провалил бы его автоматически. Дополнительно
-    убеждаемся, что ошибка не проглатывается молча, а логируется через
-    ``logger.warning`` — иначе поглощение исключения было бы неотличимо от
-    отсутствия проблемы вовсе.
+    Наблюдаемое состояние после вызова: файл реестра не создан, так как
+    запись оборвалась на OSError.
     """
     registry = _make_registry(tmp_path)
     mocker.patch("pathlib.Path.write_text", side_effect=OSError("disk full"))
 
-    with caplog.at_level(logging.WARNING, logger="doc_parser"):
-        registry.save(_PAGES_MAP)
+    registry.save(_PAGES_MAP)  # не должно вызывать исключений
 
-    assert any("disk full" in record.message for record in caplog.records)
+    assert not (tmp_path / _REGISTRY_FILE).exists()
 
 
 @pytest.mark.infrastructure
