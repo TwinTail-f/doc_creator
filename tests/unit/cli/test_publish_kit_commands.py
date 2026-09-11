@@ -116,7 +116,8 @@ def test_publish_kit_fixed_include_passport_links_always_false(
 ) -> None:
     """
     publish kit-fixed всегда передаёт include_passport_links=False — у команды
-    нет флага, управляющего этим (в отличие от release/profile)."""
+    нет флага, управляющего этим (в отличие от release/profile).
+    """
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, "kit-fixed")
@@ -153,7 +154,8 @@ def test_publish_kit_fixed_page_title_precedence(
 ) -> None:
     """
     Приоритет источников заголовка страницы для kit-fixed: флаг CLI > поле
-    конфига > значение по умолчанию (аналогично release/profile)."""
+    конфига > значение по умолчанию (аналогично release/profile).
+    """
     confluence_config = make_confluence_config(
         **strategy_override("kit_fixed", page_title=config_title)
     )
@@ -250,7 +252,8 @@ def test_publish_kit_latest_title_source(
 ) -> None:
     """
     Источником заголовка по умолчанию для kit-latest служит
-    confluence_config.strategies.kit_latest.page_title, а не kit_fixed."""
+    confluence_config.strategies.kit_latest.page_title, а не kit_fixed.
+    """
     confluence_config = make_confluence_config(
         **strategy_override("kit_latest", page_title=config_title)
     )

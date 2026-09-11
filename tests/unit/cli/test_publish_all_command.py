@@ -149,7 +149,8 @@ def test_publish_all_with_additional_page_profile_title(
     """
     --with-additional-page-profile использует заголовок профиля по умолчанию, если
     --additional-page-profile-name не задан, и переопределённое значение, если задан;
-    шаблон профиля в обоих случаях — PROFILE_TEMPLATE."""
+    шаблон профиля в обоих случаях — PROFILE_TEMPLATE.
+    """
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, "--with-additional-page-profile", *extra_args)
@@ -209,7 +210,8 @@ def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
     указывать вместе: CLI их не проверяет и не отклоняет, а просто пробрасывает оба
     значения дальше без изменений. Приоритет между названием и id страницы CLI не
     определяет — это происходит позже, при резолве родительской страницы
-    (RootPageResolver._resolve_root_parent)."""
+    (RootPageResolver._resolve_root_parent).
+    """
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir, name_flag, "Foo", id_flag, "123")

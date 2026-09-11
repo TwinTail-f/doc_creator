@@ -22,7 +22,8 @@ def artifactory_client(parser_config) -> ArtifactoryClient:
 def test_artifactory_client_check_url_returns_response(mocker, artifactory_client) -> None:
     """
     ArtifactoryClient.check_url делегирует HEAD-запрос сессии с allow_redirects=True
-    и возвращает её ответ без изменений (URL при этом не валидируется)."""
+    и возвращает её ответ без изменений (URL при этом не валидируется).
+    """
     client = artifactory_client
     mock_resp = MagicMock(spec=requests.Response)
     mock_head = mocker.patch.object(client.session, "head", return_value=mock_resp)

@@ -234,7 +234,8 @@ def test_parse_page_sections_h2_fallback_skips_non_version_header_and_empty_sect
     всё равно получает свой ключ — секция включает только сам тег заголовка,
     без дополнительного контента. Так различаются "нет секции" (нет ключа
     вовсе) и "пустая по контенту секция" (ключ есть, значение — только тег
-    заголовка)."""
+    заголовка).
+    """
     result = parse_page_sections(H2_VERSION_MIXED_HTML)
 
     assert "Overview" not in result

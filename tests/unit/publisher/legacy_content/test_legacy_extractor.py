@@ -31,7 +31,8 @@ TAB_HTML_MULTI = _html("tab_multi.html")
 def test_extract_platform_versions_returns_all_tabs() -> None:
     """
     Возвращает словарь с одним ключом на каждое отдельное имя вкладки в HTML
-    (делегирует разбор в parse_page_sections())."""
+    (делегирует разбор в parse_page_sections()).
+    """
     result = extract_platform_versions(TAB_HTML_MULTI)
 
     assert set(result.keys()) == {"Platform 2.0", "Platform 2.1"}

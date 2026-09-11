@@ -86,7 +86,8 @@ def test_publish_passports_root_parent_name_forwarded(
 ) -> None:
     """
     --passports-root-parent-name передаётся в publish_passports без изменений;
-    без флага уходит None (наравне с passports_root_parent_id)."""
+    без флага уходит None (наравне с passports_root_parent_id).
+    """
     mock_publisher = _mock_collaborators(mocker)
 
     args = ["--passports-root-parent-name", cli_name] if cli_name else []
@@ -106,7 +107,8 @@ def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
     """
     --passports-root-parent-name и --passports-root-parent-id можно указывать вместе —
     CLI пробрасывает оба значения в publish_passports без изменений и без проверки
-    конфликта (это делает RootPageResolver)."""
+    конфликта (это делает RootPageResolver).
+    """
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(

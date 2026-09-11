@@ -70,7 +70,8 @@ class ConanInputOptions(BaseModel):
 class TotalOptionsSet(BaseModel):
     """
     Именованный набор разрешённых опций сборки Conan из поля ``options`` вывода ``conan graph info``,
-    привязанный к идентификатору ``ConanInputOptions.id``."""
+    привязанный к идентификатору ``ConanInputOptions.id``.
+    """
 
     id: str = Field(
         ...,

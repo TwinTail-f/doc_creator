@@ -393,7 +393,8 @@ def test_enrich_with_passport_links_sets_passport_link(
 ) -> None:
     """
     enrich_with_passport_links проставляет passport_link в зависимости от того,
-    найден ли компонент/версия в реестре паспортов и задан ли у записи page_id."""
+    найден ли компонент/версия в реестре паспортов и задан ли у записи page_id.
+    """
     view_model: dict = {
         "space": "TEST",
         "profiles": [
@@ -427,7 +428,8 @@ def test_enrich_with_passport_links_noop_when_registry_empty() -> None:
 def test_enrich_with_passport_links_noop_when_profiles_key_absent() -> None:
     """
     enrich_with_passport_links ничего не делает, если в view_model нет ключа
-    'profiles'."""
+    'profiles'.
+    """
     view_model: dict = {"space": "TEST", "components": []}
     passport_pages = {"mylib": {"1.0": {"page_id": "1"}}}
 
@@ -441,7 +443,8 @@ def test_enrich_with_passport_links_noop_when_include_passport_links_false() -> 
     """
     enrich_with_passport_links ничего не делает, если ссылки на паспорта
     отключены в конструкторе конвертера — даже при непустом реестре и наличии
-    ключа 'profiles'. Это гейт, который раньше жил на уровне стратегии."""
+    ключа 'profiles'. Это гейт, который раньше жил на уровне стратегии.
+    """
     view_model: dict = {
         "space": "TEST",
         "profiles": [{"channels": {"fast": [{"name": "mylib", "version": "1.0"}]}}],

@@ -191,7 +191,8 @@ def test_aggregator_dependencies_flow_through_to_release_data() -> None:
 def _make_profile_task(release: Release, pb: ProfileBuild, profile_name: str) -> ConanTask:
     """
     Возвращает ConanTask (patchelf/0.18.0/tech, cmd=[]) для сценариев с несколькими
-    профилями одного релиза, разделяющих один Release, но с разными ProfileBuild."""
+    профилями одного релиза, разделяющих один Release, но с разными ProfileBuild.
+    """
     return ConanTask(
         cmd=[],
         comp_name="patchelf",
@@ -387,7 +388,8 @@ def test_build_execution_report_maps_raw_result_to_status(
     build_execution_report сопоставляет сырой результат одному из четырёх статусов:
     отсутствующий результат -> FAILED, успешный разбор без Missing -> SUCCESS,
     узел с binary=Missing в графе -> BINARY_MISSING, успешный разбор с отсутствующими
-    данными графа (data=None) -> SUCCESS (_extract_binary_status возвращает "")."""
+    данными графа (data=None) -> SUCCESS (_extract_binary_status возвращает "").
+    """
     task = _make_task()
     report = ConanResultAggregator().build_execution_report([task], [raw])
 
@@ -415,7 +417,8 @@ def test_build_final_result_deduplicates_by_profile_build_identity() -> None:
     """
     Две задачи с одним и тем же объектом ProfileBuild (task.pb) учитываются в
     result.profile_data только один раз — запись профиля не задваивается для
-    повторяющегося ProfileBuild, даже если у задач разные option_id."""
+    повторяющегося ProfileBuild, даже если у задач разные option_id.
+    """
     pb = ProfileBuild(profile_name="hw-linux-x86_64")
     release = Release(version="3.0.0", platform="2.0", channel="tech", profile_builds=[pb])
     task1 = ConanTask(
@@ -461,7 +464,8 @@ def test_build_final_result_deduplicates_by_profile_build_identity() -> None:
 def _make_repeated_task(release: Release, pb: ProfileBuild, option_id: str = "1") -> ConanTask:
     """
     Возвращает ConanTask, разделяющий один и тот же Release/ProfileBuild с другими
-    задачами того же релиза (для сценариев с несколькими результатами на один ProfileBuild)."""
+    задачами того же релиза (для сценариев с несколькими результатами на один ProfileBuild).
+    """
     return ConanTask(
         cmd=["conan", "graph", "info"],
         comp_name="openssl",
@@ -481,7 +485,8 @@ def _make_repeated_task(release: Release, pb: ProfileBuild, option_id: str = "1"
 def test_aggregator_keeps_first_release_data_rrev_for_repeated_profile_build() -> None:
     """
     release_data сохраняет base_ref/rrev первого успешного результата ProfileBuild
-    и не перезаписывает их последующими результатами того же релиза."""
+    и не перезаписывает их последующими результатами того же релиза.
+    """
     release = Release(version="3.0.0", platform="2.0", channel="tech")
     pb = ProfileBuild(profile_name="hw-linux-x86_64")
     task1 = _make_repeated_task(release, pb, option_id="1")
@@ -508,7 +513,8 @@ def test_aggregator_keeps_first_release_data_rrev_for_repeated_profile_build() -
 def test_aggregator_total_options_keeps_first_resolved_options_for_repeated_option_id() -> None:
     """
     total_options в release_data хранит resolved-опции только первого результата
-    для повторяющегося option_id — второй результат с тем же option_id их не переопределяет."""
+    для повторяющегося option_id — второй результат с тем же option_id их не переопределяет.
+    """
     release = Release(version="3.0.0", platform="2.0", channel="tech")
     pb = ProfileBuild(profile_name="hw-linux-x86_64")
     task1 = _make_repeated_task(release, pb, option_id="1")
@@ -540,7 +546,8 @@ def test_aggregator_total_options_keeps_first_resolved_options_for_repeated_opti
 def test_aggregator_profile_data_does_not_duplicate_variant_for_repeated_package_id() -> None:
     """
     profile_data.variants не задваивает вариант сборки, когда два результата
-    одного ProfileBuild возвращают один и тот же package_id."""
+    одного ProfileBuild возвращают один и тот же package_id.
+    """
     release = Release(version="3.0.0", platform="2.0", channel="tech")
     pb = ProfileBuild(profile_name="hw-linux-x86_64")
     task1 = _make_repeated_task(release, pb, option_id="1")

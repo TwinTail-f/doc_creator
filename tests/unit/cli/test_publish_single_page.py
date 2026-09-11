@@ -133,7 +133,8 @@ def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
     """
     --root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
     в publish_single_page как есть; решение о приоритете и конфликте между ними принимает
-    RootPageResolver, а не эта команда."""
+    RootPageResolver, а не эта команда.
+    """
     mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(
@@ -247,7 +248,8 @@ def test_publish_profile_title_source(
     Источником заголовка по умолчанию для profile служит
     confluence_config.strategies.profile_centric.page_title (а не
     confluence_config.strategies.release.page_title, как у release); при его отсутствии
-    используется DEFAULT_PROFILE_PAGE_TITLE."""
+    используется DEFAULT_PROFILE_PAGE_TITLE.
+    """
     confluence_config = make_confluence_config(
         **strategy_override("profile_centric", page_title=config_title)
     )

@@ -323,7 +323,8 @@ def test_validation_step_removes_two_consecutive_dead_variants(
     Удаление двух подряд идущих в списке мёртвых (404) вариантов не пропускает
     ни один из них: _remove_dead_variants удаляет по значению из dead_variants,
     а не по индексу while перебирает pb.variants, поэтому сдвиг индексов после
-    первого remove() не приводит к пропуску следующего элемента."""
+    первого remove() не приводит к пропуску следующего элемента.
+    """
     v_dead1 = _make_variant(f"{_VS_UI_URL_PREFIX}/dead1.zip", "dead-id-1")
     v_dead2 = _make_variant(f"{_VS_UI_URL_PREFIX}/dead2.zip", "dead-id-2")
     v_alive = _make_variant(f"{_VS_UI_URL_PREFIX}/alive.zip", "alive-id")
@@ -382,7 +383,8 @@ class _UnexpectedErrorClient:
     """
     Фейковый клиент Artifactory, чей check_url() бросает ValueError —
     ParallelExecutor перехватывает такие ошибки домена задач и подставляет
-    None на место результата, вместо падения check_one()."""
+    None на место результата, вместо падения check_one().
+    """
 
     def check_url(self, url: str) -> requests.Response:
         """Безусловно бросает ValueError, не связанный с сетью."""
@@ -397,7 +399,8 @@ def test_check_one_unexpected_exception_swallowed_by_executor_keeps_variant(
     Если check_url() бросает исключение, не являющееся requests.RequestException
     (например ValueError), ParallelExecutor перехватывает его и возвращает
     None вместо результата — execute() не должен падать, а вариант должен
-    остаться (ветка `result is None: continue` в _check_urls_parallel)."""
+    остаться (ветка `result is None: continue` в _check_urls_parallel).
+    """
     comp, _, pb, variant = _make_tree(f"{_VS_UI_URL_PREFIX}/v1.zip")
     ctx = parser_pipeline_context
     ctx.components = [comp]
@@ -415,7 +418,8 @@ def test_remove_dead_variants_skips_variant_already_absent() -> None:
     _remove_dead_variants не падает и не выполняет повторное удаление,
     если один и тот же вариант дважды попал в список мёртвых (например,
     из-за дублирующегося build_url у двух записей) — вторая попытка должна
-    молча пропускаться веткой `if variant in pb.variants`."""
+    молча пропускаться веткой `if variant in pb.variants`.
+    """
     variant = _make_variant(f"{_VS_UI_URL_PREFIX}/dup.zip", "dup-id")
     pb = ProfileBuild(profile_name="hw-linux-x86_64", exists=True, variants=[variant])
 

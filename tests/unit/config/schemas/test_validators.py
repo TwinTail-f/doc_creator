@@ -23,7 +23,8 @@ def test_confluence_config_rejects_empty_url(
 ) -> None:
     """
     ConfluenceConfigSchema._normalize_url поднимает ValidationError, если url пуст
-    или состоит только из пробелов"""
+    или состоит только из пробелов
+    """
     payload = {**valid_confluence_config, "url": empty_url}
     with pytest.raises(ValidationError, match="url не может быть пустым"):
         ConfluenceConfigSchema(**payload)
@@ -41,7 +42,8 @@ def test_confluence_config_strips_trailing_slash_from_url(valid_confluence_confi
 def test_parser_config_rejects_empty_tfs_token(valid_parser_config: dict) -> None:
     """
     ParserConfigSchema.tfs_token_not_empty поднимает ValidationError на пустой tfs_token
-    (PAT для TFS не может быть пустой строкой)."""
+    (PAT для TFS не может быть пустой строкой).
+    """
     payload = {**valid_parser_config, "tfs_token": ""}
     with pytest.raises(ValidationError, match="tfs_token не может быть пустой строкой"):
         ParserConfigSchema(**payload)
@@ -72,7 +74,8 @@ def test_strategies_config_absent_uses_defaults_for_all_sections(
 ) -> None:
     """
     Если ключ strategies в конфиге отсутствует вовсе — все три секции берут
-    значения по умолчанию, включая дефолтный page_title у release."""
+    значения по умолчанию, включая дефолтный page_title у release.
+    """
     config = ConfluenceConfigSchema(**valid_confluence_config)
     assert config.strategies.release.page_title == "Сборки компонентов Платформы"
     assert config.strategies.release.root_parent_id is None
@@ -110,7 +113,8 @@ def test_strategies_config_release_section_with_root_parent_keeps_default_page_t
     Секция release с заданным root_parent_name или root_parent_id (без явного
     page_title) — валидна, заданное поле сохраняется как есть, второе из пары
     (root_parent_name/root_parent_id) остаётся None, а дефолт page_title не
-    теряется при частично заданной секции (см. раздел 2.3 спеки)."""
+    теряется при частично заданной секции (см. раздел 2.3 спеки).
+    """
     payload = {**valid_confluence_config, "strategies": {"release": section_fields}}
     config = ConfluenceConfigSchema(**payload)
 
@@ -137,7 +141,8 @@ def test_strategies_config_section_without_root_parent_raises(
     """
     Секция release/profile_centric/kit_fixed/kit_latest, присутствующая в
     конфиге без root_parent_name и root_parent_id (хотя бы с одним полем,
-    например page_title) — невалидна."""
+    например page_title) — невалидна.
+    """
     payload = {**valid_confluence_config, "strategies": {section_name: {"page_title": "X"}}}
     with pytest.raises(ValidationError, match=f"strategies.{section_name}"):
         ConfluenceConfigSchema(**payload)
@@ -166,7 +171,8 @@ def test_strategies_config_kit_sections_with_root_parent_keep_default_page_title
 ) -> None:
     """
     Секция kit_fixed/kit_latest с заданным root_parent_name (без явного
-    page_title) — валидна, дефолт page_title сохраняется."""
+    page_title) — валидна, дефолт page_title сохраняется.
+    """
     payload = {
         **valid_confluence_config,
         "strategies": {section_name: {"root_parent_name": "X"}},
@@ -182,7 +188,8 @@ def test_strategies_config_kit_sections_with_root_parent_keep_default_page_title
 def test_strategies_config_passports_empty_section_raises() -> None:
     """
     Секция passports, присутствующая в конфиге как пустой словарь, всё равно
-    считается явно указанной — root_parent_name/root_parent_id обязательны."""
+    считается явно указанной — root_parent_name/root_parent_id обязательны.
+    """
     with pytest.raises(ValidationError, match="strategies.passports"):
         StrategiesConfig(**{"passports": {}})
 
@@ -193,7 +200,8 @@ def test_strategies_config_explicit_none_page_title_overrides_class_default(
 ) -> None:
     """
     Явный page_title=None в секции release побеждает дефолт класса
-    ReleaseDocsFields.page_title."""
+    ReleaseDocsFields.page_title.
+    """
     payload = {
         **valid_confluence_config,
         "strategies": {"release": {"root_parent_name": "X", "page_title": None}},

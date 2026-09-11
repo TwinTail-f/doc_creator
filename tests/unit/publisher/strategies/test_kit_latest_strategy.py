@@ -118,7 +118,8 @@ def test_include_passport_links_kwarg_has_no_effect(
     """
     Явная попытка передать include_passport_links=True тихо отбрасывается —
     у KitLatestConverter нет понятия ссылок на паспорта (wants_passport_links
-    всегда False), сколько бы это ни просил вызывающий."""
+    всегда False), сколько бы это ни просил вызывающий.
+    """
     strategy = KitLatestPageStrategy(
         confluence_client=publisher_confluence_client,
         document_builder=publisher_document_builder,
@@ -143,7 +144,8 @@ def test_passport_registry_load_never_called(
 ) -> None:
     """
     execute() не обращается к PassportPageRegistry.load() — этой странице
-    паспорта не нужны."""
+    паспорта не нужны.
+    """
     mock_load = mocker.patch.object(PassportPageRegistry, "load", return_value={})
     strategy = make_kit_latest_strategy(
         publisher_confluence_client,
@@ -164,7 +166,8 @@ def test_make_converter_creates_kit_latest_converter(
 ) -> None:
     """
     create_strategy('kit_latest', ...) подключает KitLatestConverter — view_model
-    имеет форму channels/version_column_title, а не components (как у release)."""
+    имеет форму channels/version_column_title, а не components (как у release).
+    """
     strategy = create_strategy(
         "kit_latest",
         confluence_client=publisher_confluence_client,
@@ -193,7 +196,8 @@ def test_view_model_contains_wildcard_references_not_pinned_versions(
 ) -> None:
     """
     Отрендеренный view_model содержит литеральный диапазон [,include_prerelease],
-    а не точную версию из ParsedResult (это отличает kit_latest от kit_fixed)."""
+    а не точную версию из ParsedResult (это отличает kit_latest от kit_fixed).
+    """
     strategy = make_kit_latest_strategy(
         publisher_confluence_client,
         publisher_document_builder,

@@ -50,7 +50,8 @@ def test_convert_groups_references_by_channel() -> None:
 def test_convert_orders_known_channels_tech_trusted_slow_fast() -> None:
     """
     Известные каналы выводятся в фиксированном порядке tech, trusted, slow, fast,
-    независимо от порядка их появления в данных."""
+    независимо от порядка их появления в данных.
+    """
     comps = [
         Component(name="a", releases=[_release("1.0", "fast", "a/1.0@platform-2.0/fast")]),
         Component(name="b", releases=[_release("1.0", "slow", "b/1.0@platform-2.0/slow")]),
@@ -139,7 +140,8 @@ def test_convert_keeps_every_version_of_same_component_in_same_channel() -> None
 def test_convert_falls_back_to_built_reference_when_conan_reference_empty() -> None:
     """
     Если conan_reference не заполнен (пустая строка) — ссылка строится по шаблону
-    name/version@platform-{platform_version}/channel."""
+    name/version@platform-{platform_version}/channel.
+    """
     comp = Component(name="zlib", releases=[_release("1.2.11", "slow", conan_reference="")])
     data = ParsedResult(
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=[comp]

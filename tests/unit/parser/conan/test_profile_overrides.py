@@ -122,7 +122,8 @@ def test_profile_overrides_from_file_returns_empty_instance(
     """
     from_file() возвращает пустой экземпляр при разных дефектах входа:
     отсутствующий файл, некорректный JSON, валидный JSON не-объект,
-    отсутствующая или некорректная по типу секция 'overrides'."""
+    отсутствующая или некорректная по типу секция 'overrides'.
+    """
     path = make_path(tmp_path)
     overrides = ProfileSettingsOverrides.from_file(path)
 
@@ -322,7 +323,8 @@ def test_profile_overrides_malformed_entry_skipped_others_resolved(
     профиля внутри неё (не-объект, опечатка в ключе, 'profiles' не список,
     пустой список профилей, отсутствующий или пустой 'settings', не-строковое
     или пустое/пробельное имя профиля в списке) дефектная часть пропускается,
-    а остальные записи по-прежнему разрешаются корректно."""
+    а остальные записи по-прежнему разрешаются корректно.
+    """
     path = _write_json(tmp_path, data)
     overrides = ProfileSettingsOverrides.from_file(path)
 

@@ -42,7 +42,8 @@ class ProfileCentricDocsFields(SinglePageDocsFields):
     Поля стратегии profile_centric. Отдельный класс — по аналогии с ReleaseDocsFields,
     хотя дефолт page_title тот же (None), что и в SinglePageDocsFields; так пара
     (release, profile_centric) выглядит симметрично и в схему легко добавить
-    третьей single-page стратегии её собственный дефолт заголовка."""
+    третьей single-page стратегии её собственный дефолт заголовка.
+    """
 
 
 class KitFixedDocsFields(SinglePageDocsFields):
@@ -86,7 +87,8 @@ class StrategiesConfig(BaseModel):
         Секция, явно присутствующая в конфиге, обязана задавать root_parent_name
         и/или root_parent_id. Секция, которую пользователь вообще не упомянул в файле
         (полагается целиком на CLI-флаги на каждый вызов) — легальна, для неё эта
-        проверка не запускается. См. раздел 2.3 спеки."""
+        проверка не запускается. См. раздел 2.3 спеки.
+        """
         for section_name in self.model_fields_set & {
             "release",
             "profile_centric",

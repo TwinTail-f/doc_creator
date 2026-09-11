@@ -120,7 +120,8 @@ def test_header_only_component_has_no_profile_builds_in_view(
     """
     У компонента с is_header_only=True все его релизы получают profile_builds=[]
     в view-model, даже если у вложенного release они непустые: это поле по смыслу
-    принадлежит Component, а не Release."""
+    принадлежит Component, а не Release.
+    """
     parsed = ParsedResult(
         generated_at="2024-01-15T12:00:00",
         platform_version="2.0",
@@ -145,7 +146,8 @@ def test_non_header_only_component_has_profile_builds(
 ) -> None:
     """
     У компонента с is_header_only=False profile_builds в view-model остаётся
-    непустым, если у соответствующего release есть хотя бы один ProfileBuild."""
+    непустым, если у соответствующего release есть хотя бы один ProfileBuild.
+    """
     comp = publisher_parsed_result.components[0]
     assert comp.is_header_only is False, "У фикстуры должно быть is_header_only=False"
     assert (
@@ -169,7 +171,8 @@ def test_components_sorted_alphabetically_in_view(
     """
     Компоненты в view-model отсортированы по имени в алфавитном порядке. Входные
     данные предварительно переставляются в обратном порядке, иначе тест не отличит
-    настоящую сортировку от порядка вставки, случайно совпадающего с алфавитным."""
+    настоящую сортировку от порядка вставки, случайно совпадающего с алфавитным.
+    """
     reversed_result = publisher_multi_component_result.model_copy(
         update={"components": list(reversed(publisher_multi_component_result.components))}
     )
@@ -192,7 +195,8 @@ def test_no_passport_link_field_added_by_convert_itself(
     include_passport_links=True: эта ответственность лежит на отдельном методе
     enrich_with_passport_links(), который применяется позже стратегией
     публикации, уже после того, как паспорта опубликованы (см. тесты
-    test_enrich_with_passport_links_* ниже)."""
+    test_enrich_with_passport_links_* ниже).
+    """
     converter = ComponentCentricConverter(include_passport_links=True)
     view = converter.convert(publisher_parsed_result)
 
@@ -213,7 +217,8 @@ def test_enrich_with_passport_links_adds_passport_versions_for_known_component()
     """
     enrich_with_passport_links добавляет passport_versions с URL для компонента,
     найденного в реестре, сохраняя остальные поля записи реестра (например,
-    page_id) через слияние словарей."""
+    page_id) через слияние словарей.
+    """
     view_model: dict = {
         "space": "TEST",
         "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
@@ -231,7 +236,8 @@ def test_enrich_with_passport_links_adds_passport_versions_for_known_component()
 def test_enrich_with_passport_links_skips_versions_not_in_component_releases() -> None:
     """
     enrich_with_passport_links включает в passport_versions только те версии
-    реестра, которые присутствуют среди релизов компонента в view-model."""
+    реестра, которые присутствуют среди релизов компонента в view-model.
+    """
     view_model: dict = {
         "space": "TEST",
         "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],
@@ -250,7 +256,8 @@ def test_enrich_with_passport_links_skips_component_not_in_registry() -> None:
     """
     enrich_with_passport_links пропускает компонент через continue, если его
     имени нет в реестре паспортов вовсе, — ключ passport_versions для него не
-    добавляется."""
+    добавляется.
+    """
     view_model: dict = {
         "space": "TEST",
         "components": [{"name": "unknown-lib", "releases": [{"version": "1.0"}]}],
@@ -268,7 +275,8 @@ def test_enrich_with_passport_links_skips_component_not_in_registry() -> None:
 def test_enrich_with_passport_links_noop_when_components_key_absent() -> None:
     """
     enrich_with_passport_links ничего не делает, если в view_model нет ключа
-    'components'."""
+    'components'.
+    """
     view_model: dict = {"space": "TEST"}
 
     ComponentCentricConverter().enrich_with_passport_links(
@@ -299,7 +307,8 @@ def test_enrich_with_passport_links_noop_when_include_passport_links_false() -> 
     """
     enrich_with_passport_links ничего не делает, если ссылки на паспорта
     отключены в конструкторе конвертера — даже при непустом реестре и наличии
-    ключа 'components'. Это гейт, который раньше жил на уровне стратегии."""
+    ключа 'components'. Это гейт, который раньше жил на уровне стратегии.
+    """
     view_model: dict = {
         "space": "TEST",
         "components": [{"name": "mylib", "releases": [{"version": "1.0"}]}],

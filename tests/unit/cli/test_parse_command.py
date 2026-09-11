@@ -94,7 +94,8 @@ def test_parse_skip_flags_control_step_exclusion(
 ) -> None:
     """
     Флаги --skip-conan/--skip-validation исключают соответствующие шаги пайплайна через
-    parser.exclude(...); ComponentParser в любом случае создаётся обычным конструктором."""
+    parser.exclude(...); ComponentParser в любом случае создаётся обычным конструктором.
+    """
     write_parser_config(configs_dir)
     parsed_result = make_parsed_result()
     mock_parser_cls = mocker.patch("autodoc.cli.commands.parse.ComponentParser")

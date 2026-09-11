@@ -95,7 +95,8 @@ def test_create_strategy_kit_pages_return_correct_instance_type(
 ) -> None:
     """
     create_strategy('kit_fixed'|'kit_latest', ...) собирает экземпляр
-    зарегистрированного класса стратегии."""
+    зарегистрированного класса стратегии.
+    """
     strategy = create_strategy(
         strategy_type,
         confluence_client=publisher_confluence_client,

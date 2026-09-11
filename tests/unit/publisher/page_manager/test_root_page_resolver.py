@@ -50,7 +50,8 @@ def _config_overrides(
     """
     Строит overrides для _make_resolver(): {"strategies": {<config_key>: {...}}}.
     Пропускает поля, равные None, чтобы не перезаписывать root_parent_id/name пустым
-    значением там, где вызывающий тест их не задавал."""
+    значением там, где вызывающий тест их не задавал.
+    """
     fields = {}
     if name is not None:
         fields["root_parent_name"] = name
@@ -259,7 +260,8 @@ def _build_resolver_for_source(
 ) -> tuple[RootPageResolver, Any, str | None, str | None]:
     """
     Резолвер + (call_name, call_id) для указанного источника: для CLI — сами
-    name/id_value, для Config — они "вшиваются" в конфиг, а вызов идёт с (None, None)."""
+    name/id_value, для Config — они "вшиваются" в конфиг, а вызов идёт с (None, None).
+    """
     if source == "CLI":
         resolver, mock_client = _make_resolver(
             mocker,
@@ -384,7 +386,8 @@ _NAME_ID_PRIORITY_CASES = [
 class TestNameIdPriorityMatrix:
     """
     Матрица _NAME_ID_PRIORITY_CASES x 2 источника x 3 секции = 54 прогона.
-    Кросс-source кейсы — в TestResolveRequiredParent."""
+    Кросс-source кейсы — в TestResolveRequiredParent.
+    """
 
     @pytest.mark.business_logic
     @pytest.mark.parametrize(
@@ -442,7 +445,8 @@ def test_resolve_single_page_parent_profile_centric_reads_its_own_config_section
 ) -> None:
     """
     resolve_single_page_parent('profile_centric', ...) читает
-    strategies.profile_centric, а не strategies.release."""
+    strategies.profile_centric, а не strategies.release.
+    """
     resolver, mock_client = _make_resolver(
         mocker,
         minimal_confluence_config,
@@ -477,7 +481,8 @@ def test_resolve_single_page_parent_rejects_non_single_page_strategy_type(
 ) -> None:
     """
     Неизвестный или не-single-page strategy_type
-    останавливает резолвинг явной ошибкой."""
+    останавливает резолвинг явной ошибкой.
+    """
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
     with pytest.raises(ConfigError):

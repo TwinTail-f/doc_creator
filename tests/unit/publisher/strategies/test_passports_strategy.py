@@ -211,7 +211,8 @@ def test_publish_one_continues_when_get_page_body_raises(
     """
     Если получение тела существующей страницы падает с ConfluenceError,
     публикация паспорта всё равно продолжается и завершается успешно
-    (устойчивость _fetch_existing_body: страница публикуется без legacy-контента)."""
+    (устойчивость _fetch_existing_body: страница публикуется без legacy-контента).
+    """
     mocker.patch.object(
         PageHierarchyManager,
         "ensure_hierarchy_exists",

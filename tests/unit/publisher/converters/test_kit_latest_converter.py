@@ -24,7 +24,8 @@ def _release(version: str, channel: str, conan_reference: str = "") -> Release:
 def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() -> None:
     """
     Ссылка строится как name/[,include_prerelease]@platform-{version}/{channel},
-    независимо от реального conan_reference релиза (версия не фиксируется)."""
+    независимо от реального conan_reference релиза (версия не фиксируется).
+    """
     comp = Component(
         name="openssl",
         releases=[_release("3.5.6.1074", "trusted", "openssl/3.5.6.1074@platform-2.0/trusted")],
@@ -43,7 +44,8 @@ def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() 
 def test_convert_dedupes_multiple_versions_of_same_component_into_one_row() -> None:
     """
     Несколько версий одного компонента в одном канале схлопываются в одну строку
-    (в отличие от KitFixedConverter)."""
+    (в отличие от KitFixedConverter).
+    """
     comp = Component(
         name="patchelf",
         releases=[
@@ -65,7 +67,8 @@ def test_convert_dedupes_multiple_versions_of_same_component_into_one_row() -> N
 def test_convert_same_component_in_different_channels_gets_separate_rows() -> None:
     """
     Один и тот же компонент в разных каналах — отдельная строка в каждом канале
-    (дедупликация работает только внутри канала)."""
+    (дедупликация работает только внутри канала).
+    """
     comp = Component(
         name="nginx",
         releases=[

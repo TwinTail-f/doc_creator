@@ -262,7 +262,8 @@ def test_pick_options_channel_selection_and_global_fallback(
 ) -> None:
     """
     pick_options возвращает channel-specific набор, если запрошенный канал есть
-    среди channels, и падает обратно на global, если такого канала нет."""
+    среди channels, и падает обратно на global, если такого канала нет.
+    """
     assert OptionsParser.pick_options(repo_data, channel) == expected
 
 

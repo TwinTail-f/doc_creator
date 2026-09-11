@@ -142,7 +142,8 @@ def test_conan2_runner_clean_cache_swallows_failures(
 ) -> None:
     """
     clean_cache() не бросает исключений ни при ненулевом коде возврата
-    conan, ни при истечении времени ожидания subprocess."""
+    conan, ни при истечении времени ожидания subprocess.
+    """
     mocker.patch("subprocess.run", **run_kwargs)
 
     conan2_runner.clean_cache()
@@ -157,7 +158,8 @@ def test_conan2_runner_run_valid_json_returns_success_with_parsed_data(
     """
     run() при returncode=0 и валидном JSON на stdout возвращает
     ConanRawResult(success=True, data=<разобранный JSON>) — это самый частый
-    в проде путь (returncode=0)."""
+    в проде путь (returncode=0).
+    """
     parsed_payload = {"graph": {"nodes": {"0": {"name": "zlib"}}}}
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mocker.patch(
@@ -204,7 +206,8 @@ def test_conan2_runner_run_nonzero_returncode_delegates_to_extract_error_message
     run() при ненулевом returncode передаёт stderr в _extract_error_message и
     возвращает его результат: _extract_error_message обрезает stderr до
     среза, начинающегося с первого вхождения маркера "error:" (регистронезависимо),
-    отбрасывая предшествующий preamble-вывод."""
+    отбрасывая предшествующий preamble-вывод.
+    """
     stderr = "some INFO preamble\nERROR: something broke"
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     mocker.patch(
@@ -424,7 +427,8 @@ def test_conan_environment_manager_setup_raises_when_conan_not_in_path(
 ) -> None:
     """
     setup() пробрасывает RuntimeError, если утилита 'conan' не найдена в PATH,
-    и не пытается создавать временную директорию или обращаться к conan CLI."""
+    и не пытается создавать временную директорию или обращаться к conan CLI.
+    """
     mocker.patch("shutil.which", return_value=None)
     mock_mkdtemp = mocker.patch("tempfile.mkdtemp")
     mock_run = mocker.patch("subprocess.run")
@@ -448,7 +452,8 @@ def test_conan_environment_manager_install_config_cleans_up_before_raising_on_su
     _install_config вызывает self.cleanup() (удаляет временный CONAN_HOME) перед
     тем, как пробросить RuntimeError — иначе временная директория осталась бы
     на диске навсегда, так как вызывающий код (setup()) выполнить cleanup()
-    в этом случае уже не успевает."""
+    в этом случае уже не успевает.
+    """
     mocker.patch("shutil.which", return_value="/usr/bin/conan")
     setup_dir: Path = tmp_path / "setup_dir"
     setup_dir.mkdir()
@@ -488,6 +493,7 @@ def test_conan_environment_manager_install_config_cleans_up_before_raising_on_su
 def test_extract_error_message(stderr: str, expected: str, tmp_path: Path) -> None:
     """
     _extract_error_message возвращает срез stderr с маркера 'error:',
-    либо весь stderr (обрезанный), если маркера нет."""
+    либо весь stderr (обрезанный), если маркера нет.
+    """
     runner = Conan2Runner(timeout=_TIMEOUT_SEC, conan_home_template=tmp_path)
     assert runner._extract_error_message(stderr) == expected

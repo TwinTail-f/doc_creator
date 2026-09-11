@@ -96,7 +96,8 @@ def test_retryable_session_raises_after_exhausting_retries() -> None:
     """
     Если транспорт неизменно отвечает 429, сессия делает не более
     ``max_retries`` повторов, после чего пробрасывает ``RetryError``, а не
-    зацикливается бесконечно."""
+    зацикливается бесконечно.
+    """
     max_retries: int = 2
     for _ in range(max_retries + 1):
         responses.add(responses.GET, _TEST_URL, status=_HTTP_TOO_MANY)
@@ -153,7 +154,8 @@ def test_create_bearer_session_sends_bearer_authorization_header() -> None:
     """
     create_bearer_session(token=...) фактически отправляет заголовок
     'Authorization: Bearer <token>' в исходящем запросе — это единственный
-    наблюдаемый эффект настройки Bearer-аутентификации."""
+    наблюдаемый эффект настройки Bearer-аутентификации.
+    """
     responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
     session = create_bearer_session(token="my-pat-token")
 
@@ -210,7 +212,8 @@ def test_create_retryable_session_delegates_to_matching_auth_builder(
 def test_create_pat_session_sends_basic_auth_with_empty_username() -> None:
     """
     create_pat_session(token=...) настраивает Basic-аутентификацию с пустым
-    именем пользователя и токеном в качестве пароля (PAT-паттерн)."""
+    именем пользователя и токеном в качестве пароля (PAT-паттерн).
+    """
 
     responses.add(responses.GET, _TEST_URL, json={"ok": True}, status=200)
     session = create_pat_session(token="my-pat-token")

@@ -130,7 +130,8 @@ def test_finalize_step_sets_header_only_true(
     """
     Если у всех вариантов профиля package_id нулевой (header-only признак),
     FinalizeStep выставляет is_header_only=True — как на синтетических
-    данных, так и на реальном компоненте nlohmann_json."""
+    данных, так и на реальном компоненте nlohmann_json.
+    """
     comp = component_factory()
     parser_pipeline_context.components = [comp]
     FinalizeStep().execute(parser_pipeline_context)
@@ -170,7 +171,8 @@ def test_finalize_step_removes_non_existing_profiles(
     """
     ProfileBuild с exists=False удаляется из итогового результата,
     ProfileBuild с exists=True остаётся — независимо от общего числа
-    профилей на входе."""
+    профилей на входе.
+    """
     release = release_factory()
     total_before = len(release.profile_builds)
     dead_names_before = {pb.profile_name for pb in release.profile_builds if not pb.exists}
@@ -234,7 +236,8 @@ def test_finalize_step_execute_wraps_validation_error_from_build_result(
     """
     execute() оборачивает в ParsingError PydanticValidationError, долетевший
     из _build_result напрямую (в обход её собственного except) — это внешний
-    try/except в execute, отдельный от уже покрытого внутреннего в _build_result."""
+    try/except в execute, отдельный от уже покрытого внутреннего в _build_result.
+    """
     validation_error = PydanticValidationError.from_exception_data("ParsedResult", [])
     mocker.patch.object(FinalizeStep, "_build_result", side_effect=validation_error)
 
@@ -482,7 +485,8 @@ def test_header_only_without_evidence_is_false(
     Без вариантов, доказывающих header-only (нет профилей вовсе, либо
     профиль есть, но у него пустой variants), итоговый флаг остаётся
     False — при отсутствии профилей и при профиле без вариантов это одно
-    и то же бизнес-правило "нет доказательств -> False"."""
+    и то же бизнес-правило "нет доказательств -> False".
+    """
     release = Release(
         version="1.0",
         platform="2.2",
@@ -546,7 +550,8 @@ def test_filter_empty_profiles(
     FinalizeStep удаляет из release.profile_builds все записи с exists=False,
     сохраняя записи с exists=True в исходном порядке и точном составе —
     независимо от соотношения живых и мёртвых профилей, в том числе когда
-    живых не остаётся вовсе (Release при этом остаётся в компоненте)."""
+    живых не остаётся вовсе (Release при этом остаётся в компоненте).
+    """
     profile_builds = make_profile_builds()
     expected_alive_pbs = [pb for pb in profile_builds if pb.exists]
     release = _make_release(profile_builds)

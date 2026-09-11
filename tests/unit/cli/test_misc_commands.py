@@ -59,7 +59,8 @@ def test_logs_clear_yes_shows_result_message(
 ) -> None:
     """
     logs clear --yes завершается с кодом 0 и показывает количество удалённых файлов либо
-    сообщение о том, что удалять нечего — в зависимости от результата clear_logs_dir."""
+    сообщение о том, что удалять нечего — в зависимости от результата clear_logs_dir.
+    """
     deleted = [tmp_path / "logs" / name for name in filenames]
     mocker.patch(f"{_LOGS_MODULE}.clear_logs_dir", return_value=deleted)
 

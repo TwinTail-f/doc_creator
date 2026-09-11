@@ -207,7 +207,8 @@ def test_list_example_configs_returns_files_when_examples_dir_populated(
 ) -> None:
     """
     list_example_configs() возвращает файлы из configs/examples/, если она
-    существует и содержит конфиги."""
+    существует и содержит конфиги.
+    """
     examples_dir = tmp_path / "examples"
     examples_dir.mkdir()
     (examples_dir / "parser_config.yaml").write_text(
@@ -235,7 +236,8 @@ def test_list_example_configs_returns_empty_lists_without_examples(
     list_example_configs() возвращает пустые списки по каждому формату и
     когда examples/ вовсе нет, и когда она есть, но пуста — оба случая
     означают "примеров нет" и должны давать одинаковый результат, поэтому
-    объединены в один параметризованный тест."""
+    объединены в один параметризованный тест.
+    """
     if create_empty_examples_dir:
         (tmp_path / "examples").mkdir()
 

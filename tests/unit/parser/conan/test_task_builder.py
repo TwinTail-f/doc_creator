@@ -102,7 +102,8 @@ def test_task_builder_normalizes_option_to_wildcard_form(
 ) -> None:
     """
     _normalize_option() приводит одиночную опцию к форме 'pkg/*:key=val'; уже
-    нормализованная опция не подставляется повторно (без двойного '/*/*')."""
+    нормализованная опция не подставляется повторно (без двойного '/*/*').
+    """
     release = make_release(opts={"1": raw_option})
     comp = _make_component_with_releases(name="mylib", releases=[release])
 
@@ -216,7 +217,8 @@ def test_task_builder_requires_flag_version_formatting(
     компонента в exact_range_components: буквенный суффикс версии или явный
     exact_range_components всегда дают точный диапазон [>=X <Y]; версия без числового
     префикса подставляется как есть; чисто числовая версия без exact_range_components
-    использует стандартный оператор Conan 2 '~'."""
+    использует стандартный оператор Conan 2 '~'.
+    """
     release = make_release(version=version)
     comp = _make_component_with_releases(name="mylib", releases=[release])
 

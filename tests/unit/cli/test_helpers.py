@@ -53,7 +53,8 @@ def test_cli_error_boundary_catches_any_exception_as_system_exit(exc_cls: type) 
     """
     Любое исключение, возникшее внутри блока with, перехватывается cli_error_boundary
     и превращается в SystemExit(1) — как доменные (ConfigError, DocGeneratorError,
-    PublishError), так и любые прочие."""
+    PublishError), так и любые прочие.
+    """
     with pytest.raises(SystemExit) as exc_info:
         with cli_error_boundary("Test Panel"):
             raise exc_cls("boom")
@@ -122,7 +123,8 @@ def test_load_parsed_data_bad_encoding_raises_validation_error_mentioning_utf8(
 ) -> None:
     """
     parsed_data.json с содержимым не в кодировке UTF-8 приводит к ValidationError,
-    а не к необработанному UnicodeDecodeError — файл считается повреждённым."""
+    а не к необработанному UnicodeDecodeError — файл считается повреждённым.
+    """
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     # Байтовая последовательность, невалидная как UTF-8.
@@ -140,7 +142,8 @@ def test_load_parsed_data_oserror_on_read_raises_doc_generator_error(
 ) -> None:
     """
     OSError при чтении существующего parsed_data.json (например нет прав доступа)
-    оборачивается в DocGeneratorError, а не пробрасывается как есть."""
+    оборачивается в DocGeneratorError, а не пробрасывается как есть.
+    """
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     (data_dir / "parsed_data.json").write_text("{}", encoding="utf-8")

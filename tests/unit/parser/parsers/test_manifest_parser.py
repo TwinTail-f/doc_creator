@@ -45,7 +45,8 @@ def test_parser_returns_correct_component_count(
 ) -> None:
     """
     parse() со всеми реальными файлами возвращает по одному компоненту на каждый
-    файл resources/manifests/ (у каждого есть релиз для платформы 2.0)."""
+    файл resources/manifests/ (у каждого есть релиз для платформы 2.0).
+    """
     components, _ = parser_20.parse(all_real_properties, component_names=[], filter_mode="exclude")
     assert len(components) == len(all_real_properties)
     assert {c.name for c in components} == {
@@ -89,7 +90,8 @@ def test_parser_release_version_channel_pairs(
 ) -> None:
     """
     Для каждого реального манифеста parse() возвращает ожидаемый набор
-    пар (version, channel) среди releases компонента."""
+    пар (version, channel) среди releases компонента.
+    """
     components, _ = parser_20.parse(
         [real_manifests_dir / manifest_filename],
         component_names=[],
@@ -177,7 +179,8 @@ def test_parser_filter_mode_include_exclude(
 ) -> None:
     """
     parse() с component_names=['apr'] возвращает только apr при filter_mode='include'
-    и все компоненты, кроме apr, при filter_mode='exclude'."""
+    и все компоненты, кроме apr, при filter_mode='exclude'.
+    """
     components, _ = parser_20.parse(
         all_real_properties, component_names=["apr"], filter_mode=filter_mode
     )
@@ -192,7 +195,8 @@ def test_parser_file_without_recognizable_properties_is_silently_skipped(
 ) -> None:
     """
     Файл без пары ключ-значение (нет поля 'name') не создаёт компонент и не
-    добавляет предупреждение; корректные файлы рядом обрабатываются как обычно."""
+    добавляет предупреждение; корректные файлы рядом обрабатываются как обычно.
+    """
     bad_file = _write_manifest(tmp_path, "garbage", "not valid properties!!!")
     good_file = real_manifests_dir / "apr.properties"
     components, warnings = parser_20.parse(
@@ -225,7 +229,8 @@ def test_manifest_parser_invalid_input_yields_no_components(
 ) -> None:
     """
     При некорректном, неполном или отсутствующем манифесте parse() не
-    создаёт компонент; причина неполноты варьируется по кейсам."""
+    создаёт компонент; причина неполноты варьируется по кейсам.
+    """
     if content is None:
         path = tmp_path / "nonexistent.properties"
     else:
@@ -265,7 +270,8 @@ def test_parser_apr_profile_count_fast(
     """
     apr 1.7.6/fast имеет ровно 4 profile_builds
     (crypto_default_gcc_x86_64, hw-linux-x86_64-gcc10_2,
-     windows-x86_64-vs2022-mt, windows-x86-vs2022-mt)."""
+     windows-x86_64-vs2022-mt, windows-x86-vs2022-mt).
+    """
     components, _ = parser_20.parse(
         [real_manifests_dir / "apr.properties"],
         component_names=[],
@@ -342,7 +348,8 @@ def test_parser_libnetfilter_queue_git_project_and_url_point_to_prg_quant(
 ) -> None:
     """
     компонент libnetfilter_queue имеет git_project=='PRG_Quant' (нестандартный
-    проект) и содержит 'PRG_Quant' в сформированном git_url."""
+    проект) и содержит 'PRG_Quant' в сформированном git_url.
+    """
     components, _ = parser_20.parse(
         [real_manifests_dir / "libnetfilter_queue.properties"],
         component_names=[],
@@ -639,7 +646,8 @@ def test_manifest_parser_skips_none_results_from_executor(
     """
     parse() пропускает файлы, для которых ParallelExecutor вернул None (задача
     завершилась ожидаемой ошибкой, например ComponentParsingError), не прерывая
-    обработку остальных файлов и не падая на None."""
+    обработку остальных файлов и не падая на None.
+    """
     f1 = _write_manifest(tmp_path, "broken", _minimal_manifest(comp_name="broken"))
     f2 = _write_manifest(tmp_path, "mylib", _minimal_manifest(comp_name="mylib"))
     parser = ManifestParser(target_platform="2.2")
@@ -663,7 +671,8 @@ def test_filter_mode_unknown_value_disables_filtering(tmp_path: Path) -> None:
     """
     Неизвестное значение filter_mode (не 'exclude' и не 'include') не
     фильтрует компоненты и не вызывает ошибку — обрабатываются все файлы,
-    как если бы фильтрация была отключена."""
+    как если бы фильтрация была отключена.
+    """
     content = _minimal_manifest(comp_name="mylib", git_project="P", git_repo="mylib")
     f = _write_manifest(tmp_path, "mylib", content)
     parser = ManifestParser(target_platform="2.2")
@@ -679,7 +688,8 @@ def test_git_url_empty_when_no_collection_url_and_no_git_repo(tmp_path: Path) ->
     """
     Component.git_url остаётся пустой строкой, если не задан ни
     tfs_collection_url у парсера, ни git_repo_name в манифесте — собрать
-    ссылку не из чего, и парсер не должен подставлять частичный/некорректный URL."""
+    ссылку не из чего, и парсер не должен подставлять частичный/некорректный URL.
+    """
     content = _minimal_manifest(comp_name="mylib", git_project="P", git_repo="")
     f = _write_manifest(tmp_path, "mylib", content)
     parser = ManifestParser(target_platform="2.2")  # tfs_collection_url по умолчанию ""

@@ -113,7 +113,8 @@ def test_setup_logging_replaces_stale_file_handler(
 def test_clear_logs_dir_deletes_log_files_and_returns_their_paths(tmp_path: Path) -> None:
     """
     clear_logs_dir() удаляет все *.log файлы из существующей директории
-    и возвращает список фактически удалённых путей."""
+    и возвращает список фактически удалённых путей.
+    """
     log1 = tmp_path / "a.log"
     log2 = tmp_path / "b.log"
     other = tmp_path / "keep.txt"
@@ -134,7 +135,8 @@ def test_clear_logs_dir_missing_directory_returns_empty_list(tmp_path: Path) -> 
     """
     clear_logs_dir() для несуществующей директории возвращает пустой список,
     а не бросает исключение — вызывающий код может передавать директорию логов,
-    ещё не созданную setup_logging() при первом запуске."""
+    ещё не созданную setup_logging() при первом запуске.
+    """
     missing_dir = tmp_path / "does_not_exist"
 
     deleted = clear_logs_dir(missing_dir)

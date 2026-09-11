@@ -198,7 +198,8 @@ def test_embedding_kit_template_renders_kit_fixed_converter_output(
 ) -> None:
     """
     embedding_kit.jinja2 рендерит реальный вывод KitFixedConverter: точные Conan-ссылки,
-    сгруппированные по каналам, с заголовком колонки 'Фиксированная версия'."""
+    сгруппированные по каналам, с заголовком колонки 'Фиксированная версия'.
+    """
     view_model: dict[str, Any] = KitFixedConverter().convert(publisher_multi_component_result)
 
     output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
@@ -218,7 +219,8 @@ def test_embedding_kit_template_renders_kit_latest_converter_output(
     """
     embedding_kit.jinja2 рендерит реальный вывод KitLatestConverter: диапазонные
     ссылки [,include_prerelease], сгруппированные по каналам, с заголовком колонки
-    'Последняя сборка'."""
+    'Последняя сборка'.
+    """
     view_model: dict[str, Any] = KitLatestConverter().convert(publisher_multi_component_result)
 
     output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
@@ -238,7 +240,8 @@ def test_embedding_kit_template_renders_without_error_on_empty_channels(
 ) -> None:
     """
     embedding_kit.jinja2 не падает и возвращает пустой (без таблиц) вывод, если
-    channels пуст — например, для ParsedResult без компонентов."""
+    channels пуст — например, для ParsedResult без компонентов.
+    """
     view_model: dict[str, Any] = {
         "platform_version": "2.0",
         "version_column_title": "Фиксированная версия",

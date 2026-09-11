@@ -179,7 +179,8 @@ def test_cli_config_validate_reports_when_no_schema_matches(
 ) -> None:
     """
     validate печатает предупреждение и выходит с 0, если файл валиден,
-    но не проходит ни ParserConfigSchema, ни ConfluenceConfigSchema."""
+    но не проходит ни ParserConfigSchema, ни ConfluenceConfigSchema.
+    """
     _write_json(configs_dir, "unknown_schema.json", {})
     result = CliRunner().invoke(
         cli,

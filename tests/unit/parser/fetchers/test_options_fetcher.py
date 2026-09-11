@@ -325,7 +325,8 @@ def test_options_fetcher_failure_modes_return_placeholder(
     """
     При любой ошибке доступа к TFS или разбора options.json (сеть на get_items, сеть
     на get_file_content, 404, отсутствие файлов options.json, невалидный JSON)
-    OptionsFetcher возвращает плейсхолдер {'1': ''} вместо падения."""
+    OptionsFetcher возвращает плейсхолдер {'1': ''} вместо падения.
+    """
     client = make_client()
     comp = _make_component("somelib", "contrib_somelib", "1.0.0", "fast")
     ctx = _make_context(parser_config, client, tmp_path)

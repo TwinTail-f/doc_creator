@@ -118,7 +118,8 @@ def test_apply_docker_links_upserts_profile_definition(
     """
     apply_docker_links() создаёт или обновляет ровно одну запись ProfileDefinition
     по имени профиля, записывая пустую строку при отсутствии совпадения в docker_links —
-    даже если запись уже существовала с непустым docker_image."""
+    даже если запись уже существовала с непустым docker_image.
+    """
     comp, _, _ = _release(profile="hw-linux-x86_64-gcc10_2")
     profile_definitions: list[ProfileDefinition] = []
     if existing_docker_image is not None:
@@ -153,7 +154,8 @@ def test_apply_docker_links_profile_definitions_none_skips_upsert() -> None:
     """
     При profile_definitions=None (по умолчанию) apply_docker_links() не пытается
     создавать или обновлять ProfileDefinition — ветка upsert выполняется только
-    когда список explicit передан вызывающим кодом."""
+    когда список explicit передан вызывающим кодом.
+    """
     comp = make_component("mylib", profiles=["hw-linux-x86_64"])
     docker_links = {"hw-linux-x86_64": "harbor.example.com/img:tag"}
 
@@ -401,7 +403,8 @@ def test_apply_conan_results_conan_reference_format_no_revision_hash() -> None:
     """
     DataEnricher копирует rel_data.base_ref как есть в release.conan_reference,
     не выполняя над ним никакой обработки (отсутствие суффикса #rrev — гарантия
-    продюсера base_ref, а не DataEnricher)."""
+    продюсера base_ref, а не DataEnricher).
+    """
     comp = make_component("mylib", "1.0", "fast")
     pb = comp.releases[0].profile_builds[0]
     enrich = _make_enrich_result("mylib", "1.0", "fast", pb, base_ref="mylib/1.0@user/fast")
