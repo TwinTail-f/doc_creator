@@ -195,7 +195,7 @@ def test_view_model_contains_wildcard_references_not_pinned_versions(
     tmp_path: Path,
 ) -> None:
     """
-    Отрендеренный view_model содержит литеральный диапазон [,include_prerelease],
+    Отрендеренный view_model содержит литеральный диапазон [*,include_prerelease],
     а не точную версию из ParsedResult (это отличает kit_latest от kit_fixed).
     """
     strategy = make_kit_latest_strategy(
@@ -208,6 +208,6 @@ def test_view_model_contains_wildcard_references_not_pinned_versions(
 
     view_model = publisher_document_builder.last_call["view_model"]
     all_references = [ref for ch in view_model["channels"] for ref in ch["references"]]
-    assert "openssl/[,include_prerelease]@platform-2.0/tech" in all_references
-    assert "zlib/[,include_prerelease]@platform-2.0/tech" in all_references
+    assert "openssl/[*,include_prerelease]@platform-2.0/tech" in all_references
+    assert "zlib/[*,include_prerelease]@platform-2.0/tech" in all_references
     assert not any("1.0.0" in ref or "1.2.11" in ref for ref in all_references)

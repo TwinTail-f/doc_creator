@@ -218,7 +218,7 @@ def test_embedding_kit_template_renders_kit_latest_converter_output(
 ) -> None:
     """
     embedding_kit.jinja2 рендерит реальный вывод KitLatestConverter: диапазонные
-    ссылки [,include_prerelease], сгруппированные по каналам, с заголовком колонки
+    ссылки [*,include_prerelease], сгруппированные по каналам, с заголовком колонки
     'Последняя сборка'.
     """
     view_model: dict[str, Any] = KitLatestConverter().convert(publisher_multi_component_result)
@@ -227,8 +227,8 @@ def test_embedding_kit_template_renders_kit_latest_converter_output(
 
     assert output.strip(), "Отрендеренный вывод embedding_kit.jinja2 пуст"
     assert "Последняя сборка" in output
-    assert "openssl/[,include_prerelease]@platform-2.0/tech" in output
-    assert "zlib/[,include_prerelease]@platform-2.0/tech" in output
+    assert "openssl/[*,include_prerelease]@platform-2.0/tech" in output
+    assert "zlib/[*,include_prerelease]@platform-2.0/tech" in output
     assert (
         "1.0.0" not in output
     ), "Страница последних сборок не должна содержать пиннированных версий"
