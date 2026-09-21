@@ -163,3 +163,15 @@ def test_convert_sets_version_column_title_and_platform_version() -> None:
     assert view_model["version_column_title"] == "Фиксированная версия"
     assert view_model["platform_version"] == "2.2"
     assert view_model["channels"] == []
+
+
+@pytest.mark.business_logic
+def test_convert_fallback_uses_release_platform_not_result_platform_version() -> None:
+    """Запасная ссылка использует Release.platform (2.0), а не platform_version (2.2)."""
+    comp = Component(name="zlib", releases=[_release("1.2.11", "slow")])
+    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.2", components=[comp])
+
+    view_model = KitFixedConverter().convert(data)
+
+    slow = next(c for c in view_model["channels"] if c["name"] == "slow")
+    assert slow["references"] == ["zlib/1.2.11@platform-2.0/slow"]

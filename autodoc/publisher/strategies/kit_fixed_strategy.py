@@ -8,10 +8,6 @@ from autodoc.publisher.strategies.embedding_kit_strategy import EmbeddingKitPage
 
 
 class KitFixedPageStrategy(EmbeddingKitPageStrategy):
-    """
-    Публикует список фиксированных версий компонентов платформы по каналам.
-
-    См. докстринг ``EmbeddingKitPageStrategy`` — здесь задан только конвертер.
-    """
+    """Публикует список фиксированных версий компонентов по каналам."""
 
     CONVERTER_CLS: ClassVar[type[BaseDataConverter]] = KitFixedConverter

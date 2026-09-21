@@ -2,7 +2,7 @@
 Тесты для autodoc.publisher.converters.kit_latest_converter.KitLatestConverter.
 
 Стратегия тестирования: зеркалит test_kit_fixed_converter.py, но с акцентом
-на отличия KitLatestConverter — литеральный диапазон [,include_prerelease]
+на отличия KitLatestConverter — литеральный диапазон [*,include_prerelease]
 и дедупликация по имени компонента (а не по паре компонент+версия).
 """
 
@@ -23,7 +23,7 @@ def _release(version: str, channel: str, conan_reference: str = "") -> Release:
 @pytest.mark.business_logic
 def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() -> None:
     """
-    Ссылка строится как name/[,include_prerelease]@platform-{version}/{channel},
+    Ссылка строится как name/[*,include_prerelease]@platform-{version}/{channel},
     независимо от реального conan_reference релиза (версия не фиксируется).
     """
     comp = Component(
@@ -37,7 +37,7 @@ def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() 
     view_model = KitLatestConverter().convert(data)
 
     trusted = next(c for c in view_model["channels"] if c["name"] == "trusted")
-    assert trusted["references"] == ["openssl/[,include_prerelease]@platform-2.0/trusted"]
+    assert trusted["references"] == ["openssl/[*,include_prerelease]@platform-2.0/trusted"]
 
 
 @pytest.mark.business_logic
@@ -60,7 +60,7 @@ def test_convert_dedupes_multiple_versions_of_same_component_into_one_row() -> N
     view_model = KitLatestConverter().convert(data)
 
     tech = next(c for c in view_model["channels"] if c["name"] == "tech")
-    assert tech["references"] == ["patchelf/[,include_prerelease]@platform-2.0/tech"]
+    assert tech["references"] == ["patchelf/[*,include_prerelease]@platform-2.0/tech"]
 
 
 @pytest.mark.business_logic
@@ -83,8 +83,8 @@ def test_convert_same_component_in_different_channels_gets_separate_rows() -> No
     view_model = KitLatestConverter().convert(data)
 
     channels_by_name = {c["name"]: c["references"] for c in view_model["channels"]}
-    assert channels_by_name["slow"] == ["nginx/[,include_prerelease]@platform-2.0/slow"]
-    assert channels_by_name["trusted"] == ["nginx/[,include_prerelease]@platform-2.0/trusted"]
+    assert channels_by_name["slow"] == ["nginx/[*,include_prerelease]@platform-2.0/slow"]
+    assert channels_by_name["trusted"] == ["nginx/[*,include_prerelease]@platform-2.0/trusted"]
 
 
 @pytest.mark.business_logic
@@ -121,9 +121,9 @@ def test_convert_preserves_component_order_within_channel() -> None:
 
     tech = next(c for c in view_model["channels"] if c["name"] == "tech")
     assert tech["references"] == [
-        "benchmark/[,include_prerelease]@platform-2.0/tech",
-        "gtest/[,include_prerelease]@platform-2.0/tech",
-        "cmake/[,include_prerelease]@platform-2.0/tech",
+        "benchmark/[*,include_prerelease]@platform-2.0/tech",
+        "gtest/[*,include_prerelease]@platform-2.0/tech",
+        "cmake/[*,include_prerelease]@platform-2.0/tech",
     ]
 
 
@@ -137,3 +137,15 @@ def test_convert_sets_version_column_title_and_platform_version() -> None:
     assert view_model["version_column_title"] == "Последняя сборка"
     assert view_model["platform_version"] == "2.2"
     assert view_model["channels"] == []
+
+
+@pytest.mark.business_logic
+def test_convert_uses_release_platform_not_result_platform_version() -> None:
+    """В ссылке платформа берётся из Release.platform (2.0), а не из platform_version (2.2)."""
+    comp = Component(name="xsd", releases=[_release("4.2.0.198", "fast")])
+    data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.2", components=[comp])
+
+    view_model = KitLatestConverter().convert(data)
+
+    fast = next(c for c in view_model["channels"] if c["name"] == "fast")
+    assert fast["references"] == ["xsd/[*,include_prerelease]@platform-2.0/fast"]

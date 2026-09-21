@@ -8,10 +8,6 @@ from autodoc.publisher.strategies.embedding_kit_strategy import EmbeddingKitPage
 
 
 class KitLatestPageStrategy(EmbeddingKitPageStrategy):
-    """
-    Публикует список ссылок на последние сборки компонентов платформы по каналам.
-
-    См. докстринг ``EmbeddingKitPageStrategy`` — здесь задан только конвертер.
-    """
+    """Публикует список ссылок на последние сборки компонентов по каналам."""
 
     CONVERTER_CLS: ClassVar[type[BaseDataConverter]] = KitLatestConverter

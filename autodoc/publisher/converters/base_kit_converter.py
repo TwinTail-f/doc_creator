@@ -11,73 +11,31 @@ from autodoc.publisher.converters.base_data_converter import BaseDataConverter
 
 
 class BaseKitConverter(BaseDataConverter):
-    """
-    Общая логика конвертеров «комплекта встраивания компонентов platform».
-
-    Обе конкретные страницы (фиксированные версии и последние сборки) имеют
-    одинаковую форму: список каналов в фиксированном порядке, в каждом —
-    нумерованный список Conan-ссылок. Различается только то, какая ссылка
-    строится для каждого релиза и как определяется дедупликация строк внутри
-    канала — это делегируется ``_build_row()`` в конкретном подклассе.
-
-    Порядок компонентов внутри канала не меняется (не сортируется) — строки
-    идут в том порядке, в котором компоненты и их релизы перечислены в
-    ``ParsedResult.components`` (порядок манифеста).
-    """
+    """Базовый конвертер страниц «комплекта встраивания»: Conan-ссылки по каналам."""
 
     CHANNEL_ORDER: ClassVar[tuple[str, ...]] = ("tech", "trusted", "slow", "fast")
-    """Порядок отображения каналов на странице. Каналы вне этого списка
-    (нестандартные/будущие) выводятся после перечисленных, в алфавитном
-    порядке — чтобы страница не «терялась» молча при появлении нового канала."""
+    """Порядок отображения каналов; остальные выводятся после них по алфавиту."""
 
     VERSION_COLUMN_TITLE: ClassVar[str] = ""
-    """Заголовок второй колонки таблицы (переопределяется в подклассах)."""
+    """Заголовок второй колонки таблицы."""
 
     @abstractmethod
-    def _build_row(
-        self, comp: Component, rel: Release, platform_version: str
-    ) -> tuple[str, str] | None:
+    def _build_row(self, comp: Component, rel: Release) -> tuple[str, str] | None:
         """
-        Строит одну строку таблицы для пары «компонент, релиз».
-
-        Args:
-            comp: Компонент-владелец релиза.
-            rel: Релиз (версия в конкретном канале).
-            platform_version: Версия платформы (``ParsedResult.platform_version``).
+        Строит строку таблицы для пары «компонент, релиз».
 
         Returns:
-            Кортеж ``(dedup_key, reference)``, где ``dedup_key`` используется
-            для дедупликации строк внутри канала (см. ``convert()``), а
-            ``reference`` — отображаемый текст строки. ``None``, если для
-            этой пары строка не строится (например, релиз пропускается).
+            ``(dedup_key, reference)`` или ``None``, если строка не нужна.
         """
 
     def _order_channels(self, channels: dict[str, list[str]]) -> list[dict[str, Any]]:
-        """
-        Упорядочивает каналы согласно ``CHANNEL_ORDER``, остальные — по алфавиту в конце.
-
-        Args:
-            channels: Словарь ``{имя_канала: [строки таблицы]}``.
-
-        Returns:
-            Список словарей ``{'name': ..., 'references': [...]}`` в итоговом
-            порядке отображения. Каналы без строк не включаются.
-        """
+        """Упорядочивает каналы согласно ``CHANNEL_ORDER``."""
         known = [ch for ch in self.CHANNEL_ORDER if ch in channels]
         unknown = sorted(ch for ch in channels if ch not in self.CHANNEL_ORDER)
         return [{"name": ch, "references": channels[ch]} for ch in known + unknown]
 
     def convert(self, data: ParsedResult) -> dict[str, Any]:
-        """
-        Возвращает view-model страницы «комплекта встраивания».
-
-        Args:
-            data: Данные парсера.
-
-        Returns:
-            Словарь с полями ``platform_version``, ``version_column_title``
-            и ``channels`` (список каналов с их строками).
-        """
+        """Возвращает view-model страницы: версию платформы, заголовок колонки и каналы."""
         logger.debug(f"Конвертация в вид {self.__class__.__name__}")
 
         channels: dict[str, list[str]] = {}
@@ -85,7 +43,7 @@ class BaseKitConverter(BaseDataConverter):
 
         for comp in data.components:
             for rel in comp.releases:
-                row = self._build_row(comp, rel, data.platform_version)
+                row = self._build_row(comp, rel)
                 if row is None:
                     continue
                 dedup_key, reference = row
