@@ -17,7 +17,7 @@ from autodoc.parser.parser import ComponentParser
 from autodoc.parser.steps.conan_step import ConanEnrichStep
 from tests.unit.parser.conftest import CallbackStep, FailingStep, FakeManifestStep, FinalizeOnlyStep
 
-# Сообщения об ошибках, встроенные в отказывающие шаги — используются для утверждения, что оба сообщаются.
+# Тексты ошибок, с которыми падают шаги-заглушки — по ним проверяем, что в лог попали оба сообщения.
 _ERROR_MSG_FIRST: str = "first non-critical failure"
 _ERROR_MSG_SECOND: str = "second non-critical failure"
 
@@ -29,7 +29,7 @@ def test_two_non_critical_failures_both_reported(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
-    Два некритичных отказывающих шага должны быть залогированы; пайплайн не должен остановиться.
+    Ошибки двух падающих некритичных шагов должны попасть в лог; пайплайн не должен остановиться.
 
     ComponentParser логирует (и не пробрасывает заново) DocGeneratorError из
     некритичных шагов, поэтому пайплайн должен выполнить все шаги.  Тест
@@ -64,7 +64,7 @@ def test_non_critical_failure_does_not_block_next_step(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """Сбой некритичного шага не должен предотвратить запуск следующего шага."""
+    """Сбой некритичного шага не должен помешать запуску следующего шага."""
     executed_steps: list[str] = []
 
     steps = [
@@ -78,8 +78,8 @@ def test_non_critical_failure_does_not_block_next_step(
     )
     parser.parse()
 
-    assert "fail" in executed_steps, "Отказавший шаг никогда не был попытан"
-    assert "finalize" in executed_steps, "Шаг после некритичного отказа не был выполнен"
+    assert "fail" in executed_steps, "Падающий шаг не был запущен"
+    assert "finalize" in executed_steps, "Шаг после сбоя некритичного шага не был выполнен"
 
 
 @pytest.mark.business_logic
@@ -90,8 +90,9 @@ def test_critical_failure_stops_pipeline(
     """
     Сбой критичного шага должен остановить пайплайн немедленно.
 
-    Дозорный шаг, зарегистрированный после отказывающего критичного шага, НЕ ДОЛЖЕН выполниться.
-    Пайплайн должен вызвать ParsingError.
+    Контрольный шаг (он лишь записывает в список факт своего запуска), стоящий в пайплайне
+    после падающего критичного шага, НЕ ДОЛЖЕН выполниться.
+    Пайплайн должен завершиться исключением ParsingError.
     """
     executed_after: list[str] = []
 
@@ -120,15 +121,20 @@ def test_context_components_empty_before_manifest_step(
     """
     ctx.components пусто в самом начале пайплайна.
 
+    Здесь ``ctx`` — ``PipelineContext``, общий контекст, который шаги пайплайна
+    передают друг другу, а ``ctx.components`` — его список компонентов
+    (``list[Component]``), который по ходу пайплайна наполняют шаги.
+
     Бизнес-правило:
-        Начальный ``PipelineContext`` должен начинаться с пустого списка компонентов.
-        Только ManifestStep (или его заменитель) может добавлять к нему.
-        Пустой список в начале исключает влияние остаточного состояния из
-        предыдущего запуска пайплайна.
+        Новый ``PipelineContext`` должен создаваться с пустым списком компонентов.
+        Наполнять его должен только ManifestStep (или его заглушка).
+        Пустой список в начале гарантирует, что в новый запуск пайплайна не попадут
+        компоненты из предыдущего запуска.
 
     Предусловия:
-        - Пайплайн: [_ObservingStep (критичный), FinalizeOnlyStep].
-        - ``_ObservingStep`` читает ``len(ctx.components)`` перед написанием чего-либо.
+        - Пайплайн: [CallbackStep ``observing_step`` (критичный), FinalizeOnlyStep].
+        - ``observing_step`` читает ``len(ctx.components)`` до того, как что-либо
+          успело записаться в список.
 
     Шаги:
         1. Вызвать ``parser.parse()``.
@@ -153,7 +159,7 @@ def test_context_components_empty_before_manifest_step(
     )
     parser.parse()
 
-    assert len(observed_counts) > 0, "_ObservingStep должен был быть выполнен"
+    assert len(observed_counts) > 0, "observing_step должен был быть выполнен"
     assert observed_counts[0] == 0, (
         f"ctx.components должен быть пуст перед тем, как какой-либо шаг заполнит его, "
         f"получили {observed_counts[0]}"
@@ -173,14 +179,14 @@ def test_context_result_none_before_finalize_step(
         шаги, которые выполняются перед ним, должны наблюдать ``ctx.result is None``.
 
     Предусловия:
-        - Пайплайн: [FakeManifestStep, _CheckResultStep (некритичный),
-          FinalizeOnlyStep].
+        - Пайплайн: [FakeManifestStep, CallbackStep ``check_result_step``
+          (некритичный), FinalizeOnlyStep].
 
     Шаги:
         1. Вызвать ``parser.parse()``.
 
     Ожидаемый результат:
-        - Значение ``ctx.result``, захваченное внутри ``_CheckResultStep``, равно ``None``.
+        - Значение ``ctx.result``, прочитанное внутри ``check_result_step``, равно ``None``.
     """
     observed_results: list = []
 
@@ -196,7 +202,7 @@ def test_context_result_none_before_finalize_step(
     )
     parser.parse()
 
-    assert len(observed_results) > 0, "_CheckResultStep должен был быть выполнен"
+    assert len(observed_results) > 0, "check_result_step должен был быть выполнен"
     assert (
         observed_results[0] is None
     ), f"ctx.result должен быть None перед FinalizeStep, получено {observed_results[0]}"
@@ -208,12 +214,11 @@ def test_exclude_removes_class_not_instance(
     tmp_path: Path,
 ) -> None:
     """
-    exclude() удаляет шаги по типу класса, не по строке имени.
+    exclude() принимает класс шага (не экземпляр и не имя) и удаляет из пайплайна шаги этого класса.
 
     Бизнес-правило:
-        ``parser.exclude(ConanEnrichStep)`` фильтрует ``self._steps``, используя
-        проверки ``isinstance``. Другой класс, который случайно имеет похожее
-        имя, НЕ удаляется.
+        ``parser.exclude(ConanEnrichStep)`` убирает из ``self._steps`` все шаги,
+        для которых ``isinstance(шаг, ConanEnrichStep)``; остальные шаги остаются.
 
     Предусловия:
         - Создать парсер с пайплайном по умолчанию через обычный конструктор.
@@ -225,7 +230,8 @@ def test_exclude_removes_class_not_instance(
     Ожидаемый результат:
         - Нет экземпляра ``ConanEnrichStep`` в ``_steps``.
         - Общее количество шагов на один меньше, чем в исходном пайплайне.
-        - ``exclude`` возвращает тот же экземпляр (``self``), пригодный для чейнинга.
+        - ``exclude`` возвращает сам парсер (``self``), поэтому вызовы можно писать
+          цепочкой: ``parser.exclude(A).exclude(B)``.
     """
     parser = ComponentParser(config=parser_config, data_dir=tmp_path)
     default_count = len(parser._steps)
@@ -238,4 +244,4 @@ def test_exclude_removes_class_not_instance(
         f"После exclude() пайплайн должен иметь {default_count - 1} шагов, "
         f"получили {len(parser._steps)}"
     )
-    assert returned is parser, "exclude() должен возвращать self для чейнинга"
+    assert returned is parser, "exclude() должен возвращать self (для вызовов цепочкой)"

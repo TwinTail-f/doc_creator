@@ -11,7 +11,12 @@ class EmbeddingKitPageStrategy(SinglePagePublishStrategy):
 
     DEFAULT_TEMPLATE: str = "embedding_kit.jinja2"
     CONVERTER_CLS: ClassVar[type[BaseDataConverter]]
-    """Класс конвертера; задаётся в наследнике."""
+    """
+    Класс конвертера данных (подкласс ``BaseDataConverter``); задаётся в наследнике.
+
+    Конвертер превращает ``ParsedResult`` во view-model для Jinja2-шаблона страницы.
+    Экземпляр создаётся в ``_make_converter()``.
+    """
 
     def __init__(
         self,
@@ -29,5 +34,19 @@ class EmbeddingKitPageStrategy(SinglePagePublishStrategy):
 
     @classmethod
     def _make_converter(cls, include_passport_links: bool = True) -> BaseDataConverter:
-        """Создаёт экземпляр ``CONVERTER_CLS``."""
+        """
+        Создаёт конвертер данных — экземпляр класса ``CONVERTER_CLS``.
+
+        ``CONVERTER_CLS`` — подкласс ``BaseDataConverter``, который задаёт наследник
+        (например, ``KitFixedConverter`` у ``KitFixedPageStrategy``).
+
+        Args:
+            include_passport_links: Не используется. Параметр нужен только для
+                совместимости с сигнатурой ``_make_converter()`` у остальных стратегий
+                (``ReleasePageStrategy``, ``ProfileCentricPageStrategy``); у страниц
+                комплекта для встраивания ссылок на паспорта нет.
+
+        Returns:
+            Новый экземпляр ``CONVERTER_CLS``.
+        """
         return cls.CONVERTER_CLS()

@@ -1,8 +1,11 @@
 """Юнит-тесты для autodoc/parser/parser.py (ComponentParser)."""
 
+from pathlib import Path
+
 import pytest
 from pytest_mock import MockerFixture
 
+from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.exceptions import ParsingError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.parser.parser import ComponentParser
@@ -17,8 +20,8 @@ from tests.unit.parser.conftest import CallbackStep, FailingStep, FakeTFSClient,
 
 @pytest.mark.business_logic
 def test_component_parser_parse_returns_parsed_result(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """Успешный путь: parse() возвращает ParsedResult, когда FinalizeOnlyStep заполняет ctx.result."""
     parser = ComponentParser(
@@ -32,8 +35,8 @@ def test_component_parser_parse_returns_parsed_result(
 
 @pytest.mark.business_logic
 def test_component_parser_non_critical_step_failure_continues(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """Сбой некритичного шага поглощается, и пайплайн продолжает работу до завершения."""
     parser = ComponentParser(
@@ -47,8 +50,8 @@ def test_component_parser_non_critical_step_failure_continues(
 
 @pytest.mark.infrastructure
 def test_component_parser_cleans_up_tmp_dir_on_success(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """tmp_dir удаляется после успешного парсинга (блок finally)."""
     data_dir = tmp_path / "workspace"
@@ -66,8 +69,8 @@ def test_component_parser_cleans_up_tmp_dir_on_success(
 
 @pytest.mark.infrastructure
 def test_component_parser_cleans_up_tmp_dir_on_failure(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """tmp_dir удаляется даже когда критичный шаг вызывает исключение (блок finally)."""
     data_dir = tmp_path / "workspace"
@@ -86,8 +89,8 @@ def test_component_parser_cleans_up_tmp_dir_on_failure(
 
 @pytest.mark.business_logic
 def test_component_parser_raises_if_result_not_set(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """Если ни один шаг не заполняет ctx.result, parse() вызывает ParsingError после завершения всех шагов."""
     parser = ComponentParser(
@@ -102,10 +105,16 @@ def test_component_parser_raises_if_result_not_set(
 @pytest.mark.infrastructure
 def test_component_parser_uses_injected_tfs_client(
     mocker: MockerFixture,
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
-    """Когда tfs_client передаётся через конструктор, TFSClient.__init__ никогда не вызывается."""
+    """
+    Если tfs_client передан в конструктор ComponentParser, свой TFSClient он не создаёт.
+
+    Метод ``TFSClient.__init__`` подменён на мок: он сработал бы при любом создании
+    ``TFSClient(...)``. Проверка ``assert_not_called`` показывает, что парсер использовал
+    переданный клиент и не создал запасной.
+    """
     mock_tfs_init = mocker.patch(
         "autodoc.parser.parser.TFSClient.__init__",
         return_value=None,
@@ -122,8 +131,8 @@ def test_component_parser_uses_injected_tfs_client(
 
 @pytest.mark.infrastructure
 def test_component_parser_save_intermediate_writes_files(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """parse(save_intermediate=True) записывает хотя бы один JSON-файл в директорию intermediate."""
     parser = ComponentParser(
@@ -140,8 +149,8 @@ def test_component_parser_save_intermediate_writes_files(
 @pytest.mark.infrastructure
 def test_component_parser_save_intermediate_oserror_logged_not_raised(
     mocker: MockerFixture,
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """OSError при записи снимка перехватывается и логируется, не прерывая parse()."""
     mock_write_text = mocker.patch(
@@ -160,8 +169,8 @@ def test_component_parser_save_intermediate_oserror_logged_not_raised(
 
 @pytest.mark.business_logic
 def test_component_parser_default_pipeline_step_order(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """_default_pipeline() возвращает шаги в задокументированном порядке: Manifest→Options→Conan→Docker→Validation→Finalize."""
     parser = ComponentParser(config=parser_config, data_dir=tmp_path)
@@ -179,10 +188,17 @@ def test_component_parser_default_pipeline_step_order(
 @pytest.mark.infrastructure
 def test_component_parser_uses_injected_artifactory_client(
     mocker: MockerFixture,
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
-    """Когда artifactory_client передаётся через конструктор, ArtifactoryClient.__init__ никогда не вызывается."""
+    """
+    Если artifactory_client передан в конструктор ComponentParser, свой ArtifactoryClient
+    он не создаёт.
+
+    Метод ``ArtifactoryClient.__init__`` подменён на мок: он сработал бы при любом
+    создании ``ArtifactoryClient(...)``. Проверка ``assert_not_called`` показывает,
+    что парсер использовал переданный клиент и не создал запасной.
+    """
     mock_artifactory_init = mocker.patch(
         "autodoc.parser.parser.ArtifactoryClient.__init__",
         return_value=None,

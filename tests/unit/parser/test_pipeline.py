@@ -1,7 +1,20 @@
-"""Юнит-тесты для autodoc/parser/pipeline/context.py и BaseParseStep."""
+"""
+Юнит-тесты для autodoc/parser/pipeline/context.py и BaseParseStep.
+
+``PipelineContext`` — общий контекст пайплайна парсера: через него шаги передают
+друг другу данные (список компонентов, промежуточные результаты и т.д.).
+``PipelineContext.to_snapshot_dict()`` собирает из него JSON-совместимый
+диагностический снимок; ``ComponentParser.parse(save_intermediate=True)``
+записывает такой снимок в файл после каждого шага. Большинство тестов ниже
+проверяют, что именно попадает в этот снимок и в каком виде.
+"""
+
+from pathlib import Path
 
 import pytest
 
+from autodoc.config.schemas.parser_config import ParserConfigSchema
+from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
@@ -9,10 +22,20 @@ from autodoc.parser.steps.base_parse_step import BaseParseStep
 
 @pytest.mark.business_logic
 def test_pipeline_context_snapshot_excludes_docker_links(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
-    """to_snapshot_dict исключает 'docker_links' из intermediate, но сообщает его количество."""
+    """
+    Снимок контекста не содержит 'docker_links', но сообщает, сколько в нём записей.
+
+    Данные: в ``ctx.intermediate['docker_links']`` лежит словарь из одной записи.
+
+    Проверяется в ``to_snapshot_dict()``:
+        - в ``snapshot['intermediate']`` ключа ``docker_links`` нет (маппинг ссылок
+          большой и для диагностики бесполезен, поэтому в снимок его не кладут);
+        - вместо самого маппинга в ``snapshot['docker_links_count']`` записано число
+          его записей (здесь ``1``) — размер виден, а содержимое не раздувает снимок.
+    """
     ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
     ctx.intermediate["docker_links"] = {"key1": "val1"}
     snapshot = ctx.to_snapshot_dict()
@@ -22,9 +45,9 @@ def test_pipeline_context_snapshot_excludes_docker_links(
 
 @pytest.mark.business_logic
 def test_pipeline_context_snapshot_includes_components_count(
-    parser_config,
-    tmp_path,
-    manifest_component,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
+    manifest_component: Component,
 ) -> None:
     """
     to_snapshot_dict включает components_count, равный len(ctx.components).
@@ -43,8 +66,8 @@ def test_pipeline_context_snapshot_includes_components_count(
 
 @pytest.mark.business_logic
 def test_pipeline_context_snapshot_includes_profile_definitions(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """to_snapshot_dict включает ctx.profile_definitions (он терялся, зафиксируем)."""
     ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
@@ -67,8 +90,8 @@ def test_pipeline_context_snapshot_includes_profile_definitions(
 
 @pytest.mark.business_logic
 def test_pipeline_context_snapshot_handles_non_dict_intermediate(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """to_snapshot_dict корректно переносит нестроковое значение intermediate без словаря."""
     ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
@@ -79,8 +102,8 @@ def test_pipeline_context_snapshot_handles_non_dict_intermediate(
 
 @pytest.mark.business_logic
 def test_pipeline_context_snapshot_converts_tuple_keys(
-    parser_config,
-    tmp_path,
+    parser_config: ParserConfigSchema,
+    tmp_path: Path,
 ) -> None:
     """to_snapshot_dict преобразует ключи-кортежи в промежуточных словарях в строковые представления."""
     ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)

@@ -31,6 +31,7 @@ from tests.unit.cli.utils import (
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
+_EXIT_USAGE_ERROR: int = 2  # click: неизвестная опция / неверные аргументы командной строки
 _KIT_FIXED_MODULE = "autodoc.cli.commands.publish.kit_fixed"
 _SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
@@ -97,7 +98,9 @@ def _mock_collaborators(
 
 @pytest.mark.business_logic
 def test_publish_kit_fixed_passes_strategy_type_and_template(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker: MockerFixture,
 ) -> None:
     """publish kit-fixed передаёт strategy_type='kit_fixed' и KIT_FIXED_TEMPLATE."""
     mock_publisher = _mock_collaborators(mocker)
@@ -112,7 +115,9 @@ def test_publish_kit_fixed_passes_strategy_type_and_template(
 
 @pytest.mark.business_logic
 def test_publish_kit_fixed_include_passport_links_always_false(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker: MockerFixture,
 ) -> None:
     """
     publish kit-fixed всегда передаёт include_passport_links=False — у команды
@@ -129,10 +134,20 @@ def test_publish_kit_fixed_include_passport_links_always_false(
 
 @pytest.mark.contract
 def test_publish_kit_fixed_has_no_passport_links_flag(tmp_path: Path, configs_dir: Path) -> None:
-    """--no-passport-links не является опцией kit-fixed (в отличие от release/profile)."""
+    """
+    kit-fixed не принимает --no-passport-links: click отвечает «No such option» (код 2).
+
+    Почему проверяется именно этот флаг, а не любые неизвестные опции: kit-fixed и
+    release/profile собираются из общего набора click-опций, и ``--no-passport-links`` —
+    единственная опция, которая есть у release/profile и намеренно отсутствует у kit-*
+    (у страниц комплекта нет ссылок на паспорта). Реальный риск — что флаг случайно
+    появится у kit-* при правке общих декораторов. Произвольные неизвестные опции
+    click отклоняет сам, проверять это в наших тестах незачем.
+    """
     result = _invoke(tmp_path, configs_dir, "kit-fixed", "--no-passport-links")
-    assert result.exit_code != _EXIT_SUCCESS
-    assert "no-passport-links" in result.output.lower() or "no such option" in result.output.lower()
+    assert result.exit_code == _EXIT_USAGE_ERROR, f"output: {result.output}"
+    assert "no such option" in result.output.lower()
+    assert "--no-passport-links" in result.output
 
 
 @pytest.mark.business_logic
@@ -171,7 +186,9 @@ def test_publish_kit_fixed_page_title_precedence(
 
 @pytest.mark.contract
 def test_publish_kit_fixed_root_id_and_name_both_given_forwarded_unchanged(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker: MockerFixture,
 ) -> None:
     """--root-page-id и --root-page-name пробрасываются в publish_single_page как есть."""
     mock_publisher = _mock_collaborators(mocker)
@@ -194,7 +211,9 @@ def test_publish_kit_fixed_root_id_and_name_both_given_forwarded_unchanged(
 
 @pytest.mark.infrastructure
 def test_publish_kit_fixed_missing_parsed_data_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker: MockerFixture,
 ) -> None:
     """Отсутствующий parsed_data.json завершает команду с кодом 1 без трейсбека."""
     _mock_collaborators(mocker, parsed_ok=False)
@@ -208,7 +227,9 @@ def test_publish_kit_fixed_missing_parsed_data_exits_nonzero_cleanly(
 
 @pytest.mark.business_logic
 def test_publish_kit_fixed_publisher_failure_report_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker: MockerFixture,
 ) -> None:
     """Неуспешный PublishReport от publish_single_page завершает команду с кодом 1."""
     report = make_publish_report(success=False, pages_published=0, errors=["boom"])
@@ -222,7 +243,9 @@ def test_publish_kit_fixed_publisher_failure_report_exits_nonzero(
 
 @pytest.mark.business_logic
 def test_publish_kit_latest_passes_strategy_type_and_template(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mocker: MockerFixture,
 ) -> None:
     """publish kit-latest передаёт strategy_type='kit_latest' и KIT_LATEST_TEMPLATE."""
     mock_publisher = _mock_collaborators(mocker)
