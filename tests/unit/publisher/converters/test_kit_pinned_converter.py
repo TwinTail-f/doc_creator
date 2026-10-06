@@ -1,5 +1,5 @@
 """
-Тесты для autodoc.publisher.converters.kit_fixed_converter.KitFixedConverter.
+Тесты для autodoc.publisher.converters.kit_pinned_converter.KitPinnedConverter.
 
 Стратегия тестирования:
 - Вход строится вручную (не через фикстуры release-конвертеров), так как
@@ -14,7 +14,7 @@ import pytest
 from autodoc.models.component import Component
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.release import Release
-from autodoc.publisher.converters.kit_fixed_converter import KitFixedConverter
+from autodoc.publisher.converters.kit_pinned_converter import KitPinnedConverter
 
 
 def _release(version: str, channel: str, conan_reference: str = "") -> Release:
@@ -39,7 +39,7 @@ def test_convert_groups_references_by_channel() -> None:
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
     )
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     channels_by_name = {c["name"]: c["references"] for c in view_model["channels"]}
     assert channels_by_name["trusted"] == ["openssl/3.5.6@platform-2.0/trusted"]
@@ -62,7 +62,7 @@ def test_convert_orders_known_channels_tech_trusted_slow_fast() -> None:
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
     )
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     assert [c["name"] for c in view_model["channels"]] == ["tech", "trusted", "slow", "fast"]
 
@@ -79,7 +79,7 @@ def test_convert_unknown_channel_appended_after_known_ones_sorted() -> None:
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
     )
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     assert [c["name"] for c in view_model["channels"]] == ["fast", "alpha", "zeta"]
 
@@ -103,7 +103,7 @@ def test_convert_preserves_component_order_within_channel() -> None:
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=comps
     )
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     tech = next(c for c in view_model["channels"] if c["name"] == "tech")
     assert tech["references"] == [
@@ -127,7 +127,7 @@ def test_convert_keeps_every_version_of_same_component_in_same_channel() -> None
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=[comp]
     )
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     tech = next(c for c in view_model["channels"] if c["name"] == "tech")
     assert tech["references"] == [
@@ -147,7 +147,7 @@ def test_convert_falls_back_to_built_reference_when_conan_reference_empty() -> N
         generated_at="2024-01-01T00:00:00", platform_version="2.0", components=[comp]
     )
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     slow = next(c for c in view_model["channels"] if c["name"] == "slow")
     assert slow["references"] == ["zlib/1.2.11@platform-2.0/slow"]
@@ -158,9 +158,9 @@ def test_convert_sets_version_column_title_and_platform_version() -> None:
     """view-model содержит заголовок колонки и версию платформы верхнего уровня."""
     data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.2", components=[])
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
-    assert view_model["version_column_title"] == "Фиксированная версия"
+    assert view_model["version_column_title"] == "Закреплённая версия"
     assert view_model["platform_version"] == "2.2"
     assert view_model["channels"] == []
 
@@ -171,7 +171,7 @@ def test_convert_fallback_uses_release_platform_not_result_platform_version() ->
     comp = Component(name="zlib", releases=[_release("1.2.11", "slow")])
     data = ParsedResult(generated_at="2024-01-01T00:00:00", platform_version="2.2", components=[comp])
 
-    view_model = KitFixedConverter().convert(data)
+    view_model = KitPinnedConverter().convert(data)
 
     slow = next(c for c in view_model["channels"] if c["name"] == "slow")
     assert slow["references"] == ["zlib/1.2.11@platform-2.0/slow"]

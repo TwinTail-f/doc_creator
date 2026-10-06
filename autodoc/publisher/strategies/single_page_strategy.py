@@ -21,7 +21,7 @@ class SinglePagePublishStrategy(BasePublishStrategy):
 
     Управляет общими атрибутами и шаблонным потоком выполнения
     (convert → enrich → publish), который разделяют ReleasePageStrategy,
-    ProfileCentricPageStrategy, KitFixedPageStrategy и KitLatestPageStrategy.
+    ProfileCentricPageStrategy, KitPinnedPageStrategy и KitLatestPageStrategy.
     Обогащение ссылками на паспорта (``enrich_with_passport_links()``)
     вызывается всегда — сам конвертер решает, есть ли у него что вставлять
     (см. ``BaseDataConverter.enrich_with_passport_links``).

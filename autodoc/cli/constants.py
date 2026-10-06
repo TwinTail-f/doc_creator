@@ -2,8 +2,8 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-from autodoc.publisher.strategies.kit_fixed_strategy import KitFixedPageStrategy
 from autodoc.publisher.strategies.kit_latest_strategy import KitLatestPageStrategy
+from autodoc.publisher.strategies.kit_pinned_strategy import KitPinnedPageStrategy
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
 from autodoc.publisher.strategies.profile_centric_strategy import ProfileCentricPageStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
@@ -18,7 +18,7 @@ except PackageNotFoundError:
 RELEASE_TEMPLATE: str = ReleasePageStrategy.DEFAULT_TEMPLATE
 PROFILE_TEMPLATE: str = ProfileCentricPageStrategy.DEFAULT_TEMPLATE
 PASSPORT_TEMPLATE: str = PassportsStrategy.DEFAULT_TEMPLATE
-KIT_FIXED_TEMPLATE: str = KitFixedPageStrategy.DEFAULT_TEMPLATE
+KIT_PINNED_TEMPLATE: str = KitPinnedPageStrategy.DEFAULT_TEMPLATE
 KIT_LATEST_TEMPLATE: str = KitLatestPageStrategy.DEFAULT_TEMPLATE
 
 # Заголовок страницы релизной документации по умолчанию
@@ -28,5 +28,5 @@ DEFAULT_RELEASE_PAGE_TITLE: str = "Release Documentation"
 DEFAULT_PROFILE_PAGE_TITLE: str = "Документация от профилей"
 
 # Заголовки страниц «комплекта встраивания» по умолчанию
-DEFAULT_KIT_FIXED_PAGE_TITLE: str = "Комплект для встраивания компонентов platform"
+DEFAULT_KIT_PINNED_PAGE_TITLE: str = "Комплект для встраивания компонентов platform"
 DEFAULT_KIT_LATEST_PAGE_TITLE: str = "Встраивание последних версий компонентов платформы"

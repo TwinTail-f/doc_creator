@@ -85,9 +85,9 @@ def test_strategies_config_absent_uses_defaults_for_all_sections(
     assert config.strategies.profile_centric.root_parent_name is None
     assert config.strategies.passports.root_parent_id is None
     assert config.strategies.passports.root_parent_name is None
-    assert config.strategies.kit_fixed.page_title == "Комплект для встраивания компонентов platform"
-    assert config.strategies.kit_fixed.root_parent_id is None
-    assert config.strategies.kit_fixed.root_parent_name is None
+    assert config.strategies.kit_pinned.page_title == "Комплект для встраивания компонентов platform"
+    assert config.strategies.kit_pinned.root_parent_id is None
+    assert config.strategies.kit_pinned.root_parent_name is None
     assert (
         config.strategies.kit_latest.page_title
         == "Встраивание последних версий компонентов платформы"
@@ -130,7 +130,7 @@ def test_strategies_config_release_section_with_root_parent_keeps_default_page_t
     [
         pytest.param("release", id="release"),
         pytest.param("profile_centric", id="profile_centric"),
-        pytest.param("kit_fixed", id="kit_fixed"),
+        pytest.param("kit_pinned", id="kit_pinned"),
         pytest.param("kit_latest", id="kit_latest"),
     ],
 )
@@ -139,7 +139,7 @@ def test_strategies_config_section_without_root_parent_raises(
     section_name: str,
 ) -> None:
     """
-    Секция release/profile_centric/kit_fixed/kit_latest, присутствующая в
+    Секция release/profile_centric/kit_pinned/kit_latest, присутствующая в
     конфиге без root_parent_name и root_parent_id (хотя бы с одним полем,
     например page_title) — невалидна.
     """
@@ -153,9 +153,9 @@ def test_strategies_config_section_without_root_parent_raises(
     "section_name, default_title",
     [
         pytest.param(
-            "kit_fixed",
+            "kit_pinned",
             "Комплект для встраивания компонентов platform",
-            id="kit_fixed",
+            id="kit_pinned",
         ),
         pytest.param(
             "kit_latest",
@@ -170,7 +170,7 @@ def test_strategies_config_kit_sections_with_root_parent_keep_default_page_title
     default_title: str,
 ) -> None:
     """
-    Секция kit_fixed/kit_latest с заданным root_parent_name (без явного
+    Секция kit_pinned/kit_latest с заданным root_parent_name (без явного
     page_title) — валидна, дефолт page_title сохраняется.
     """
     payload = {

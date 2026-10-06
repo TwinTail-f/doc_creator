@@ -1,7 +1,7 @@
 """
 Тесты для autodoc.publisher.strategies.kit_latest_strategy.KitLatestPageStrategy.
 
-Стратегия тестирования: зеркалит test_kit_fixed_strategy.py — общий
+Стратегия тестирования: зеркалит test_kit_pinned_strategy.py — общий
 инфраструктурный контракт (execute/публикация/паспорта) идентичен, отличия
 проверяются в тесте на форму ссылок (wildcard include_prerelease).
 """
@@ -196,7 +196,7 @@ def test_view_model_contains_wildcard_references_not_pinned_versions(
 ) -> None:
     """
     Отрендеренный view_model содержит литеральный диапазон [*,include_prerelease],
-    а не точную версию из ParsedResult (это отличает kit_latest от kit_fixed).
+    а не точную версию из ParsedResult (это отличает kit_latest от kit_pinned).
     """
     strategy = make_kit_latest_strategy(
         publisher_confluence_client,

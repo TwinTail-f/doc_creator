@@ -38,7 +38,7 @@ class EmbeddingKitPageStrategy(SinglePagePublishStrategy):
         Создаёт конвертер данных — экземпляр класса ``CONVERTER_CLS``.
 
         ``CONVERTER_CLS`` — подкласс ``BaseDataConverter``, который задаёт наследник
-        (например, ``KitFixedConverter`` у ``KitFixedPageStrategy``).
+        (например, ``KitPinnedConverter`` у ``KitPinnedPageStrategy``).
 
         Args:
             include_passport_links: Не используется. Параметр нужен только для

@@ -1,7 +1,7 @@
 """
 Тесты для autodoc.publisher.converters.kit_latest_converter.KitLatestConverter.
 
-Стратегия тестирования: зеркалит test_kit_fixed_converter.py, но с акцентом
+Стратегия тестирования: зеркалит test_kit_pinned_converter.py, но с акцентом
 на отличия KitLatestConverter — литеральный диапазон [*,include_prerelease]
 и дедупликация по имени компонента (а не по паре компонент+версия).
 """
@@ -24,7 +24,7 @@ def _release(version: str, channel: str, conan_reference: str = "") -> Release:
 def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() -> None:
     """
     Ссылка строится как name/[*,include_prerelease]@platform-{version}/{channel},
-    независимо от реального conan_reference релиза (версия не фиксируется).
+    независимо от реального conan_reference релиза (версия не закрепляется).
     """
     comp = Component(
         name="openssl",
@@ -44,7 +44,7 @@ def test_convert_builds_include_prerelease_reference_ignoring_conan_reference() 
 def test_convert_dedupes_multiple_versions_of_same_component_into_one_row() -> None:
     """
     Несколько версий одного компонента в одном канале схлопываются в одну строку
-    (в отличие от KitFixedConverter).
+    (в отличие от KitPinnedConverter).
     """
     comp = Component(
         name="patchelf",
@@ -89,7 +89,7 @@ def test_convert_same_component_in_different_channels_gets_separate_rows() -> No
 
 @pytest.mark.business_logic
 def test_convert_orders_known_channels_tech_trusted_slow_fast() -> None:
-    """Известные каналы выводятся в фиксированном порядке, как и в KitFixedConverter."""
+    """Известные каналы выводятся в фиксированном порядке, как и в KitPinnedConverter."""
     comps = [
         Component(name="a", releases=[_release("1.0", "fast")]),
         Component(name="b", releases=[_release("1.0", "slow")]),

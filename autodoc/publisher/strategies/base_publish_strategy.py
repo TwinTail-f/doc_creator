@@ -107,7 +107,7 @@ class BasePublishStrategy(ABC):
         """
         Инкапсулирует общий поток публикации одной страницы для всех
         стратегий-наследников ``SinglePagePublishStrategy`` (release,
-        profile-centric, kit_fixed, kit_latest).
+        profile-centric, kit_pinned, kit_latest).
 
         Args:
             page_title: Заголовок страницы Confluence для создания или обновления.

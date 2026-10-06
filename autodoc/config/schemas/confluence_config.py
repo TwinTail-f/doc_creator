@@ -46,12 +46,12 @@ class ProfileCentricDocsFields(SinglePageDocsFields):
     """
 
 
-class KitFixedDocsFields(SinglePageDocsFields):
-    """Поля стратегии kit_fixed — со своим дефолтным заголовком."""
+class KitPinnedDocsFields(SinglePageDocsFields):
+    """Поля стратегии kit_pinned — со своим дефолтным заголовком."""
 
     page_title: str | None = Field(
         default="Комплект для встраивания компонентов platform",
-        description="Заголовок страницы фиксированных версий компонентов по каналам.",
+        description="Заголовок страницы закреплённых версий компонентов по каналам.",
     )
 
 
@@ -69,7 +69,7 @@ class StrategiesConfig(BaseModel):
     Настройки публикации, сгруппированные по типу стратегии.
 
     Имена полей класса дословно совпадают с ключами ``registry.STRATEGIES``
-    (``"release"``, ``"profile_centric"``, ``"passports"``, ``"kit_fixed"``,
+    (``"release"``, ``"profile_centric"``, ``"passports"``, ``"kit_pinned"``,
     ``"kit_latest"``) — это специально, чтобы резолвинг ``strategy_type ->
     секция конфига`` был просто ``getattr(strategies, strategy_type)``, без
     отдельной таблицы соответствия где-либо в коде.
@@ -78,7 +78,7 @@ class StrategiesConfig(BaseModel):
     release: ReleaseDocsFields = Field(default_factory=ReleaseDocsFields)
     profile_centric: ProfileCentricDocsFields = Field(default_factory=ProfileCentricDocsFields)
     passports: RootParentFields = Field(default_factory=RootParentFields)
-    kit_fixed: KitFixedDocsFields = Field(default_factory=KitFixedDocsFields)
+    kit_pinned: KitPinnedDocsFields = Field(default_factory=KitPinnedDocsFields)
     kit_latest: KitLatestDocsFields = Field(default_factory=KitLatestDocsFields)
 
     @model_validator(mode="after")
@@ -93,7 +93,7 @@ class StrategiesConfig(BaseModel):
             "release",
             "profile_centric",
             "passports",
-            "kit_fixed",
+            "kit_pinned",
             "kit_latest",
         }:
             section: RootParentFields = getattr(self, section_name)

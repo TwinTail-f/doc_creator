@@ -1,10 +1,10 @@
 """
-Тесты для autodoc/cli/commands/publish/kit_fixed.py и kit_latest.py.
+Тесты для autodoc/cli/commands/publish/kit_pinned.py и kit_latest.py.
 
 Обе команды проходят через общий `run_kit_page_command` (аналог
 `run_single_page_command`, но без `--no-passport-links` — у страниц
 комплекта встраивания нет понятия ссылок на паспорта). Полный набор
-сценариев проверяется на `publish kit-fixed`; `publish kit-latest` получает
+сценариев проверяется на `publish kit-pinned`; `publish kit-latest` получает
 компактный набор тестов на то, что реально отличается (strategy_type,
 шаблон и заголовок по умолчанию).
 """
@@ -17,10 +17,10 @@ from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import (
-    DEFAULT_KIT_FIXED_PAGE_TITLE,
     DEFAULT_KIT_LATEST_PAGE_TITLE,
-    KIT_FIXED_TEMPLATE,
+    DEFAULT_KIT_PINNED_PAGE_TITLE,
     KIT_LATEST_TEMPLATE,
+    KIT_PINNED_TEMPLATE,
 )
 from tests.unit.cli.utils import (
     make_confluence_config,
@@ -32,7 +32,7 @@ from tests.unit.cli.utils import (
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
 _EXIT_USAGE_ERROR: int = 2  # click: неизвестная опция / неверные аргументы командной строки
-_KIT_FIXED_MODULE = "autodoc.cli.commands.publish.kit_fixed"
+_KIT_PINNED_MODULE = "autodoc.cli.commands.publish.kit_pinned"
 _SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
 
@@ -43,7 +43,7 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
     Args:
         tmp_path: Базовая директория проекта.
         configs_dir: Директория конфигов.
-        command: Имя подкоманды publish (``"kit-fixed"`` или ``"kit-latest"``).
+        command: Имя подкоманды publish (``"kit-pinned"`` или ``"kit-latest"``).
         *args: Дополнительные аргументы, передаваемые команде.
 
     Returns:
@@ -97,35 +97,35 @@ def _mock_collaborators(
 
 
 @pytest.mark.business_logic
-def test_publish_kit_fixed_passes_strategy_type_and_template(
+def test_publish_kit_pinned_passes_strategy_type_and_template(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
 ) -> None:
-    """publish kit-fixed передаёт strategy_type='kit_fixed' и KIT_FIXED_TEMPLATE."""
+    """publish kit-pinned передаёт strategy_type='kit_pinned' и KIT_PINNED_TEMPLATE."""
     mock_publisher = _mock_collaborators(mocker)
 
-    result = _invoke(tmp_path, configs_dir, "kit-fixed")
+    result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_single_page.call_args.kwargs
-    assert kwargs["strategy_type"] == "kit_fixed"
-    assert kwargs["template_name"] == KIT_FIXED_TEMPLATE
+    assert kwargs["strategy_type"] == "kit_pinned"
+    assert kwargs["template_name"] == KIT_PINNED_TEMPLATE
 
 
 @pytest.mark.business_logic
-def test_publish_kit_fixed_include_passport_links_always_false(
+def test_publish_kit_pinned_include_passport_links_always_false(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
 ) -> None:
     """
-    publish kit-fixed всегда передаёт include_passport_links=False — у команды
+    publish kit-pinned всегда передаёт include_passport_links=False — у команды
     нет флага, управляющего этим (в отличие от release/profile).
     """
     mock_publisher = _mock_collaborators(mocker)
 
-    result = _invoke(tmp_path, configs_dir, "kit-fixed")
+    result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_single_page.call_args.kwargs
@@ -133,18 +133,18 @@ def test_publish_kit_fixed_include_passport_links_always_false(
 
 
 @pytest.mark.contract
-def test_publish_kit_fixed_has_no_passport_links_flag(tmp_path: Path, configs_dir: Path) -> None:
+def test_publish_kit_pinned_has_no_passport_links_flag(tmp_path: Path, configs_dir: Path) -> None:
     """
-    kit-fixed не принимает --no-passport-links: click отвечает «No such option» (код 2).
+    kit-pinned не принимает --no-passport-links: click отвечает «No such option» (код 2).
 
-    Почему проверяется именно этот флаг, а не любые неизвестные опции: kit-fixed и
+    Почему проверяется именно этот флаг, а не любые неизвестные опции: kit-pinned и
     release/profile собираются из общего набора click-опций, и ``--no-passport-links`` —
     единственная опция, которая есть у release/profile и намеренно отсутствует у kit-*
     (у страниц комплекта нет ссылок на паспорта). Реальный риск — что флаг случайно
     появится у kit-* при правке общих декораторов. Произвольные неизвестные опции
     click отклоняет сам, проверять это в наших тестах незачем.
     """
-    result = _invoke(tmp_path, configs_dir, "kit-fixed", "--no-passport-links")
+    result = _invoke(tmp_path, configs_dir, "kit-pinned", "--no-passport-links")
     assert result.exit_code == _EXIT_USAGE_ERROR, f"output: {result.output}"
     assert "no such option" in result.output.lower()
     assert "--no-passport-links" in result.output
@@ -156,10 +156,10 @@ def test_publish_kit_fixed_has_no_passport_links_flag(tmp_path: Path, configs_di
     [
         pytest.param("CLI Title", "Config Title", "CLI Title", id="cli-flag-wins"),
         pytest.param(None, "Config Title", "Config Title", id="config-field-wins"),
-        pytest.param(None, None, DEFAULT_KIT_FIXED_PAGE_TITLE, id="default-wins"),
+        pytest.param(None, None, DEFAULT_KIT_PINNED_PAGE_TITLE, id="default-wins"),
     ],
 )
-def test_publish_kit_fixed_page_title_precedence(
+def test_publish_kit_pinned_page_title_precedence(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
@@ -168,16 +168,16 @@ def test_publish_kit_fixed_page_title_precedence(
     expected: str,
 ) -> None:
     """
-    Приоритет источников заголовка страницы для kit-fixed: флаг CLI > поле
+    Приоритет источников заголовка страницы для kit-pinned: флаг CLI > поле
     конфига > значение по умолчанию (аналогично release/profile).
     """
     confluence_config = make_confluence_config(
-        **strategy_override("kit_fixed", page_title=config_title)
+        **strategy_override("kit_pinned", page_title=config_title)
     )
     mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     args = ["--page-title", cli_title] if cli_title else []
-    result = _invoke(tmp_path, configs_dir, "kit-fixed", *args)
+    result = _invoke(tmp_path, configs_dir, "kit-pinned", *args)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_single_page.call_args.kwargs
@@ -185,7 +185,7 @@ def test_publish_kit_fixed_page_title_precedence(
 
 
 @pytest.mark.contract
-def test_publish_kit_fixed_root_id_and_name_both_given_forwarded_unchanged(
+def test_publish_kit_pinned_root_id_and_name_both_given_forwarded_unchanged(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
@@ -196,7 +196,7 @@ def test_publish_kit_fixed_root_id_and_name_both_given_forwarded_unchanged(
     result = _invoke(
         tmp_path,
         configs_dir,
-        "kit-fixed",
+        "kit-pinned",
         "--root-page-id",
         "123",
         "--root-page-name",
@@ -210,7 +210,7 @@ def test_publish_kit_fixed_root_id_and_name_both_given_forwarded_unchanged(
 
 
 @pytest.mark.infrastructure
-def test_publish_kit_fixed_missing_parsed_data_exits_nonzero_cleanly(
+def test_publish_kit_pinned_missing_parsed_data_exits_nonzero_cleanly(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
@@ -218,7 +218,7 @@ def test_publish_kit_fixed_missing_parsed_data_exits_nonzero_cleanly(
     """Отсутствующий parsed_data.json завершает команду с кодом 1 без трейсбека."""
     _mock_collaborators(mocker, parsed_ok=False)
 
-    result = _invoke(tmp_path, configs_dir, "kit-fixed")
+    result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
     assert result.exit_code == _EXIT_FAILURE
     assert "Traceback" not in result.output
@@ -226,7 +226,7 @@ def test_publish_kit_fixed_missing_parsed_data_exits_nonzero_cleanly(
 
 
 @pytest.mark.business_logic
-def test_publish_kit_fixed_publisher_failure_report_exits_nonzero(
+def test_publish_kit_pinned_publisher_failure_report_exits_nonzero(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
@@ -235,7 +235,7 @@ def test_publish_kit_fixed_publisher_failure_report_exits_nonzero(
     report = make_publish_report(success=False, pages_published=0, errors=["boom"])
     _mock_collaborators(mocker, publish_report=report)
 
-    result = _invoke(tmp_path, configs_dir, "kit-fixed")
+    result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
     assert result.exit_code == _EXIT_FAILURE
     assert "boom" in result.output
@@ -275,7 +275,7 @@ def test_publish_kit_latest_title_source(
 ) -> None:
     """
     Источником заголовка по умолчанию для kit-latest служит
-    confluence_config.strategies.kit_latest.page_title, а не kit_fixed.
+    confluence_config.strategies.kit_latest.page_title, а не kit_pinned.
     """
     confluence_config = make_confluence_config(
         **strategy_override("kit_latest", page_title=config_title)

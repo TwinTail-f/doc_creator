@@ -18,7 +18,7 @@ def publish_kit_latest(
     cli_root_page_id: str | None,
     cli_root_page_name: str | None,
 ) -> None:
-    """Публикация ссылок на последние сборки компонентов (без фиксации версии) по каналам."""
+    """Публикация ссылок на последние сборки компонентов (без закрепления версии) по каналам."""
     run_kit_page_command(
         ctx,
         strategy_type="kit_latest",

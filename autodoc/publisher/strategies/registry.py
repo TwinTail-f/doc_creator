@@ -3,8 +3,8 @@
 from typing import Any
 
 from autodoc.publisher.strategies.base_publish_strategy import BasePublishStrategy
-from autodoc.publisher.strategies.kit_fixed_strategy import KitFixedPageStrategy
 from autodoc.publisher.strategies.kit_latest_strategy import KitLatestPageStrategy
+from autodoc.publisher.strategies.kit_pinned_strategy import KitPinnedPageStrategy
 from autodoc.publisher.strategies.passports_strategy import PassportsStrategy
 from autodoc.publisher.strategies.profile_centric_strategy import ProfileCentricPageStrategy
 from autodoc.publisher.strategies.release_strategy import ReleasePageStrategy
@@ -13,7 +13,7 @@ STRATEGIES: dict[str, type[BasePublishStrategy]] = {
     "passports": PassportsStrategy,
     "release": ReleasePageStrategy,
     "profile_centric": ProfileCentricPageStrategy,
-    "kit_fixed": KitFixedPageStrategy,
+    "kit_pinned": KitPinnedPageStrategy,
     "kit_latest": KitLatestPageStrategy,
 }
 """Явное сопоставление ключа стратегии её классу.
@@ -28,7 +28,7 @@ def create_strategy(strategy_type: str, **kwargs: Any) -> BasePublishStrategy:
 
     Args:
         strategy_type: Ключ стратегии (``'passports'``, ``'release'``,
-            ``'profile_centric'``, ``'kit_fixed'`` или ``'kit_latest'``).
+            ``'profile_centric'``, ``'kit_pinned'`` или ``'kit_latest'``).
         **kwargs: Аргументы конструктора выбранной стратегии.
 
     Returns:
@@ -50,7 +50,7 @@ def single_page_strategy_types() -> list[str]:
     Возвращает отсортированный список ключей одностраничных стратегий.
 
     Одностраничные стратегии — те, у кого ``IS_SINGLE_PAGE`` равен ``True``
-    (``release``, ``profile_centric``, ``kit_fixed``, ``kit_latest``).
+    (``release``, ``profile_centric``, ``kit_pinned``, ``kit_latest``).
     ``passports`` сюда не входит: это стратегия с иерархией страниц.
 
     Returns:

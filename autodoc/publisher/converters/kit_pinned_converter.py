@@ -5,10 +5,10 @@ from autodoc.models.release import Release
 from autodoc.publisher.converters.base_kit_converter import BaseKitConverter
 
 
-class KitFixedConverter(BaseKitConverter):
-    """Конвертер страницы с фиксированными версиями компонентов по каналам."""
+class KitPinnedConverter(BaseKitConverter):
+    """Конвертер страницы с закреплёнными версиями компонентов по каналам."""
 
-    VERSION_COLUMN_TITLE = "Фиксированная версия"
+    VERSION_COLUMN_TITLE = "Закреплённая версия"
 
     def _build_row(self, comp: Component, rel: Release) -> tuple[str, str] | None:
         """Строит строку с точной Conan-ссылкой; дедупликация по паре «компонент + версия»."""

@@ -67,7 +67,7 @@ def test_available_strategies_matches_registered_strategy_types() -> None:
         pytest.param("release", True, id="release"),
         pytest.param("profile_centric", True, id="profile_centric"),
         pytest.param("passports", False, id="passports"),
-        pytest.param("kit_fixed", True, id="kit_fixed"),
+        pytest.param("kit_pinned", True, id="kit_pinned"),
         pytest.param("kit_latest", True, id="kit_latest"),
     ],
 )
@@ -82,7 +82,7 @@ def test_is_single_page_flag_matches_strategy_kind(
 @pytest.mark.parametrize(
     "strategy_type",
     [
-        pytest.param("kit_fixed", id="kit_fixed"),
+        pytest.param("kit_pinned", id="kit_pinned"),
         pytest.param("kit_latest", id="kit_latest"),
     ],
 )
@@ -94,7 +94,7 @@ def test_create_strategy_kit_pages_return_correct_instance_type(
     tmp_path: Path,
 ) -> None:
     """
-    create_strategy('kit_fixed'|'kit_latest', ...) собирает экземпляр
+    create_strategy('kit_pinned'|'kit_latest', ...) собирает экземпляр
     зарегистрированного класса стратегии.
     """
     strategy = create_strategy(

@@ -20,8 +20,8 @@ from autodoc.models.conan_variant import ProfileBuild
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.models.release import Release
 from autodoc.publisher.converters.component_centric_converter import ComponentCentricConverter
-from autodoc.publisher.converters.kit_fixed_converter import KitFixedConverter
 from autodoc.publisher.converters.kit_latest_converter import KitLatestConverter
+from autodoc.publisher.converters.kit_pinned_converter import KitPinnedConverter
 from autodoc.publisher.converters.passport_converter import PassportConverter
 from autodoc.publisher.converters.profile_converter import ProfileCentricConverter
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
@@ -193,19 +193,19 @@ _EMBEDDING_KIT_TEMPLATE: str = "embedding_kit.jinja2"
 
 
 @pytest.mark.integration
-def test_embedding_kit_template_renders_kit_fixed_converter_output(
+def test_embedding_kit_template_renders_kit_pinned_converter_output(
     builder: DocumentBuilder, publisher_multi_component_result: ParsedResult
 ) -> None:
     """
-    embedding_kit.jinja2 рендерит реальный вывод KitFixedConverter: точные Conan-ссылки,
-    сгруппированные по каналам, с заголовком колонки 'Фиксированная версия'.
+    embedding_kit.jinja2 рендерит реальный вывод KitPinnedConverter: точные Conan-ссылки,
+    сгруппированные по каналам, с заголовком колонки 'Закреплённая версия'.
     """
-    view_model: dict[str, Any] = KitFixedConverter().convert(publisher_multi_component_result)
+    view_model: dict[str, Any] = KitPinnedConverter().convert(publisher_multi_component_result)
 
     output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
 
     assert output.strip(), "Отрендеренный вывод embedding_kit.jinja2 пуст"
-    assert "Фиксированная версия" in output
+    assert "Закреплённая версия" in output
     assert "openssl/1.0.0@platform/2.0-tech" in output
     assert "zlib/1.2.11@platform/2.0-tech" in output
     assert "Канал tech" in output
@@ -244,7 +244,7 @@ def test_embedding_kit_template_renders_without_error_on_empty_channels(
     """
     view_model: dict[str, Any] = {
         "platform_version": "2.0",
-        "version_column_title": "Фиксированная версия",
+        "version_column_title": "Закреплённая версия",
         "channels": [],
     }
     output: str = builder.build(_EMBEDDING_KIT_TEMPLATE, view_model)
