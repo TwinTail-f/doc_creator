@@ -16,6 +16,7 @@ from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from tests.unit.parser.conftest import CallbackStep, FailingStep, FakeTFSClient, FinalizeOnlyStep
+from tests.unit.parser.steps.conftest import FakeArtifactoryClient
 
 
 @pytest.mark.business_logic
@@ -185,29 +186,31 @@ def test_component_parser_default_pipeline_step_order(
     assert [type(s) for s in parser._steps] == expected_order
 
 
-@pytest.mark.infrastructure
-def test_component_parser_uses_injected_artifactory_client(
-    mocker: MockerFixture,
+@pytest.mark.contract
+def test_component_parser_passes_injected_artifactory_client_to_context(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
     """
-    Если artifactory_client передан в конструктор ComponentParser, свой ArtifactoryClient
-    он не создаёт.
+    Клиент, переданный в конструктор ``ComponentParser``, попадает в контекст шагов как есть.
 
-    Метод ``ArtifactoryClient.__init__`` подменён на мок: он сработал бы при любом
-    создании ``ArtifactoryClient(...)``. Проверка ``assert_not_called`` показывает,
-    что парсер использовал переданный клиент и не создал запасной.
+    В пайплайн добавлен шаг-наблюдатель: он запоминает ``ctx.artifactory_client``,
+    который получает на выполнении. Ожидается тот же объект, что передали в
+    ``artifactory_client``, а не новый клиент, созданный парсером. Это гарантирует,
+    что подставленный клиент (например, заглушка в тестах) используется всеми
+    шагами и парсер не обращается к настоящему Artifactory.
     """
-    mock_artifactory_init = mocker.patch(
-        "autodoc.parser.parser.ArtifactoryClient.__init__",
-        return_value=None,
-    )
+    fake_client = FakeArtifactoryClient()
+    seen_clients: list[object] = []
     parser = ComponentParser(
         config=parser_config,
         data_dir=tmp_path,
-        steps=[FinalizeOnlyStep()],
-        artifactory_client=mocker.MagicMock(),
+        steps=[
+            CallbackStep(lambda ctx: seen_clients.append(ctx.artifactory_client)),
+            FinalizeOnlyStep(),
+        ],
+        artifactory_client=fake_client,
     )
     parser.parse()
-    mock_artifactory_init.assert_not_called()
+    assert len(seen_clients) == 1
+    assert seen_clients[0] is fake_client

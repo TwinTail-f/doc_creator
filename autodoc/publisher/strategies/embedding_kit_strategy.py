@@ -35,18 +35,16 @@ class EmbeddingKitPageStrategy(SinglePagePublishStrategy):
     @classmethod
     def _make_converter(cls, include_passport_links: bool = True) -> BaseDataConverter:
         """
-        Создаёт конвертер данных — экземпляр класса ``CONVERTER_CLS``.
+        Создаёт конвертер данных по классу из ``CONVERTER_CLS``.
 
-        ``CONVERTER_CLS`` — подкласс ``BaseDataConverter``, который задаёт наследник
-        (например, ``KitPinnedConverter`` у ``KitPinnedPageStrategy``).
+        Статический тип результата — ``BaseDataConverter``; конкретный подкласс
+        определяет ``CONVERTER_CLS`` у наследника.
 
         Args:
-            include_passport_links: Не используется. Параметр нужен только для
-                совместимости с сигнатурой ``_make_converter()`` у остальных стратегий
-                (``ReleasePageStrategy``, ``ProfileCentricPageStrategy``); у страниц
-                комплекта для встраивания ссылок на паспорта нет.
+            include_passport_links: Не используется; нужен для совместимости с
+                сигнатурой ``_make_converter()`` других стратегий.
 
         Returns:
-            Новый экземпляр ``CONVERTER_CLS``.
+            Экземпляр подкласса ``BaseDataConverter``, заданного в ``CONVERTER_CLS``.
         """
         return cls.CONVERTER_CLS()
