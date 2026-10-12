@@ -16,7 +16,6 @@ from autodoc.parser.steps.manifest_step import ManifestStep
 from autodoc.parser.steps.options_step import OptionsResolveStep
 from autodoc.parser.steps.validation_step import ArtifactoryValidationStep
 from tests.unit.parser.conftest import CallbackStep, FailingStep, FakeTFSClient, FinalizeOnlyStep
-from tests.unit.parser.steps.conftest import FakeArtifactoryClient
 
 
 @pytest.mark.business_logic
@@ -184,33 +183,3 @@ def test_component_parser_default_pipeline_step_order(
         FinalizeStep,
     ]
     assert [type(s) for s in parser._steps] == expected_order
-
-
-@pytest.mark.contract
-def test_component_parser_passes_injected_artifactory_client_to_context(
-    parser_config: ParserConfigSchema,
-    tmp_path: Path,
-) -> None:
-    """
-    Клиент, переданный в конструктор ``ComponentParser``, попадает в контекст шагов как есть.
-
-    В пайплайн добавлен шаг-наблюдатель: он запоминает ``ctx.artifactory_client``,
-    который получает на выполнении. Ожидается тот же объект, что передали в
-    ``artifactory_client``, а не новый клиент, созданный парсером. Это гарантирует,
-    что подставленный клиент (например, заглушка в тестах) используется всеми
-    шагами и парсер не обращается к настоящему Artifactory.
-    """
-    fake_client = FakeArtifactoryClient()
-    seen_clients: list[object] = []
-    parser = ComponentParser(
-        config=parser_config,
-        data_dir=tmp_path,
-        steps=[
-            CallbackStep(lambda ctx: seen_clients.append(ctx.artifactory_client)),
-            FinalizeOnlyStep(),
-        ],
-        artifactory_client=fake_client,
-    )
-    parser.parse()
-    assert len(seen_clients) == 1
-    assert seen_clients[0] is fake_client

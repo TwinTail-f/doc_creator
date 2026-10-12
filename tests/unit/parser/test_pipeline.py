@@ -9,6 +9,7 @@
 проверяют, что именно попадает в этот снимок и в каком виде.
 """
 
+import json
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ import pytest
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.models.component import Component
 from autodoc.models.profile_definition import ProfileDefinition
+from autodoc.models.types import ReleaseKey
 from autodoc.parser.pipeline.context import PipelineContext
 from autodoc.parser.steps.base_parse_step import BaseParseStep
 
@@ -101,16 +103,25 @@ def test_pipeline_context_snapshot_handles_non_dict_intermediate(
 
 
 @pytest.mark.business_logic
-def test_pipeline_context_snapshot_converts_tuple_keys(
+def test_pipeline_context_snapshot_is_json_serializable_with_release_key_keys(
     parser_config: ParserConfigSchema,
     tmp_path: Path,
 ) -> None:
-    """to_snapshot_dict преобразует ключи-кортежи в промежуточных словарях в строковые представления."""
+    """
+    Снимок контекста сериализуется в JSON, даже если в ``intermediate`` ключи — ``ReleaseKey``.
+
+    ``OptionsStep`` кладёт в ``intermediate["options_map"]`` словарь с ключами
+    ``ReleaseKey`` (это кортеж). ``json.dumps`` не умеет сериализовать кортежи в роли
+    ключей словаря и падает с ``TypeError``, который ``ComponentParser._save_intermediate``
+    не перехватывает, поэтому без преобразования ключей в строки
+    ``parse(save_intermediate=True)`` аварийно завершался бы после шага с опциями.
+    """
     ctx = PipelineContext(config=parser_config, tmp_dir=tmp_path)
-    ctx.intermediate["test_data"] = {("a", "b"): "value"}
+    release_key = ReleaseKey(comp_name="lib", version="1.0", channel="stable")
+    ctx.intermediate["options_map"] = {release_key: {"opt": "value"}}
     snapshot = ctx.to_snapshot_dict()
-    keys = list(snapshot["intermediate"]["test_data"].keys())
-    assert keys == ["['a', 'b']"]
+    json.dumps(snapshot)
+    assert list(snapshot["intermediate"]["options_map"]) == ["['lib', '1.0', 'stable']"]
 
 
 @pytest.mark.contract

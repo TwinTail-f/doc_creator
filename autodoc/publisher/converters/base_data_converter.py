@@ -126,7 +126,8 @@ class BaseDataConverter(ABC):
 
     @staticmethod
     def _resolve_profile_meta(
-        pd_map: dict[str, Any], profile_name: str
+        pd_map: dict[str, Any],
+        profile_name: str,
     ) -> tuple[dict[str, Any], str]:
         """
         Резолвит настройки и docker-образ профиля по его имени.
