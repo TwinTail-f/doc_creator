@@ -211,35 +211,3 @@ class RootPageResolver:
             section.root_parent_id,
             f"strategies.{strategy_type}.root_parent",
         )
-
-    def resolve_root_pages(
-        self,
-        passports_root_parent_name: str | None,
-        passports_root_parent_id: str | None,
-        release_root_page_name: str | None,
-        release_root_page_id: str | None,
-    ) -> tuple[str, str]:
-        """
-        Резолвит ID корневых страниц для паспортов и релизной документации.
-
-        Args:
-            passports_root_parent_name: Название корневой страницы паспортов
-                                        или ``None`` для поиска по конфигурации.
-            passports_root_parent_id: ID корневой страницы паспортов
-                                      или ``None`` для поиска по конфигурации.
-            release_root_page_name: Название родительской страницы релиза
-                                    или ``None`` для поиска по конфигурации.
-            release_root_page_id: ID родительской страницы релиза
-                                 или ``None`` для поиска по конфигурации.
-
-        Returns:
-            Кортеж ``(resolved_passports_root, resolved_release_parent)``.
-
-        """
-        resolved_root = self.resolve_passports_root(
-            passports_root_parent_name, passports_root_parent_id
-        )
-        resolved_release_parent = self.resolve_single_page_parent(
-            "release", release_root_page_name, release_root_page_id
-        )
-        return resolved_root, resolved_release_parent

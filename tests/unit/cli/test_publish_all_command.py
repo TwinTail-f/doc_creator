@@ -1,6 +1,7 @@
 """Тесты для autodoc/cli/commands/publish/all.py."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
@@ -8,12 +9,12 @@ from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import (
+    DEFAULT_KIT_LATEST_PAGE_TITLE,
+    DEFAULT_KIT_PINNED_PAGE_TITLE,
     DEFAULT_PROFILE_PAGE_TITLE,
     DEFAULT_RELEASE_PAGE_TITLE,
-    PASSPORT_TEMPLATE,
-    PROFILE_TEMPLATE,
-    RELEASE_TEMPLATE,
 )
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError
 from tests.unit.cli.utils import (
     make_confluence_config,
@@ -79,161 +80,151 @@ def _mock_collaborators(mocker: MockerFixture, publish_report=None, confluence_c
     return mock_publisher
 
 
+def _config_with_titles(titles: dict[str, str | None]) -> ConfluenceConfigSchema:
+    """
+    Создаёт конфиг Confluence с заданными ``page_title`` в указанных секциях ``strategies``.
+
+    Args:
+        titles: Соответствие «ключ секции стратегии → заголовок страницы».
+
+    Returns:
+        Провалидированный конфиг, в котором перечисленные секции имеют валидного родителя.
+    """
+    strategies: dict[str, Any] = {}
+    for section, title in titles.items():
+        strategies.update(strategy_override(section, page_title=title)["strategies"])
+    return make_confluence_config(strategies=strategies)
+
+
 @pytest.mark.business_logic
-def test_publish_all_happy_path_minimal_flags(
+def test_publish_all_takes_all_titles_from_config(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
-    """Без дополнительных флагов publish_all вызывается с документированными значениями по умолчанию."""
-    mock_publisher = _mock_collaborators(mocker)
+    """
+    Заголовки всех страниц берутся из секции ``strategies`` конфига Confluence.
+
+    В конфиге заданы собственные заголовки release, profile_centric, kit_pinned и kit_latest.
+    Команда запускается без аргументов и должна передать в ``publisher.publish_all()``
+    именно их, а ничего другого (значения по умолчанию) не подставлять.
+    """
+    confluence_config = _config_with_titles(
+        {
+            "release": "Release Title",
+            "profile_centric": "Profile Title",
+            "kit_pinned": "Pinned Title",
+            "kit_latest": "Latest Title",
+        }
+    )
+    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
     result = _invoke(tmp_path, configs_dir)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     mock_publisher.publish_all.assert_called_once()
     kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["release_template_name"] == RELEASE_TEMPLATE
-    assert kwargs["passport_template_name"] == PASSPORT_TEMPLATE
-    assert kwargs["profile_title"] is None
-    assert kwargs["profile_template_name"] is None
-    assert kwargs["include_passport_links"] is True
+    assert kwargs["release_page_title"] == "Release Title"
+    assert kwargs["profile_page_title"] == "Profile Title"
+    assert kwargs["kit_pinned_page_title"] == "Pinned Title"
+    assert kwargs["kit_latest_page_title"] == "Latest Title"
 
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
-    ("cli_title", "config_title", "expected"),
+    ("strategy_type", "kwarg_name", "default_title"),
     [
-        pytest.param("CLI Title", "Config Title", "CLI Title", id="cli-flag-wins"),
-        pytest.param(None, "Config Title", "Config Title", id="config-field-wins"),
-        pytest.param(None, None, DEFAULT_RELEASE_PAGE_TITLE, id="default-wins"),
+        pytest.param("release", "release_page_title", DEFAULT_RELEASE_PAGE_TITLE, id="release"),
+        pytest.param(
+            "profile_centric", "profile_page_title", DEFAULT_PROFILE_PAGE_TITLE, id="profile"
+        ),
+        pytest.param(
+            "kit_pinned", "kit_pinned_page_title", DEFAULT_KIT_PINNED_PAGE_TITLE, id="kit-pinned"
+        ),
+        pytest.param(
+            "kit_latest", "kit_latest_page_title", DEFAULT_KIT_LATEST_PAGE_TITLE, id="kit-latest"
+        ),
     ],
 )
-def test_publish_all_release_page_title_precedence(
+def test_publish_all_falls_back_to_default_title_when_config_title_is_empty(
     tmp_path: Path,
     configs_dir: Path,
     mocker: MockerFixture,
-    cli_title: str | None,
-    config_title: str | None,
-    expected: str,
+    strategy_type: str,
+    kwarg_name: str,
+    default_title: str,
 ) -> None:
-    """Приоритет источников заголовка релиза: флаг CLI > поле конфига > значение по умолчанию."""
-    confluence_config = make_confluence_config(
-        **strategy_override("release", page_title=config_title)
-    )
+    """
+    Если ``page_title`` секции в конфиге не задан (``None``), используется заголовок по умолчанию.
+
+    Проверяется для каждой из четырёх одностраничных публикаций: для каждой в
+    ``autodoc.cli.constants`` есть собственное значение по умолчанию.
+    """
+    confluence_config = _config_with_titles({strategy_type: None})
     mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
 
-    args = ["--release-doc-page-name", cli_title] if cli_title else []
-    result = _invoke(tmp_path, configs_dir, *args)
+    result = _invoke(tmp_path, configs_dir)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["release_page_title"] == expected
+    assert kwargs[kwarg_name] == default_title
 
 
 @pytest.mark.business_logic
-@pytest.mark.parametrize(
-    ("extra_args", "expected_profile_title"),
-    [
-        # без пользовательского имени — используется заголовок профиля по умолчанию
-        pytest.param([], DEFAULT_PROFILE_PAGE_TITLE, id="default-name"),
-        # --additional-page-profile-name переопределяет заголовок по умолчанию
-        pytest.param(["--additional-page-profile-name", "X"], "X", id="custom-name"),
-    ],
-)
-def test_publish_all_with_additional_page_profile_title(
-    tmp_path: Path,
-    configs_dir: Path,
-    mocker: MockerFixture,
-    extra_args: list[str],
-    expected_profile_title: str,
-) -> None:
-    """
-    --with-additional-page-profile использует заголовок профиля по умолчанию, если
-    --additional-page-profile-name не задан, и переопределённое значение, если задан;
-    шаблон профиля в обоих случаях — PROFILE_TEMPLATE.
-    """
-    mock_publisher = _mock_collaborators(mocker)
-
-    result = _invoke(tmp_path, configs_dir, "--with-additional-page-profile", *extra_args)
-
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["profile_title"] == expected_profile_title
-    assert kwargs["profile_template_name"] == PROFILE_TEMPLATE
-
-
-@pytest.mark.business_logic
-def test_publish_all_profile_name_without_flag_raises_usage_error(
+def test_publish_all_prints_targets_selected_in_config(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
-    """--additional-page-profile-name без --with-additional-page-profile приводит к UsageError."""
-    _mock_collaborators(mocker)
+    """
+    Команда сообщает, какие типы публикации выбраны в ``publish_all.targets``.
 
-    result = _invoke(tmp_path, configs_dir, "--additional-page-profile-name", "X")
+    В конфиге выбраны только release и kit_latest (с родителями), поэтому в выводе должны
+    быть именно они, а остальные типы не упоминаются.
+    """
+    confluence_config = make_confluence_config(
+        strategies={
+            **strategy_override("release")["strategies"],
+            **strategy_override("kit_latest")["strategies"],
+        },
+        publish_all={"targets": ["release", "kit_latest"]},
+    )
+    _mock_collaborators(mocker, confluence_config=confluence_config)
 
-    assert result.exit_code != _EXIT_SUCCESS
-    assert "--with-additional-page-profile" in result.output
+    result = _invoke(tmp_path, configs_dir)
+
+    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
+    assert "release, kit_latest" in result.output
+    assert "passports" not in result.output
 
 
 @pytest.mark.contract
 @pytest.mark.parametrize(
-    "name_flag, id_flag, name_kwarg, id_kwarg",
+    "removed_flag",
     [
-        # пара для паспортов
-        pytest.param(
-            "--passports-root-parent-name",
-            "--passports-root-parent-id",
-            "passports_root_parent_name",
-            "passports_root_parent_id",
-            id="passports",
-        ),
-        # пара для релизной документации
-        pytest.param(
-            "--release-root-page-name",
-            "--release-root-page-id",
-            "release_root_page_name",
-            "release_root_page_id",
-            id="release",
-        ),
+        pytest.param("--passports-root-parent-name", id="passports-root-parent-name"),
+        pytest.param("--passports-root-parent-id", id="passports-root-parent-id"),
+        pytest.param("--release-root-page-name", id="release-root-page-name"),
+        pytest.param("--release-root-page-id", id="release-root-page-id"),
+        pytest.param("--release-doc-page-name", id="release-doc-page-name"),
+        pytest.param("--with-additional-page-profile", id="with-additional-page-profile"),
+        pytest.param("--additional-page-profile-name", id="additional-page-profile-name"),
+        pytest.param("--no-passport-links", id="no-passport-links"),
     ],
 )
-def test_publish_all_root_name_and_id_both_given_forwarded_to_publisher(
-    tmp_path: Path,
-    configs_dir: Path,
-    mocker: MockerFixture,
-    name_flag: str,
-    id_flag: str,
-    name_kwarg: str,
-    id_kwarg: str,
+def test_publish_all_rejects_removed_flags(
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture, removed_flag: str
 ) -> None:
     """
-    Название и ID родительской страницы (для паспортов и отдельно для релиза) можно
-    указывать вместе: CLI их не проверяет и не отклоняет, а просто пробрасывает оба
-    значения дальше без изменений. Приоритет между названием и id страницы CLI не
-    определяет — это происходит позже, при резолве родительской страницы
-    (RootPageResolver._resolve_root_parent).
+    ``publish all`` не принимает флаги, которые раньше переопределяли конфиг.
+
+    Click отклоняет неизвестную опцию с ненулевым кодом возврата, и публикация не
+    запускается: молча проигнорированный флаг привёл бы к публикации не туда, куда
+    рассчитывал пользователь.
     """
     mock_publisher = _mock_collaborators(mocker)
 
-    result = _invoke(tmp_path, configs_dir, name_flag, "Foo", id_flag, "123")
+    result = _invoke(tmp_path, configs_dir, removed_flag)
 
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs[name_kwarg] == "Foo"
-    assert kwargs[id_kwarg] == "123"
-
-
-@pytest.mark.business_logic
-def test_publish_all_no_passport_links_disables_links(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
-) -> None:
-    """--no-passport-links устанавливает include_passport_links=False."""
-    mock_publisher = _mock_collaborators(mocker)
-
-    result = _invoke(tmp_path, configs_dir, "--no-passport-links")
-
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["include_passport_links"] is False
+    assert result.exit_code != _EXIT_SUCCESS
+    assert "No such option" in result.output
+    mock_publisher.publish_all.assert_not_called()
 
 
 @pytest.mark.infrastructure

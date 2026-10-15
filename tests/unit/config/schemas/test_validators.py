@@ -5,7 +5,11 @@
 import pytest
 from pydantic import ValidationError
 
-from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema, StrategiesConfig
+from autodoc.config.schemas.confluence_config import (
+    ConfluenceConfigSchema,
+    PublishAllConfig,
+    StrategiesConfig,
+)
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 
 
@@ -208,3 +212,95 @@ def test_strategies_config_explicit_none_page_title_overrides_class_default(
     }
     config = ConfluenceConfigSchema(**payload)
     assert config.strategies.release.page_title is None
+
+
+@pytest.mark.business_logic
+def test_publish_all_targets_default_to_all_types_and_config_stays_valid_without_sections(
+    valid_confluence_config: dict,
+) -> None:
+    """
+    Без ключа ``publish_all`` выбраны все пять типов, но конфиг без секций с родителями валиден.
+
+    Такой конфиг может использоваться только отдельными командами ``publish ...``, поэтому
+    при загрузке схема на отсутствие родителей не реагирует. Полноту родителей для
+    ``publish all`` показывает ``missing_root_parents_error()``: в нём перечислены все четыре
+    секции, у которых родитель берётся из конфига, а ``profile_centric`` не упоминается —
+    профильная страница публикуется дочерней к релизу.
+    """
+    config = ConfluenceConfigSchema(**valid_confluence_config)
+
+    assert config.publish_all.targets == [
+        "passports",
+        "release",
+        "profile_centric",
+        "kit_pinned",
+        "kit_latest",
+    ]
+    error = config.missing_root_parents_error()
+    assert error is not None
+    for section in ("passports", "release", "kit_pinned", "kit_latest"):
+        assert f"strategies.{section}" in error
+    assert "strategies.profile_centric" not in error
+
+
+@pytest.mark.contract
+@pytest.mark.parametrize(
+    "targets, message",
+    [
+        pytest.param([], "at least 1 item", id="empty"),
+        pytest.param(["release", "release"], "повторяющиеся типы: release", id="duplicates"),
+        pytest.param(["profile_centric"], "добавьте 'release'", id="profile-without-release"),
+        pytest.param(["release", "unknown"], "Input should be 'passports'", id="unknown-type"),
+    ],
+)
+def test_publish_all_config_rejects_invalid_targets(targets: list[str], message: str) -> None:
+    """
+    ``PublishAllConfig`` отклоняет пустой список, повторы, неизвестные типы и ``profile_centric``
+    без ``release``.
+
+    Профильная страница публикуется дочерней к странице релиза, поэтому без ``release`` у неё
+    нет родителя; ошибка выявляется при загрузке конфига, а не в середине публикации.
+    """
+    with pytest.raises(ValidationError, match=message):
+        PublishAllConfig(targets=targets)
+
+
+@pytest.mark.business_logic
+def test_explicit_publish_all_requires_root_parent_for_every_selected_type(
+    valid_confluence_config: dict,
+) -> None:
+    """
+    Если ``publish_all`` указан явно, у каждого выбранного типа обязан быть родитель в конфиге.
+
+    Выбраны release, kit_pinned и kit_latest, а родитель задан только у release. Ошибка
+    называет сразу обе недостающие секции и подсказывает, как её устранить.
+    """
+    payload = {
+        **valid_confluence_config,
+        "strategies": {"release": {"root_parent_name": "R"}},
+        "publish_all": {"targets": ["release", "kit_pinned", "kit_latest"]},
+    }
+
+    with pytest.raises(ValidationError, match="strategies.kit_pinned, strategies.kit_latest"):
+        ConfluenceConfigSchema(**payload)
+
+
+@pytest.mark.business_logic
+def test_explicit_publish_all_does_not_require_sections_of_unselected_types(
+    valid_confluence_config: dict,
+) -> None:
+    """
+    Секции невыбранных типов в конфиге не нужны, а ``profile_centric`` родителя не требует.
+
+    Выбраны release и profile_centric: родитель задан только у release, и конфиг валиден,
+    потому что профильная страница получает родителем страницу релиза.
+    """
+    payload = {
+        **valid_confluence_config,
+        "strategies": {"release": {"root_parent_name": "R"}},
+        "publish_all": {"targets": ["release", "profile_centric"]},
+    }
+
+    config = ConfluenceConfigSchema(**payload)
+
+    assert config.missing_root_parents_error() is None

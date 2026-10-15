@@ -96,7 +96,7 @@ cp configs/examples/confluence_config.yaml configs/confluence_config.yaml
 # 1. Собрать данные компонентов
 python autodoc parse
 
-# 2. Опубликовать паспорта компонентов и релизную страницу
+# 2. Опубликовать паспорта, релиз, профили и комплект встраивания (типы и параметры — из конфига)
 python autodoc publish all
 ```
 
@@ -276,7 +276,12 @@ overrides:
 | `strategies.kit_latest.root_parent_name` | Название корневой родительской страницы последних сборок (без закрепления версии) |
 | `strategies.kit_latest.root_parent_id` | ID корневой родительской страницы последних сборок (без закрепления версии) |
 
-Все три пары задают **родителя**, под которым публикуемые страницы будут созданы в дереве
+Команда [`publish all`](#publish-all) берёт все родительские страницы только из конфига: для
+каждого выбранного в `publish_all.targets` типа (по умолчанию — всех) обязательна секция с
+`root_parent_name` и/или `root_parent_id`. Исключение — `profile_centric`: профильная страница
+публикуется дочерней к странице релиза, её секция для `publish all` не нужна.
+
+Все пары задают **родителя**, под которым публикуемые страницы будут созданы в дереве
 Confluence — сам инструмент эти страницы не создаёт, только ищет их по названию (или ID (число в url у страницы) )
 в пространстве `space` и публикует свой контент как дочерние страницы. Например, если в
 Confluence уже существует страница «Паспорта компонентов» и вы хотите, чтобы паспорта
@@ -321,6 +326,7 @@ strategies:
 | `strategies.profile_centric.page_title` | — | Заголовок страницы профиль-центричной документации |
 | `strategies.kit_pinned.page_title` | `"Комплект для встраивания компонентов platform"` | Заголовок страницы закреплённых версий компонентов по каналам |
 | `strategies.kit_latest.page_title` | `"Встраивание последних версий компонентов платформы"` | Заголовок страницы ссылок на последние сборки компонентов по каналам |
+| `publish_all.targets` | все пять типов | Какие типы публикации выполняет `publish all`: `passports`, `release`, `profile_centric`, `kit_pinned`, `kit_latest`. Порядок в списке не важен. `profile_centric` требует `release` в списке |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -331,6 +337,8 @@ strategies:
 `strategies.profile_centric.page_title` / `strategies.release.page_title` из конфига → встроенный
 заголовок по умолчанию (`"Документация от профилей"` для `publish profile`, `"Сборки компонентов
 Платформы"` для `publish release`). Первый заданный источник побеждает, остальные игнорируются.
+У `publish all` флагов нет: заголовки берутся из конфига, а при отсутствии значения — из встроенных
+заголовков по умолчанию.
 
 ### Структура директории configs/
 
@@ -353,16 +361,18 @@ configs/
 
 > [!TIP]
 > Если значение флага (например, `--root-page-name`, `--passports-root-parent-name`
-> или `--additional-page-profile-name`) содержит пробелы, обязательно оборачивайте
+> или `--page-title`) содержит пробелы, обязательно оборачивайте
 > его в кавычки: `--root-page-name "Моя страница"`. Без кавычек shell разобьёт
 > значение на несколько отдельных аргументов, и команда завершится ошибкой.
 
 ### Приоритет CLI и конфига для root page name и id
 
-Для всех команд публикации (`release`, `profile`, `passports`, `all`) корневую/родительскую
+Для команд публикации `release`, `profile`, `passports`, `kit-pinned` и `kit-latest` корневую/родительскую
 страницу можно задать по названию (`*_name`) и/или по ID (`*_id`), и в CLI-флагах, и в
 конфигурации — оба варианта разрешено указывать одновременно, в том числе вместе друг с
-другом (например, `--root-page-name` вместе с `--root-page-id`).
+другом (например, `--root-page-name` вместе с `--root-page-id`). У `publish all` флагов нет, поэтому
+все родительские страницы берутся из конфига, а правила ниже применяются внутри конфига
+(`*_name` > `*_id`).
 
 Итоговое значение определяется двумя правилами:
 
@@ -555,47 +565,51 @@ python autodoc publish kit-latest --root-page-name "Документация п�
 
 ### `publish all`
 
-Последовательно выполняет `publish passports`, затем `publish release`: паспорта и
-релизная страница за один вызов, со сквозными ссылками между ними.
+Публикует за один вызов типы, перечисленные в `publish_all.targets` конфига (по умолчанию —
+все пять), всегда в одном порядке:
 
-Пары `--passports-root-parent-name`/`--passports-root-parent-id` и
-`--release-root-page-name`/`--release-root-page-id` независимы друг от друга — правила
-приоритета (см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id))
-применяются к каждой паре отдельно.
+1. `passports` — паспорта компонентов (`publish passports`);
+2. `release` — релизная страница (`publish release`) со ссылками на паспорта;
+3. `profile_centric` — профильная страница (`publish profile`), дочерняя к странице релиза;
+4. `kit_pinned` — страница закреплённых версий (`publish kit-pinned`);
+5. `kit_latest` — страница последних сборок (`publish kit-latest`).
 
-| Флаг | Описание |
-|------|----------|
-| `--passports-root-parent-name "Название"` | Название корневой страницы иерархии паспортов (переопределяет конфиг). Приоритет над конфигом и `--passports-root-parent-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
-| `--passports-root-parent-id ID` | ID корневой страницы иерархии паспортов (переопределяет конфиг). Можно указывать вместе с `--passports-root-parent-name` |
-| `--release-root-page-name "Название"` | Название корневой родительской страницы релизной документации (переопределяет конфиг). Приоритет над конфигом и `--release-root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
-| `--release-root-page-id ID` | ID корневой родительской страницы релизной документации (переопределяет конфиг). Можно указывать вместе с `--release-root-page-name` |
-| `--release-doc-page-name` | Заголовок страницы релизной документации (переопределяет `strategies.release.page_title` из конфига) |
-| `--with-additional-page-profile` | Опубликовать дополнительную страницу в представлении от профилей (дочернюю к странице релиза) |
-| `--additional-page-profile-name "Название"` | Заголовок дополнительной страницы профилей. Требует `--with-additional-page-profile` |
-| `--no-passport-links` | Не вставлять ссылки на паспорта в страницы документации |
+У команды нет флагов — все параметры берутся из `confluence_config`:
+
+```yaml
+# Необязательно: выбрать часть типов (по умолчанию публикуются все)
+publish_all:
+  targets: [passports, release, kit_pinned]
+```
+
+| Что | Откуда |
+|-----|--------|
+| Родитель паспортов | `strategies.passports.root_parent_name` / `root_parent_id` |
+| Родитель релизной страницы | `strategies.release.root_parent_name` / `root_parent_id` |
+| Родитель страницы закреплённых версий | `strategies.kit_pinned.root_parent_name` / `root_parent_id` |
+| Родитель страницы последних сборок | `strategies.kit_latest.root_parent_name` / `root_parent_id` |
+| Родитель профильной страницы | страница релиза (секция `strategies.profile_centric` не нужна) |
+| Заголовки страниц | `strategies.<release/profile_centric/kit_pinned/kit_latest>.page_title`; если не задан — заголовок по умолчанию |
+
+Что проверяется до начала публикации:
+
+* Для каждого выбранного типа (кроме `profile_centric`) в конфиге задан `root_parent_name`
+  или `root_parent_id`. Если в конфиге явно указан `publish_all`, эта проверка выполняется
+  уже при загрузке конфига (в том числе в `config validate`). Если `publish_all` не указан,
+  проверка выполняется при запуске `publish all`. Ошибка перечисляет сразу все секции, где
+  родитель не задан.
+* Родительские страницы выбранных типов существуют в Confluence.
+* `targets` не пуст, не содержит повторов и неизвестных типов; `profile_centric` указан
+  только вместе с `release`.
+
+При любой из этих ошибок команда завершается с кодом 1 и ничего не публикует. Секции
+невыбранных типов в конфиге не нужны: например, чтобы публиковать без страниц комплекта,
+достаточно убрать `kit_pinned` и `kit_latest` из `targets`. Если нужны другие родители или
+заголовки, используйте отдельные команды `publish passports`, `publish release`,
+`publish profile`, `publish kit-pinned` и `publish kit-latest` — у них есть флаги.
 
 ```bash
-# Все параметры берутся из конфига
 python autodoc publish all
-
-# Переопределить корневые страницы через названия
-python autodoc publish all \
-  --passports-root-parent-name "Паспорта компонентов" \
-  --release-root-page-name "Документация к релизу 2.2" \
-  --release-doc-page-name "Платформа 2.2"
-
-# Переопределить через ID (альтернатива)
-python autodoc publish all \
-  --passports-root-parent-id 987654321 \
-  --release-doc-page-name "Платформа 2.2"
-
-# Опубликовать с дополнительной страницей в представлении от профилей
-python autodoc publish all \
-  --with-additional-page-profile \
-  --additional-page-profile-name "Документация от профилей"
-
-# Без ссылок на паспорта
-python autodoc publish all --no-passport-links
 ```
 
 ### `config`
@@ -717,9 +731,14 @@ ManifestStep → OptionsResolveStep → ConanEnrichStep
 | `release` | `publish release` | Одна страница: все компоненты с их релизами и профилями |
 | `profile_centric` | `publish profile` | Одна страница: вид по профилям сборки → каналам → компонентам |
 | `passports` | `publish passports` | Иерархия страниц: Корень → Компонент → Версия |
+| `kit_pinned` | `publish kit-pinned` | Одна страница: точные Conan-ссылки закреплённых версий по каналам |
+| `kit_latest` | `publish kit-latest` | Одна страница: ссылки на последние сборки компонентов по каналам |
 
-`publish all` последовательно выполняет `passports`, затем `release` — после первого шага
-генерируется карта ID страниц паспортов, которую `release` использует для вставки ссылок.
+`publish all` последовательно выполняет выбранные в `publish_all.targets` стратегии (по умолчанию
+все): `passports`, `release`, `profile_centric` (дочерняя страница релиза), `kit_pinned` и
+`kit_latest`. Порядок «паспорта → релиз» важен: после
+первого шага генерируется карта ID страниц паспортов, которую `release` использует для
+вставки ссылок.
 
 ---
 

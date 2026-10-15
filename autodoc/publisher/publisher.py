@@ -5,12 +5,14 @@ from typing import Any
 
 from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.common.logger import logger
+from autodoc.exceptions import ConfigError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
 from autodoc.publisher.strategies import passports_strategy
 from autodoc.publisher.strategies.models.publish_report import PublishReport
+from autodoc.publisher.strategies.profile_centric_strategy import ProfileCentricPageStrategy
 from autodoc.publisher.strategies.registry import create_strategy
 
 _RENDERING_DIR: Path = Path(__file__).resolve().parent / "rendering"
@@ -214,86 +216,99 @@ class DocumentPublisher:
         self,
         parsed_data: ParsedResult,
         release_page_title: str,
-        release_template_name: str,
-        passports_root_parent_name: str | None = None,
-        passports_root_parent_id: str | None = None,
-        release_root_page_name: str | None = None,
-        release_root_page_id: str | None = None,
-        passport_template_name: str = passports_strategy.PassportsStrategy.DEFAULT_TEMPLATE,
-        include_passport_links: bool = True,
-        profile_title: str | None = None,
-        profile_template_name: str | None = None,
+        profile_page_title: str,
+        kit_pinned_page_title: str,
+        kit_latest_page_title: str,
     ) -> PublishReport:
         """
-        Публикует паспорта, страницу релизной документации и (опционально)
-        профильную страницу за один вызов.
+        Публикует типы из ``publish_all.targets`` конфига в фиксированном порядке.
+
+        Порядок: паспорта, релиз, профили (дочерняя страница релиза), kit-pinned,
+        kit-latest. Родительские страницы берутся из конфигурации и проверяются до
+        начала публикации, чтобы ошибка конфига не оставила часть страниц опубликованной.
 
         Args:
             parsed_data: Данные парсера.
             release_page_title: Заголовок страницы релизной документации.
-            release_template_name: Имя Jinja2-шаблона для страницы релиза.
-            passports_root_parent_name: Название корневой страницы иерархии
-                                        паспортов, введённое пользователем.
-                                        Если не указано — берётся из конфигурации.
-            passports_root_parent_id: ID корневой страницы иерархии паспортов,
-                                      введённый пользователем. Если не указан —
-                                      берётся из конфигурации.
-            release_root_page_name: Название родительской страницы для страницы
-                                    релиза, введённое пользователем.
-            release_root_page_id: ID родительской страницы для страницы релиза,
-                                 введённый пользователем.
-            passport_template_name: Имя Jinja2-шаблона паспортов.
-            include_passport_links: Если ``True``, в страницу релиза вставляются
-                                    ссылки на опубликованные паспорта.
-            profile_title: Заголовок дополнительной профильной страницы.
-                           Если задан вместе с ``profile_template_name``, профильная
-                           страница публикуется как дочерняя к странице релиза.
-            profile_template_name: Имя Jinja2-шаблона для профильной страницы.
-                                   Обязателен при указании ``profile_title``.
+            profile_page_title: Заголовок профильной страницы.
+            kit_pinned_page_title: Заголовок страницы закреплённых версий компонентов.
+            kit_latest_page_title: Заголовок страницы последних сборок компонентов.
 
         Returns:
             Агрегированный ``PublishReport`` по всем опубликованным страницам.
+
+        Raises:
+            ConfigError: Если у выбранного типа не задан родитель в конфигурации
+                либо родительская страница не найдена в Confluence.
         """
-        logger.info("Публикация паспортов + релиза")
+        targets = self._config.publish_all.targets
+        logger.info(f"Публикация типов: {', '.join(targets)}")
 
-        resolved_root, resolved_release_parent = self._page_resolver.resolve_root_pages(
-            passports_root_parent_name,
-            passports_root_parent_id,
-            release_root_page_name,
-            release_root_page_id,
+        error = self._config.missing_root_parents_error()
+        if error:
+            raise ConfigError(error)
+
+        passports_root_id = (
+            self._page_resolver.resolve_passports_root(None, None)
+            if "passports" in targets
+            else None
         )
+        parent_ids = {
+            target: self._page_resolver.resolve_single_page_parent(target, None, None)
+            for target in ("release", "kit_pinned", "kit_latest")
+            if target in targets
+        }
 
-        passports_report = self.publish(
-            strategy_type="passports",
-            parsed_data=parsed_data,
-            root_page_id=resolved_root,
-            template_name=passport_template_name,
-            batch_size=self._config.publish_batch_size,
-            batch_delay_seconds=self._config.publish_batch_delay_seconds,
-            target_release_version=self._config.target_release_version,
-        )
-
-        release_report = self.publish(
-            strategy_type="release",
-            parsed_data=parsed_data,
-            page_title=release_page_title,
-            template_name=release_template_name,
-            parent_id=resolved_release_parent,
-            include_passport_links=include_passport_links,
-        )
-
-        # Профильная страница публикуется здесь, пока release_report ещё не смешан
-        # с отчётом паспортов — это гарантирует, что details[0] будет именно
-        # страницей релиза, а не первым паспортом компонента.
-        reports: list[PublishReport] = [passports_report, release_report]
-        if profile_title and profile_template_name:
-            profile_report = self.publish_profile_page(
-                parsed_data=parsed_data,
-                profile_title=profile_title,
-                profile_template_name=profile_template_name,
-                release_report=release_report,
-                include_passport_links=include_passport_links,
+        reports: list[PublishReport] = []
+        if passports_root_id is not None:
+            reports.append(
+                self.publish(
+                    strategy_type="passports",
+                    parsed_data=parsed_data,
+                    root_page_id=passports_root_id,
+                    template_name=passports_strategy.PassportsStrategy.DEFAULT_TEMPLATE,
+                    batch_size=self._config.publish_batch_size,
+                    batch_delay_seconds=self._config.publish_batch_delay_seconds,
+                    target_release_version=self._config.target_release_version,
+                )
             )
-            reports.append(profile_report)
+        if "release" in targets:
+            release_report = self.publish(
+                strategy_type="release",
+                parsed_data=parsed_data,
+                page_title=release_page_title,
+                parent_id=parent_ids["release"],
+            )
+            reports.append(release_report)
+            # Профильная страница публикуется здесь, пока release_report ещё не смешан
+            # с остальными отчётами: это гарантирует, что details[0] будет именно
+            # страницей релиза, а не первым паспортом компонента.
+            if "profile_centric" in targets:
+                reports.append(
+                    self.publish_profile_page(
+                        parsed_data=parsed_data,
+                        profile_title=profile_page_title,
+                        profile_template_name=ProfileCentricPageStrategy.DEFAULT_TEMPLATE,
+                        release_report=release_report,
+                    )
+                )
+        if "kit_pinned" in targets:
+            reports.append(
+                self.publish(
+                    strategy_type="kit_pinned",
+                    parsed_data=parsed_data,
+                    page_title=kit_pinned_page_title,
+                    parent_id=parent_ids["kit_pinned"],
+                )
+            )
+        if "kit_latest" in targets:
+            reports.append(
+                self.publish(
+                    strategy_type="kit_latest",
+                    parsed_data=parsed_data,
+                    page_title=kit_latest_page_title,
+                    parent_id=parent_ids["kit_latest"],
+                )
+            )
 
         return PublishReport.merge(*reports)

@@ -2,7 +2,7 @@
 Схема конфигурации Confluence.
 """
 
-from typing import Literal
+from typing import Literal, get_args
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
@@ -106,6 +106,45 @@ class StrategiesConfig(BaseModel):
         return self
 
 
+PublishTarget = Literal["passports", "release", "profile_centric", "kit_pinned", "kit_latest"]
+"""Типы публикации, которые может выполнять ``publish all`` (ключи ``registry.STRATEGIES``)."""
+
+_TARGETS_WITH_OWN_PARENT: tuple[PublishTarget, ...] = (
+    "passports",
+    "release",
+    "kit_pinned",
+    "kit_latest",
+)
+"""Типы, для которых ``publish all`` берёт родительскую страницу из своей секции ``strategies``."""
+
+
+class PublishAllConfig(BaseModel):
+    """Настройки команды ``publish all``: какие типы публикации она выполняет."""
+
+    targets: list[PublishTarget] = Field(
+        default_factory=lambda: list(get_args(PublishTarget)),
+        min_length=1,
+        description=(
+            "Типы публикации для publish all: passports, release, profile_centric, "
+            "kit_pinned, kit_latest. По умолчанию — все. Порядок публикации фиксирован "
+            "и от порядка в списке не зависит."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _validate_targets(self) -> "PublishAllConfig":
+        """Запрещает повторы и profile_centric без release (родитель профильной страницы)."""
+        duplicates = sorted({t for t in self.targets if self.targets.count(t) > 1})
+        if duplicates:
+            raise ValueError(f"publish_all.targets: повторяющиеся типы: {', '.join(duplicates)}.")
+        if "profile_centric" in self.targets and "release" not in self.targets:
+            raise ValueError(
+                "publish_all.targets: 'profile_centric' публикуется дочерней страницей "
+                "релиза, добавьте 'release' или уберите 'profile_centric'."
+            )
+        return self
+
+
 class ConfluenceConfigSchema(BaseModel):
     """Схема валидации ``confluence_config.json`` / ``confluence_config.yaml``."""
 
@@ -132,6 +171,11 @@ class ConfluenceConfigSchema(BaseModel):
     strategies: StrategiesConfig = Field(
         default_factory=StrategiesConfig,
         description="Настройки публикации по типам стратегий (release/profile_centric/passports).",
+    )
+
+    publish_all: PublishAllConfig = Field(
+        default_factory=PublishAllConfig,
+        description="Настройки publish all: какие типы публикации выполнять.",
     )
 
     confluence_request_timeout: int = Field(
@@ -171,6 +215,44 @@ class ConfluenceConfigSchema(BaseModel):
         description='Подпись текущего релиза (например "Platform 2.2"). '
         "Используется в заголовке паспортов и метке вкладки релиза.",
     )
+
+    def missing_root_parents_error(self) -> str | None:
+        """
+        Проверяет, что у выбранных в ``publish_all.targets`` типов задан родитель.
+
+        Returns:
+            Текст ошибки со всеми секциями без ``root_parent_name``/``root_parent_id``
+            либо ``None``, если у всех выбранных типов родитель задан.
+        """
+        missing = [
+            f"strategies.{target}"
+            for target in _TARGETS_WITH_OWN_PARENT
+            if target in self.publish_all.targets
+            and not getattr(self.strategies, target).root_parent_id
+            and not getattr(self.strategies, target).root_parent_name
+        ]
+        if not missing:
+            return None
+        return (
+            f"publish_all.targets: для выбранных типов не задан root_parent_name или "
+            f"root_parent_id: {', '.join(missing)}. Заполните эти секции в конфиге "
+            "или уберите соответствующие типы из publish_all.targets."
+        )
+
+    @model_validator(mode="after")
+    def _require_root_parents_for_explicit_publish_all(self) -> "ConfluenceConfigSchema":
+        """
+        Если ``publish_all`` явно указан в конфиге, у выбранных типов должен быть родитель.
+
+        Без явного ``publish_all`` публикуются все типы, но конфиг остаётся валидным:
+        он может использоваться только отдельными командами ``publish ...``.
+        Тогда полноту родителей проверяет сам ``publish all`` перед публикацией.
+        """
+        if "publish_all" in self.model_fields_set:
+            error = self.missing_root_parents_error()
+            if error:
+                raise ValueError(error)
+        return self
 
     @field_validator("url")
     @classmethod

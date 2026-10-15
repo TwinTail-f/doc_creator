@@ -489,32 +489,47 @@ def test_resolve_single_page_parent_rejects_non_single_page_strategy_type(
         resolver.resolve_single_page_parent(strategy_type, "Some Name", None)
 
 
-# resolve_root_pages: паспорта + релиз
 @pytest.mark.business_logic
-def test_happy_path_returns_both_resolved_ids(
-    mocker: MockerFixture, minimal_confluence_config: dict
+@pytest.mark.parametrize("strategy_type", ["kit_pinned", "kit_latest"])
+def test_resolve_single_page_parent_kit_strategies_read_their_own_config_section(
+    mocker: MockerFixture, minimal_confluence_config: dict, strategy_type: str
 ) -> None:
-    """Оба значения резолвятся, возвращается кортеж (паспорта, релиз)."""
-    resolver, _ = _make_resolver(
+    """
+    resolve_single_page_parent('kit_pinned'/'kit_latest', None, None) читает
+    собственную секцию strategies.<strategy_type>, а не секцию соседней kit-стратегии.
+
+    ``publish all`` резолвит родителей обеих страниц комплекта только по конфигу,
+    поэтому у каждой секции своя родительская страница.
+    """
+    other_type = "kit_latest" if strategy_type == "kit_pinned" else "kit_pinned"
+    resolver, mock_client = _make_resolver(
         mocker,
         minimal_confluence_config,
-        known_pages={"Passports Root": "400004", "Release Parent": "400002"},
+        known_pages={"Own Parent": "400011", "Other Parent": "400012"},
+        strategies={
+            strategy_type: {"root_parent_name": "Own Parent"},
+            other_type: {"root_parent_name": "Other Parent"},
+        },
     )
 
-    resolved_root, resolved_release_parent = resolver.resolve_root_pages(
-        "Passports Root", None, "Release Parent", None
-    )
+    result = resolver.resolve_single_page_parent(strategy_type, None, None)
 
-    assert resolved_root == "400004"
-    assert resolved_release_parent == "400002"
+    assert result == "400011"
+    mock_client.find_page.assert_called_once_with("Own Parent", space=SPACE)
 
 
 @pytest.mark.business_logic
-def test_missing_passports_root_propagates_config_error(
-    mocker: MockerFixture, minimal_confluence_config: dict
+@pytest.mark.parametrize("strategy_type", ["kit_pinned", "kit_latest"])
+def test_resolve_single_page_parent_kit_strategy_without_config_section_raises_config_error(
+    mocker: MockerFixture, minimal_confluence_config: dict, strategy_type: str
 ) -> None:
-    """Отсутствие корневой страницы паспортов пробрасывает ConfigError."""
+    """
+    Если секции kit-стратегии нет в конфиге и родитель не передан, резолв завершается ``ConfigError``.
+
+    Это условие, при котором ``publish all`` останавливается до начала публикации:
+    в конфиге обязаны быть секции ``kit_pinned`` и ``kit_latest`` с родительской страницей.
+    """
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
-    with pytest.raises(ConfigError):
-        resolver.resolve_root_pages(None, None, None, None)
+    with pytest.raises(ConfigError, match=f"strategies.{strategy_type}.root_parent"):
+        resolver.resolve_single_page_parent(strategy_type, None, None)
