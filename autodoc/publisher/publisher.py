@@ -212,27 +212,17 @@ class DocumentPublisher:
             include_passport_links=include_passport_links,
         )
 
-    def publish_all(
-        self,
-        parsed_data: ParsedResult,
-        release_page_title: str,
-        profile_page_title: str,
-        kit_pinned_page_title: str,
-        kit_latest_page_title: str,
-    ) -> PublishReport:
+    def publish_all(self, parsed_data: ParsedResult) -> PublishReport:
         """
         Публикует типы из ``publish_all.targets`` конфига в фиксированном порядке.
 
         Порядок: паспорта, релиз, профили (дочерняя страница релиза), kit-pinned,
-        kit-latest. Родительские страницы берутся из конфигурации и проверяются до
-        начала публикации, чтобы ошибка конфига не оставила часть страниц опубликованной.
+        kit-latest. Родительские страницы и заголовки берутся из конфигурации;
+        родители проверяются до начала публикации, чтобы ошибка конфига не оставила
+        часть страниц опубликованной.
 
         Args:
             parsed_data: Данные парсера.
-            release_page_title: Заголовок страницы релизной документации.
-            profile_page_title: Заголовок профильной страницы.
-            kit_pinned_page_title: Заголовок страницы закреплённых версий компонентов.
-            kit_latest_page_title: Заголовок страницы последних сборок компонентов.
 
         Returns:
             Агрегированный ``PublishReport`` по всем опубликованным страницам.
@@ -248,6 +238,7 @@ class DocumentPublisher:
         if error:
             raise ConfigError(error)
 
+        strategies = self._config.strategies
         passports_root_id = (
             self._page_resolver.resolve_passports_root(None, None)
             if "passports" in targets
@@ -276,7 +267,7 @@ class DocumentPublisher:
             release_report = self.publish(
                 strategy_type="release",
                 parsed_data=parsed_data,
-                page_title=release_page_title,
+                page_title=strategies.release.page_title,
                 parent_id=parent_ids["release"],
             )
             reports.append(release_report)
@@ -287,7 +278,7 @@ class DocumentPublisher:
                 reports.append(
                     self.publish_profile_page(
                         parsed_data=parsed_data,
-                        profile_title=profile_page_title,
+                        profile_title=strategies.profile_centric.page_title,
                         profile_template_name=ProfileCentricPageStrategy.DEFAULT_TEMPLATE,
                         release_report=release_report,
                     )
@@ -297,7 +288,7 @@ class DocumentPublisher:
                 self.publish(
                     strategy_type="kit_pinned",
                     parsed_data=parsed_data,
-                    page_title=kit_pinned_page_title,
+                    page_title=strategies.kit_pinned.page_title,
                     parent_id=parent_ids["kit_pinned"],
                 )
             )
@@ -306,7 +297,7 @@ class DocumentPublisher:
                 self.publish(
                     strategy_type="kit_latest",
                     parsed_data=parsed_data,
-                    page_title=kit_latest_page_title,
+                    page_title=strategies.kit_latest.page_title,
                     parent_id=parent_ids["kit_latest"],
                 )
             )

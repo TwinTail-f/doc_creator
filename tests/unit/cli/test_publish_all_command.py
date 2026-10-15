@@ -1,20 +1,12 @@
 """Тесты для autodoc/cli/commands/publish/all.py."""
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 from click.testing import CliRunner
 from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
-from autodoc.cli.constants import (
-    DEFAULT_KIT_LATEST_PAGE_TITLE,
-    DEFAULT_KIT_PINNED_PAGE_TITLE,
-    DEFAULT_PROFILE_PAGE_TITLE,
-    DEFAULT_RELEASE_PAGE_TITLE,
-)
-from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfigError
 from tests.unit.cli.utils import (
     make_confluence_config,
@@ -80,92 +72,42 @@ def _mock_collaborators(mocker: MockerFixture, publish_report=None, confluence_c
     return mock_publisher
 
 
-def _config_with_titles(titles: dict[str, str | None]) -> ConfluenceConfigSchema:
-    """
-    Создаёт конфиг Confluence с заданными ``page_title`` в указанных секциях ``strategies``.
-
-    Args:
-        titles: Соответствие «ключ секции стратегии → заголовок страницы».
-
-    Returns:
-        Провалидированный конфиг, в котором перечисленные секции имеют валидного родителя.
-    """
-    strategies: dict[str, Any] = {}
-    for section, title in titles.items():
-        strategies.update(strategy_override(section, page_title=title)["strategies"])
-    return make_confluence_config(strategies=strategies)
-
-
-@pytest.mark.business_logic
-def test_publish_all_takes_all_titles_from_config(
+@pytest.mark.contract
+def test_publish_all_passes_only_parsed_data_to_publisher(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """
-    Заголовки всех страниц берутся из секции ``strategies`` конфига Confluence.
+    ``publish all`` передаёт паблишеру только данные парсера, без заголовков и родителей.
 
-    В конфиге заданы собственные заголовки release, profile_centric, kit_pinned и kit_latest.
-    Команда запускается без аргументов и должна передать в ``publisher.publish_all()``
-    именно их, а ничего другого (значения по умолчанию) не подставлять.
+    Заголовки страниц и родительские страницы паблишер берёт из конфига сам (там же они
+    проверяются), поэтому команда без аргументов не должна подставлять никаких значений
+    по умолчанию из CLI.
     """
-    confluence_config = _config_with_titles(
-        {
-            "release": "Release Title",
-            "profile_centric": "Profile Title",
-            "kit_pinned": "Pinned Title",
-            "kit_latest": "Latest Title",
-        }
-    )
-    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
+    mock_publisher = _mock_collaborators(mocker)
 
     result = _invoke(tmp_path, configs_dir)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
     mock_publisher.publish_all.assert_called_once()
-    kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs["release_page_title"] == "Release Title"
-    assert kwargs["profile_page_title"] == "Profile Title"
-    assert kwargs["kit_pinned_page_title"] == "Pinned Title"
-    assert kwargs["kit_latest_page_title"] == "Latest Title"
+    assert set(mock_publisher.publish_all.call_args.kwargs) == {"parsed_data"}
 
 
 @pytest.mark.business_logic
-@pytest.mark.parametrize(
-    ("strategy_type", "kwarg_name", "default_title"),
-    [
-        pytest.param("release", "release_page_title", DEFAULT_RELEASE_PAGE_TITLE, id="release"),
-        pytest.param(
-            "profile_centric", "profile_page_title", DEFAULT_PROFILE_PAGE_TITLE, id="profile"
-        ),
-        pytest.param(
-            "kit_pinned", "kit_pinned_page_title", DEFAULT_KIT_PINNED_PAGE_TITLE, id="kit-pinned"
-        ),
-        pytest.param(
-            "kit_latest", "kit_latest_page_title", DEFAULT_KIT_LATEST_PAGE_TITLE, id="kit-latest"
-        ),
-    ],
-)
-def test_publish_all_falls_back_to_default_title_when_config_title_is_empty(
-    tmp_path: Path,
-    configs_dir: Path,
-    mocker: MockerFixture,
-    strategy_type: str,
-    kwarg_name: str,
-    default_title: str,
+def test_publish_all_config_error_from_publisher_exits_nonzero_cleanly(
+    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """
-    Если ``page_title`` секции в конфиге не задан (``None``), используется заголовок по умолчанию.
-
-    Проверяется для каждой из четырёх одностраничных публикаций: для каждой в
-    ``autodoc.cli.constants`` есть собственное значение по умолчанию.
+    ``ConfigError`` из ``publisher.publish_all()`` (в конфиге не хватает данных) завершает
+    команду с кодом 1 и понятным сообщением, без трейсбека.
     """
-    confluence_config = _config_with_titles({strategy_type: None})
-    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
+    mock_publisher = _mock_collaborators(mocker)
+    mock_publisher.publish_all.side_effect = ConfigError("strategies.kit_pinned (page_title)")
 
     result = _invoke(tmp_path, configs_dir)
 
-    assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
-    kwargs = mock_publisher.publish_all.call_args.kwargs
-    assert kwargs[kwarg_name] == default_title
+    assert result.exit_code == _EXIT_FAILURE
+    assert "Traceback" not in result.output
+    assert "strategies.kit_pinned (page_title)" in result.output
 
 
 @pytest.mark.business_logic

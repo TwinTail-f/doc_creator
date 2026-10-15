@@ -84,7 +84,7 @@ def test_strategies_config_absent_uses_defaults_for_all_sections(
     assert config.strategies.release.page_title == "Сборки компонентов Платформы"
     assert config.strategies.release.root_parent_id is None
     assert config.strategies.release.root_parent_name is None
-    assert config.strategies.profile_centric.page_title is None
+    assert config.strategies.profile_centric.page_title == "Документация от профилей"
     assert config.strategies.profile_centric.root_parent_id is None
     assert config.strategies.profile_centric.root_parent_name is None
     assert config.strategies.passports.root_parent_id is None
@@ -199,19 +199,34 @@ def test_strategies_config_passports_empty_section_raises() -> None:
 
 
 @pytest.mark.business_logic
-def test_strategies_config_explicit_none_page_title_overrides_class_default(
+@pytest.mark.parametrize("section_name", ["release", "profile_centric", "kit_pinned", "kit_latest"])
+@pytest.mark.parametrize(
+    "bad_title",
+    [
+        pytest.param(None, id="none"),
+        pytest.param("", id="empty"),
+        pytest.param("   ", id="blank"),
+    ],
+)
+def test_single_page_section_rejects_missing_or_blank_page_title(
     valid_confluence_config: dict,
+    section_name: str,
+    bad_title: str | None,
 ) -> None:
     """
-    Явный page_title=None в секции release побеждает дефолт класса
-    ReleaseDocsFields.page_title.
+    ``page_title`` секций release, profile_centric, kit_pinned и kit_latest обязан быть
+    непустой строкой: ``None``, пустое значение и пробелы отклоняются при загрузке конфига.
+
+    Проверка выполняется для любой из этих секций, независимо от ``publish_all.targets``:
+    страница с пустым заголовком не публикуется ни одной командой.
     """
     payload = {
         **valid_confluence_config,
-        "strategies": {"release": {"root_parent_name": "X", "page_title": None}},
+        "strategies": {section_name: {"root_parent_name": "X", "page_title": bad_title}},
     }
-    config = ConfluenceConfigSchema(**payload)
-    assert config.strategies.release.page_title is None
+
+    with pytest.raises(ValidationError, match=f"strategies.{section_name}.page_title"):
+        ConfluenceConfigSchema(**payload)
 
 
 @pytest.mark.business_logic
@@ -266,7 +281,7 @@ def test_publish_all_config_rejects_invalid_targets(targets: list[str], message:
 
 
 @pytest.mark.business_logic
-def test_explicit_publish_all_requires_root_parent_for_every_selected_type(
+def test_explicit_publish_all_requires_root_parent_for_selected_types_with_own_parent(
     valid_confluence_config: dict,
 ) -> None:
     """
@@ -281,8 +296,12 @@ def test_explicit_publish_all_requires_root_parent_for_every_selected_type(
         "publish_all": {"targets": ["release", "kit_pinned", "kit_latest"]},
     }
 
-    with pytest.raises(ValidationError, match="strategies.kit_pinned, strategies.kit_latest"):
+    with pytest.raises(ValidationError) as exc_info:
         ConfluenceConfigSchema(**payload)
+
+    message = str(exc_info.value)
+    assert "strategies.kit_pinned, strategies.kit_latest" in message
+    assert "strategies.release" not in message
 
 
 @pytest.mark.business_logic
@@ -304,3 +323,16 @@ def test_explicit_publish_all_does_not_require_sections_of_unselected_types(
     config = ConfluenceConfigSchema(**payload)
 
     assert config.missing_root_parents_error() is None
+
+
+@pytest.mark.business_logic
+def test_profile_centric_page_title_defaults_to_non_empty_title(
+    valid_confluence_config: dict,
+) -> None:
+    """
+    У профильной страницы есть непустой заголовок по умолчанию, поэтому ``publish all``
+    не требует настраивать секцию ``profile_centric`` ради одного заголовка.
+    """
+    config = ConfluenceConfigSchema(**valid_confluence_config)
+
+    assert config.strategies.profile_centric.page_title == "Документация от профилей"

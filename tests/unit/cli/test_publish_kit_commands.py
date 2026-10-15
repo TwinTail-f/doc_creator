@@ -17,8 +17,6 @@ from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import (
-    DEFAULT_KIT_LATEST_PAGE_TITLE,
-    DEFAULT_KIT_PINNED_PAGE_TITLE,
     KIT_LATEST_TEMPLATE,
     KIT_PINNED_TEMPLATE,
 )
@@ -156,7 +154,6 @@ def test_publish_kit_pinned_has_no_passport_links_flag(tmp_path: Path, configs_d
     [
         pytest.param("CLI Title", "Config Title", "CLI Title", id="cli-flag-wins"),
         pytest.param(None, "Config Title", "Config Title", id="config-field-wins"),
-        pytest.param(None, None, DEFAULT_KIT_PINNED_PAGE_TITLE, id="default-wins"),
     ],
 )
 def test_publish_kit_pinned_page_title_precedence(
@@ -169,7 +166,7 @@ def test_publish_kit_pinned_page_title_precedence(
 ) -> None:
     """
     Приоритет источников заголовка страницы для kit-pinned: флаг CLI > поле
-    конфига > значение по умолчанию (аналогично release/profile).
+    конфига (аналогично release/profile).
     """
     confluence_config = make_confluence_config(
         **strategy_override("kit_pinned", page_title=config_title)
@@ -263,7 +260,6 @@ def test_publish_kit_latest_passes_strategy_type_and_template(
     ("config_title", "expected_title"),
     [
         pytest.param("Latest Config Title", "Latest Config Title", id="config-field-wins"),
-        pytest.param(None, DEFAULT_KIT_LATEST_PAGE_TITLE, id="default-wins"),
     ],
 )
 def test_publish_kit_latest_title_source(

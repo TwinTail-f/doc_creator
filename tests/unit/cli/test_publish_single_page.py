@@ -18,8 +18,6 @@ from pytest_mock import MockerFixture
 from autodoc.cli.app import cli
 from autodoc.cli.commands.publish.single_page import run_single_page_command
 from autodoc.cli.constants import (
-    DEFAULT_PROFILE_PAGE_TITLE,
-    DEFAULT_RELEASE_PAGE_TITLE,
     PROFILE_TEMPLATE,
     RELEASE_TEMPLATE,
 )
@@ -101,7 +99,6 @@ def _mock_collaborators(
     [
         pytest.param("CLI Title", "Config Title", "CLI Title", id="cli-flag-wins"),
         pytest.param(None, "Config Title", "Config Title", id="config-field-wins"),
-        pytest.param(None, None, DEFAULT_RELEASE_PAGE_TITLE, id="default-wins"),
     ],
 )
 def test_publish_release_page_title_precedence(
@@ -112,7 +109,7 @@ def test_publish_release_page_title_precedence(
     config_title: str | None,
     expected: str,
 ) -> None:
-    """Приоритет источников заголовка страницы для release: флаг CLI > поле конфига > значение по умолчанию."""
+    """Приоритет источников заголовка страницы для release: флаг CLI > поле конфига."""
     confluence_config = make_confluence_config(
         **strategy_override("release", page_title=config_title)
     )
@@ -233,8 +230,6 @@ def test_publish_profile_passes_profile_centric_strategy_type(
     [
         # заголовок берётся из strategies.profile_centric.page_title конфига, а не как у release
         pytest.param("Profile Config Title", "Profile Config Title", id="config-field-wins"),
-        # ни флага, ни поля конфига нет — используется DEFAULT_PROFILE_PAGE_TITLE
-        pytest.param(None, DEFAULT_PROFILE_PAGE_TITLE, id="default-wins"),
     ],
 )
 def test_publish_profile_title_source(
@@ -247,8 +242,7 @@ def test_publish_profile_title_source(
     """
     Источником заголовка по умолчанию для profile служит
     confluence_config.strategies.profile_centric.page_title (а не
-    confluence_config.strategies.release.page_title, как у release); при его отсутствии
-    используется DEFAULT_PROFILE_PAGE_TITLE.
+    confluence_config.strategies.release.page_title, как у release).
     """
     confluence_config = make_confluence_config(
         **strategy_override("profile_centric", page_title=config_title)

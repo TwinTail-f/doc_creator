@@ -22,34 +22,42 @@ class RootParentFields(BaseModel):
 class SinglePageDocsFields(RootParentFields):
     """Поля single-page стратегий: адресация родителя + заголовок публикуемой страницы."""
 
-    page_title: str | None = Field(
-        default=None,
+    page_title: str = Field(
+        ...,
         description="Заголовок публикуемой страницы.",
     )
+
+    @field_validator("page_title")
+    @classmethod
+    def _require_non_blank_page_title(cls, v: str) -> str:
+        """Запрещает пустой заголовок и заголовок из одних пробелов."""
+        if not v.strip():
+            raise ValueError("page_title не может быть пустым")
+        return v
 
 
 class ReleaseDocsFields(SinglePageDocsFields):
     """Поля стратегии release — со своим дефолтным заголовком."""
 
-    page_title: str | None = Field(
+    page_title: str = Field(
         default="Сборки компонентов Платформы",
         description="Заголовок корневой страницы релизной документации.",
     )
 
 
 class ProfileCentricDocsFields(SinglePageDocsFields):
-    """
-    Поля стратегии profile_centric. Отдельный класс — по аналогии с ReleaseDocsFields,
-    хотя дефолт page_title тот же (None), что и в SinglePageDocsFields; так пара
-    (release, profile_centric) выглядит симметрично и в схему легко добавить
-    третьей single-page стратегии её собственный дефолт заголовка.
-    """
+    """Поля стратегии profile_centric — со своим дефолтным заголовком."""
+
+    page_title: str = Field(
+        default="Документация от профилей",
+        description="Заголовок страницы документации в представлении от профилей сборки.",
+    )
 
 
 class KitPinnedDocsFields(SinglePageDocsFields):
     """Поля стратегии kit_pinned — со своим дефолтным заголовком."""
 
-    page_title: str | None = Field(
+    page_title: str = Field(
         default="Комплект для встраивания компонентов platform",
         description="Заголовок страницы закреплённых версий компонентов по каналам.",
     )
@@ -58,7 +66,7 @@ class KitPinnedDocsFields(SinglePageDocsFields):
 class KitLatestDocsFields(SinglePageDocsFields):
     """Поля стратегии kit_latest — со своим дефолтным заголовком."""
 
-    page_title: str | None = Field(
+    page_title: str = Field(
         default="Встраивание последних версий компонентов платформы",
         description="Заголовок страницы ссылок на последние сборки компонентов по каналам.",
     )
@@ -220,9 +228,12 @@ class ConfluenceConfigSchema(BaseModel):
         """
         Проверяет, что у выбранных в ``publish_all.targets`` типов задан родитель.
 
+        Родитель (``root_parent_name`` или ``root_parent_id``) нужен ``passports``,
+        ``release``, ``kit_pinned`` и ``kit_latest``. Профильной странице он не нужен:
+        она публикуется дочерней к странице релиза.
+
         Returns:
-            Текст ошибки со всеми секциями без ``root_parent_name``/``root_parent_id``
-            либо ``None``, если у всех выбранных типов родитель задан.
+            Текст ошибки со всеми секциями без родителя либо ``None``.
         """
         missing = [
             f"strategies.{target}"
@@ -234,7 +245,7 @@ class ConfluenceConfigSchema(BaseModel):
         if not missing:
             return None
         return (
-            f"publish_all.targets: для выбранных типов не задан root_parent_name или "
+            "publish_all.targets: для выбранных типов не задан root_parent_name или "
             f"root_parent_id: {', '.join(missing)}. Заполните эти секции в конфиге "
             "или уберите соответствующие типы из publish_all.targets."
         )
@@ -246,7 +257,7 @@ class ConfluenceConfigSchema(BaseModel):
 
         Без явного ``publish_all`` публикуются все типы, но конфиг остаётся валидным:
         он может использоваться только отдельными командами ``publish ...``.
-        Тогда полноту родителей проверяет сам ``publish all`` перед публикацией.
+        Тогда наличие родителей проверяет сам ``publish all`` перед публикацией.
         """
         if "publish_all" in self.model_fields_set:
             error = self.missing_root_parents_error()

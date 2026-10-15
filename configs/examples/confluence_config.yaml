@@ -10,6 +10,7 @@ verify_ssl: false
 # параметры из этого файла (флагов у команды нет): для каждого выбранного в publish_all.targets
 # типа (по умолчанию — всех) обязательна секция с root_parent_name и/или root_parent_id.
 # Исключение — profile_centric: её страница публикуется дочерней к странице релиза.
+# page_title в секциях release, profile_centric, kit_pinned, kit_latest не может быть пустым.
 # Остальные команды (`publish release`, `publish profile` и т.д.) могут получать родительскую
 # страницу через CLI-флаги; для них секцию можно не указывать вовсе. Если секция указана —
 # обязательно root_parent_name и/или root_parent_id (иначе конфиг не провалидируется).

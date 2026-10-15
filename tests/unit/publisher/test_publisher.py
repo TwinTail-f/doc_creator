@@ -25,10 +25,12 @@ _KIT_LATEST_TITLE: str = "Kit Latest Page"
 
 
 _PARENT_SECTIONS: dict[str, dict[str, str]] = {
-    section: {"root_parent_name": f"{section} parent"}
-    for section in ("passports", "release", "kit_pinned", "kit_latest")
+    "passports": {"root_parent_name": "passports parent"},
+    "release": {"root_parent_name": "release parent", "page_title": _RELEASE_PAGE_TITLE},
+    "kit_pinned": {"root_parent_name": "kit_pinned parent", "page_title": _KIT_PINNED_TITLE},
+    "kit_latest": {"root_parent_name": "kit_latest parent", "page_title": _KIT_LATEST_TITLE},
 }
-"""Секции ``strategies`` с родителями для всех типов, у которых ``publish all`` берёт родителя из конфига."""
+"""Секции ``strategies`` с родителями и заголовками для всех типов ``publish all``."""
 
 
 def _make_publisher(
@@ -200,14 +202,8 @@ def _patch_resolver(
 
 
 def _publish_all(publisher: DocumentPublisher, parsed_data: ParsedResult) -> PublishReport:
-    """Вызывает ``publish_all()`` с заголовками, достаточными для всех страниц."""
-    return publisher.publish_all(
-        parsed_data=parsed_data,
-        release_page_title=_RELEASE_PAGE_TITLE,
-        profile_page_title=_PROFILE_TITLE,
-        kit_pinned_page_title=_KIT_PINNED_TITLE,
-        kit_latest_page_title=_KIT_LATEST_TITLE,
-    )
+    """Вызывает ``publish_all()``; заголовки и родители берутся из конфига паблишера."""
+    return publisher.publish_all(parsed_data=parsed_data)
 
 
 @pytest.mark.business_logic
@@ -305,17 +301,18 @@ def test_publisher_publish_all_publishes_profile_page_under_release_page(
 
 
 @pytest.mark.contract
-def test_publisher_publish_all_uses_config_parents_and_given_titles(
+def test_publisher_publish_all_uses_parents_and_titles_from_config(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
     """
-    Родители страниц резолвятся только по конфигу (без CLI-значений) и передаются стратегиям.
+    Родители и заголовки страниц берутся только из конфига и передаются стратегиям.
 
-    Резолвер вызывается с ``None`` вместо названия и ID страницы, то есть источником
-    служит секция ``strategies`` конфига. Результат резолва уходит в ``root_page_id``
-    паспортов и ``parent_id`` каждой одностраничной стратегии вместе с заданным заголовком.
+        Резолвер вызывается с ``None`` вместо названия и ID страницы, то есть источником
+        служит секция ``strategies`` конфига. Результат резолва уходит в ``root_page_id``
+        паспортов и ``parent_id`` каждой одностраничной стратегии вместе с ``page_title``
+        из той же секции. У профильной страницы заголовок — значение по умолчанию из схемы.
     """
     passports_mock, single_page_mock = _patch_resolver(mocker, publisher_all_parents)
     calls = _patch_create_strategy(mocker, _all_reports())
@@ -342,7 +339,11 @@ def test_publisher_publish_all_uses_config_parents_and_given_titles(
         "kit_latest-parent",
         _KIT_LATEST_TITLE,
     )
-    assert by_type["profile_centric"]["page_title"] == _PROFILE_TITLE
+    assert (
+        by_type["profile_centric"]["page_title"]
+        == publisher_all_parents._config.strategies.profile_centric.page_title
+    )
+    assert by_type["profile_centric"]["page_title"]
 
 
 @pytest.mark.business_logic
@@ -439,17 +440,20 @@ def test_publisher_publish_all_missing_parents_raise_one_error_before_publicatio
 
     В конфиге нет секций с родителями, а выбраны все типы по умолчанию. Ошибка перечисляет
     сразу все недостающие секции (а не только первую), резолвер в Confluence не обращается,
-    ``create_strategy`` не вызывается.
+    ``create_strategy`` не вызывается. Профильная страница родителя не требует.
     """
     passports_mock, single_page_mock = _patch_resolver(mocker, publisher_document_publisher)
     mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
 
-    with pytest.raises(
-        ConfigError,
-        match="strategies.passports, strategies.release, strategies.kit_pinned, strategies.kit_latest",
-    ):
+    with pytest.raises(ConfigError) as exc_info:
         _publish_all(publisher_document_publisher, publisher_parsed_result)
 
+    message = str(exc_info.value)
+    assert (
+        "strategies.passports, strategies.release, strategies.kit_pinned, strategies.kit_latest"
+        in message
+    )
+    assert "strategies.profile_centric" not in message
     mock_create.assert_not_called()
     passports_mock.assert_not_called()
     single_page_mock.assert_not_called()
