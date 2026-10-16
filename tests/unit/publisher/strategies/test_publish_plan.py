@@ -16,7 +16,8 @@ from autodoc.publisher.strategies.publish_plan import (
 
 @pytest.mark.contract
 def test_publish_plan_keys_match_registry_and_config_sections() -> None:
-    """Ключи плана, ``registry.STRATEGIES`` и секций ``StrategiesConfig`` совпадают.
+    """
+    Ключи плана, ``registry.STRATEGIES`` и секций ``StrategiesConfig`` совпадают.
 
     Чек-лист добавления новой страницы состоит из класса стратегии, строки реестра,
     узла плана и секции конфига. Если разработчик забыл один из шагов, множества ключей
@@ -45,7 +46,8 @@ def test_publish_plan_keys_match_registry_and_config_sections() -> None:
     [pytest.param(n, id=n.key) for n in PUBLISH_PLAN if n.parent_from is not None],
 )
 def test_publish_plan_parent_precedes_child_and_is_single_page(node: PublishNode) -> None:
-    """Родитель стоит в плане раньше потомка и является одностраничной стратегией.
+    """
+    Родитель стоит в плане раньше потомка и является одностраничной стратегией.
 
     ``publish_all()`` читает ``details[0]["page_id"]`` из отчёта родителя. У многостраничной
     стратегии (например, паспортов) «первая запись» не определяет родителя, а родитель,
@@ -60,7 +62,8 @@ def test_publish_plan_parent_precedes_child_and_is_single_page(node: PublishNode
 
 @pytest.mark.contract
 def test_publish_all_default_targets_follow_plan_order() -> None:
-    """Значение ``targets`` по умолчанию совпадает с порядком плана.
+    """
+    Значение ``targets`` по умолчанию совпадает с порядком плана.
 
     Без явного ``publish_all`` публикуются все типы; список по умолчанию строится из
     ``plan_keys()``, поэтому новый узел плана попадает в него без правок конфига.
@@ -70,7 +73,8 @@ def test_publish_all_default_targets_follow_plan_order() -> None:
 
 @pytest.mark.contract
 def test_parent_key_of_unknown_key_raises_value_error() -> None:
-    """``parent_key_of()`` на неизвестном ключе даёт явную ошибку, а не ``None``.
+    """
+    ``parent_key_of()`` на неизвестном ключе даёт явную ошибку, а не ``None``.
 
     ``None`` означает «у типа собственный родитель», поэтому возврат ``None`` для опечатки
     в ключе молча маскировал бы ошибку; ключ должен попасть в текст исключения.

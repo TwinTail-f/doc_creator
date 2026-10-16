@@ -352,7 +352,8 @@ def test_publish_all_targets_validation_follows_publish_plan_parents(
     key: str,
     parent_key: str,
 ) -> None:
-    """Валидация ``targets`` обобщена по ``parent_from`` из ``PUBLISH_PLAN``.
+    """
+    Валидация ``targets`` обобщена по ``parent_from`` из ``PUBLISH_PLAN``.
 
     Для каждого узла плана с ``parent_from`` проверяются два сценария: выбор узла без
     его родителя отклоняется с подсказкой ``добавьте '<родитель>'``, а выбор узла

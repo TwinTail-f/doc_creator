@@ -514,7 +514,8 @@ def test_publisher_publish_all_skips_child_when_parent_not_published(
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """Потомок пропускается при непубликации родителя, остальные типы публикуются.
+    """
+    Потомок пропускается при непубликации родителя, остальные типы публикуются.
 
     Отчёт релиза — неудача без ``details``, то есть ID родительской страницы взять негде.
     Профильная страница не должна публиковаться (``create_strategy`` для неё не вызывается),
@@ -549,7 +550,8 @@ def test_publisher_publish_all_child_parent_id_comes_from_parent_report(
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """Потомок получает ``parent_id`` из собственного отчёта родителя, а не из паспортов.
+    """
+    Потомок получает ``parent_id`` из собственного отчёта родителя, а не из паспортов.
 
     Паспорта возвращают отчёт с ``details`` раньше релиза; при слиянии отчётов первой
     записью оказался бы паспорт. Профильная страница обязана получить ID страницы релиза.
@@ -578,7 +580,8 @@ def test_publisher_publish_all_resolves_only_own_parents_before_first_publicatio
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """Фаза 1 резолвит только типы с собственным родителем, в порядке плана, до публикаций.
+    """
+    Фаза 1 резолвит только типы с собственным родителем, в порядке плана, до публикаций.
 
     Выбраны все типы. Все вызовы резолвера и ``create_strategy`` пишутся в один общий
     журнал: резолв идёт для passports, release, kit_pinned, kit_latest (но не для
