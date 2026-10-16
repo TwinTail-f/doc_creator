@@ -14,12 +14,11 @@ from autodoc.exceptions import ConfigError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.publisher import DocumentPublisher
 from autodoc.publisher.strategies.models.publish_report import PublishReport
+from autodoc.publisher.strategies.publish_plan import parent_key_of, plan_keys
 
 _ROOT_PAGE_ID: str = "root-001"
 _RELEASE_PAGE_TITLE: str = "Platform 2.0 Release"
 _RELEASE_TEMPLATE: str = "release_doc.jinja2"
-_PROFILE_TITLE: str = "Profile Page"
-_PROFILE_TEMPLATE: str = "profile_doc.jinja2"
 _KIT_PINNED_TITLE: str = "Kit Pinned Page"
 _KIT_LATEST_TITLE: str = "Kit Latest Page"
 
@@ -175,30 +174,22 @@ def _patch_create_strategy(
 def _patch_resolver(
     mocker: MockerFixture,
     publisher: DocumentPublisher,
-) -> tuple[MagicMock, MagicMock]:
+) -> MagicMock:
     """
-    Подменяет методы резолва родительских страниц в ``RootPageResolver`` паблишера.
+    Подменяет ``resolve_parent`` в ``RootPageResolver`` паблишера.
 
     Args:
         mocker: Фикстура pytest-mock для патчинга.
         publisher: Паблишер, чей резолвер подменяется.
 
     Returns:
-        Пара моков: ``resolve_passports_root`` и ``resolve_single_page_parent``.
-        Корень паспортов резолвится в ``"passports-root"``, родитель одностраничной
-        стратегии — в ``"<тип стратегии>-parent"``.
+        Мок ``resolve_parent``: любой ключ типа резолвится в ``"<тип стратегии>-parent"``.
     """
-    passports_mock = mocker.patch.object(
+    return mocker.patch.object(
         publisher._page_resolver,
-        "resolve_passports_root",
-        return_value="passports-root",
-    )
-    single_page_mock = mocker.patch.object(
-        publisher._page_resolver,
-        "resolve_single_page_parent",
+        "resolve_parent",
         side_effect=lambda strategy_type, name, page_id: f"{strategy_type}-parent",
     )
-    return passports_mock, single_page_mock
 
 
 def _publish_all(publisher: DocumentPublisher, parsed_data: ParsedResult) -> PublishReport:
@@ -288,8 +279,8 @@ def test_publisher_publish_all_publishes_profile_page_under_release_page(
     """
     Профильная страница публикуется дочерней к странице релиза, а не к корню из конфига.
 
-    ``page_id`` страницы релиза берётся из ``details[0]`` её отчёта; этот отчёт ещё не
-    должен быть смешан с отчётом паспортов (иначе в ``details[0]`` окажется паспорт).
+    ``page_id`` страницы релиза берётся из ``details[0]`` собственного отчёта родителя,
+    который никогда не смешивается с отчётами других типов (например, паспортов).
     """
     _patch_resolver(mocker, publisher_all_parents)
     calls = _patch_create_strategy(mocker, _all_reports())
@@ -310,23 +301,23 @@ def test_publisher_publish_all_uses_parents_and_titles_from_config(
     Родители и заголовки страниц берутся только из конфига и передаются стратегиям.
 
         Резолвер вызывается с ``None`` вместо названия и ID страницы, то есть источником
-        служит секция ``strategies`` конфига. Результат резолва уходит в ``root_page_id``
-        паспортов и ``parent_id`` каждой одностраничной стратегии вместе с ``page_title``
-        из той же секции. У профильной страницы заголовок — значение по умолчанию из схемы.
+        служит секция ``strategies`` конфига. Результат резолва уходит в ``parent_id``
+        каждой стратегии; у одностраничных — вместе с ``page_title`` из той же секции.
+        У профильной страницы заголовок — значение по умолчанию из схемы.
     """
-    passports_mock, single_page_mock = _patch_resolver(mocker, publisher_all_parents)
+    resolver_mock = _patch_resolver(mocker, publisher_all_parents)
     calls = _patch_create_strategy(mocker, _all_reports())
 
     _publish_all(publisher_all_parents, publisher_parsed_result)
 
-    passports_mock.assert_called_once_with(None, None)
-    assert [c.args for c in single_page_mock.call_args_list] == [
+    assert [c.args for c in resolver_mock.call_args_list] == [
+        ("passports", None, None),
         ("release", None, None),
         ("kit_pinned", None, None),
         ("kit_latest", None, None),
     ]
     by_type = dict(calls)
-    assert by_type["passports"]["root_page_id"] == "passports-root"
+    assert by_type["passports"]["parent_id"] == "passports-parent"
     assert (by_type["release"]["parent_id"], by_type["release"]["page_title"]) == (
         "release-parent",
         _RELEASE_PAGE_TITLE,
@@ -359,19 +350,15 @@ def test_publisher_publish_all_config_error_stops_before_any_publication(
     Родители резолвятся до первой публикации, поэтому ``create_strategy`` не должен быть
     вызван ни разу: иначе паспорта и релиз уже были бы опубликованы к моменту ошибки.
     """
-    _patch_resolver(mocker, publisher_all_parents)
-
-    def resolve_single_page_parent(
-        strategy_type: str, name: str | None, page_id: str | None
-    ) -> str:
+    def resolve_parent(strategy_type: str, name: str | None, page_id: str | None) -> str:
         if strategy_type == "kit_latest":
             raise ConfigError("родитель kit_latest не задан")
         return f"{strategy_type}-parent"
 
     mocker.patch.object(
         publisher_all_parents._page_resolver,
-        "resolve_single_page_parent",
-        side_effect=resolve_single_page_parent,
+        "resolve_parent",
+        side_effect=resolve_parent,
     )
     mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
 
@@ -407,10 +394,11 @@ def test_publisher_publish_all_runs_only_selected_targets(
     expected_order: list[str],
 ) -> None:
     """
-    publish_all() публикует только типы из ``publish_all.targets`` и в фиксированном порядке.
+    publish_all() публикует только типы из ``publish_all.targets`` и в порядке плана.
 
     Порядок элементов в конфиге на порядок публикации не влияет. Родители резолвятся
-    только для выбранных одностраничных типов: резолвер не вызывается для остальных.
+    только для выбранных типов с собственным родителем: резолвер не вызывается для
+    невыбранных типов и для типов, чей родитель — страница другого типа.
     """
     config_dict = {
         **minimal_confluence_config,
@@ -418,15 +406,16 @@ def test_publisher_publish_all_runs_only_selected_targets(
         "publish_all": {"targets": targets},
     }
     publisher = _make_publisher(config_dict, tmp_path, mocker)
-    passports_mock, single_page_mock = _patch_resolver(mocker, publisher)
+    resolver_mock = _patch_resolver(mocker, publisher)
     calls = _patch_create_strategy(mocker, _all_reports())
 
     _publish_all(publisher, publisher_parsed_result)
 
     assert [strategy_type for strategy_type, _ in calls] == expected_order
-    assert passports_mock.called == ("passports" in targets)
-    resolved_types = [c.args[0] for c in single_page_mock.call_args_list]
-    assert resolved_types == [t for t in ("release", "kit_pinned", "kit_latest") if t in targets]
+    resolved_types = [c.args[0] for c in resolver_mock.call_args_list]
+    assert resolved_types == [
+        t for t in plan_keys() if t in targets and parent_key_of(t) is None
+    ]
 
 
 @pytest.mark.business_logic
@@ -442,7 +431,7 @@ def test_publisher_publish_all_missing_parents_raise_one_error_before_publicatio
     сразу все недостающие секции (а не только первую), резолвер в Confluence не обращается,
     ``create_strategy`` не вызывается. Профильная страница родителя не требует.
     """
-    passports_mock, single_page_mock = _patch_resolver(mocker, publisher_document_publisher)
+    resolver_mock = _patch_resolver(mocker, publisher_document_publisher)
     mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
 
     with pytest.raises(ConfigError) as exc_info:
@@ -455,8 +444,7 @@ def test_publisher_publish_all_missing_parents_raise_one_error_before_publicatio
     )
     assert "strategies.profile_centric" not in message
     mock_create.assert_not_called()
-    passports_mock.assert_not_called()
-    single_page_mock.assert_not_called()
+    resolver_mock.assert_not_called()
 
 
 @pytest.mark.contract
@@ -468,7 +456,7 @@ def test_publisher_publish_passports_resolves_root_and_delegates(
     """publish_passports() резолвит корневую страницу и делегирует стратегии паспортов."""
     mocker.patch.object(
         publisher_document_publisher._page_resolver,
-        "resolve_passports_root",
+        "resolve_parent",
         return_value=_ROOT_PAGE_ID,
     )
     expected_report = PublishReport(success=True, pages_published=2)
@@ -485,7 +473,7 @@ def test_publisher_publish_passports_resolves_root_and_delegates(
 
     args, kwargs = mock_create.call_args
     assert args[0] == "passports"
-    assert kwargs["root_page_id"] == _ROOT_PAGE_ID
+    assert kwargs["parent_id"] == _ROOT_PAGE_ID
     assert result is expected_report
 
 
@@ -498,7 +486,7 @@ def test_publisher_publish_single_page_resolves_parent_and_delegates(
     """publish_single_page() резолвит родительскую страницу и делегирует выбранной стратегии."""
     mocker.patch.object(
         publisher_document_publisher._page_resolver,
-        "resolve_single_page_parent",
+        "resolve_parent",
         return_value=_ROOT_PAGE_ID,
     )
     expected_report = PublishReport(success=True, pages_published=1)
@@ -521,69 +509,106 @@ def test_publisher_publish_single_page_resolves_parent_and_delegates(
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_profile_page_uses_release_page_id_as_parent(
-    publisher_document_publisher: DocumentPublisher,
+def test_publisher_publish_all_skips_child_when_parent_not_published(
+    publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """publish_profile_page() использует ID страницы релиза как parent_id."""
-    release_report = PublishReport(
-        success=True,
-        pages_published=1,
-        details=[{"page_id": "release-page-1"}],
-    )
-    expected_report = PublishReport(success=True, pages_published=1)
-    mock_create = mocker.patch(
-        "autodoc.publisher.publisher.create_strategy",
-        return_value=_mock_strategy(expected_report, mocker),
-    )
+    """Потомок пропускается при непубликации родителя, остальные типы публикуются.
 
-    result = publisher_document_publisher.publish_profile_page(
-        parsed_data=publisher_parsed_result,
-        profile_title=_PROFILE_TITLE,
-        profile_template_name=_PROFILE_TEMPLATE,
-        release_report=release_report,
+    Отчёт релиза — неудача без ``details``, то есть ID родительской страницы взять негде.
+    Профильная страница не должна публиковаться (``create_strategy`` для неё не вызывается),
+    но паспорта и обе страницы комплекта публикуются как раньше. В итоговом отчёте профиль
+    учтён как неудавшаяся страница, а причина записана в лог ровно один раз.
+    """
+    _patch_resolver(mocker, publisher_all_parents)
+    reports = _all_reports(
+        release=PublishReport(success=False, pages_published=0, errors=["fail"])
     )
+    calls = _patch_create_strategy(mocker, reports)
+    mock_logger_error = mocker.patch("autodoc.publisher.publisher.logger.error")
 
-    args, kwargs = mock_create.call_args
-    assert args[0] == "profile_centric"
-    assert kwargs["parent_id"] == "release-page-1"
-    assert result is expected_report
+    result = _publish_all(publisher_all_parents, publisher_parsed_result)
+
+    assert [strategy_type for strategy_type, _ in calls] == [
+        "passports",
+        "release",
+        "kit_pinned",
+        "kit_latest",
+    ]
+    profile_title = publisher_all_parents._config.strategies.profile_centric.page_title
+    assert result.success is False
+    assert result.pages_failed == 1
+    assert [p["page_title"] for p in result.failed_pages] == [profile_title]
+    mock_logger_error.assert_called_once()
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_profile_page_fails_without_publishing_when_release_failed(
-    publisher_document_publisher: DocumentPublisher,
+def test_publisher_publish_all_child_parent_id_comes_from_parent_report(
+    publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
-    """
-    Если релизная страница не была опубликована (в отчёте нет details), профильная
-    страница не публикуется вовсе: create_strategy не вызывается, ошибка логируется,
-    а результат — отчёт о неудаче с указанием причины.
-    """
-    release_report = PublishReport(success=False, pages_published=0, errors=["fail"])
-    mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
-    mock_logger_error = mocker.patch("autodoc.publisher.publisher.logger.error")
+    """Потомок получает ``parent_id`` из собственного отчёта родителя, а не из паспортов.
 
-    result = publisher_document_publisher.publish_profile_page(
-        parsed_data=publisher_parsed_result,
-        profile_title=_PROFILE_TITLE,
-        profile_template_name=_PROFILE_TEMPLATE,
-        release_report=release_report,
+    Паспорта возвращают отчёт с ``details`` раньше релиза; при слиянии отчётов первой
+    записью оказался бы паспорт. Профильная страница обязана получить ID страницы релиза.
+    Это регрессионный тест на прежнюю причину существования порядка «релиз → профиль»
+    внутри одного блока.
+    """
+    _patch_resolver(mocker, publisher_all_parents)
+    reports = _all_reports(
+        passports=PublishReport(
+            success=True, pages_published=1, details=[{"page_id": "passport-page-1"}]
+        ),
+        release=PublishReport(
+            success=True, pages_published=1, details=[{"page_id": "release-page-1"}]
+        ),
     )
+    calls = _patch_create_strategy(mocker, reports)
 
-    mock_logger_error.assert_called_once()
-    mock_create.assert_not_called()
-    assert result.success is False
-    assert result.pages_published == 0
-    assert result.pages_failed == 1
-    assert result.failed_pages == [
-        {
-            "page_title": _PROFILE_TITLE,
-            "reason": (
-                f"Профильная страница {_PROFILE_TITLE!r} не опубликована: "
-                "страница релиза не была опубликована, родитель недоступен"
-            ),
-        }
+    _publish_all(publisher_all_parents, publisher_parsed_result)
+
+    assert dict(calls)["profile_centric"]["parent_id"] == "release-page-1"
+
+
+@pytest.mark.business_logic
+def test_publisher_publish_all_resolves_only_own_parents_before_first_publication(
+    publisher_all_parents: DocumentPublisher,
+    publisher_parsed_result: ParsedResult,
+    mocker: MockerFixture,
+) -> None:
+    """Фаза 1 резолвит только типы с собственным родителем, в порядке плана, до публикаций.
+
+    Выбраны все типы. Все вызовы резолвера и ``create_strategy`` пишутся в один общий
+    журнал: резолв идёт для passports, release, kit_pinned, kit_latest (но не для
+    profile_centric, чей родитель — страница релиза) и целиком предшествует первой
+    публикации, поэтому ошибка резолва не оставляет частично опубликованного состояния.
+    """
+    journal: list[tuple[str, str]] = []
+
+    def fake_resolve(strategy_type: str, name: str | None, page_id: str | None) -> str:
+        journal.append(("resolve", strategy_type))
+        return f"{strategy_type}-parent"
+
+    mocker.patch.object(
+        publisher_all_parents._page_resolver, "resolve_parent", side_effect=fake_resolve
+    )
+    reports = _all_reports()
+
+    def fake_create(strategy_type: str, **kwargs: Any) -> MagicMock:
+        journal.append(("create", strategy_type))
+        return _mock_strategy(reports[strategy_type], mocker)
+
+    mocker.patch("autodoc.publisher.publisher.create_strategy", side_effect=fake_create)
+
+    _publish_all(publisher_all_parents, publisher_parsed_result)
+
+    assert journal[:4] == [
+        ("resolve", "passports"),
+        ("resolve", "release"),
+        ("resolve", "kit_pinned"),
+        ("resolve", "kit_latest"),
     ]
+    assert all(action == "create" for action, _ in journal[4:])
+    assert len(journal) == 4 + len(_ALL_STRATEGY_TYPES)

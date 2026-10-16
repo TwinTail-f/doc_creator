@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from autodoc.common.logger import logger
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.converters.base_data_converter import BaseDataConverter
@@ -69,6 +70,20 @@ class SinglePagePublishStrategy(BasePublishStrategy):
         self._converter: BaseDataConverter = converter
         self._parent_id: str | None = parent_id
         self._passport_page_registry: PassportPageRegistry = PassportPageRegistry(data_dir)
+
+    @classmethod
+    def kwargs_from_config(cls, config: ConfluenceConfigSchema, key: str) -> dict[str, Any]:
+        """
+        Возвращает аргументы конструктора, заданные в конфигурации.
+
+        Args:
+            config: Конфигурация Confluence.
+            key: Ключ стратегии из ``registry.STRATEGIES``.
+
+        Returns:
+            Словарь аргументов без ``parent_id``.
+        """
+        return {"page_title": getattr(config.strategies, key).page_title}
 
     @staticmethod
     @abstractmethod

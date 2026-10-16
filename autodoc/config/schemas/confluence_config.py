@@ -2,8 +2,14 @@
 Схема конфигурации Confluence.
 """
 
-from typing import Literal, get_args
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from autodoc.publisher.strategies.publish_plan import (
+    PUBLISH_PLAN,
+    keys_with_own_parent,
+    plan_keys,
+)
 
 
 class RootParentFields(BaseModel):
@@ -95,15 +101,9 @@ class StrategiesConfig(BaseModel):
         Секция, явно присутствующая в конфиге, обязана задавать root_parent_name
         и/или root_parent_id. Секция, которую пользователь вообще не упомянул в файле
         (полагается целиком на CLI-флаги на каждый вызов) — легальна, для неё эта
-        проверка не запускается. См. раздел 2.3 спеки.
+        проверка не запускается.
         """
-        for section_name in self.model_fields_set & {
-            "release",
-            "profile_centric",
-            "passports",
-            "kit_pinned",
-            "kit_latest",
-        }:
+        for section_name in self.model_fields_set & set(plan_keys()):
             section: RootParentFields = getattr(self, section_name)
             if not section.root_parent_id and not section.root_parent_name:
                 raise ValueError(
@@ -114,42 +114,43 @@ class StrategiesConfig(BaseModel):
         return self
 
 
-PublishTarget = Literal["passports", "release", "profile_centric", "kit_pinned", "kit_latest"]
-"""Типы публикации, которые может выполнять ``publish all`` (ключи ``registry.STRATEGIES``)."""
-
-_TARGETS_WITH_OWN_PARENT: tuple[PublishTarget, ...] = (
-    "passports",
-    "release",
-    "kit_pinned",
-    "kit_latest",
-)
-"""Типы, для которых ``publish all`` берёт родительскую страницу из своей секции ``strategies``."""
-
-
 class PublishAllConfig(BaseModel):
     """Настройки команды ``publish all``: какие типы публикации она выполняет."""
 
-    targets: list[PublishTarget] = Field(
-        default_factory=lambda: list(get_args(PublishTarget)),
+    targets: list[str] = Field(
+        default_factory=plan_keys,
         min_length=1,
         description=(
-            "Типы публикации для publish all: passports, release, profile_centric, "
-            "kit_pinned, kit_latest. По умолчанию — все. Порядок публикации фиксирован "
+            f"Типы публикации для publish all: {', '.join(plan_keys())}. "
+            "По умолчанию — все. Порядок публикации задаётся планом публикации "
             "и от порядка в списке не зависит."
         ),
     )
 
     @model_validator(mode="after")
     def _validate_targets(self) -> "PublishAllConfig":
-        """Запрещает повторы и profile_centric без release (родитель профильной страницы)."""
+        """Запрещает неизвестные типы, повторы и дочерние типы без родителя из плана."""
+        known = plan_keys()
+        unknown = list(dict.fromkeys(t for t in self.targets if t not in known))
+        if unknown:
+            raise ValueError(
+                f"publish_all.targets: неизвестные типы: {', '.join(unknown)}. "
+                f"Допустимые: {', '.join(known)}."
+            )
         duplicates = sorted({t for t in self.targets if self.targets.count(t) > 1})
         if duplicates:
             raise ValueError(f"publish_all.targets: повторяющиеся типы: {', '.join(duplicates)}.")
-        if "profile_centric" in self.targets and "release" not in self.targets:
-            raise ValueError(
-                "publish_all.targets: 'profile_centric' публикуется дочерней страницей "
-                "релиза, добавьте 'release' или уберите 'profile_centric'."
-            )
+        for node in PUBLISH_PLAN:
+            if (
+                node.parent_from is not None
+                and node.key in self.targets
+                and node.parent_from not in self.targets
+            ):
+                raise ValueError(
+                    f"publish_all.targets: '{node.key}' публикуется дочерней страницей "
+                    f"'{node.parent_from}', добавьте '{node.parent_from}' "
+                    f"или уберите '{node.key}'."
+                )
         return self
 
 
@@ -228,16 +229,16 @@ class ConfluenceConfigSchema(BaseModel):
         """
         Проверяет, что у выбранных в ``publish_all.targets`` типов задан родитель.
 
-        Родитель (``root_parent_name`` или ``root_parent_id``) нужен ``passports``,
-        ``release``, ``kit_pinned`` и ``kit_latest``. Профильной странице он не нужен:
-        она публикуется дочерней к странице релиза.
+        Родитель (``root_parent_name`` или ``root_parent_id``) нужен типам плана без
+        ``parent_from``. Типам с ``parent_from`` (профильная страница) он не нужен:
+        они публикуются дочерними к странице своего родителя.
 
         Returns:
             Текст ошибки со всеми секциями без родителя либо ``None``.
         """
         missing = [
             f"strategies.{target}"
-            for target in _TARGETS_WITH_OWN_PARENT
+            for target in keys_with_own_parent()
             if target in self.publish_all.targets
             and not getattr(self.strategies, target).root_parent_id
             and not getattr(self.strategies, target).root_parent_name

@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 
 from jinja2 import TemplateError, TemplateNotFound
 
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 
@@ -59,6 +60,20 @@ class BasePublishStrategy(ABC):
         self._builder = document_builder
         self._data = parsed_data
         self._space = space
+
+    @classmethod
+    def kwargs_from_config(cls, config: ConfluenceConfigSchema, key: str) -> dict[str, Any]:
+        """
+        Возвращает аргументы конструктора, заданные в конфигурации.
+
+        Args:
+            config: Конфигурация Confluence.
+            key: Ключ стратегии из ``registry.STRATEGIES``.
+
+        Returns:
+            Словарь аргументов без ``parent_id``.
+        """
+        return {}
 
     def _render_and_publish(
         self,

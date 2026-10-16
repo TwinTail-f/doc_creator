@@ -1,9 +1,9 @@
 """
 Фикстуры и заглушки, используемые только тестами tests/unit/publisher/strategies/*.
 
-Перенесены сюда из tests/unit/publisher/conftest.py (см. план рефакторинга,
-п. 1.2) — ни FakeDocumentBuilder/publisher_document_builder, ни
-RecordingConfluenceClient не используются за пределами этого подпакета.
+Перенесены сюда из tests/unit/publisher/conftest.py — ни
+FakeDocumentBuilder/publisher_document_builder, ни RecordingConfluenceClient
+не используются за пределами этого подпакета.
 """
 
 import threading

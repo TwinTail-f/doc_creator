@@ -18,7 +18,9 @@ STRATEGIES: dict[str, type[BasePublishStrategy]] = {
 }
 """Явное сопоставление ключа стратегии её классу.
 
-Чтобы добавить новую стратегию, достаточно добавить одну строку в этот словарь.
+Чтобы добавить новую страницу: класс стратегии, строка в этом словаре, узел в
+``PUBLISH_PLAN`` и секция в ``StrategiesConfig``. Забытый шаг ловит тест
+``test_publish_plan_keys_match_registry_and_config_sections``.
 """
 
 

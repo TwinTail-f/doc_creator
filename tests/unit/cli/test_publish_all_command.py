@@ -97,17 +97,22 @@ def test_publish_all_config_error_from_publisher_exits_nonzero_cleanly(
     tmp_path: Path, configs_dir: Path, mocker: MockerFixture
 ) -> None:
     """
-    ``ConfigError`` из ``publisher.publish_all()`` (в конфиге не хватает данных) завершает
-    команду с кодом 1 и понятным сообщением, без трейсбека.
+    ``ConfigError`` из ``publisher.publish_all()`` (у выбранного типа не задан родитель)
+    завершает команду с кодом 1 и понятным сообщением, без трейсбека.
+
+    В тексте ошибки нет скобок и кавычек: Rich подсвечивает их отдельными ANSI-кодами, и
+    сравнение строки целиком зависело бы от того, цветной ли у терминала вывод.
     """
     mock_publisher = _mock_collaborators(mocker)
-    mock_publisher.publish_all.side_effect = ConfigError("strategies.kit_pinned (page_title)")
+    mock_publisher.publish_all.side_effect = ConfigError(
+        "не задан родитель для strategies.kit_pinned"
+    )
 
     result = _invoke(tmp_path, configs_dir)
 
     assert result.exit_code == _EXIT_FAILURE
     assert "Traceback" not in result.output
-    assert "strategies.kit_pinned (page_title)" in result.output
+    assert "не задан родитель для strategies.kit_pinned" in result.output
 
 
 @pytest.mark.business_logic

@@ -740,6 +740,17 @@ ManifestStep → OptionsResolveStep → ConanEnrichStep
 первого шага генерируется карта ID страниц паспортов, которую `release` использует для
 вставки ссылок.
 
+#### Как добавить новую страницу
+
+1. Написать класс стратегии (наследник `SinglePagePublishStrategy` или `BasePublishStrategy`).
+2. Добавить строку в `STRATEGIES` (`autodoc/publisher/strategies/registry.py`).
+3. Добавить узел в `PUBLISH_PLAN` (`autodoc/publisher/strategies/publish_plan.py`): порядок
+   публикации и `parent_from`, если страница публикуется под страницей другого типа.
+4. Добавить секцию с тем же именем в `StrategiesConfig`.
+
+`DocumentPublisher.publish_all` менять не нужно. Забытый шаг ловит тест
+`test_publish_plan_keys_match_registry_and_config_sections`.
+
 ---
 
 ## Шаблоны и оформление

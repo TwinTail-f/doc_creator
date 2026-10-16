@@ -135,73 +135,30 @@ class RootPageResolver:
             f" в конфигурации Confluence"
         )
 
-    def resolve_passports_root(
-        self,
-        name: str | None,
-        page_id: str | None,
-    ) -> str:
-        """
-        Резолвит ID корневой страницы иерархии паспортов.
-
-        Если ``name``/``page_id`` не заданы — берёт значения из
-        ``confluence_config.strategies.passports`` как запасной вариант.
-
-        Args:
-            name: Название корневой страницы паспортов, введённое пользователем.
-            page_id: ID корневой страницы паспортов, введённый пользователем.
-
-        Returns:
-            ID корневой страницы паспортов.
-        """
-        section = self._config.strategies.passports
-        return self._resolve_root_parent(
-            name,
-            page_id,
-            section.root_parent_name,
-            section.root_parent_id,
-            "strategies.passports.root_parent",
-        )
-
-    def resolve_single_page_parent(
+    def resolve_parent(
         self,
         strategy_type: str,
         name: str | None,
         page_id: str | None,
     ) -> str:
         """
-        Резолвит родительскую страницу для публикации одной страницы.
-
-        Тип стратегии проверяется по ``registry.STRATEGIES``: сначала — что стратегия
-        вообще зарегистрирована, затем — что ``IS_SINGLE_PAGE`` у неё ``True`` (т.е. она
-        в принципе имеет понятие "родительская страница по секции конфига"). Секция
-        конфига берётся по имени, совпадающему со ``strategy_type`` дословно
-        (``confluence_config.strategies.<strategy_type>``) — без отдельной таблицы
-        соответствия: имена секций ``StrategiesConfig`` специально выбраны такими же,
-        как ключи ``registry.STRATEGIES``.
+        Резолвит ID родительской страницы для типа публикации.
 
         Args:
-            strategy_type: Тип стратегии, зарегистрированный в ``registry.STRATEGIES``
-                           с ``IS_SINGLE_PAGE = True`` (например ``'release'`` или
-                           ``'profile_centric'``).
-            name: Название родительской страницы, введённое пользователем.
-            page_id: ID родительской страницы, введённый пользователем.
+            strategy_type: Ключ стратегии из ``registry.STRATEGIES``.
+            name: Название родительской страницы, заданное пользователем.
+            page_id: ID родительской страницы, заданный пользователем.
 
         Returns:
             ID родительской страницы.
 
         Raises:
-            ConfigError: Если ``strategy_type`` не зарегистрирован в
-                ``registry.STRATEGIES``, либо зарегистрирован, но
-                ``IS_SINGLE_PAGE`` у него ``False`` (например ``'passports'``) —
-                такая стратегия не имеет родительской страницы, резолвируемой по
-                этой схеме.
+            ConfigError: Если стратегия не зарегистрирована, родитель не задан или не найден.
         """
-        strategy_cls = registry.STRATEGIES.get(strategy_type)
-        if strategy_cls is None or not strategy_cls.IS_SINGLE_PAGE:
+        if strategy_type not in registry.STRATEGIES:
             raise ConfigError(
-                f"Стратегия {strategy_type!r} не поддерживает резолвинг родительской "
-                "страницы одностраничной публикации (не зарегистрирована в "
-                "registry.STRATEGIES либо IS_SINGLE_PAGE=False)"
+                f"Стратегия {strategy_type!r} не зарегистрирована в registry.STRATEGIES: "
+                "родительская страница не может быть определена"
             )
         section = getattr(self._config.strategies, strategy_type)
         return self._resolve_root_parent(

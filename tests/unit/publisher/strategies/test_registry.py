@@ -41,7 +41,7 @@ def test_create_strategy_passports_returns_passports_strategy_instance(
         document_builder=publisher_document_builder,
         parsed_data=publisher_parsed_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
     )
     assert isinstance(strategy, PassportsStrategy)

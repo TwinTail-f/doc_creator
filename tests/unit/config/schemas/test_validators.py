@@ -11,6 +11,7 @@ from autodoc.config.schemas.confluence_config import (
     StrategiesConfig,
 )
 from autodoc.config.schemas.parser_config import ParserConfigSchema
+from autodoc.publisher.strategies.publish_plan import PUBLISH_PLAN
 
 
 @pytest.mark.contract
@@ -117,7 +118,7 @@ def test_strategies_config_release_section_with_root_parent_keeps_default_page_t
     Секция release с заданным root_parent_name или root_parent_id (без явного
     page_title) — валидна, заданное поле сохраняется как есть, второе из пары
     (root_parent_name/root_parent_id) остаётся None, а дефолт page_title не
-    теряется при частично заданной секции (см. раздел 2.3 спеки).
+    теряется при частично заданной секции.
     """
     payload = {**valid_confluence_config, "strategies": {"release": section_fields}}
     config = ConfluenceConfigSchema(**payload)
@@ -265,7 +266,7 @@ def test_publish_all_targets_default_to_all_types_and_config_stays_valid_without
         pytest.param([], "at least 1 item", id="empty"),
         pytest.param(["release", "release"], "повторяющиеся типы: release", id="duplicates"),
         pytest.param(["profile_centric"], "добавьте 'release'", id="profile-without-release"),
-        pytest.param(["release", "unknown"], "Input should be 'passports'", id="unknown-type"),
+        pytest.param(["release", "unknown"], "неизвестные типы: unknown", id="unknown-type"),
     ],
 )
 def test_publish_all_config_rejects_invalid_targets(targets: list[str], message: str) -> None:
@@ -336,3 +337,29 @@ def test_profile_centric_page_title_defaults_to_non_empty_title(
     config = ConfluenceConfigSchema(**valid_confluence_config)
 
     assert config.strategies.profile_centric.page_title == "Документация от профилей"
+
+
+@pytest.mark.business_logic
+@pytest.mark.parametrize(
+    "key, parent_key",
+    [
+        pytest.param(node.key, node.parent_from, id=node.key)
+        for node in PUBLISH_PLAN
+        if node.parent_from is not None
+    ],
+)
+def test_publish_all_targets_validation_follows_publish_plan_parents(
+    key: str,
+    parent_key: str,
+) -> None:
+    """Валидация ``targets`` обобщена по ``parent_from`` из ``PUBLISH_PLAN``.
+
+    Для каждого узла плана с ``parent_from`` проверяются два сценария: выбор узла без
+    его родителя отклоняется с подсказкой ``добавьте '<родитель>'``, а выбор узла
+    вместе с родителем валиден. Тест параметризован планом, поэтому новый дочерний
+    тип автоматически получает ту же проверку без правок валидатора.
+    """
+    with pytest.raises(ValidationError, match=f"добавьте '{parent_key}'"):
+        PublishAllConfig(targets=[key])
+
+    assert PublishAllConfig(targets=[parent_key, key]).targets == [parent_key, key]

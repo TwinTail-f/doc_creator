@@ -10,9 +10,9 @@ from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
 from autodoc.publisher.page_manager.root_page_resolver import RootPageResolver
 from autodoc.publisher.rendering.document_builder import DocumentBuilder
-from autodoc.publisher.strategies import passports_strategy
+from autodoc.publisher.strategies import registry
 from autodoc.publisher.strategies.models.publish_report import PublishReport
-from autodoc.publisher.strategies.profile_centric_strategy import ProfileCentricPageStrategy
+from autodoc.publisher.strategies.publish_plan import PUBLISH_PLAN, PublishNode
 from autodoc.publisher.strategies.registry import create_strategy
 
 _RENDERING_DIR: Path = Path(__file__).resolve().parent / "rendering"
@@ -86,6 +86,29 @@ class DocumentPublisher:
         )
         return strategy.execute()
 
+    def _publish_target(
+        self,
+        key: str,
+        parsed_data: ParsedResult,
+        parent_id: str,
+        **overrides: Any,
+    ) -> PublishReport:
+        """
+        Публикует страницу типа ``key`` под страницей ``parent_id``.
+
+        Args:
+            key: Ключ стратегии из ``registry.STRATEGIES``.
+            parsed_data: Данные парсера.
+            parent_id: ID родительской страницы.
+            **overrides: Аргументы стратегии, переопределяющие значения из конфигурации.
+
+        Returns:
+            ``PublishReport`` с результатом публикации.
+        """
+        strategy_cls = registry.STRATEGIES[key]
+        kwargs = {**strategy_cls.kwargs_from_config(self._config, key), **overrides}
+        return self.publish(key, parsed_data, parent_id=parent_id, **kwargs)
+
     def publish_passports(
         self,
         parsed_data: ParsedResult,
@@ -94,7 +117,7 @@ class DocumentPublisher:
         passports_root_parent_id: str | None = None,
     ) -> PublishReport:
         """
-        Резолвит корневую страницу и публикует коллекцию паспортов компонентов.
+        Публикует коллекцию паспортов компонентов.
 
         Args:
             parsed_data: Данные парсера.
@@ -107,17 +130,11 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатами публикации паспортов.
         """
-        root_page_id = self._page_resolver.resolve_passports_root(
-            passports_root_parent_name, passports_root_parent_id
+        parent_id = self._page_resolver.resolve_parent(
+            "passports", passports_root_parent_name, passports_root_parent_id
         )
-        return self.publish(
-            strategy_type="passports",
-            parsed_data=parsed_data,
-            root_page_id=root_page_id,
-            template_name=template_name,
-            batch_size=self._config.publish_batch_size,
-            batch_delay_seconds=self._config.publish_batch_delay_seconds,
-            target_release_version=self._config.target_release_version,
+        return self._publish_target(
+            "passports", parsed_data, parent_id, template_name=template_name
         )
 
     def publish_single_page(
@@ -131,10 +148,10 @@ class DocumentPublisher:
         include_passport_links: bool = True,
     ) -> PublishReport:
         """
-        Резолвит родительскую страницу и публикует страницу release/profile.
+        Публикует одностраничную стратегию.
 
         Args:
-            strategy_type: Тип стратегии (``'release'`` или ``'profile_centric'``).
+            strategy_type: Ключ одностраничной стратегии из ``registry.STRATEGIES``.
             parsed_data: Данные парсера.
             page_title: Заголовок публикуемой страницы.
             template_name: Имя Jinja2-шаблона.
@@ -145,91 +162,37 @@ class DocumentPublisher:
         Returns:
             ``PublishReport`` с результатом публикации одной страницы.
 
-        Note:
-            Запасной вариант родительской страницы (если ``root_page_name``/
-            ``root_page_id`` не заданы) берётся из конфигурации Confluence
-            и зависит от ``strategy_type``: для ``'release'`` — это
-            ``strategies.release.root_parent_name``/``strategies.release.root_parent_id``,
-            для ``'profile_centric'`` — ``strategies.profile_centric.root_parent_name``/
-            ``strategies.profile_centric.root_parent_id``.
+        Raises:
+            ConfigError: Если ``strategy_type`` не одностраничная стратегия.
         """
-        parent_id = self._page_resolver.resolve_single_page_parent(
-            strategy_type, root_page_name, root_page_id
-        )
-        return self.publish(
-            strategy_type=strategy_type,
-            parsed_data=parsed_data,
+        if not registry.is_single_page_strategy(strategy_type):
+            raise ConfigError(
+                f"Стратегия {strategy_type!r} не поддерживает резолвинг родительской "
+                "страницы одностраничной публикации (не зарегистрирована в "
+                "registry.STRATEGIES либо IS_SINGLE_PAGE=False)"
+            )
+        parent_id = self._page_resolver.resolve_parent(strategy_type, root_page_name, root_page_id)
+        return self._publish_target(
+            strategy_type,
+            parsed_data,
+            parent_id,
             page_title=page_title,
             template_name=template_name,
-            parent_id=parent_id,
-            include_passport_links=include_passport_links,
-        )
-
-    def publish_profile_page(
-        self,
-        parsed_data: ParsedResult,
-        profile_title: str,
-        profile_template_name: str,
-        release_report: PublishReport,
-        include_passport_links: bool = True,
-    ) -> PublishReport:
-        """
-        Публикует профильную страницу как дочернюю к странице релиза.
-
-        Args:
-            parsed_data: Данные парсера.
-            profile_title: Заголовок профильной страницы.
-            profile_template_name: Имя Jinja2-шаблона для профильной страницы.
-            release_report: Отчёт о публикации релизной страницы — используется
-                            для извлечения ID родительской страницы.
-            include_passport_links: Вставлять ли ссылки на паспорта компонентов.
-
-        Returns:
-            ``PublishReport`` с результатом публикации профильной страницы,
-            либо отчёт о неудаче, если родительская (релизная) страница
-            недоступна.
-        """
-        if not release_report.details:
-            reason = (
-                f"Профильная страница {profile_title!r} не опубликована: "
-                "страница релиза не была опубликована, родитель недоступен"
-            )
-            logger.error(reason)
-            return PublishReport(
-                success=False,
-                pages_published=0,
-                pages_failed=1,
-                errors=[reason],
-                failed_pages=[{"page_title": profile_title, "reason": reason}],
-            )
-        profile_parent_id = str(release_report.details[0]["page_id"])
-        return self.publish(
-            strategy_type="profile_centric",
-            parsed_data=parsed_data,
-            page_title=profile_title,
-            template_name=profile_template_name,
-            parent_id=profile_parent_id,
             include_passport_links=include_passport_links,
         )
 
     def publish_all(self, parsed_data: ParsedResult) -> PublishReport:
         """
-        Публикует типы из ``publish_all.targets`` конфига в фиксированном порядке.
-
-        Порядок: паспорта, релиз, профили (дочерняя страница релиза), kit-pinned,
-        kit-latest. Родительские страницы и заголовки берутся из конфигурации;
-        родители проверяются до начала публикации, чтобы ошибка конфига не оставила
-        часть страниц опубликованной.
+        Публикует типы страниц, выбранные в ``publish_all.targets``.
 
         Args:
             parsed_data: Данные парсера.
 
         Returns:
-            Агрегированный ``PublishReport`` по всем опубликованным страницам.
+            Агрегированный ``PublishReport`` по всем выбранным типам.
 
         Raises:
-            ConfigError: Если у выбранного типа не задан родитель в конфигурации
-                либо родительская страница не найдена в Confluence.
+            ConfigError: Если родительская страница не задана или не найдена.
         """
         targets = self._config.publish_all.targets
         logger.info(f"Публикация типов: {', '.join(targets)}")
@@ -238,68 +201,61 @@ class DocumentPublisher:
         if error:
             raise ConfigError(error)
 
-        strategies = self._config.strategies
-        passports_root_id = (
-            self._page_resolver.resolve_passports_root(None, None)
-            if "passports" in targets
-            else None
-        )
+        selected = [node for node in PUBLISH_PLAN if node.key in targets]
         parent_ids = {
-            target: self._page_resolver.resolve_single_page_parent(target, None, None)
-            for target in ("release", "kit_pinned", "kit_latest")
-            if target in targets
+            node.key: self._page_resolver.resolve_parent(node.key, None, None)
+            for node in selected
+            if node.parent_from is None
         }
 
-        reports: list[PublishReport] = []
-        if passports_root_id is not None:
-            reports.append(
-                self.publish(
-                    strategy_type="passports",
-                    parsed_data=parsed_data,
-                    root_page_id=passports_root_id,
-                    template_name=passports_strategy.PassportsStrategy.DEFAULT_TEMPLATE,
-                    batch_size=self._config.publish_batch_size,
-                    batch_delay_seconds=self._config.publish_batch_delay_seconds,
-                    target_release_version=self._config.target_release_version,
-                )
-            )
-        if "release" in targets:
-            release_report = self.publish(
-                strategy_type="release",
-                parsed_data=parsed_data,
-                page_title=strategies.release.page_title,
-                parent_id=parent_ids["release"],
-            )
-            reports.append(release_report)
-            # Профильная страница публикуется здесь, пока release_report ещё не смешан
-            # с остальными отчётами: это гарантирует, что details[0] будет именно
-            # страницей релиза, а не первым паспортом компонента.
-            if "profile_centric" in targets:
-                reports.append(
-                    self.publish_profile_page(
-                        parsed_data=parsed_data,
-                        profile_title=strategies.profile_centric.page_title,
-                        profile_template_name=ProfileCentricPageStrategy.DEFAULT_TEMPLATE,
-                        release_report=release_report,
-                    )
-                )
-        if "kit_pinned" in targets:
-            reports.append(
-                self.publish(
-                    strategy_type="kit_pinned",
-                    parsed_data=parsed_data,
-                    page_title=strategies.kit_pinned.page_title,
-                    parent_id=parent_ids["kit_pinned"],
-                )
-            )
-        if "kit_latest" in targets:
-            reports.append(
-                self.publish(
-                    strategy_type="kit_latest",
-                    parsed_data=parsed_data,
-                    page_title=strategies.kit_latest.page_title,
-                    parent_id=parent_ids["kit_latest"],
-                )
-            )
+        reports: dict[str, PublishReport] = {}
+        for node in selected:
+            if node.parent_from is None:
+                parent_id = parent_ids[node.key]
+            else:
+                parent_id = self._page_id_from(reports.get(node.parent_from))
+                if parent_id is None:
+                    reports[node.key] = self._skipped_report(node)
+                    continue
+            reports[node.key] = self._publish_target(node.key, parsed_data, parent_id)
 
-        return PublishReport.merge(*reports)
+        return PublishReport.merge(*reports.values())
+
+    @staticmethod
+    def _page_id_from(report: PublishReport | None) -> str | None:
+        """
+        Возвращает ID опубликованной страницы из отчёта.
+
+        Args:
+            report: Отчёт публикации или ``None``.
+
+        Returns:
+            ID страницы или ``None``, если страница не опубликована.
+        """
+        if report is None or not report.details:
+            return None
+        return str(report.details[0]["page_id"])
+
+    def _skipped_report(self, node: PublishNode) -> PublishReport:
+        """
+        Формирует отчёт о пропущенном типе, чей родитель не опубликован.
+
+        Args:
+            node: Узел плана пропущенного типа.
+
+        Returns:
+            ``PublishReport`` с одной неудавшейся страницей.
+        """
+        title = getattr(self._config.strategies, node.key).page_title
+        reason = (
+            f"Страница {title!r} не опубликована: родительская страница "
+            f"{node.parent_from!r} не была опубликована, родитель недоступен"
+        )
+        logger.error(reason)
+        return PublishReport(
+            success=False,
+            pages_published=0,
+            pages_failed=1,
+            errors=[reason],
+            failed_pages=[{"page_title": title, "reason": reason}],
+        )

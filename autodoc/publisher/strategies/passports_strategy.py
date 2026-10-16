@@ -9,6 +9,7 @@ from jinja2 import TemplateError, TemplateNotFound
 
 from autodoc.common.logger import logger
 from autodoc.common.parallel_executor import ParallelExecutor
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema
 from autodoc.exceptions import ConfluenceError
 from autodoc.models.parsed_result import ParsedResult
 from autodoc.publisher.clients.confluence_client import ConfluenceClient
@@ -56,7 +57,7 @@ class PassportsStrategy(BasePublishStrategy):
         document_builder: DocumentBuilder,
         parsed_data: ParsedResult,
         space: str,
-        root_page_id: str,
+        parent_id: str,
         template_name: str = "component_passport.jinja2",
         data_dir: Path | None = None,
         batch_size: int = 10,
@@ -70,7 +71,7 @@ class PassportsStrategy(BasePublishStrategy):
             document_builder: Рендерер Jinja2-шаблонов.
             parsed_data: Данные парсера.
             space: Ключ Space в Confluence.
-            root_page_id: ID корневой страницы иерархии паспортов.
+            parent_id: ID корневой страницы иерархии паспортов.
             template_name: Имя Jinja2-шаблона. По умолчанию ``component_passport.jinja2``.
             data_dir: Директория для ``passport_pages.json``. По умолчанию ``Path('data')``.
             batch_size: Количество страниц, публикуемых в одном пакете.
@@ -86,13 +87,13 @@ class PassportsStrategy(BasePublishStrategy):
                                 ``BaseDataConverter``. По умолчанию ``PassportConverter``.
 
         Raises:
-            ValueError: Если ``root_page_id`` пустой.
+            ValueError: Если ``parent_id`` пустой.
         """
-        if not root_page_id:
-            raise ValueError("root_page_id не может быть пустым")
+        if not parent_id:
+            raise ValueError("parent_id не может быть пустым")
 
         super().__init__(confluence_client, document_builder, parsed_data, space)
-        self._root_page_id: str = root_page_id
+        self._parent_id: str = parent_id
         self._template_name: str = template_name
         self._target_release_version: str = target_release_version
         self._converter_factory: Callable[[str, str], BaseDataConverter] = converter_factory
@@ -104,6 +105,25 @@ class PassportsStrategy(BasePublishStrategy):
             batch_size=batch_size,
             batch_delay=batch_delay_seconds,
         )
+
+    @classmethod
+    def kwargs_from_config(cls, config: ConfluenceConfigSchema, key: str) -> dict[str, Any]:
+        """
+        Возвращает аргументы конструктора, заданные в конфигурации.
+
+        Args:
+            config: Конфигурация Confluence.
+            key: Ключ стратегии из ``registry.STRATEGIES``.
+
+        Returns:
+            Словарь аргументов без ``parent_id``.
+        """
+        return {
+            "template_name": cls.DEFAULT_TEMPLATE,
+            "batch_size": config.publish_batch_size,
+            "batch_delay_seconds": config.publish_batch_delay_seconds,
+            "target_release_version": config.target_release_version,
+        }
 
     def execute(self) -> PublishReport:
         """
@@ -224,7 +244,7 @@ class PassportsStrategy(BasePublishStrategy):
         """
         version_page_id = self._hierarchy.ensure_hierarchy_exists(
             space=self._space,
-            root_parent_id=self._root_page_id,
+            root_parent_id=self._parent_id,
             component_name=comp_name,
             release_version=release_version,
         )

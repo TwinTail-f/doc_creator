@@ -56,7 +56,7 @@ def make_passports_strategy() -> Callable[..., PassportsStrategy]:
             document_builder=builder,
             parsed_data=data,
             space=_SPACE,
-            root_page_id=_ROOT_PAGE_ID,
+            parent_id=_ROOT_PAGE_ID,
             data_dir=tmp_path,
             batch_size=10,
             batch_delay_seconds=0.0,
@@ -67,12 +67,12 @@ def make_passports_strategy() -> Callable[..., PassportsStrategy]:
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize(
-    "space, root_page_id, expected_match",
+    "space, parent_id, expected_match",
     [
         # пустой space — ValueError с упоминанием space
         pytest.param("", _ROOT_PAGE_ID, "space", id="empty-space"),
-        # пустой root_page_id — ValueError с упоминанием root_page_id
-        pytest.param(_SPACE, "", "root_page_id", id="empty-root-page-id"),
+        # пустой parent_id — ValueError с упоминанием parent_id
+        pytest.param(_SPACE, "", "parent_id", id="empty-parent-id"),
     ],
 )
 def test_passports_strategy_init_raises_on_empty_required_field(
@@ -81,17 +81,17 @@ def test_passports_strategy_init_raises_on_empty_required_field(
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
     space: str,
-    root_page_id: str,
+    parent_id: str,
     expected_match: str,
 ) -> None:
-    """Пустая строка space или root_page_id вызывает ValueError с указанием на пустое поле."""
+    """Пустая строка space или parent_id вызывает ValueError с указанием на пустое поле."""
     with pytest.raises(ValueError, match=expected_match):
         PassportsStrategy(
             confluence_client=publisher_confluence_client,
             document_builder=publisher_document_builder,
             parsed_data=publisher_parsed_result,
             space=space,
-            root_page_id=root_page_id,
+            parent_id=parent_id,
             data_dir=tmp_path,
         )
 
@@ -321,7 +321,7 @@ def test_one_page_per_component_release_combination(
         document_builder=publisher_document_builder,
         parsed_data=publisher_multi_component_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -386,7 +386,7 @@ def test_registry_saved_after_all_pages_published(
         document_builder=publisher_document_builder,
         parsed_data=publisher_multi_component_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -449,7 +449,7 @@ def test_failure_of_one_page_does_not_stop_others(
         document_builder=publisher_document_builder,
         parsed_data=publisher_multi_component_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -500,7 +500,7 @@ def test_one_passport_publish_failure_isolated_from_others(
         document_builder=publisher_document_builder,
         parsed_data=publisher_multi_component_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -554,7 +554,7 @@ def test_report_pages_failed_count_equals_failed_pages(
         document_builder=publisher_document_builder,
         parsed_data=publisher_parsed_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -628,7 +628,7 @@ def test_legacy_content_extracted_before_overwrite(
         document_builder=publisher_capturing_document_builder,
         parsed_data=publisher_parsed_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -696,7 +696,7 @@ def test_hierarchy_created_for_each_component(
         document_builder=publisher_document_builder,
         parsed_data=publisher_multi_component_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,
@@ -766,7 +766,7 @@ def test_passport_page_republished_once_per_channel_sharing_same_version(
         document_builder=publisher_document_builder,
         parsed_data=publisher_multi_channel_result,
         space=_SPACE,
-        root_page_id=_ROOT_PAGE_ID,
+        parent_id=_ROOT_PAGE_ID,
         data_dir=tmp_path,
         batch_size=10,
         batch_delay_seconds=0.0,

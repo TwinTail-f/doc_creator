@@ -19,15 +19,15 @@ SPACE: str = "TEST"
 
 
 def _call_passports(resolver: RootPageResolver, name: str | None, page_id: str | None) -> str:
-    return resolver.resolve_passports_root(name, page_id)
+    return resolver.resolve_parent("passports", name, page_id)
 
 
 def _call_release(resolver: RootPageResolver, name: str | None, page_id: str | None) -> str:
-    return resolver.resolve_single_page_parent("release", name, page_id)
+    return resolver.resolve_parent("release", name, page_id)
 
 
 def _call_profile(resolver: RootPageResolver, name: str | None, page_id: str | None) -> str:
-    return resolver.resolve_single_page_parent("profile_centric", name, page_id)
+    return resolver.resolve_parent("profile_centric", name, page_id)
 
 
 # section: имя секции в strategies (совпадает с "profile" для читаемости id теста,
@@ -440,11 +440,11 @@ class TestNameIdPriorityMatrix:
 
 
 @pytest.mark.business_logic
-def test_resolve_single_page_parent_profile_centric_reads_its_own_config_section(
+def test_resolve_parent_profile_centric_reads_its_own_config_section(
     mocker: MockerFixture, minimal_confluence_config: dict
 ) -> None:
     """
-    resolve_single_page_parent('profile_centric', ...) читает
+    resolve_parent('profile_centric', ...) читает
     strategies.profile_centric, а не strategies.release.
     """
     resolver, mock_client = _make_resolver(
@@ -457,45 +457,39 @@ def test_resolve_single_page_parent_profile_centric_reads_its_own_config_section
         },
     )
 
-    result = resolver.resolve_single_page_parent("profile_centric", None, None)
+    result = resolver.resolve_parent("profile_centric", None, None)
 
     assert result == "400001"
     mock_client.find_page.assert_called_once_with("Profile Parent Page", space=SPACE)
 
 
-# resolve_single_page_parent: диспетчеризация через registry.STRATEGIES + IS_SINGLE_PAGE
+# resolve_parent: диспетчеризация через registry.STRATEGIES
 @pytest.mark.contract
-@pytest.mark.parametrize(
-    "strategy_type",
-    [
-        # опечатка/несуществующий тип — не зарегистрирован в registry.STRATEGIES вообще
-        pytest.param("some_other_strategy", id="unregistered-in-registry"),
-        # зарегистрирован, но IS_SINGLE_PAGE=False — нет родителя по секции конфига
-        pytest.param("passports", id="registered-but-not-single-page"),
-    ],
-)
-def test_resolve_single_page_parent_rejects_non_single_page_strategy_type(
+def test_resolve_parent_rejects_unregistered_strategy_type(
     mocker: MockerFixture,
     minimal_confluence_config: dict,
-    strategy_type: str,
 ) -> None:
     """
-    Неизвестный или не-single-page strategy_type
-    останавливает резолвинг явной ошибкой.
+    Неизвестный strategy_type останавливает резолвинг явной ошибкой ConfigError.
+
+    Опечатка в ключе не должна молча превращаться в обращение к несуществующей секции
+    конфига. Ключ обязан попасть в текст ошибки (в виде repr), чтобы его было видно
+    пользователю. Ключ ``passports`` при этом валиден: IS_SINGLE_PAGE резолвер
+    больше не проверяет — это забота публичного ``publish_single_page``.
     """
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
-    with pytest.raises(ConfigError):
-        resolver.resolve_single_page_parent(strategy_type, "Some Name", None)
+    with pytest.raises(ConfigError, match="'some_other_strategy'"):
+        resolver.resolve_parent("some_other_strategy", "Some Name", None)
 
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize("strategy_type", ["kit_pinned", "kit_latest"])
-def test_resolve_single_page_parent_kit_strategies_read_their_own_config_section(
+def test_resolve_parent_kit_strategies_read_their_own_config_section(
     mocker: MockerFixture, minimal_confluence_config: dict, strategy_type: str
 ) -> None:
     """
-    resolve_single_page_parent('kit_pinned'/'kit_latest', None, None) читает
+    resolve_parent('kit_pinned'/'kit_latest', None, None) читает
     собственную секцию strategies.<strategy_type>, а не секцию соседней kit-стратегии.
 
     ``publish all`` резолвит родителей обеих страниц комплекта только по конфигу,
@@ -512,7 +506,7 @@ def test_resolve_single_page_parent_kit_strategies_read_their_own_config_section
         },
     )
 
-    result = resolver.resolve_single_page_parent(strategy_type, None, None)
+    result = resolver.resolve_parent(strategy_type, None, None)
 
     assert result == "400011"
     mock_client.find_page.assert_called_once_with("Own Parent", space=SPACE)
@@ -520,7 +514,7 @@ def test_resolve_single_page_parent_kit_strategies_read_their_own_config_section
 
 @pytest.mark.business_logic
 @pytest.mark.parametrize("strategy_type", ["kit_pinned", "kit_latest"])
-def test_resolve_single_page_parent_kit_strategy_without_config_section_raises_config_error(
+def test_resolve_parent_kit_strategy_without_config_section_raises_config_error(
     mocker: MockerFixture, minimal_confluence_config: dict, strategy_type: str
 ) -> None:
     """
@@ -532,4 +526,4 @@ def test_resolve_single_page_parent_kit_strategy_without_config_section_raises_c
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)
 
     with pytest.raises(ConfigError, match=f"strategies.{strategy_type}.root_parent"):
-        resolver.resolve_single_page_parent(strategy_type, None, None)
+        resolver.resolve_parent(strategy_type, None, None)
