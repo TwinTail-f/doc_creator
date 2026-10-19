@@ -36,7 +36,7 @@
     }
   },
 
-  "_comment_publish_all": "Какие типы публикует publish all (по умолчанию — все пять). Порядок в списке не важен. profile_centric требует в списке 'release'. Для каждого выбранного типа, кроме profile_centric, должна быть заполнена секция выше.",
+  "_comment_publish_all": "Какие типы публикует publish all (по умолчанию — все доступные типы). Порядок в списке не важен. profile_centric требует в списке 'release'. Для каждого выбранного типа, кроме profile_centric, должна быть заполнена секция выше.",
   "publish_all": {
     "targets": ["passports", "release", "profile_centric", "kit_pinned", "kit_latest"]
   },

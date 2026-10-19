@@ -16,10 +16,12 @@ STRATEGIES: dict[str, type[BasePublishStrategy]] = {
     "kit_pinned": KitPinnedPageStrategy,
     "kit_latest": KitLatestPageStrategy,
 }
-"""Явное сопоставление ключа стратегии её классу.
+"""
+Явное сопоставление ключа стратегии её классу.
 
 Чтобы добавить новую страницу: класс стратегии, строка в этом словаре, узел в
-``PUBLISH_PLAN`` и секция в ``StrategiesConfig``. Забытый шаг ловит тест
+``PUBLISH_PLAN`` и секция в ``StrategiesConfig`` (полный список шагов — в
+``docs/ARCHITECTURE.md``). Забытый шаг ловит тест
 ``test_publish_plan_keys_match_registry_and_config_sections``.
 """
 
@@ -29,8 +31,7 @@ def create_strategy(strategy_type: str, **kwargs: Any) -> BasePublishStrategy:
     Создаёт экземпляр стратегии публикации по её типу.
 
     Args:
-        strategy_type: Ключ стратегии (``'passports'``, ``'release'``,
-            ``'profile_centric'``, ``'kit_pinned'`` или ``'kit_latest'``).
+        strategy_type: Ключ стратегии из ``STRATEGIES``.
         **kwargs: Аргументы конструктора выбранной стратегии.
 
     Returns:
@@ -51,9 +52,8 @@ def single_page_strategy_types() -> list[str]:
     """
     Возвращает отсортированный список ключей одностраничных стратегий.
 
-    Одностраничные стратегии — те, у кого ``IS_SINGLE_PAGE`` равен ``True``
-    (``release``, ``profile_centric``, ``kit_pinned``, ``kit_latest``).
-    ``passports`` сюда не входит: это стратегия с иерархией страниц.
+    Одностраничные стратегии — те, у кого ``IS_SINGLE_PAGE`` равен ``True``.
+    Стратегии с иерархией страниц (например, ``passports``) сюда не входят.
 
     Returns:
         Отсортированный список ключей стратегий.

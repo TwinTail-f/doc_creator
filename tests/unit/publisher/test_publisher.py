@@ -113,13 +113,7 @@ def test_publisher_publish_passes_space_and_data_dir_from_config(
     assert kwargs["data_dir"] == tmp_path
 
 
-_ALL_STRATEGY_TYPES: tuple[str, ...] = (
-    "passports",
-    "release",
-    "profile_centric",
-    "kit_pinned",
-    "kit_latest",
-)
+_ALL_STRATEGY_TYPES: tuple[str, ...] = tuple(plan_keys())
 _RELEASE_PAGE_ID: str = "release-page-1"
 
 
@@ -227,13 +221,13 @@ def test_publisher_publish_all_runs_strategies_in_documented_order(
         # все стратегии успешны — pages_published суммируется
         pytest.param(
             {"passports": PublishReport(success=True, pages_published=3)},
-            {"success": True, "pages_published": 7, "errors": []},
+            {"success": True, "pages_published": len(_ALL_STRATEGY_TYPES) - 1 + 3, "errors": []},
             id="all-success-sums-pages",
         ),
         # провал страницы комплекта делает итоговый success False
         pytest.param(
             {"kit_latest": PublishReport(success=False, pages_published=0, errors=["fail"])},
-            {"success": False, "pages_published": 4, "errors": ["fail"]},
+            {"success": False, "pages_published": len(_ALL_STRATEGY_TYPES) - 1, "errors": ["fail"]},
             id="kit-failure-propagates",
         ),
         # ошибки разных стратегий объединяются в один список в порядке публикации
@@ -242,7 +236,11 @@ def test_publisher_publish_all_runs_strategies_in_documented_order(
                 "passports": PublishReport(success=False, pages_published=0, errors=["err1"]),
                 "kit_pinned": PublishReport(success=False, pages_published=0, errors=["err2"]),
             },
-            {"success": False, "pages_published": 3, "errors": ["err1", "err2"]},
+            {
+                "success": False,
+                "pages_published": len(_ALL_STRATEGY_TYPES) - 2,
+                "errors": ["err1", "err2"],
+            },
             id="errors-merged",
         ),
     ],
@@ -255,7 +253,7 @@ def test_publisher_publish_all_aggregates_reports_of_all_strategies(
     expected: dict[str, Any],
 ) -> None:
     """
-    Итоговый отчёт publish_all() агрегирует success, pages_published и errors всех пяти стратегий.
+    Итоговый отчёт publish_all() агрегирует success, pages_published и errors всех стратегий.
 
     Каждая стратегия по умолчанию публикует по одной странице; ``overrides`` заменяют
     отчёты отдельных стратегий.

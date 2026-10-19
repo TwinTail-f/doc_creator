@@ -11,7 +11,8 @@ from autodoc.config.schemas.confluence_config import (
     StrategiesConfig,
 )
 from autodoc.config.schemas.parser_config import ParserConfigSchema
-from autodoc.publisher.strategies.publish_plan import PUBLISH_PLAN
+from autodoc.publisher.strategies import registry
+from autodoc.publisher.strategies.publish_plan import PUBLISH_PLAN, plan_keys
 
 
 @pytest.mark.contract
@@ -200,7 +201,7 @@ def test_strategies_config_passports_empty_section_raises() -> None:
 
 
 @pytest.mark.business_logic
-@pytest.mark.parametrize("section_name", ["release", "profile_centric", "kit_pinned", "kit_latest"])
+@pytest.mark.parametrize("section_name", registry.single_page_strategy_types())
 @pytest.mark.parametrize(
     "bad_title",
     [
@@ -215,7 +216,7 @@ def test_single_page_section_rejects_missing_or_blank_page_title(
     bad_title: str | None,
 ) -> None:
     """
-    ``page_title`` секций release, profile_centric, kit_pinned и kit_latest обязан быть
+    ``page_title`` секции любой одностраничной стратегии обязан быть
     непустой строкой: ``None``, пустое значение и пробелы отклоняются при загрузке конфига.
 
     Проверка выполняется для любой из этих секций, независимо от ``publish_all.targets``:
@@ -235,28 +236,24 @@ def test_publish_all_targets_default_to_all_types_and_config_stays_valid_without
     valid_confluence_config: dict,
 ) -> None:
     """
-    Без ключа ``publish_all`` выбраны все пять типов, но конфиг без секций с родителями валиден.
+    Без ключа ``publish_all`` выбраны все типы плана, но конфиг без секций с родителями валиден.
 
     Такой конфиг может использоваться только отдельными командами ``publish ...``, поэтому
     при загрузке схема на отсутствие родителей не реагирует. Полноту родителей для
-    ``publish all`` показывает ``missing_root_parents_error()``: в нём перечислены все четыре
+    ``publish all`` показывает ``missing_root_parents_error()``: в нём перечислены все
     секции, у которых родитель берётся из конфига, а ``profile_centric`` не упоминается —
     профильная страница публикуется дочерней к релизу.
     """
     config = ConfluenceConfigSchema(**valid_confluence_config)
 
-    assert config.publish_all.targets == [
-        "passports",
-        "release",
-        "profile_centric",
-        "kit_pinned",
-        "kit_latest",
-    ]
+    assert config.publish_all.targets == plan_keys()
     error = config.missing_root_parents_error()
     assert error is not None
-    for section in ("passports", "release", "kit_pinned", "kit_latest"):
-        assert f"strategies.{section}" in error
-    assert "strategies.profile_centric" not in error
+    for node in PUBLISH_PLAN:
+        if node.parent_from is None:
+            assert f"strategies.{node.key}" in error
+        else:
+            assert f"strategies.{node.key}" not in error
 
 
 @pytest.mark.contract

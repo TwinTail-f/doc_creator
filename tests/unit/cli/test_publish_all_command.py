@@ -1,22 +1,23 @@
 """Тесты для autodoc/cli/commands/publish/all.py."""
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
-from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.exceptions import ConfigError
 from tests.unit.cli.utils import (
     make_confluence_config,
-    make_parsed_result,
     make_publish_report,
     strategy_override,
 )
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
+
+_MODULE = "autodoc.cli.commands.publish.all"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
@@ -45,36 +46,15 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-def _mock_collaborators(mocker: MockerFixture, publish_report=None, confluence_config=None):
-    """
-    Подменяет make_publisher и load_parsed_data для `publish all` и возвращает поддельный publisher.
-
-    Args:
-        mocker: Фикстура pytest-mock для создания подмен.
-        publish_report: Отчёт о публикации, который вернёт publish_all
-            (по умолчанию — успешный отчёт).
-        confluence_config: Конфиг Confluence, возвращаемый make_publisher
-            (по умолчанию — минимальный валидный конфиг).
-
-    Returns:
-        Поддельный объект publisher с настроенным publish_all.
-    """
-    mock_publisher = mocker.MagicMock()
-    mock_publisher.publish_all.return_value = publish_report or make_publish_report()
-    mocker.patch(
-        "autodoc.cli.commands.publish.all.make_publisher",
-        return_value=(mock_publisher, confluence_config or make_confluence_config()),
-    )
-    mocker.patch(
-        "autodoc.cli.commands.publish.all.load_parsed_data",
-        return_value=make_parsed_result(),
-    )
-    return mock_publisher
+@pytest.fixture()
+def command_module() -> str:
+    """Модуль команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``."""
+    return _MODULE
 
 
 @pytest.mark.contract
 def test_publish_all_passes_only_parsed_data_to_publisher(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """
     ``publish all`` передаёт паблишеру только данные парсера, без заголовков и родителей.
@@ -83,8 +63,6 @@ def test_publish_all_passes_only_parsed_data_to_publisher(
     проверяются), поэтому команда без аргументов не должна подставлять никаких значений
     по умолчанию из CLI.
     """
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir)
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -94,7 +72,7 @@ def test_publish_all_passes_only_parsed_data_to_publisher(
 
 @pytest.mark.business_logic
 def test_publish_all_config_error_from_publisher_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """
     ``ConfigError`` из ``publisher.publish_all()`` (у выбранного типа не задан родитель)
@@ -103,7 +81,6 @@ def test_publish_all_config_error_from_publisher_exits_nonzero_cleanly(
     В тексте ошибки нет скобок и кавычек: Rich подсвечивает их отдельными ANSI-кодами, и
     сравнение строки целиком зависело бы от того, цветной ли у терминала вывод.
     """
-    mock_publisher = _mock_collaborators(mocker)
     mock_publisher.publish_all.side_effect = ConfigError(
         "не задан родитель для strategies.kit_pinned"
     )
@@ -117,7 +94,10 @@ def test_publish_all_config_error_from_publisher_exits_nonzero_cleanly(
 
 @pytest.mark.business_logic
 def test_publish_all_prints_targets_selected_in_config(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path,
+    configs_dir: Path,
+    mock_publisher: MagicMock,
+    make_publisher_mock: MagicMock,
 ) -> None:
     """
     Команда сообщает, какие типы публикации выбраны в ``publish_all.targets``.
@@ -132,7 +112,7 @@ def test_publish_all_prints_targets_selected_in_config(
         },
         publish_all={"targets": ["release", "kit_latest"]},
     )
-    _mock_collaborators(mocker, confluence_config=confluence_config)
+    make_publisher_mock.return_value = (mock_publisher, confluence_config)
 
     result = _invoke(tmp_path, configs_dir)
 
@@ -156,7 +136,7 @@ def test_publish_all_prints_targets_selected_in_config(
     ],
 )
 def test_publish_all_rejects_removed_flags(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture, removed_flag: str
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock, removed_flag: str
 ) -> None:
     """
     ``publish all`` не принимает флаги, которые раньше переопределяли конфиг.
@@ -165,8 +145,6 @@ def test_publish_all_rejects_removed_flags(
     запускается: молча проигнорированный флаг привёл бы к публикации не туда, куда
     рассчитывал пользователь.
     """
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, removed_flag)
 
     assert result.exit_code != _EXIT_SUCCESS
@@ -176,17 +154,10 @@ def test_publish_all_rejects_removed_flags(
 
 @pytest.mark.infrastructure
 def test_publish_all_domain_error_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, make_publisher_mock: MagicMock
 ) -> None:
     """ConfigError, возникающая в make_publisher, завершает команду с кодом 1 и понятным сообщением, без трейсбека."""
-    mocker.patch(
-        "autodoc.cli.commands.publish.all.make_publisher",
-        side_effect=ConfigError("Confluence config invalid"),
-    )
-    mocker.patch(
-        "autodoc.cli.commands.publish.all.load_parsed_data",
-        return_value=make_parsed_result(),
-    )
+    make_publisher_mock.side_effect = ConfigError("Confluence config invalid")
 
     result = _invoke(tmp_path, configs_dir)
 
@@ -197,11 +168,12 @@ def test_publish_all_domain_error_exits_nonzero_cleanly(
 
 @pytest.mark.business_logic
 def test_publish_all_partial_failure_exits_nonzero_with_error_text(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """Неуспешный PublishReport (success=False) завершает команду с кодом 1 и печатает каждое сообщение об ошибке."""
-    report = make_publish_report(success=False, pages_published=0, errors=["some page failed"])
-    _mock_collaborators(mocker, publish_report=report)
+    mock_publisher.publish_all.return_value = make_publish_report(
+        success=False, pages_published=0, errors=["some page failed"]
+    )
 
     result = _invoke(tmp_path, configs_dir)
 
@@ -211,11 +183,12 @@ def test_publish_all_partial_failure_exits_nonzero_with_error_text(
 
 @pytest.mark.business_logic
 def test_publish_all_zero_pages_published_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """Успешный отчёт с pages_published=0 всё равно завершается кодом 1 (случай «публиковать нечего»)."""
-    report = make_publish_report(success=True, pages_published=0)
-    _mock_collaborators(mocker, publish_report=report)
+    mock_publisher.publish_all.return_value = make_publish_report(
+        success=True, pages_published=0
+    )
 
     result = _invoke(tmp_path, configs_dir)
 

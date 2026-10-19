@@ -9,7 +9,7 @@ from autodoc.publisher.strategies import registry
 
 
 @pytest.mark.contract
-@pytest.mark.parametrize("key", ["release", "profile_centric", "kit_pinned", "kit_latest"])
+@pytest.mark.parametrize("key", registry.single_page_strategy_types())
 def test_single_page_kwargs_from_config_returns_only_page_title(
     minimal_confluence_config: dict,
     key: str,

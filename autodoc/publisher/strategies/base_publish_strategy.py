@@ -31,9 +31,11 @@ class BasePublishStrategy(ABC):
     """
 
     IS_SINGLE_PAGE: ClassVar[bool] = False
-    """True для стратегий, публикующих одну страницу Confluence (см.
-    SinglePagePublishStrategy). PassportsStrategy — многостраничная, оставляет
-    значение по умолчанию False."""
+    """
+    True для стратегий, публикующих одну страницу Confluence (см. SinglePagePublishStrategy).
+
+    PassportsStrategy — многостраничная, оставляет значение по умолчанию False.
+    """
 
     def __init__(
         self,

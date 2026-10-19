@@ -1,14 +1,14 @@
 """Тесты для autodoc/cli/commands/publish/passports.py."""
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
-from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import PASSPORT_TEMPLATE
-from tests.unit.cli.utils import make_confluence_config, make_parsed_result, make_publish_report
+from tests.unit.cli.utils import make_confluence_config, make_publish_report
 
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
@@ -42,29 +42,10 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     )
 
 
-def _mock_collaborators(mocker: MockerFixture, publish_report=None, parsed_ok=True):
-    """
-    Подменяет make_publisher и load_parsed_data для `publish passports`.
-
-    Args:
-        mocker: Фикстура pytest-mock для создания подмен.
-        publish_report: Отчёт о публикации, который вернёт publish_passports
-            (по умолчанию — успешный отчёт).
-        parsed_ok: Признак того, нужно ли подменять load_parsed_data
-            валидным результатом (False имитирует отсутствие parsed_data.json).
-
-    Returns:
-        Поддельный объект publisher с настроенным publish_passports.
-    """
-    mock_publisher = mocker.MagicMock()
-    mock_publisher.publish_passports.return_value = publish_report or make_publish_report()
-    mocker.patch(
-        f"{_MODULE}.make_publisher",
-        return_value=(mock_publisher, make_confluence_config()),
-    )
-    if parsed_ok:
-        mocker.patch(f"{_MODULE}.load_parsed_data", return_value=make_parsed_result())
-    return mock_publisher
+@pytest.fixture()
+def command_module() -> str:
+    """Модуль команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``."""
+    return _MODULE
 
 
 @pytest.mark.business_logic
@@ -80,7 +61,7 @@ def _mock_collaborators(mocker: MockerFixture, publish_report=None, parsed_ok=Tr
 def test_publish_passports_root_parent_name_forwarded(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
     cli_name: str | None,
     expected_name: str | None,
 ) -> None:
@@ -88,8 +69,6 @@ def test_publish_passports_root_parent_name_forwarded(
     --passports-root-parent-name передаётся в publish_passports без изменений;
     без флага уходит None (наравне с passports_root_parent_id).
     """
-    mock_publisher = _mock_collaborators(mocker)
-
     args = ["--passports-root-parent-name", cli_name] if cli_name else []
     result = _invoke(tmp_path, configs_dir, *args)
 
@@ -102,15 +81,13 @@ def test_publish_passports_root_parent_name_forwarded(
 
 @pytest.mark.contract
 def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """
     --passports-root-parent-name и --passports-root-parent-id можно указывать вместе —
     CLI пробрасывает оба значения в publish_passports без изменений и без проверки
     конфликта (это делает RootPageResolver).
     """
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(
         tmp_path,
         configs_dir,
@@ -128,11 +105,10 @@ def test_publish_passports_name_and_id_both_given_forwarded_unchanged(
 
 @pytest.mark.business_logic
 def test_publish_passports_publisher_failure_report_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """Неуспешный PublishReport от publish_passports завершает команду с кодом 1."""
-    report = make_publish_report(success=False, pages_published=0, errors=["passport boom"])
-    _mock_collaborators(mocker, publish_report=report)
+    mock_publisher.publish_passports.return_value = make_publish_report(success=False, pages_published=0, errors=["passport boom"])
 
     result = _invoke(tmp_path, configs_dir)
 
@@ -142,10 +118,10 @@ def test_publish_passports_publisher_failure_report_exits_nonzero(
 
 @pytest.mark.infrastructure
 def test_publish_passports_missing_parsed_data_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, make_publisher_mock: MagicMock
 ) -> None:
     """Отсутствующий parsed_data.json завершает команду с кодом 1 и понятным сообщением."""
-    _mock_collaborators(mocker, parsed_ok=False)
+    make_publisher_mock.return_value = (MagicMock(), make_confluence_config())
     # data/parsed_data.json намеренно не записывается.
 
     result = _invoke(tmp_path, configs_dir)

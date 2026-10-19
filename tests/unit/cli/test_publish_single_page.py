@@ -9,11 +9,11 @@
 """
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import click
 import pytest
 from click.testing import CliRunner
-from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.commands.publish.single_page import run_single_page_command
@@ -24,7 +24,6 @@ from autodoc.cli.constants import (
 from autodoc.cli.context import CliCtx
 from tests.unit.cli.utils import (
     make_confluence_config,
-    make_parsed_result,
     make_publish_report,
     strategy_override,
 )
@@ -61,36 +60,10 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
     )
 
 
-def _mock_collaborators(
-    mocker: MockerFixture,
-    publish_report=None,
-    confluence_config=None,
-    parsed_ok=True,
-):
-    """
-    Подменяет make_publisher и load_parsed_data в модуле single-page команды.
-
-    Args:
-        mocker: Фикстура pytest-mock для создания подмен.
-        publish_report: Отчёт о публикации, который вернёт publish_single_page
-            (по умолчанию — успешный отчёт).
-        confluence_config: Конфиг Confluence, возвращаемый make_publisher
-            (по умолчанию — минимальный валидный конфиг).
-        parsed_ok: Признак того, нужно ли подменять load_parsed_data
-            валидным результатом (False имитирует отсутствие parsed_data.json).
-
-    Returns:
-        Поддельный объект publisher с настроенным publish_single_page.
-    """
-    mock_publisher = mocker.MagicMock()
-    mock_publisher.publish_single_page.return_value = publish_report or make_publish_report()
-    mocker.patch(
-        f"{_SINGLE_PAGE_MODULE}.make_publisher",
-        return_value=(mock_publisher, confluence_config or make_confluence_config()),
-    )
-    if parsed_ok:
-        mocker.patch(f"{_SINGLE_PAGE_MODULE}.load_parsed_data", return_value=make_parsed_result())
-    return mock_publisher
+@pytest.fixture()
+def command_module() -> str:
+    """Модуль команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``."""
+    return _SINGLE_PAGE_MODULE
 
 
 @pytest.mark.business_logic
@@ -104,7 +77,8 @@ def _mock_collaborators(
 def test_publish_release_page_title_precedence(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
+    make_publisher_mock: MagicMock,
     cli_title: str | None,
     config_title: str | None,
     expected: str,
@@ -113,7 +87,7 @@ def test_publish_release_page_title_precedence(
     confluence_config = make_confluence_config(
         **strategy_override("release", page_title=config_title)
     )
-    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
+    make_publisher_mock.return_value = (mock_publisher, confluence_config)
 
     args = ["--page-title", cli_title] if cli_title else []
     result = _invoke(tmp_path, configs_dir, "release", *args)
@@ -125,15 +99,13 @@ def test_publish_release_page_title_precedence(
 
 @pytest.mark.contract
 def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """
     --root-page-id и --root-page-name можно указывать вместе — CLI пробрасывает оба значения
     в publish_single_page как есть; решение о приоритете и конфликте между ними принимает
     RootPageResolver, а не эта команда.
     """
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(
         tmp_path,
         configs_dir,
@@ -152,11 +124,9 @@ def test_publish_release_root_id_and_name_both_given_forwarded_unchanged(
 
 @pytest.mark.business_logic
 def test_publish_release_no_passport_links_disables_links(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """--no-passport-links устанавливает include_passport_links=False для release."""
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, "release", "--no-passport-links")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -166,11 +136,9 @@ def test_publish_release_no_passport_links_disables_links(
 
 @pytest.mark.business_logic
 def test_publish_release_passes_release_strategy_type(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """publish release передаёт strategy_type='release' и RELEASE_TEMPLATE в publish_single_page."""
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, "release")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -181,10 +149,10 @@ def test_publish_release_passes_release_strategy_type(
 
 @pytest.mark.infrastructure
 def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, make_publisher_mock: MagicMock
 ) -> None:
     """Отсутствующий parsed_data.json (DocGeneratorError из load_parsed_data) завершает команду с кодом 1 без ошибок вывода."""
-    _mock_collaborators(mocker, parsed_ok=False)
+    make_publisher_mock.return_value = (MagicMock(), make_confluence_config())
     # data/parsed_data.json намеренно не записывается в tmp_path, поэтому
     # реальный load_parsed_data() вызывает DocGeneratorError.
 
@@ -197,11 +165,10 @@ def test_publish_release_missing_parsed_data_exits_nonzero_cleanly(
 
 @pytest.mark.business_logic
 def test_publish_release_publisher_failure_report_exits_nonzero(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """Неуспешный PublishReport от publish_single_page завершает команду с кодом 1 для release."""
-    report = make_publish_report(success=False, pages_published=0, errors=["boom"])
-    _mock_collaborators(mocker, publish_report=report)
+    mock_publisher.publish_single_page.return_value = make_publish_report(success=False, pages_published=0, errors=["boom"])
 
     result = _invoke(tmp_path, configs_dir, "release")
 
@@ -211,11 +178,9 @@ def test_publish_release_publisher_failure_report_exits_nonzero(
 
 @pytest.mark.business_logic
 def test_publish_profile_passes_profile_centric_strategy_type(
-    tmp_path: Path, configs_dir: Path, mocker: MockerFixture
+    tmp_path: Path, configs_dir: Path, mock_publisher: MagicMock
 ) -> None:
     """publish profile передаёт strategy_type='profile_centric' и PROFILE_TEMPLATE."""
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, "profile")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -235,7 +200,8 @@ def test_publish_profile_passes_profile_centric_strategy_type(
 def test_publish_profile_title_source(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
+    make_publisher_mock: MagicMock,
     config_title: str | None,
     expected_title: str,
 ) -> None:
@@ -247,7 +213,7 @@ def test_publish_profile_title_source(
     confluence_config = make_confluence_config(
         **strategy_override("profile_centric", page_title=config_title)
     )
-    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
+    make_publisher_mock.return_value = (mock_publisher, confluence_config)
 
     result = _invoke(tmp_path, configs_dir, "profile")
 
@@ -269,7 +235,7 @@ def test_publish_profile_title_source(
 def test_run_single_page_command_rejects_invalid_strategy_type(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
     capsys: pytest.CaptureFixture,
     bad_strategy_type: str,
 ) -> None:
@@ -282,7 +248,6 @@ def test_run_single_page_command_rejects_invalid_strategy_type(
     ``autodoc.publisher.strategies.registry.STRATEGIES``, и strategy_type
     зарегистрирован, но не поддерживает одностраничную публикацию (``passports``).
     """
-    mock_publisher = _mock_collaborators(mocker)
     cli_ctx = CliCtx(base_dir=tmp_path, configs_dir=configs_dir, verbose=False)
     ctx = click.Context(click.Command("test"))
     ctx.obj = cli_ctx

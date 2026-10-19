@@ -13,7 +13,8 @@ from typing import Any
 import pytest
 
 CONFIG_RESOURCES_DIR: Path = Path(__file__).parent / "unit" / "config" / "resources"
-"""Путь к каноническим ресурсам конфигов: tests/unit/config/resources/.
+"""
+Путь к каноническим ресурсам конфигов: tests/unit/config/resources/.
 
 Значение константное для всего тестового набора, поэтому это обычный
 модульный импорт (``from tests.conftest import CONFIG_RESOURCES_DIR``),

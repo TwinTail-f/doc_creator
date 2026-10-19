@@ -82,9 +82,8 @@ class StrategiesConfig(BaseModel):
     """
     Настройки публикации, сгруппированные по типу стратегии.
 
-    Имена полей класса дословно совпадают с ключами ``registry.STRATEGIES``
-    (``"release"``, ``"profile_centric"``, ``"passports"``, ``"kit_pinned"``,
-    ``"kit_latest"``) — это специально, чтобы резолвинг ``strategy_type ->
+    Имена полей класса дословно совпадают с ключами ``registry.STRATEGIES`` —
+    это специально, чтобы резолвинг ``strategy_type ->
     секция конфига`` был просто ``getattr(strategies, strategy_type)``, без
     отдельной таблицы соответствия где-либо в коде.
     """
@@ -179,7 +178,7 @@ class ConfluenceConfigSchema(BaseModel):
 
     strategies: StrategiesConfig = Field(
         default_factory=StrategiesConfig,
-        description="Настройки публикации по типам стратегий (release/profile_centric/passports).",
+        description="Настройки публикации по типам стратегий.",
     )
 
     publish_all: PublishAllConfig = Field(

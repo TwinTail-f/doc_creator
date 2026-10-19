@@ -10,10 +10,10 @@
 """
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
-from pytest_mock import MockerFixture
 
 from autodoc.cli.app import cli
 from autodoc.cli.constants import (
@@ -22,7 +22,6 @@ from autodoc.cli.constants import (
 )
 from tests.unit.cli.utils import (
     make_confluence_config,
-    make_parsed_result,
     make_publish_report,
     strategy_override,
 )
@@ -61,48 +60,19 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
     )
 
 
-def _mock_collaborators(
-    mocker: MockerFixture,
-    publish_report=None,
-    confluence_config=None,
-    parsed_ok=True,
-):
-    """
-    Подменяет make_publisher и load_parsed_data в модуле single-page команды
-    (обе команды kit-* используют те же коллабораторы через single_page.py).
-
-    Args:
-        mocker: Фикстура pytest-mock для создания подмен.
-        publish_report: Отчёт о публикации, который вернёт publish_single_page
-            (по умолчанию — успешный отчёт).
-        confluence_config: Конфиг Confluence, возвращаемый make_publisher
-            (по умолчанию — минимальный валидный конфиг).
-        parsed_ok: Признак того, нужно ли подменять load_parsed_data
-            валидным результатом (False имитирует отсутствие parsed_data.json).
-
-    Returns:
-        Поддельный объект publisher с настроенным publish_single_page.
-    """
-    mock_publisher = mocker.MagicMock()
-    mock_publisher.publish_single_page.return_value = publish_report or make_publish_report()
-    mocker.patch(
-        f"{_SINGLE_PAGE_MODULE}.make_publisher",
-        return_value=(mock_publisher, confluence_config or make_confluence_config()),
-    )
-    if parsed_ok:
-        mocker.patch(f"{_SINGLE_PAGE_MODULE}.load_parsed_data", return_value=make_parsed_result())
-    return mock_publisher
+@pytest.fixture()
+def command_module() -> str:
+    """Модуль команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``."""
+    return _SINGLE_PAGE_MODULE
 
 
 @pytest.mark.business_logic
 def test_publish_kit_pinned_passes_strategy_type_and_template(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
 ) -> None:
     """publish kit-pinned передаёт strategy_type='kit_pinned' и KIT_PINNED_TEMPLATE."""
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -115,14 +85,12 @@ def test_publish_kit_pinned_passes_strategy_type_and_template(
 def test_publish_kit_pinned_include_passport_links_always_false(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
 ) -> None:
     """
     publish kit-pinned всегда передаёт include_passport_links=False — у команды
     нет флага, управляющего этим (в отличие от release/profile).
     """
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -159,7 +127,8 @@ def test_publish_kit_pinned_has_no_passport_links_flag(tmp_path: Path, configs_d
 def test_publish_kit_pinned_page_title_precedence(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
+    make_publisher_mock: MagicMock,
     cli_title: str | None,
     config_title: str | None,
     expected: str,
@@ -171,7 +140,7 @@ def test_publish_kit_pinned_page_title_precedence(
     confluence_config = make_confluence_config(
         **strategy_override("kit_pinned", page_title=config_title)
     )
-    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
+    make_publisher_mock.return_value = (mock_publisher, confluence_config)
 
     args = ["--page-title", cli_title] if cli_title else []
     result = _invoke(tmp_path, configs_dir, "kit-pinned", *args)
@@ -185,11 +154,9 @@ def test_publish_kit_pinned_page_title_precedence(
 def test_publish_kit_pinned_root_id_and_name_both_given_forwarded_unchanged(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
 ) -> None:
     """--root-page-id и --root-page-name пробрасываются в publish_single_page как есть."""
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(
         tmp_path,
         configs_dir,
@@ -210,10 +177,10 @@ def test_publish_kit_pinned_root_id_and_name_both_given_forwarded_unchanged(
 def test_publish_kit_pinned_missing_parsed_data_exits_nonzero_cleanly(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    make_publisher_mock: MagicMock,
 ) -> None:
     """Отсутствующий parsed_data.json завершает команду с кодом 1 без трейсбека."""
-    _mock_collaborators(mocker, parsed_ok=False)
+    make_publisher_mock.return_value = (MagicMock(), make_confluence_config())
 
     result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
@@ -226,11 +193,10 @@ def test_publish_kit_pinned_missing_parsed_data_exits_nonzero_cleanly(
 def test_publish_kit_pinned_publisher_failure_report_exits_nonzero(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
 ) -> None:
     """Неуспешный PublishReport от publish_single_page завершает команду с кодом 1."""
-    report = make_publish_report(success=False, pages_published=0, errors=["boom"])
-    _mock_collaborators(mocker, publish_report=report)
+    mock_publisher.publish_single_page.return_value = make_publish_report(success=False, pages_published=0, errors=["boom"])
 
     result = _invoke(tmp_path, configs_dir, "kit-pinned")
 
@@ -242,11 +208,9 @@ def test_publish_kit_pinned_publisher_failure_report_exits_nonzero(
 def test_publish_kit_latest_passes_strategy_type_and_template(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
 ) -> None:
     """publish kit-latest передаёт strategy_type='kit_latest' и KIT_LATEST_TEMPLATE."""
-    mock_publisher = _mock_collaborators(mocker)
-
     result = _invoke(tmp_path, configs_dir, "kit-latest")
 
     assert result.exit_code == _EXIT_SUCCESS, f"output: {result.output}\nexc: {result.exception}"
@@ -265,7 +229,8 @@ def test_publish_kit_latest_passes_strategy_type_and_template(
 def test_publish_kit_latest_title_source(
     tmp_path: Path,
     configs_dir: Path,
-    mocker: MockerFixture,
+    mock_publisher: MagicMock,
+    make_publisher_mock: MagicMock,
     config_title: str | None,
     expected_title: str,
 ) -> None:
@@ -276,7 +241,7 @@ def test_publish_kit_latest_title_source(
     confluence_config = make_confluence_config(
         **strategy_override("kit_latest", page_title=config_title)
     )
-    mock_publisher = _mock_collaborators(mocker, confluence_config=confluence_config)
+    make_publisher_mock.return_value = (mock_publisher, confluence_config)
 
     result = _invoke(tmp_path, configs_dir, "kit-latest")
 

@@ -30,8 +30,7 @@
   - [info](#info)
   - [logs clear](#logs-clear)
 - [Логирование](#логирование)
-- [Архитектура](#архитектура)
-- [Шаблоны и оформление](#шаблоны-и-оформление)
+- [Устройство проекта и расширение](#устройство-проекта-и-расширение)
 
 ---
 
@@ -64,6 +63,7 @@ Confluence REST API не позволяет опубликовать касто�
 
 **Инструменты для пространства → Внешний вид → Таблица стилей** → вставить содержимое обоих
 файлов между тегами `<style>` и `</style>`.
+
 ---
 
 ## Быстрый старт
@@ -71,7 +71,7 @@ Confluence REST API не позволяет опубликовать касто�
 ### 1. Установка зависимостей
 
 ```bash
-pip install -e ".[dev]"
+pip install -e .
 ```
 
 > [!NOTE]
@@ -96,7 +96,7 @@ cp configs/examples/confluence_config.yaml configs/confluence_config.yaml
 # 1. Собрать данные компонентов
 python autodoc parse
 
-# 2. Опубликовать паспорта, релиз, профили и комплект встраивания (типы и параметры — из конфига)
+# 2. Опубликовать страницы в Confluence (какие типы и с какими параметрами — задаёт конфиг)
 python autodoc publish all
 ```
 
@@ -326,7 +326,7 @@ strategies:
 | `strategies.profile_centric.page_title` | `"Документация от профилей"` | Заголовок страницы профиль-центричной документации |
 | `strategies.kit_pinned.page_title` | `"Комплект для встраивания компонентов platform"` | Заголовок страницы закреплённых версий компонентов по каналам |
 | `strategies.kit_latest.page_title` | `"Встраивание последних версий компонентов платформы"` | Заголовок страницы ссылок на последние сборки компонентов по каналам |
-| `publish_all.targets` | все пять типов | Какие типы публикации выполняет `publish all`: `passports`, `release`, `profile_centric`, `kit_pinned`, `kit_latest`. Порядок в списке не важен. `profile_centric` требует `release` в списке |
+| `publish_all.targets` | все доступные типы | Какие типы публикации выполняет `publish all`. Допустимые значения: `passports`, `release`, `profile_centric`, `kit_pinned`, `kit_latest`. Порядок в списке не важен. `profile_centric` требует `release` в списке |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -564,7 +564,7 @@ python autodoc publish kit-latest --root-page-name "Документация п�
 ### `publish all`
 
 Публикует за один вызов типы, перечисленные в `publish_all.targets` конфига (по умолчанию —
-все пять), всегда в одном порядке:
+все доступные типы), всегда в одном порядке:
 
 1. `passports` — паспорта компонентов (`publish passports`);
 2. `release` — релизная страница (`publish release`) со ссылками на паспорта;
@@ -650,8 +650,7 @@ python autodoc logs clear --yes
 
 ## Логирование
 
-Логгер (`autodoc/common/logger.py`) настроен единым образом для всех модулей и используется
-и парсером, и паблишером.
+Логирование настроено единым образом для парсера и паблишера.
 
 **Консоль** — уровень `INFO` и выше, с раскраской:
 
@@ -684,87 +683,8 @@ logs/
 
 ---
 
-## Архитектура
+## Устройство проекта и расширение
 
-Архитектура проекта представлена следующим образом:
-
-```
-autodoc/
-├── __main__.py  — точка входа CLI (тонкая обёртка)
-├── cli/         — все команды и группы Click
-├── common/      — общие утилиты (логгер, retry-сессия, parallel executor)
-├── parser/      — сбор данных из TFS + Conan + Docker
-└── publisher/   — публикация в Confluence
-```
-
-`parser` и `publisher` — независимые друг от друга пакеты: `parser` ничего не знает о
-Confluence, `publisher` ничего не знает о TFS/Conan. Единственная точка их соприкосновения —
-файл `data/parsed_data.json`, который `parser` пишет, а `publisher` читает. `cli` и `common`
-используются обоими.
-
-Рядом с проектом (не внутри пакета `autodoc/`) во время работы CLI появляются рабочие
-директории:
-
-```
-<base-dir>/
-├── data/  — data/parsed_data.json (результат parse, вход для publish)
-└── logs/  — файлы логов по одному на запуск parse/publish (см. «Логирование»)
-```
-
-**Пайплайн парсера** (последовательность шагов):
-
-```
-ManifestStep → OptionsResolveStep → ConanEnrichStep
-    → DockerResolveStep → ArtifactoryValidationStep → FinalizeStep
-```
-
-Каждый шаг — изолированный объект, общается с остальными только через `PipelineContext`.
-`ConanEnrichStep` и `ArtifactoryValidationStep` убираются из пайплайна при передаче флагов
-`--skip-conan` / `--skip-validation`.
-
-**Стратегии публикации** регистрируются явным словарём `STRATEGIES` в
-`autodoc/publisher/strategies/registry.py` и создаются по строковому ключу функцией
-`create_strategy()`:
-
-| Стратегия | Команда CLI | Описание |
-|-----------|-------------|----------|
-| `release` | `publish release` | Одна страница: все компоненты с их релизами и профилями |
-| `profile_centric` | `publish profile` | Одна страница: вид по профилям сборки → каналам → компонентам |
-| `passports` | `publish passports` | Иерархия страниц: Корень → Компонент → Версия |
-| `kit_pinned` | `publish kit-pinned` | Одна страница: точные Conan-ссылки закреплённых версий по каналам |
-| `kit_latest` | `publish kit-latest` | Одна страница: ссылки на последние сборки компонентов по каналам |
-
-`publish all` последовательно выполняет выбранные в `publish_all.targets` стратегии (по умолчанию
-все): `passports`, `release`, `profile_centric` (дочерняя страница релиза), `kit_pinned` и
-`kit_latest`. Порядок «паспорта → релиз» важен: после
-первого шага генерируется карта ID страниц паспортов, которую `release` использует для
-вставки ссылок.
-
-#### Как добавить новую страницу
-
-1. Написать класс стратегии (наследник `SinglePagePublishStrategy` или `BasePublishStrategy`).
-2. Добавить строку в `STRATEGIES` (`autodoc/publisher/strategies/registry.py`).
-3. Добавить узел в `PUBLISH_PLAN` (`autodoc/publisher/strategies/publish_plan.py`): порядок
-   публикации и `parent_from`, если страница публикуется под страницей другого типа.
-4. Добавить секцию с тем же именем в `StrategiesConfig`.
-
-`DocumentPublisher.publish_all` менять не нужно. Забытый шаг ловит тест
-`test_publish_plan_keys_match_registry_and_config_sections`.
-
----
-
-## Шаблоны и оформление
-
-### Jinja2-шаблоны
-
-Хранятся в `autodoc/publisher/rendering/templates/`. Используется Confluence Storage
-Format (AUI-макросы, вкладки).
-
-```
-autodoc/publisher/rendering/templates/
-├── release_doc.jinja2        — страница релиза (компонентный вид)
-├── profile_centric.jinja2    — профиль-центричный вид
-├── component_passport.jinja2 — паспорт компонента
-├── embedding_kit.jinja2      — комплект для встраивания (kit-pinned / kit-latest)
-└── _platform_intro.jinja2    — вспомогательный partial (вводный блок платформы)
-```
+Как устроен проект, из каких шагов состоит парсер и публикация, как добавить новый тип
+страницы и как работают шаблоны — в отдельном документе
+[«Архитектура и расширение»](docs/ARCHITECTURE.md).

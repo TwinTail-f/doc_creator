@@ -66,8 +66,7 @@ class DocumentPublisher:
         Публикует документацию согласно выбранной стратегии.
 
         Args:
-            strategy_type: Тип стратегии (``'passports'``, ``'release'``,
-                           ``'profile_centric'``).
+            strategy_type: Ключ стратегии из ``registry.STRATEGIES``.
             parsed_data: Данные парсера.
             **kwargs: Аргументы конструктора стратегии.
 
