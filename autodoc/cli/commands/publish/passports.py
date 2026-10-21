@@ -24,10 +24,7 @@ from autodoc.cli.helpers import (
     "--passports-root-parent-name",
     "passports_root_parent_name",
     default=None,
-    help=(
-        "Название корневой страницы иерархии паспортов (переопределяет конфиг). "
-        'Если содержит пробелы — заключите в кавычки: --passports-root-parent-name "Моя страница"'
-    ),
+    help="Название корневой страницы иерархии паспортов (переопределяет конфиг).",
 )
 @click.pass_context
 def publish_passports(

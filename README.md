@@ -75,9 +75,8 @@ pip install -e .
 ```
 
 > [!NOTE]
-> `pip install -e .` регистрирует консольный скрипт `autodoc`, поэтому вместо
-> `python autodoc ...` можно использовать `autodoc ...` (например, `autodoc parse`).
-> Ниже везде используется форма `python autodoc ...`, актуальная при запуске без установки пакета.
+> После установки доступен консольный скрипт `autodoc`: `autodoc parse` эквивалентно
+> `python autodoc parse`. Ниже в примерах используется форма `python autodoc ...`.
 
 ### 2. Конфигурация
 
@@ -357,12 +356,6 @@ configs/
 
 ## Команды CLI
 
-> [!TIP]
-> Если значение флага (например, `--root-page-name`, `--passports-root-parent-name`
-> или `--page-title`) содержит пробелы, обязательно оборачивайте
-> его в кавычки: `--root-page-name "Моя страница"`. Без кавычек shell разобьёт
-> значение на несколько отдельных аргументов, и команда завершится ошибкой.
-
 ### Приоритет CLI и конфига для root page name и id
 
 Для команд публикации `release`, `profile`, `passports`, `kit-pinned` и `kit-latest` корневую/родительскую
@@ -437,7 +430,7 @@ python autodoc parse --save-intermediate
 | Флаг | Описание |
 |------|----------|
 | `--page-title` | Заголовок страницы. Переопределяет `strategies.release.page_title` из конфига |
-| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.release.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.release.root_parent_name`). Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
 | `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.release.root_parent_id`). Можно указывать вместе с `--root-page-name` |
 | `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
 
@@ -466,7 +459,7 @@ python autodoc publish release --no-passport-links
 | Флаг | Описание |
 |------|----------|
 | `--page-title` | Заголовок страницы. Переопределяет `strategies.profile_centric.page_title` из конфига |
-| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.profile_centric.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.profile_centric.root_parent_name`). Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
 | `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.profile_centric.root_parent_id`). Можно указывать вместе с `--root-page-name` |
 | `--no-passport-links` | Не вставлять ссылки на паспорта компонентов |
 
@@ -495,7 +488,7 @@ python autodoc publish profile --no-passport-links
 
 | Флаг | Описание |
 |------|----------|
-| `--passports-root-parent-name "Название"` | Название корневой страницы иерархии паспортов (переопределяет конфиг). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--passports-root-parent-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--passports-root-parent-name "Название"` | Название корневой страницы иерархии паспортов (переопределяет конфиг). Приоритет над конфигом и `--passports-root-parent-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
 | `--passports-root-parent-id ID` | ID корневой страницы иерархии паспортов (переопределяет конфиг). Можно указывать вместе с `--passports-root-parent-name` |
 
 ```bash
@@ -521,7 +514,7 @@ python autodoc publish passports --passports-root-parent-id 987654321
 | Флаг | Описание |
 |------|----------|
 | `--page-title` | Заголовок страницы. Переопределяет `strategies.kit_pinned.page_title` из конфига |
-| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.kit_pinned.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.kit_pinned.root_parent_name`). Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
 | `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.kit_pinned.root_parent_id`). Можно указывать вместе с `--root-page-name` |
 
 ```bash
@@ -547,7 +540,7 @@ python autodoc publish kit-pinned --root-page-name "Документация п�
 | Флаг | Описание |
 |------|----------|
 | `--page-title` | Заголовок страницы. Переопределяет `strategies.kit_latest.page_title` из конфига |
-| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.kit_latest.root_parent_name`). Если содержит пробелы — заключите в кавычки. Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
+| `--root-page-name "Название"` | Название родительской страницы (переопределяет `strategies.kit_latest.root_parent_name`). Приоритет над конфигом и `--root-page-id` — см. [Приоритет CLI и конфига для root page name и id](#приоритет-cli-и-конфига-для-root-page-name-и-id) |
 | `--root-page-id ID` | ID родительской страницы (переопределяет `strategies.kit_latest.root_parent_id`). Можно указывать вместе с `--root-page-name` |
 
 ```bash
