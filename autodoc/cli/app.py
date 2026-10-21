@@ -39,7 +39,7 @@ def cli(ctx: click.Context, base_dir: Path, configs_dir: Path | None, verbose: b
     Примеры:
         doc-generator parse
         doc-generator parse --skip-conan --save-intermediate
-        doc-generator publish all
+        doc-generator publish targets
         doc-generator config list
     """
     base = base_dir.resolve()

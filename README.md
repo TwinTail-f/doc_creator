@@ -25,7 +25,7 @@
   - [publish passports](#publish-passports)
   - [publish kit-pinned](#publish-kit-pinned)
   - [publish kit-latest](#publish-kit-latest)
-  - [publish all](#publish-all)
+  - [publish targets](#publish-targets)
   - [config](#config)
   - [info](#info)
   - [logs clear](#logs-clear)
@@ -96,7 +96,7 @@ cp configs/examples/confluence_config.yaml configs/confluence_config.yaml
 python autodoc parse
 
 # 2. Опубликовать страницы в Confluence (какие типы и с какими параметрами — задаёт конфиг)
-python autodoc publish all
+python autodoc publish targets
 ```
 
 Полный список команд, флагов и примеров — в разделе [«Команды CLI»](#команды-cli).
@@ -275,10 +275,10 @@ overrides:
 | `strategies.kit_latest.root_parent_name` | Название корневой родительской страницы последних сборок (без закрепления версии) |
 | `strategies.kit_latest.root_parent_id` | ID корневой родительской страницы последних сборок (без закрепления версии) |
 
-Команда [`publish all`](#publish-all) берёт все родительские страницы только из конфига: для
-каждого выбранного в `publish_all.targets` типа (по умолчанию — всех) обязательна секция с
+Команда [`publish targets`](#publish-targets) берёт все родительские страницы только из конфига: для
+каждого выбранного в `publish_targets` типа (по умолчанию — всех) обязательна секция с
 `root_parent_name` и/или `root_parent_id`. Исключение — `profile_centric`: профильная страница
-публикуется дочерней к странице релиза, её секция для `publish all` не нужна.
+публикуется дочерней к странице релиза, её секция для `publish targets` не нужна.
 
 Все пары задают **родителя**, под которым публикуемые страницы будут созданы в дереве
 Confluence — сам инструмент эти страницы не создаёт, только ищет их по названию (или ID (число в url у страницы) )
@@ -325,7 +325,7 @@ strategies:
 | `strategies.profile_centric.page_title` | `"Документация от профилей"` | Заголовок страницы профиль-центричной документации |
 | `strategies.kit_pinned.page_title` | `"Комплект для встраивания компонентов platform"` | Заголовок страницы закреплённых версий компонентов по каналам |
 | `strategies.kit_latest.page_title` | `"Встраивание последних версий компонентов платформы"` | Заголовок страницы ссылок на последние сборки компонентов по каналам |
-| `publish_all.targets` | все доступные типы | Какие типы публикации выполняет `publish all`. Допустимые значения: `passports`, `release`, `profile_centric`, `kit_pinned`, `kit_latest`. Порядок в списке не важен. `profile_centric` требует `release` в списке |
+| `publish_targets` | все доступные типы | Какие типы публикации выполняет `publish targets`. Допустимые значения: `passports`, `release`, `profile_centric`, `kit_pinned`, `kit_latest`. Порядок в списке не важен. `profile_centric` требует `release` в списке |
 | `target_release_version` | `"Platform 2.2"` | Подпись текущего релиза — используется в заголовках паспортов и метке вкладки релиза |
 | `confluence_request_timeout` | `30` | Тайм-аут HTTP-запросов к Confluence (секунды) |
 | `publish_batch_size` | `10` | Количество паспортов, публикуемых за один пакет |
@@ -335,7 +335,7 @@ strategies:
 Приоритет источников заголовка страницы (от высшего к низшему): флаг `--page-title` из CLI →
 поле `page_title` соответствующей секции конфига. Если в секции оно не указано, действует значение
 по умолчанию из таблицы выше. Значение `page_title` не может быть пустым, состоять из пробелов
-или быть `null`: такой конфиг не загрузится. У `publish all` флагов нет, заголовки берутся из конфига.
+или быть `null`: такой конфиг не загрузится. У `publish targets` флагов нет, заголовки берутся из конфига.
 
 ### Структура директории configs/
 
@@ -361,7 +361,7 @@ configs/
 Для команд публикации `release`, `profile`, `passports`, `kit-pinned` и `kit-latest` корневую/родительскую
 страницу можно задать по названию (`*_name`) и/или по ID (`*_id`), и в CLI-флагах, и в
 конфигурации — оба варианта разрешено указывать одновременно, в том числе вместе друг с
-другом (например, `--root-page-name` вместе с `--root-page-id`). У `publish all` флагов нет, поэтому
+другом (например, `--root-page-name` вместе с `--root-page-id`). У `publish targets` флагов нет, поэтому
 все родительские страницы берутся из конфига, а правила ниже применяются внутри конфига
 (`*_name` > `*_id`).
 
@@ -554,9 +554,9 @@ python autodoc publish kit-latest --page-title "Последние сборки 
 python autodoc publish kit-latest --root-page-name "Документация платформы 2.2"
 ```
 
-### `publish all`
+### `publish targets`
 
-Публикует за один вызов типы, перечисленные в `publish_all.targets` конфига (по умолчанию —
+Публикует за один вызов типы, перечисленные в `publish_targets` конфига (по умолчанию —
 все доступные типы), всегда в одном порядке:
 
 1. `passports` — паспорта компонентов (`publish passports`);
@@ -569,8 +569,7 @@ python autodoc publish kit-latest --root-page-name "Документация п�
 
 ```yaml
 # Необязательно: выбрать часть типов (по умолчанию публикуются все)
-publish_all:
-  targets: [passports, release, kit_pinned]
+publish_targets: [passports, release, kit_pinned]
 ```
 
 | Что | Откуда |
@@ -585,24 +584,24 @@ publish_all:
 Что проверяется до начала публикации:
 
 * Для каждого выбранного типа (кроме `profile_centric`) в конфиге задан `root_parent_name`
-  или `root_parent_id`. Если в конфиге явно указан `publish_all`, эта проверка выполняется
-  уже при загрузке конфига (в том числе в `config validate`). Если `publish_all` не указан,
-  проверка выполняется при запуске `publish all`. Ошибка перечисляет сразу все секции, где
+  или `root_parent_id`. Если в конфиге явно указан `publish_targets`, эта проверка выполняется
+  уже при загрузке конфига (в том числе в `config validate`). Если `publish_targets` не указан,
+  проверка выполняется при запуске `publish targets`. Ошибка перечисляет сразу все секции, где
   родитель не задан.
 * Родительские страницы выбранных типов существуют в Confluence.
-* `targets` не пуст, не содержит повторов и неизвестных типов; `profile_centric` указан
+* `publish_targets` не пуст, не содержит повторов и неизвестных типов; `profile_centric` указан
   только вместе с `release`.
 * `page_title` секций `release`, `profile_centric`, `kit_pinned` и `kit_latest` — непустая
-  строка. Это проверяется при загрузке конфига любой командой, независимо от `targets`.
+  строка. Это проверяется при загрузке конфига любой командой, независимо от `publish_targets`.
 
 При любой из этих ошибок команда завершается с кодом 1 и ничего не публикует. Секции
 невыбранных типов в конфиге не нужны: например, чтобы публиковать без страниц комплекта,
-достаточно убрать `kit_pinned` и `kit_latest` из `targets`. Если нужны другие родители или
+достаточно убрать `kit_pinned` и `kit_latest` из `publish_targets`. Если нужны другие родители или
 заголовки, используйте отдельные команды `publish passports`, `publish release`,
 `publish profile`, `publish kit-pinned` и `publish kit-latest` — у них есть флаги.
 
 ```bash
-python autodoc publish all
+python autodoc publish targets
 ```
 
 ### `config`

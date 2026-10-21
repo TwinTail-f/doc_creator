@@ -492,7 +492,7 @@ def test_resolve_parent_kit_strategies_read_their_own_config_section(
     resolve_parent('kit_pinned'/'kit_latest', None, None) читает
     собственную секцию strategies.<strategy_type>, а не секцию соседней kit-стратегии.
 
-    ``publish all`` резолвит родителей обеих страниц комплекта только по конфигу,
+    ``publish targets`` резолвит родителей обеих страниц комплекта только по конфигу,
     поэтому у каждой секции своя родительская страница.
     """
     other_type = "kit_latest" if strategy_type == "kit_pinned" else "kit_pinned"
@@ -520,7 +520,7 @@ def test_resolve_parent_kit_strategy_without_config_section_raises_config_error(
     """
     Если секции kit-стратегии нет в конфиге и родитель не передан, резолв завершается ``ConfigError``.
 
-    Это условие, при котором ``publish all`` останавливается до начала публикации:
+    Это условие, при котором ``publish targets`` останавливается до начала публикации:
     в конфиге обязаны быть секции ``kit_pinned`` и ``kit_latest`` с родительской страницей.
     """
     resolver, _ = _make_resolver(mocker, minimal_confluence_config)

@@ -180,9 +180,9 @@ class DocumentPublisher:
             include_passport_links=include_passport_links,
         )
 
-    def publish_all(self, parsed_data: ParsedResult) -> PublishReport:
+    def publish_targets(self, parsed_data: ParsedResult) -> PublishReport:
         """
-        Публикует типы страниц, выбранные в ``publish_all.targets``.
+        Публикует типы страниц, выбранные в ``publish_targets``.
 
         Args:
             parsed_data: Данные парсера.
@@ -193,7 +193,7 @@ class DocumentPublisher:
         Raises:
             ConfigError: Если родительская страница не задана или не найдена.
         """
-        targets = self._config.publish_all.targets
+        targets = self._config.publish_targets
         logger.info(f"Публикация типов: {', '.join(targets)}")
 
         error = self._config.missing_root_parents_error()

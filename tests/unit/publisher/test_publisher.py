@@ -29,7 +29,7 @@ _PARENT_SECTIONS: dict[str, dict[str, str]] = {
     "kit_pinned": {"root_parent_name": "kit_pinned parent", "page_title": _KIT_PINNED_TITLE},
     "kit_latest": {"root_parent_name": "kit_latest parent", "page_title": _KIT_LATEST_TITLE},
 }
-"""Секции ``strategies`` с родителями и заголовками для всех типов ``publish all``."""
+"""Секции ``strategies`` с родителями и заголовками для всех типов ``publish targets``."""
 
 
 def _make_publisher(
@@ -65,7 +65,7 @@ def publisher_all_parents(
     tmp_path: Path,
     mocker: MockerFixture,
 ) -> DocumentPublisher:
-    """DocumentPublisher, в конфиге которого заданы родители для всех типов ``publish all``."""
+    """DocumentPublisher, в конфиге которого заданы родители для всех типов ``publish targets``."""
     config_dict = {**minimal_confluence_config, "strategies": _PARENT_SECTIONS}
     return _make_publisher(config_dict, tmp_path, mocker)
 
@@ -119,7 +119,7 @@ _RELEASE_PAGE_ID: str = "release-page-1"
 
 def _all_reports(**overrides: PublishReport) -> dict[str, PublishReport]:
     """
-    Собирает успешные отчёты для всех стратегий ``publish_all()``.
+    Собирает успешные отчёты для всех стратегий ``publish_targets()``.
 
     Args:
         **overrides: Отчёты, заменяющие отчёты по умолчанию (ключ — тип стратегии).
@@ -186,19 +186,20 @@ def _patch_resolver(
     )
 
 
-def _publish_all(publisher: DocumentPublisher, parsed_data: ParsedResult) -> PublishReport:
-    """Вызывает ``publish_all()``; заголовки и родители берутся из конфига паблишера."""
-    return publisher.publish_all(parsed_data=parsed_data)
+def _publish_targets(publisher: DocumentPublisher, parsed_data: ParsedResult) -> PublishReport:
+    """Вызывает ``publish_targets()``; заголовки и родители берутся из конфига паблишера."""
+    return publisher.publish_targets(parsed_data=parsed_data)
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_runs_strategies_in_documented_order(
+def test_publisher_publish_targets_runs_strategies_in_documented_order(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
 ) -> None:
     """
-    publish_all() выполняет стратегии в порядке: паспорта, релиз, профили, kit-pinned, kit-latest.
+    publish_targets() выполняет стратегии в порядке: паспорта, релиз, профили, kit-pinned,
+    kit-latest.
 
     Порядок «паспорта → релиз» важен: ReleasePageStrategy при рендеринге читает
     passport_pages.json, записанный предшествующим запуском PassportsStrategy, чтобы вставить
@@ -209,7 +210,7 @@ def test_publisher_publish_all_runs_strategies_in_documented_order(
     _patch_resolver(mocker, publisher_all_parents)
     calls = _patch_create_strategy(mocker, _all_reports())
 
-    _publish_all(publisher_all_parents, publisher_parsed_result)
+    _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     assert [strategy_type for strategy_type, _ in calls] == list(_ALL_STRATEGY_TYPES)
 
@@ -245,7 +246,7 @@ def test_publisher_publish_all_runs_strategies_in_documented_order(
         ),
     ],
 )
-def test_publisher_publish_all_aggregates_reports_of_all_strategies(
+def test_publisher_publish_targets_aggregates_reports_of_all_strategies(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -253,7 +254,7 @@ def test_publisher_publish_all_aggregates_reports_of_all_strategies(
     expected: dict[str, Any],
 ) -> None:
     """
-    Итоговый отчёт publish_all() агрегирует success, pages_published и errors всех стратегий.
+    Итоговый отчёт publish_targets() агрегирует success, pages_published и errors всех стратегий.
 
     Каждая стратегия по умолчанию публикует по одной странице; ``overrides`` заменяют
     отчёты отдельных стратегий.
@@ -261,7 +262,7 @@ def test_publisher_publish_all_aggregates_reports_of_all_strategies(
     _patch_resolver(mocker, publisher_all_parents)
     _patch_create_strategy(mocker, _all_reports(**overrides))
 
-    result = _publish_all(publisher_all_parents, publisher_parsed_result)
+    result = _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     assert result.success == expected["success"]
     assert result.pages_published == expected["pages_published"]
@@ -269,7 +270,7 @@ def test_publisher_publish_all_aggregates_reports_of_all_strategies(
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_publishes_profile_page_under_release_page(
+def test_publisher_publish_targets_publishes_profile_page_under_release_page(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -283,14 +284,14 @@ def test_publisher_publish_all_publishes_profile_page_under_release_page(
     _patch_resolver(mocker, publisher_all_parents)
     calls = _patch_create_strategy(mocker, _all_reports())
 
-    _publish_all(publisher_all_parents, publisher_parsed_result)
+    _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     profile_kwargs = dict(calls)["profile_centric"]
     assert profile_kwargs["parent_id"] == _RELEASE_PAGE_ID
 
 
 @pytest.mark.contract
-def test_publisher_publish_all_uses_parents_and_titles_from_config(
+def test_publisher_publish_targets_uses_parents_and_titles_from_config(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -306,7 +307,7 @@ def test_publisher_publish_all_uses_parents_and_titles_from_config(
     resolver_mock = _patch_resolver(mocker, publisher_all_parents)
     calls = _patch_create_strategy(mocker, _all_reports())
 
-    _publish_all(publisher_all_parents, publisher_parsed_result)
+    _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     assert [c.args for c in resolver_mock.call_args_list] == [
         ("passports", None, None),
@@ -336,7 +337,7 @@ def test_publisher_publish_all_uses_parents_and_titles_from_config(
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_config_error_stops_before_any_publication(
+def test_publisher_publish_targets_config_error_stops_before_any_publication(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -361,7 +362,7 @@ def test_publisher_publish_all_config_error_stops_before_any_publication(
     mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
 
     with pytest.raises(ConfigError, match="kit_latest"):
-        _publish_all(publisher_all_parents, publisher_parsed_result)
+        _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     mock_create.assert_not_called()
 
@@ -383,7 +384,7 @@ def test_publisher_publish_all_config_error_stops_before_any_publication(
         ),
     ],
 )
-def test_publisher_publish_all_runs_only_selected_targets(
+def test_publisher_publish_targets_runs_only_selected_targets(
     minimal_confluence_config: dict,
     publisher_parsed_result: ParsedResult,
     tmp_path: Path,
@@ -392,7 +393,7 @@ def test_publisher_publish_all_runs_only_selected_targets(
     expected_order: list[str],
 ) -> None:
     """
-    publish_all() публикует только типы из ``publish_all.targets`` и в порядке плана.
+    publish_targets() публикует только типы из ``publish_targets`` и в порядке плана.
 
     Порядок элементов в конфиге на порядок публикации не влияет. Родители резолвятся
     только для выбранных типов с собственным родителем: резолвер не вызывается для
@@ -401,13 +402,13 @@ def test_publisher_publish_all_runs_only_selected_targets(
     config_dict = {
         **minimal_confluence_config,
         "strategies": _PARENT_SECTIONS,
-        "publish_all": {"targets": targets},
+        "publish_targets": targets,
     }
     publisher = _make_publisher(config_dict, tmp_path, mocker)
     resolver_mock = _patch_resolver(mocker, publisher)
     calls = _patch_create_strategy(mocker, _all_reports())
 
-    _publish_all(publisher, publisher_parsed_result)
+    _publish_targets(publisher, publisher_parsed_result)
 
     assert [strategy_type for strategy_type, _ in calls] == expected_order
     resolved_types = [c.args[0] for c in resolver_mock.call_args_list]
@@ -417,7 +418,7 @@ def test_publisher_publish_all_runs_only_selected_targets(
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_missing_parents_raise_one_error_before_publication(
+def test_publisher_publish_targets_missing_parents_raise_one_error_before_publication(
     publisher_document_publisher: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -433,7 +434,7 @@ def test_publisher_publish_all_missing_parents_raise_one_error_before_publicatio
     mock_create = mocker.patch("autodoc.publisher.publisher.create_strategy")
 
     with pytest.raises(ConfigError) as exc_info:
-        _publish_all(publisher_document_publisher, publisher_parsed_result)
+        _publish_targets(publisher_document_publisher, publisher_parsed_result)
 
     message = str(exc_info.value)
     assert (
@@ -507,7 +508,7 @@ def test_publisher_publish_single_page_resolves_parent_and_delegates(
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_skips_child_when_parent_not_published(
+def test_publisher_publish_targets_skips_child_when_parent_not_published(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -527,7 +528,7 @@ def test_publisher_publish_all_skips_child_when_parent_not_published(
     calls = _patch_create_strategy(mocker, reports)
     mock_logger_error = mocker.patch("autodoc.publisher.publisher.logger.error")
 
-    result = _publish_all(publisher_all_parents, publisher_parsed_result)
+    result = _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     assert [strategy_type for strategy_type, _ in calls] == [
         "passports",
@@ -543,7 +544,7 @@ def test_publisher_publish_all_skips_child_when_parent_not_published(
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_child_parent_id_comes_from_parent_report(
+def test_publisher_publish_targets_child_parent_id_comes_from_parent_report(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -567,13 +568,13 @@ def test_publisher_publish_all_child_parent_id_comes_from_parent_report(
     )
     calls = _patch_create_strategy(mocker, reports)
 
-    _publish_all(publisher_all_parents, publisher_parsed_result)
+    _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     assert dict(calls)["profile_centric"]["parent_id"] == "release-page-1"
 
 
 @pytest.mark.business_logic
-def test_publisher_publish_all_resolves_only_own_parents_before_first_publication(
+def test_publisher_publish_targets_resolves_only_own_parents_before_first_publication(
     publisher_all_parents: DocumentPublisher,
     publisher_parsed_result: ParsedResult,
     mocker: MockerFixture,
@@ -603,7 +604,7 @@ def test_publisher_publish_all_resolves_only_own_parents_before_first_publicatio
 
     mocker.patch("autodoc.publisher.publisher.create_strategy", side_effect=fake_create)
 
-    _publish_all(publisher_all_parents, publisher_parsed_result)
+    _publish_targets(publisher_all_parents, publisher_parsed_result)
 
     assert journal[:4] == [
         ("resolve", "passports"),

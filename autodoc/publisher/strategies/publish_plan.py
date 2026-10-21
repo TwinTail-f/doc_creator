@@ -1,7 +1,7 @@
 """
 Декларативный план публикации: порядок типов и зависимости между ними.
 
-``PUBLISH_PLAN`` задаёт порядок публикации в ``publish all``.
+``PUBLISH_PLAN`` задаёт порядок публикации в ``publish targets``.
 """
 
 from typing import NamedTuple

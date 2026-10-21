@@ -8,7 +8,7 @@
   "verify_ssl": false,
 
   "strategies": {
-    "_comment": "publish all берёт все параметры из конфига (флагов у команды нет): для каждого выбранного в publish_all.targets типа обязательна секция с root_parent_name и/или root_parent_id (кроме profile_centric). Для остальных команд секцию можно не указывать, если родительская страница передаётся через CLI-флаги. Если секция указана — обязательно root_parent_name и/или root_parent_id. page_title в секциях release, profile_centric, kit_pinned и kit_latest не может быть пустым или null. Секция 'profile_centric' нужна только для publish profile: publish all публикует профильную страницу дочерней к релизу и берёт из секции лишь page_title.",
+    "_comment": "publish targets берёт все параметры из конфига (флагов у команды нет): для каждого выбранного в publish_targets типа обязательна секция с root_parent_name и/или root_parent_id (кроме profile_centric). Для остальных команд секцию можно не указывать, если родительская страница передаётся через CLI-флаги. Если секция указана — обязательно root_parent_name и/или root_parent_id. page_title в секциях release, profile_centric, kit_pinned и kit_latest не может быть пустым или null. Секция 'profile_centric' нужна только для publish profile: publish targets публикует профильную страницу дочерней к релизу и берёт из секции лишь page_title.",
 
     "release": {
       "root_parent_name": "Документация к релизу Платформы 2.2.0",
@@ -21,7 +21,7 @@
       "_comment_passports_id": "Или используйте root_parent_id как запасной вариант"
     },
 
-    "_comment_kit": "Ниже — секции для `publish kit-pinned`/`publish kit-latest` и для `publish all`. Оба справочных списка ссылок Conan по каналам.",
+    "_comment_kit": "Ниже — секции для `publish kit-pinned`/`publish kit-latest` и для `publish targets`. Оба справочных списка ссылок Conan по каналам.",
 
     "kit_pinned": {
       "root_parent_name": "Комплект для встраивания компонентов platform",
@@ -36,10 +36,8 @@
     }
   },
 
-  "_comment_publish_all": "Какие типы публикует publish all (по умолчанию — все доступные типы). Порядок в списке не важен. profile_centric требует в списке 'release'. Для каждого выбранного типа, кроме profile_centric, должна быть заполнена секция выше.",
-  "publish_all": {
-    "targets": ["passports", "release", "profile_centric", "kit_pinned", "kit_latest"]
-  },
+  "_comment_publish_targets": "Какие типы публикует publish targets (по умолчанию — все доступные типы). Порядок в списке не важен. profile_centric требует в списке 'release'. Для каждого выбранного типа, кроме profile_centric, должна быть заполнена секция выше.",
+  "publish_targets": ["passports", "release", "profile_centric", "kit_pinned", "kit_latest"],
 
   "confluence_request_timeout": 30,
 

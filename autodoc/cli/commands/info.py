@@ -16,7 +16,7 @@ def info() -> None:
             "✓ Публикация паспортов компонентов (publish passports)\n"
             "✓ Публикация релизной документации от компонентов (publish release)\n"
             "✓ Публикация документации от профилей (publish profile)\n"
-            "✓ Команда publish all (паспорта + релиз за один вызов)\n",
+            "✓ Команда publish targets (типы страниц из конфига за один вызов)\n",
             title="Doc Generator",
             style="blue",
         )

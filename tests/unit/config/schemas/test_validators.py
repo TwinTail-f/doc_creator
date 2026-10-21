@@ -7,12 +7,17 @@ from pydantic import ValidationError
 
 from autodoc.config.schemas.confluence_config import (
     ConfluenceConfigSchema,
-    PublishAllConfig,
     StrategiesConfig,
 )
 from autodoc.config.schemas.parser_config import ParserConfigSchema
 from autodoc.publisher.strategies import registry
-from autodoc.publisher.strategies.publish_plan import PUBLISH_PLAN, plan_keys
+from autodoc.publisher.strategies.publish_plan import PUBLISH_PLAN, keys_with_own_parent, plan_keys
+
+
+def _with_publish_targets(config: dict, targets: list[str]) -> dict:
+    """Возвращает конфиг с явным ``publish_targets`` и родителями у всех типов, которым он нужен."""
+    strategies = {key: {"root_parent_name": "Родитель"} for key in keys_with_own_parent()}
+    return {**config, "strategies": strategies, "publish_targets": targets}
 
 
 @pytest.mark.contract
@@ -219,7 +224,7 @@ def test_single_page_section_rejects_missing_or_blank_page_title(
     ``page_title`` секции любой одностраничной стратегии обязан быть
     непустой строкой: ``None``, пустое значение и пробелы отклоняются при загрузке конфига.
 
-    Проверка выполняется для любой из этих секций, независимо от ``publish_all.targets``:
+    Проверка выполняется для любой из этих секций, независимо от ``publish_targets``:
     страница с пустым заголовком не публикуется ни одной командой.
     """
     payload = {
@@ -232,21 +237,21 @@ def test_single_page_section_rejects_missing_or_blank_page_title(
 
 
 @pytest.mark.business_logic
-def test_publish_all_targets_default_to_all_types_and_config_stays_valid_without_sections(
+def test_publish_targets_targets_default_to_all_types_and_config_stays_valid_without_sections(
     valid_confluence_config: dict,
 ) -> None:
     """
-    Без ключа ``publish_all`` выбраны все типы плана, но конфиг без секций с родителями валиден.
+    Без ключа ``publish_targets`` выбраны все типы плана, но конфиг без секций с родителями валиден.
 
     Такой конфиг может использоваться только отдельными командами ``publish ...``, поэтому
     при загрузке схема на отсутствие родителей не реагирует. Полноту родителей для
-    ``publish all`` показывает ``missing_root_parents_error()``: в нём перечислены все
+    ``publish targets`` показывает ``missing_root_parents_error()``: в нём перечислены все
     секции, у которых родитель берётся из конфига, а ``profile_centric`` не упоминается —
     профильная страница публикуется дочерней к релизу.
     """
     config = ConfluenceConfigSchema(**valid_confluence_config)
 
-    assert config.publish_all.targets == plan_keys()
+    assert config.publish_targets == plan_keys()
     error = config.missing_root_parents_error()
     assert error is not None
     for node in PUBLISH_PLAN:
@@ -266,24 +271,26 @@ def test_publish_all_targets_default_to_all_types_and_config_stays_valid_without
         pytest.param(["release", "unknown"], "неизвестные типы: unknown", id="unknown-type"),
     ],
 )
-def test_publish_all_config_rejects_invalid_targets(targets: list[str], message: str) -> None:
+def test_publish_targets_rejects_invalid_list(
+    valid_confluence_config: dict, targets: list[str], message: str
+) -> None:
     """
-    ``PublishAllConfig`` отклоняет пустой список, повторы, неизвестные типы и ``profile_centric``
+    ``publish_targets`` отклоняет пустой список, повторы, неизвестные типы и ``profile_centric``
     без ``release``.
 
     Профильная страница публикуется дочерней к странице релиза, поэтому без ``release`` у неё
     нет родителя; ошибка выявляется при загрузке конфига, а не в середине публикации.
     """
     with pytest.raises(ValidationError, match=message):
-        PublishAllConfig(targets=targets)
+        ConfluenceConfigSchema(**_with_publish_targets(valid_confluence_config, targets))
 
 
 @pytest.mark.business_logic
-def test_explicit_publish_all_requires_root_parent_for_selected_types_with_own_parent(
+def test_explicit_publish_targets_requires_root_parent_for_selected_types_with_own_parent(
     valid_confluence_config: dict,
 ) -> None:
     """
-    Если ``publish_all`` указан явно, у каждого выбранного типа обязан быть родитель в конфиге.
+    Если ``publish_targets`` указан явно, у каждого выбранного типа обязан быть родитель в конфиге.
 
     Выбраны release, kit_pinned и kit_latest, а родитель задан только у release. Ошибка
     называет сразу обе недостающие секции и подсказывает, как её устранить.
@@ -291,7 +298,7 @@ def test_explicit_publish_all_requires_root_parent_for_selected_types_with_own_p
     payload = {
         **valid_confluence_config,
         "strategies": {"release": {"root_parent_name": "R"}},
-        "publish_all": {"targets": ["release", "kit_pinned", "kit_latest"]},
+        "publish_targets": ["release", "kit_pinned", "kit_latest"],
     }
 
     with pytest.raises(ValidationError) as exc_info:
@@ -303,7 +310,7 @@ def test_explicit_publish_all_requires_root_parent_for_selected_types_with_own_p
 
 
 @pytest.mark.business_logic
-def test_explicit_publish_all_does_not_require_sections_of_unselected_types(
+def test_explicit_publish_targets_does_not_require_sections_of_unselected_types(
     valid_confluence_config: dict,
 ) -> None:
     """
@@ -315,7 +322,7 @@ def test_explicit_publish_all_does_not_require_sections_of_unselected_types(
     payload = {
         **valid_confluence_config,
         "strategies": {"release": {"root_parent_name": "R"}},
-        "publish_all": {"targets": ["release", "profile_centric"]},
+        "publish_targets": ["release", "profile_centric"],
     }
 
     config = ConfluenceConfigSchema(**payload)
@@ -328,7 +335,7 @@ def test_profile_centric_page_title_defaults_to_non_empty_title(
     valid_confluence_config: dict,
 ) -> None:
     """
-    У профильной страницы есть непустой заголовок по умолчанию, поэтому ``publish all``
+    У профильной страницы есть непустой заголовок по умолчанию, поэтому ``publish targets``
     не требует настраивать секцию ``profile_centric`` ради одного заголовка.
     """
     config = ConfluenceConfigSchema(**valid_confluence_config)
@@ -345,12 +352,13 @@ def test_profile_centric_page_title_defaults_to_non_empty_title(
         if node.parent_from is not None
     ],
 )
-def test_publish_all_targets_validation_follows_publish_plan_parents(
+def test_publish_targets_validation_follows_publish_plan_parents(
+    valid_confluence_config: dict,
     key: str,
     parent_key: str,
 ) -> None:
     """
-    Валидация ``targets`` обобщена по ``parent_from`` из ``PUBLISH_PLAN``.
+    Валидация ``publish_targets`` обобщена по ``parent_from`` из ``PUBLISH_PLAN``.
 
     Для каждого узла плана с ``parent_from`` проверяются два сценария: выбор узла без
     его родителя отклоняется с подсказкой ``добавьте '<родитель>'``, а выбор узла
@@ -358,6 +366,9 @@ def test_publish_all_targets_validation_follows_publish_plan_parents(
     тип автоматически получает ту же проверку без правок валидатора.
     """
     with pytest.raises(ValidationError, match=f"добавьте '{parent_key}'"):
-        PublishAllConfig(targets=[key])
+        ConfluenceConfigSchema(**_with_publish_targets(valid_confluence_config, [key]))
 
-    assert PublishAllConfig(targets=[parent_key, key]).targets == [parent_key, key]
+    config = ConfluenceConfigSchema(
+        **_with_publish_targets(valid_confluence_config, [parent_key, key])
+    )
+    assert config.publish_targets == [parent_key, key]

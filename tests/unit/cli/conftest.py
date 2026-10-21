@@ -96,7 +96,7 @@ def mock_publisher(
     """
     Создаёт поддельный паблишер с успешным отчётом и отдаёт его из ``make_publisher``.
 
-    Все методы публикации (``publish_passports``, ``publish_single_page``, ``publish_all``)
+    Все методы публикации (``publish_passports``, ``publish_single_page``, ``publish_targets``)
     по умолчанию возвращают успешный отчёт; другой отчёт тест задаёт через
     ``mock_publisher.<метод>.return_value``. Конфиг Confluence по умолчанию — минимальный
     валидный. Загрузка данных парсера подменяется вместе с паблишером.
@@ -113,6 +113,6 @@ def mock_publisher(
     report = make_publish_report()
     publisher.publish_passports.return_value = report
     publisher.publish_single_page.return_value = report
-    publisher.publish_all.return_value = report
+    publisher.publish_targets.return_value = report
     make_publisher_mock.return_value = (publisher, make_confluence_config())
     return publisher

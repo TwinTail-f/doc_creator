@@ -4,7 +4,7 @@
 
 import pytest
 
-from autodoc.config.schemas.confluence_config import PublishAllConfig, StrategiesConfig
+from autodoc.config.schemas.confluence_config import ConfluenceConfigSchema, StrategiesConfig
 from autodoc.publisher.strategies import registry
 from autodoc.publisher.strategies.publish_plan import (
     PUBLISH_PLAN,
@@ -49,7 +49,7 @@ def test_publish_plan_parent_precedes_child_and_is_single_page(node: PublishNode
     """
     Родитель стоит в плане раньше потомка и является одностраничной стратегией.
 
-    ``publish_all()`` читает ``details[0]["page_id"]`` из отчёта родителя. У многостраничной
+    ``publish_targets()`` читает ``details[0]["page_id"]`` из отчёта родителя. У многостраничной
     стратегии (например, паспортов) «первая запись» не определяет родителя, а родитель,
     опубликованный позже потомка, на момент публикации потомка ещё не существует.
     """
@@ -61,14 +61,14 @@ def test_publish_plan_parent_precedes_child_and_is_single_page(node: PublishNode
 
 
 @pytest.mark.contract
-def test_publish_all_default_targets_follow_plan_order() -> None:
+def test_publish_targets_default_follows_plan_order(valid_confluence_config: dict) -> None:
     """
-    Значение ``targets`` по умолчанию совпадает с порядком плана.
+    Значение ``publish_targets`` по умолчанию совпадает с порядком плана.
 
-    Без явного ``publish_all`` публикуются все типы; список по умолчанию строится из
+    Без явного ``publish_targets`` публикуются все типы; список по умолчанию строится из
     ``plan_keys()``, поэтому новый узел плана попадает в него без правок конфига.
     """
-    assert PublishAllConfig().targets == plan_keys()
+    assert ConfluenceConfigSchema(**valid_confluence_config).publish_targets == plan_keys()
 
 
 @pytest.mark.contract

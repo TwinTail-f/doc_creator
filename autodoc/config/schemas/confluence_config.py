@@ -113,46 +113,6 @@ class StrategiesConfig(BaseModel):
         return self
 
 
-class PublishAllConfig(BaseModel):
-    """Настройки команды ``publish all``: какие типы публикации она выполняет."""
-
-    targets: list[str] = Field(
-        default_factory=plan_keys,
-        min_length=1,
-        description=(
-            f"Типы публикации для publish all: {', '.join(plan_keys())}. "
-            "По умолчанию — все. Порядок публикации задаётся планом публикации "
-            "и от порядка в списке не зависит."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def _validate_targets(self) -> "PublishAllConfig":
-        """Запрещает неизвестные типы, повторы и дочерние типы без родителя из плана."""
-        known = plan_keys()
-        unknown = list(dict.fromkeys(t for t in self.targets if t not in known))
-        if unknown:
-            raise ValueError(
-                f"publish_all.targets: неизвестные типы: {', '.join(unknown)}. "
-                f"Допустимые: {', '.join(known)}."
-            )
-        duplicates = sorted({t for t in self.targets if self.targets.count(t) > 1})
-        if duplicates:
-            raise ValueError(f"publish_all.targets: повторяющиеся типы: {', '.join(duplicates)}.")
-        for node in PUBLISH_PLAN:
-            if (
-                node.parent_from is not None
-                and node.key in self.targets
-                and node.parent_from not in self.targets
-            ):
-                raise ValueError(
-                    f"publish_all.targets: '{node.key}' публикуется дочерней страницей "
-                    f"'{node.parent_from}', добавьте '{node.parent_from}' "
-                    f"или уберите '{node.key}'."
-                )
-        return self
-
-
 class ConfluenceConfigSchema(BaseModel):
     """Схема валидации ``confluence_config.json`` / ``confluence_config.yaml``."""
 
@@ -181,9 +141,14 @@ class ConfluenceConfigSchema(BaseModel):
         description="Настройки публикации по типам стратегий.",
     )
 
-    publish_all: PublishAllConfig = Field(
-        default_factory=PublishAllConfig,
-        description="Настройки publish all: какие типы публикации выполнять.",
+    publish_targets: list[str] = Field(
+        default_factory=plan_keys,
+        min_length=1,
+        description=(
+            f"Типы публикации для publish targets: {', '.join(plan_keys())}. "
+            "По умолчанию — все. Порядок публикации задаётся планом публикации "
+            "и от порядка в списке не зависит."
+        ),
     )
 
     confluence_request_timeout: int = Field(
@@ -226,7 +191,7 @@ class ConfluenceConfigSchema(BaseModel):
 
     def missing_root_parents_error(self) -> str | None:
         """
-        Проверяет, что у выбранных в ``publish_all.targets`` типов задан родитель.
+        Проверяет, что у выбранных в ``publish_targets`` типов задан родитель.
 
         Родитель (``root_parent_name`` или ``root_parent_id``) нужен типам плана без
         ``parent_from``. Типам с ``parent_from`` (профильная страница) он не нужен:
@@ -238,32 +203,59 @@ class ConfluenceConfigSchema(BaseModel):
         missing = [
             f"strategies.{target}"
             for target in keys_with_own_parent()
-            if target in self.publish_all.targets
+            if target in self.publish_targets
             and not getattr(self.strategies, target).root_parent_id
             and not getattr(self.strategies, target).root_parent_name
         ]
         if not missing:
             return None
         return (
-            "publish_all.targets: для выбранных типов не задан root_parent_name или "
+            "publish_targets: для выбранных типов не задан root_parent_name или "
             f"root_parent_id: {', '.join(missing)}. Заполните эти секции в конфиге "
-            "или уберите соответствующие типы из publish_all.targets."
+            "или уберите соответствующие типы из publish_targets."
         )
 
     @model_validator(mode="after")
-    def _require_root_parents_for_explicit_publish_all(self) -> "ConfluenceConfigSchema":
+    def _require_root_parents_for_explicit_publish_targets(self) -> "ConfluenceConfigSchema":
         """
-        Если ``publish_all`` явно указан в конфиге, у выбранных типов должен быть родитель.
+        Если ``publish_targets`` явно указан в конфиге, у выбранных типов должен быть родитель.
 
-        Без явного ``publish_all`` публикуются все типы, но конфиг остаётся валидным:
+        Без явного ``publish_targets`` публикуются все типы, но конфиг остаётся валидным:
         он может использоваться только отдельными командами ``publish ...``.
-        Тогда наличие родителей проверяет сам ``publish all`` перед публикацией.
+        Тогда наличие родителей проверяет сам ``publish targets`` перед публикацией.
         """
-        if "publish_all" in self.model_fields_set:
+        if "publish_targets" in self.model_fields_set:
             error = self.missing_root_parents_error()
             if error:
                 raise ValueError(error)
         return self
+
+    @field_validator("publish_targets")
+    @classmethod
+    def _validate_publish_targets(cls, targets: list[str]) -> list[str]:
+        """Запрещает неизвестные типы, повторы и дочерние типы без родителя из плана."""
+        known = plan_keys()
+        unknown = list(dict.fromkeys(t for t in targets if t not in known))
+        if unknown:
+            raise ValueError(
+                f"publish_targets: неизвестные типы: {', '.join(unknown)}. "
+                f"Допустимые: {', '.join(known)}."
+            )
+        duplicates = sorted({t for t in targets if targets.count(t) > 1})
+        if duplicates:
+            raise ValueError(f"publish_targets: повторяющиеся типы: {', '.join(duplicates)}.")
+        for node in PUBLISH_PLAN:
+            if (
+                node.parent_from is not None
+                and node.key in targets
+                and node.parent_from not in targets
+            ):
+                raise ValueError(
+                    f"publish_targets: '{node.key}' публикуется дочерней страницей "
+                    f"'{node.parent_from}', добавьте '{node.parent_from}' "
+                    f"или уберите '{node.key}'."
+                )
+        return targets
 
     @field_validator("url")
     @classmethod
