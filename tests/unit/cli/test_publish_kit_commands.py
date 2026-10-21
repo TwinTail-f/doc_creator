@@ -30,7 +30,6 @@ _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
 _EXIT_USAGE_ERROR: int = 2  # click: неизвестная опция / неверные аргументы командной строки
 _KIT_PINNED_MODULE = "autodoc.cli.commands.publish.kit_pinned"
-_SINGLE_PAGE_MODULE = "autodoc.cli.commands.publish.single_page"
 
 
 def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
@@ -58,12 +57,6 @@ def _invoke(tmp_path: Path, configs_dir: Path, command: str, *args: str):
             *args,
         ],
     )
-
-
-@pytest.fixture()
-def command_module() -> str:
-    """Модуль команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``."""
-    return _SINGLE_PAGE_MODULE
 
 
 @pytest.mark.business_logic

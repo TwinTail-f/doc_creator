@@ -33,27 +33,30 @@ def configs_dir(tmp_path: Path) -> Path:
     return directory
 
 
+_PUBLISH_COMMAND_MODULES: tuple[str, ...] = (
+    "autodoc.cli.commands.publish.passports",
+    "autodoc.cli.commands.publish.single_page",
+    "autodoc.cli.commands.publish.targets",
+)
+"""
+Модули команд публикации, которые импортируют ``make_publisher`` и ``load_parsed_data``.
+
+Подмена должна попасть в модуль, где команда импортировала имя, а не в ``autodoc.cli.helpers``.
+Новая команда, которая вызывает эти функции, должна быть добавлена сюда: иначе её тесты упадут
+на настоящем ``make_publisher``.
+"""
+
+
+def _patch_in_command_modules(mocker: MockerFixture, name: str, replacement: MagicMock) -> None:
+    """Подменяет ``name`` одним и тем же объектом во всех модулях команд публикации."""
+    for module_path in _PUBLISH_COMMAND_MODULES:
+        mocker.patch(f"{module_path}.{name}", new=replacement)
+
+
 @pytest.fixture()
-def command_module() -> str:
+def make_publisher_mock(mocker: MockerFixture) -> MagicMock:
     """
-    Возвращает путь модуля команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``.
-
-    Подмены должны попасть в тот модуль, где команда их импортирует. Тестовый модуль
-    переопределяет эту фикстуру и возвращает путь своей команды.
-
-    Returns:
-        Полный путь модуля, например ``"autodoc.cli.commands.publish.passports"``.
-
-    Raises:
-        NotImplementedError: Если тестовый модуль не переопределил фикстуру.
-    """
-    raise NotImplementedError("Переопределите фикстуру command_module в тестовом модуле")
-
-
-@pytest.fixture()
-def make_publisher_mock(mocker: MockerFixture, command_module: str) -> MagicMock:
-    """
-    Подменяет ``make_publisher`` в модуле команды и возвращает эту подмену.
+    Подменяет ``make_publisher`` во всех командах публикации и возвращает эту подмену.
 
     Возвращаемое значение настраивает фикстура ``mock_publisher``. Тесты, которым нужен другой
     конфиг Confluence, переопределяют ``return_value`` подмены, а тесты на ошибку при создании
@@ -61,30 +64,32 @@ def make_publisher_mock(mocker: MockerFixture, command_module: str) -> MagicMock
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
-        command_module: Путь модуля команды.
 
     Returns:
         Подмена ``make_publisher``.
     """
-    return mocker.patch(f"{command_module}.make_publisher")
+    replacement = mocker.MagicMock(name="make_publisher")
+    _patch_in_command_modules(mocker, "make_publisher", replacement)
+    return replacement
 
 
 @pytest.fixture()
-def load_parsed_data_mock(mocker: MockerFixture, command_module: str) -> MagicMock:
+def load_parsed_data_mock(mocker: MockerFixture) -> MagicMock:
     """
-    Подменяет ``load_parsed_data`` в модуле команды: возвращает валидный результат парсера.
+    Подменяет ``load_parsed_data`` во всех командах публикации: возвращает валидный результат.
 
     Тест, проверяющий отсутствие ``parsed_data.json``, эту фикстуру не запрашивает —
     тогда выполняется настоящая загрузка из пустой директории.
 
     Args:
         mocker: Фикстура pytest-mock для создания подмен.
-        command_module: Путь модуля команды.
 
     Returns:
         Подмена ``load_parsed_data``.
     """
-    return mocker.patch(f"{command_module}.load_parsed_data", return_value=make_parsed_result())
+    replacement = mocker.MagicMock(name="load_parsed_data", return_value=make_parsed_result())
+    _patch_in_command_modules(mocker, "load_parsed_data", replacement)
+    return replacement
 
 
 @pytest.fixture()

@@ -13,8 +13,6 @@ from tests.unit.cli.utils import make_confluence_config, make_publish_report
 _EXIT_SUCCESS: int = 0
 _EXIT_FAILURE: int = 1
 
-_MODULE = "autodoc.cli.commands.publish.passports"
-
 
 def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
     """
@@ -40,12 +38,6 @@ def _invoke(tmp_path: Path, configs_dir: Path, *args: str):
             *args,
         ],
     )
-
-
-@pytest.fixture()
-def command_module() -> str:
-    """Модуль команды, в котором подменяются ``make_publisher`` и ``load_parsed_data``."""
-    return _MODULE
 
 
 @pytest.mark.business_logic

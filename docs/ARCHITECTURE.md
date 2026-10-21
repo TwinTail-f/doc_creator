@@ -436,8 +436,10 @@ PUBLISH_PLAN: tuple[PublishNode, ...] = (
 - CLI-команда — `tests/unit/cli/test_publish_my_page_command.py` (образцы —
   `test_publish_kit_commands.py`, `test_publish_single_page.py`).
   Подмены `make_publisher` и `load_parsed_data` уже есть в `tests/unit/cli/conftest.py`
-  (фикстуры `mock_publisher`, `make_publisher_mock`, `load_parsed_data_mock`); в тестовом
-  модуле достаточно переопределить фикстуру `command_module`, вернув путь модуля команды;
+  (фикстуры `mock_publisher`, `make_publisher_mock`, `load_parsed_data_mock`). Если новая
+  команда сама вызывает `make_publisher` или `load_parsed_data`, добавьте её модуль в
+  `_PUBLISH_COMMAND_MODULES` в этом `conftest.py`; команды на базе `single_page.py` ничего
+  добавлять не требуют;
 - строку нового типа в таблицу ожиданий `test_registry.py` (признак одностраничности и класс
   стратегии): там ожидания для каждого типа заданы явно.
 
